@@ -14103,19 +14103,6 @@ body.podium-modal-open .topbar{
 }
 
 
-/* Public read-only Live View launcher */
-.top-actions .live-view-open-btn{
-  background:linear-gradient(135deg,#12b9ad,#087c86)!important;
-  border:1px solid rgba(105,245,226,.45)!important;
-  color:#fff!important;
-  font-weight:850!important;
-  box-shadow:0 4px 14px rgba(3,180,169,.18);
-}
-.top-actions .live-view-open-btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
-@media(max-width:700px){
-  .top-actions .live-view-open-btn{padding:6px 8px!important;font-size:10px!important;}
-}
-
 
 /* Shareable public Live View QR modal */
 .top-actions .live-view-qr-open-btn{background:#0b7774;color:#fff;border:1px solid #25aaa3;}
@@ -14138,3 +14125,499 @@ body.podium-modal-open .topbar{
 .live-view-qr-actions button.blue{background:#087e81;color:#fff;}
 .live-view-qr-footer{margin:17px 0 0;padding-top:13px;border-top:1px solid #dce8ea;color:#607a80;font-size:11px;line-height:1.5;}
 @media(max-width:560px){.live-view-qr-modal-box{padding:15px!important;}.live-view-qr-content{grid-template-columns:1fr;gap:15px;}.live-view-qr-image-wrap{min-height:0;padding:8px;}.live-view-qr-image-wrap img{max-width:210px;}.live-view-qr-details>p{margin-bottom:10px;}}
+
+
+/* Organizer-only Live View theme control, placed in top-actions. */
+.top-actions .live-view-theme-toggle{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;
+  background:#173d48!important;color:#d9f7f5!important;border:1px solid #24505a!important;
+  border-radius:8px!important;font-weight:850!important;cursor:pointer;
+}
+.top-actions .live-view-theme-toggle:hover{background:#20505b!important;border-color:#28b8ae!important;}
+.top-actions .live-view-theme-toggle:focus-visible{outline:2px solid #27d3c5;outline-offset:2px;}
+.top-actions .live-view-theme-icon{font-size:14px;line-height:1;}
+.top-actions .live-view-theme-label{line-height:1;}
+@media(max-width:700px){.top-actions .live-view-theme-toggle{padding:6px 8px!important;font-size:10px!important;}}
+@media(max-width:560px){.top-actions .live-view-theme-toggle{gap:0;min-width:30px;padding:6px!important}.top-actions .live-view-theme-label{display:none;}}
+
+
+/* LIVE VIEW-INSPIRED TOPBAR — keep existing sizing and responsive layout intact. */
+.topbar {
+  background: rgba(4, 30, 37, .97) !important;
+  color: #eefafa !important;
+  border-top-color: transparent !important;
+  border-bottom: 1px solid #24535a !important;
+  box-shadow: inset 0 -1px 0 rgba(39, 211, 197, .08), 0 8px 22px rgba(0, 0, 0, .18) !important;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.topbar .topbar-logo-img {
+  filter: drop-shadow(0 0 4px rgba(39, 211, 197, .16)) !important;
+}
+.topbar .event-title,
+.topbar .event-title:hover,
+.topbar .event-title:focus,
+.topbar .event-title:focus-visible {
+  color: #eefafa !important;
+  transition: none !important;
+}
+.topbar .event-stats,
+.topbar .event-stats .event-stat-text {
+  color: #9dbfc3 !important;
+}
+.topbar .event-stats .event-stat-sep {
+  color: #41666c !important;
+}
+.topbar .event-rule-btn,
+.topbar .event-rule-btn:hover,
+.topbar .event-rule-btn:focus-visible {
+  color: #27d3c5 !important;
+  text-decoration: none !important;
+}
+.topbar .top-actions button:not(.danger),
+.topbar #tabletResultsOpenBtn {
+  background: #0e3a43 !important;
+  color: #eefafa !important;
+  border: 1px solid #24535a !important;
+  border-radius: 9px !important;
+  box-shadow: none !important;
+}
+.topbar .top-actions button:not(.danger):hover,
+.topbar .top-actions button:not(.danger):focus-visible,
+.topbar #tabletResultsOpenBtn:hover,
+.topbar #tabletResultsOpenBtn:focus-visible {
+  background: #12464f !important;
+  color: #ffffff !important;
+  border-color: #2b7b80 !important;
+  box-shadow: none !important;
+}
+.topbar .top-actions .live-view-theme-toggle,
+.topbar .top-actions .live-view-theme-toggle:hover {
+  background: #0e3a43 !important;
+  color: #d9f7f5 !important;
+  border-color: #24535a !important;
+}
+.topbar .top-actions .live-view-qr-open-btn,
+.topbar .top-actions .live-view-qr-open-btn:hover {
+  background: #0b7774 !important;
+  color: #ffffff !important;
+  border-color: #25aaa3 !important;
+}
+.topbar .top-actions .danger,
+.topbar .top-actions .danger:hover,
+.topbar .top-actions .danger:focus-visible {
+  background: transparent !important;
+  color: #ff7078 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+/* Prevent hover/active movement across the entire topbar. Hover states only recolor. */
+.topbar button,
+.topbar a,
+.topbar .event-title,
+.topbar .event-rule-btn,
+.topbar button:hover,
+.topbar button:active,
+.topbar button:focus,
+.topbar a:hover,
+.topbar a:active,
+.topbar .event-rule-btn:hover,
+.topbar .event-rule-btn:active {
+  transform: none !important;
+  translate: none !important;
+  animation: none !important;
+}
+.topbar .top-actions button,
+.topbar .top-actions button:hover,
+.topbar .top-actions button:active,
+.topbar .top-actions button:focus-visible,
+.topbar .event-rule-btn,
+.topbar .event-rule-btn:hover,
+.topbar .event-rule-btn:focus-visible {
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease !important;
+}
+
+/* COURT SETTINGS — match the Live View dark-teal visual system.
+   Intentionally scoped to Court Settings only; layout and JavaScript behavior stay unchanged. */
+#courtSettingsModal.modal{
+  background:rgba(2,18,22,.78)!important;
+  -webkit-backdrop-filter:blur(5px)!important;
+  backdrop-filter:blur(5px)!important;
+}
+#courtSettingsModal .court-settings-modal-box{
+  color-scheme:dark!important;
+  color:#eefafa!important;
+  background:radial-gradient(ellipse at 50% -160px,rgba(39,211,197,.14) 0,transparent 68%),linear-gradient(155deg,#0b3039 0%,#08262e 100%)!important;
+  border:1px solid #1c5059!important;
+  border-top:1px solid #24535a!important;
+  border-radius:17px!important;
+  box-shadow:0 24px 70px rgba(0,0,0,.48),inset 0 1px 0 rgba(238,250,250,.025)!important;
+}
+#courtSettingsModal .court-settings-modal-box::before{
+  height:3px!important;
+  background:linear-gradient(90deg,#0b7774 0%,#27d3c5 52%,#8be8de 100%)!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-head h2{
+  color:#eefafa!important;
+  font-weight:900!important;
+  letter-spacing:-.35px!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-head .modal-note{
+  color:#9dbfc3!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-section-title{
+  color:#27d3c5!important;
+  font-weight:950!important;
+  letter-spacing:1.15px!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input{
+  color:#eefafa!important;
+  background:#08272f!important;
+  border:1px solid #24535a!important;
+  border-radius:10px!important;
+  box-shadow:none!important;
+  caret-color:#27d3c5!important;
+  transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input::placeholder{
+  color:#739ba0!important;
+  opacity:1!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input:focus{
+  background:#0a2d35!important;
+  border-color:#27d3c5!important;
+  box-shadow:0 0 0 3px rgba(39,211,197,.14)!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-add-btn,
+#courtSettingsModal .court-settings-modal-box .settings-modal-actions .blue{
+  color:#04272d!important;
+  background:#27d3c5!important;
+  border:1px solid #27d3c5!important;
+  font-weight:950!important;
+  box-shadow:none!important;
+  transition:background-color .16s ease,border-color .16s ease,color .16s ease!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-add-btn:hover,
+#courtSettingsModal .court-settings-modal-box .settings-modal-actions .blue:hover{
+  color:#032329!important;
+  background:#55e1d7!important;
+  border-color:#55e1d7!important;
+  box-shadow:0 3px 12px rgba(39,211,197,.12)!important;
+  transform:none!important;
+}
+#courtSettingsModal .court-settings-modal-box .quick-court-btn{
+  color:#d9f7f5!important;
+  background:#0e3a43!important;
+  border:1px solid #24535a!important;
+  border-radius:8px!important;
+  box-shadow:none!important;
+  transition:background-color .16s ease,border-color .16s ease,color .16s ease!important;
+}
+#courtSettingsModal .court-settings-modal-box .quick-court-btn:hover,
+#courtSettingsModal .court-settings-modal-box .quick-court-btn:focus-visible{
+  color:#ffffff!important;
+  background:#12464f!important;
+  border-color:#2b7b80!important;
+  box-shadow:none!important;
+  transform:none!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip{
+  color:#d9f7f5!important;
+  background:#103b43!important;
+  border:1px solid #285b63!important;
+  border-radius:8px!important;
+  box-shadow:none!important;
+  transition:background-color .16s ease,border-color .16s ease,color .16s ease!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip .pool-dot{
+  background:#27d3c5!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip button{
+  color:#70ded7!important;
+  border:0!important;
+  background:transparent!important;
+  border-radius:5px!important;
+  box-shadow:none!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip button:hover:not(:disabled){
+  color:#ffffff!important;
+  background:#1a555c!important;
+  transform:none!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip.is-playing{
+  color:#ffd58c!important;
+  background:#332f21!important;
+  border-color:#725c31!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip.is-playing .pool-dot{
+  background:#ffb04e!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip.is-playing button{
+  color:#ffca70!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-skill-row{
+  background:#0b2931!important;
+  border:1px solid #1d4851!important;
+  border-radius:9px!important;
+  box-shadow:none!important;
+  transition:background-color .16s ease,border-color .16s ease!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-skill-row:hover{
+  background:#0e333b!important;
+  border-color:#2a6268!important;
+  transform:none!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-skill-name{
+  color:#d9f0f2!important;
+  font-weight:850!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-settings-skills .court-skill-btn:not(.selected){
+  color:#9dbfc3!important;
+  background:#10343d!important;
+  border:1px solid #28545c!important;
+  box-shadow:none!important;
+  transform:none!important;
+  transition:background-color .14s ease,border-color .14s ease,color .14s ease!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-settings-skills .court-skill-btn:hover:not(.selected),
+#courtSettingsModal .court-settings-modal-box .court-settings-skills .court-skill-btn:focus-visible:not(.selected){
+  color:#eefafa!important;
+  background:#16434b!important;
+  border-color:#2b7b80!important;
+  box-shadow:none!important;
+  transform:none!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-help{
+  color:#86aeb2!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-modal-actions{
+  border-top:1px solid #1c5059!important;
+  background:transparent!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-modal-actions button{
+  box-shadow:none!important;
+  transform:none!important;
+  transition:background-color .16s ease,border-color .16s ease,color .16s ease!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-modal-actions button:first-child{
+  color:#c8e1e3!important;
+  background:#0e3a43!important;
+  border:1px solid #285b63!important;
+}
+#courtSettingsModal .court-settings-modal-box .settings-modal-actions button:first-child:hover,
+#courtSettingsModal .court-settings-modal-box .settings-modal-actions button:first-child:focus-visible{
+  color:#ffffff!important;
+  background:#12464f!important;
+  border-color:#2b7b80!important;
+  transform:none!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-settings-pool::-webkit-scrollbar-thumb,
+#courtSettingsModal .court-settings-modal-box .court-settings-skills::-webkit-scrollbar-thumb{
+  background:#2d6670!important;
+  border-radius:8px!important;
+}
+#courtSettingsModal .court-settings-modal-box .court-settings-pool::-webkit-scrollbar-track,
+#courtSettingsModal .court-settings-modal-box .court-settings-skills::-webkit-scrollbar-track{
+  background:transparent!important;
+}
+#courtSettingsModal .court-settings-modal-box button:hover,
+#courtSettingsModal .court-settings-modal-box button:active,
+#courtSettingsModal .court-settings-modal-box button:focus-visible,
+#courtSettingsModal .court-settings-modal-box .court-skill-row:hover{
+  translate:none!important;
+  animation:none!important;
+}
+
+
+/* COURT SETTINGS BACKGROUND FIX — force the dark Live View surface over legacy light CSS.
+   Scoped only to Court Settings; modal structure and functionality remain unchanged. */
+html body #courtSettingsModal.modal:not(.hidden) > .modal-box.court-settings-modal-box,
+html body #courtSettingsModal .modal-box.court-settings-modal-box {
+  color-scheme: dark !important;
+  color: #eefafa !important;
+  background-color: #08262e !important;
+  background-image:
+    radial-gradient(ellipse at 50% -160px, rgba(39, 211, 197, .14) 0, transparent 68%),
+    linear-gradient(155deg, #0b3039 0%, #08262e 100%) !important;
+  border: 1px solid #1c5059 !important;
+  border-top: 1px solid #24535a !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .48), inset 0 1px 0 rgba(238, 250, 250, .025) !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-modal-actions {
+  color: #eefafa !important;
+  background: transparent !important;
+  border-top: 1px solid #1c5059 !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-settings-pool,
+html body #courtSettingsModal .court-settings-modal-box .court-settings-skills,
+html body #courtSettingsModal .court-settings-modal-box .court-settings-quick-add {
+  background-color: transparent !important;
+  color: #eefafa !important;
+}
+
+
+/* COURT SETTINGS — SOLID WHITE MODAL SURFACE.
+   Keep the modal itself pure white; retain Live View teal accents and readable light controls. */
+html body #courtSettingsModal.modal:not(.hidden) > .modal-box.court-settings-modal-box,
+html body #courtSettingsModal .modal-box.court-settings-modal-box {
+  color-scheme: light !important;
+  color: #183b40 !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid #d9e7e9 !important;
+  border-top: 1px solid #bfe9e5 !important;
+  box-shadow: 0 24px 70px rgba(0, 30, 36, .22), inset 0 1px 0 rgba(255, 255, 255, .9) !important;
+}
+html body #courtSettingsModal .court-settings-modal-box::before {
+  height: 3px !important;
+  background: linear-gradient(90deg, #0b7774 0%, #27d3c5 52%, #8be8de 100%) !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-head h2 {
+  color: #123c42 !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-head .modal-note,
+html body #courtSettingsModal .court-settings-modal-box .settings-help {
+  color: #60777b !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-section-title {
+  color: #087d79 !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input {
+  color: #183b40 !important;
+  background: #ffffff !important;
+  border: 1px solid #cbdfe1 !important;
+  box-shadow: none !important;
+  caret-color: #087d79 !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input::placeholder {
+  color: #7a9296 !important;
+  opacity: 1 !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input:focus {
+  background: #ffffff !important;
+  border-color: #27bdb1 !important;
+  box-shadow: 0 0 0 3px rgba(39, 189, 177, .15) !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-add-btn,
+html body #courtSettingsModal .court-settings-modal-box .settings-modal-actions .blue {
+  color: #06363a !important;
+  background: #27d3c5 !important;
+  border: 1px solid #27c7bb !important;
+  box-shadow: none !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-add-btn:hover,
+html body #courtSettingsModal .court-settings-modal-box .settings-modal-actions .blue:hover {
+  color: #032d31 !important;
+  background: #55e1d7 !important;
+  border-color: #42d8cd !important;
+  box-shadow: 0 3px 12px rgba(39, 189, 177, .14) !important;
+  transform: none !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .quick-court-btn {
+  color: #16464a !important;
+  background: #f0fbfa !important;
+  border: 1px solid #cfe9e7 !important;
+  box-shadow: none !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .quick-court-btn:hover,
+html body #courtSettingsModal .court-settings-modal-box .quick-court-btn:focus-visible {
+  color: #0d383b !important;
+  background: #e3f8f6 !important;
+  border-color: #80d9d1 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip {
+  color: #24484d !important;
+  background: #f8fcfc !important;
+  border: 1px solid #d6e6e8 !important;
+  box-shadow: none !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip .pool-dot {
+  background: #27bdb1 !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip button {
+  color: #167f7a !important;
+  background: transparent !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip button:hover:not(:disabled) {
+  color: #075a58 !important;
+  background: #e3f8f6 !important;
+  transform: none !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip.is-playing {
+  color: #6d4d14 !important;
+  background: #fff8e9 !important;
+  border-color: #edcf8d !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip.is-playing .pool-dot {
+  background: #f0a936 !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-settings-pool .court-pool-chip.is-playing button {
+  color: #93651a !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-skill-row {
+  background: #fbfdfd !important;
+  border: 1px solid #dce9ea !important;
+  box-shadow: none !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-skill-row:hover {
+  background: #f3fbfa !important;
+  border-color: #b9e2df !important;
+  transform: none !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-skill-name {
+  color: #24464b !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-settings-skills .court-skill-btn:not(.selected) {
+  color: #4c696e !important;
+  background: #f7fbfb !important;
+  border: 1px solid #d7e6e7 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-settings-skills .court-skill-btn:hover:not(.selected),
+html body #courtSettingsModal .court-settings-modal-box .court-settings-skills .court-skill-btn:focus-visible:not(.selected) {
+  color: #163f43 !important;
+  background: #eaf8f7 !important;
+  border-color: #8bd8d2 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-modal-actions {
+  color: #183b40 !important;
+  background: #ffffff !important;
+  border-top: 1px solid #e0eaeb !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-modal-actions button {
+  box-shadow: none !important;
+  transform: none !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-modal-actions button:first-child {
+  color: #35575c !important;
+  background: #f5f9f9 !important;
+  border: 1px solid #d7e3e5 !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-modal-actions button:first-child:hover,
+html body #courtSettingsModal .court-settings-modal-box .settings-modal-actions button:first-child:focus-visible {
+  color: #183f43 !important;
+  background: #eaf5f4 !important;
+  border-color: #bddbd9 !important;
+  transform: none !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-settings-pool::-webkit-scrollbar-thumb,
+html body #courtSettingsModal .court-settings-modal-box .court-settings-skills::-webkit-scrollbar-thumb {
+  background: #bdd4d7 !important;
+  border-radius: 8px !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .court-settings-pool::-webkit-scrollbar-track,
+html body #courtSettingsModal .court-settings-modal-box .court-settings-skills::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+html body #courtSettingsModal .court-settings-modal-box button:hover,
+html body #courtSettingsModal .court-settings-modal-box button:active,
+html body #courtSettingsModal .court-settings-modal-box button:focus-visible,
+html body #courtSettingsModal .court-settings-modal-box .court-skill-row:hover {
+  translate: none !important;
+  animation: none !important;
+}

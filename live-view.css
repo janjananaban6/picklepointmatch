@@ -42,48 +42,117 @@ html{min-height:100%;background:var(--bg)}body{margin:0;font-family:Inter,ui-san
 /* Keep the VS divider clear and centered between teams on narrow phones. */
 @media(max-width:560px){.teams{grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:4px}.versus{display:flex;align-items:center;justify-content:center;min-width:0;white-space:nowrap;font-size:8px;letter-spacing:.25px;line-height:1}}
 
+/* LIGHT THEME — paired with the existing live-view theme toggle. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f1f7f8;
+  --panel: #ffffff;
+  --panel2: #edf6f7;
+  --line: #d4e2e4;
+  --teal: #087f80;
+  --muted: #5b7379;
+  --text: #18383e;
+  --orange: #a95c0b;
+  --green: #0c966a;
+  --red: #c33e4b;
+}
+html[data-theme="light"] {
+  background: var(--bg);
+}
+html[data-theme="light"] body {
+  color: var(--text);
+  background: radial-gradient(ellipse at 50% -220px, #d6eeee 0, transparent 62%), var(--bg);
+}
+html[data-theme="light"] .event-subtitle { color: #59747a; }
+html[data-theme="light"] .updated-line { color: #607e83; }
+html[data-theme="light"] .section-card {
+  background: linear-gradient(155deg, #ffffff, #f8fcfc);
+  border-color: #d8e5e7;
+  box-shadow: 0 12px 32px rgba(25, 66, 72, .06);
+}
+html[data-theme="light"] .count-chip {
+  border-color: #d2e3e5;
+  background: #edf7f7;
+  color: #385b61;
+}
+html[data-theme="light"] .court-card {
+  border-color: #d5e3e5;
+  background: linear-gradient(160deg, #ffffff, #f5fafa);
+}
+html[data-theme="light"] .court-card.playing {
+  border-color: #6ac7ae;
+  box-shadow: inset 0 0 0 1px rgba(12, 150, 106, .08);
+}
+html[data-theme="light"] .court-top { border-bottom-color: #dce8e9; }
+html[data-theme="light"] .court-state {
+  color: #456268;
+  background: #eaf1f2;
+}
+html[data-theme="light"] .court-state.playing { background: #dff6ed; color: #08764e; }
+html[data-theme="light"] .court-state.ready { background: #e3f2fb; color: #176a9f; }
+html[data-theme="light"] .court-state.waiting { background: #fff1d5; color: #89530a; }
+html[data-theme="light"] .match-meta { color: #526d73; }
+html[data-theme="light"] .team-label { color: #647f84; }
+html[data-theme="light"] .player-chip {
+  border-color: #d5e3e5;
+  background: #f4f9f9;
+  color: #203e44;
+}
+html[data-theme="light"] .player-chip.empty { color: #73898d; }
+html[data-theme="light"] .versus { color: #6c8589; }
+html[data-theme="light"] .scoreline { color: #24464c; }
+html[data-theme="light"] .scoreline b { color: #087f80; }
+html[data-theme="light"] .score-separator { color: #47656a; }
+html[data-theme="light"] .match-timer.timer-blue { color: #1d67bd; }
+html[data-theme="light"] .match-timer.timer-amber { color: #986000; }
+html[data-theme="light"] .match-timer.timer-red { color: #bd2935; }
+html[data-theme="light"] .queue-item {
+  background: #f7fbfb;
+  border-color: #d9e6e7;
+}
+html[data-theme="light"] .queue-number {
+  background: #dff2f1;
+  color: #087f80;
+}
+html[data-theme="light"] .empty-state {
+  color: #617c81;
+  border-color: #cbdfe1;
+  background: rgba(255, 255, 255, .65);
+}
+html[data-theme="light"] .notice-card {
+  border-color: #e9d09d;
+  background: #fff8e9;
+}
+html[data-theme="light"] .notice-card p { color: #735d34; }
+html[data-theme="light"] .sync-notice {
+  border-color: #e6cf9f;
+  background: #fff8e9;
+  color: #735d34;
+}
+html[data-theme="light"] .sync-notice strong { color: #8b5b00; }
+html[data-theme="light"] .page-footer {
+  border-top-color: #d8e5e6;
+  color: #6c8589;
+}
 
-/* Light / night mode toggle */
-.theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:7px 10px;border:1px solid #2d6569;border-radius:999px;background:#103b43;color:#e4f7f7;font:inherit;font-size:11px;font-weight:850;white-space:nowrap;cursor:pointer;transition:background .18s ease,border-color .18s ease,color .18s ease}
-.theme-toggle:hover{border-color:var(--teal)}
-.theme-toggle:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
-.theme-toggle-icon{font-size:14px;line-height:1}
-.theme-toggle-label{line-height:1}
-:root[data-theme="light"]{color-scheme:light;--bg:#f2f7f8;--panel:#ffffff;--panel2:#f7fbfc;--line:#d6e4e7;--teal:#078f89;--muted:#5d777e;--text:#17373e;--orange:#986000;--green:#0a946c;--red:#c93345}
-html[data-theme="light"]{background:var(--bg)}
-html[data-theme="light"] body{background:radial-gradient(ellipse at 50% -220px,#d9edef 0,transparent 62%),var(--bg);color:var(--text)}
-html[data-theme="light"] .live-header{border-bottom-color:#d6e4e7;background:rgba(255,255,255,.92)}
-html[data-theme="light"] .brand-words small{color:#67868c}
-html[data-theme="light"] .connection-status{border-color:#cbdde1;background:#f7fbfc;color:#536f76}
-html[data-theme="light"] .updated-line{color:#68858b}
-html[data-theme="light"] .section-card{background:linear-gradient(155deg,#ffffff,#f5fafb);border-color:var(--line);box-shadow:0 12px 32px #17373e0a}
-html[data-theme="light"] .count-chip{border-color:#d6e5e8;background:#edf5f6;color:#4c6c73}
-html[data-theme="light"] .court-card{border-color:#d4e3e6;background:linear-gradient(160deg,#ffffff,#f3f9fa)}
-html[data-theme="light"] .court-card.playing{border-color:#54bda5;box-shadow:inset 0 0 0 1px #2b9d8720}
-html[data-theme="light"] .court-top{border-bottom-color:#dce8ea}
-html[data-theme="light"] .court-state{color:#516c72;background:#e9f0f1}
-html[data-theme="light"] .court-state.playing{background:#dcf5e9;color:#087653}
-html[data-theme="light"] .court-state.ready{background:#dff1fa;color:#145a78}
-html[data-theme="light"] .court-state.waiting{background:#fff0d1;color:#7b530d}
-html[data-theme="light"] .match-meta{color:#607a80}
-html[data-theme="light"] .match-timer.timer-blue{color:#1674d2}
-html[data-theme="light"] .match-timer.timer-amber{color:#a76700}
-html[data-theme="light"] .match-timer.timer-red{color:#c52f3e}
-html[data-theme="light"] .team-label{color:#718b90}
-html[data-theme="light"] .player-chip{border-color:#d7e5e7;background:#f4f9fa;color:#213f46}
-html[data-theme="light"] .player-chip.empty{color:#82969a}
-html[data-theme="light"] .versus{color:#68848a}
-html[data-theme="light"] .scoreline{color:#23464d}
-html[data-theme="light"] .score-separator{color:#23464d}
-html[data-theme="light"] .queue-item{border-color:#d9e6e8;background:#f7fbfc}
-html[data-theme="light"] .queue-number{background:#e1f2f2;color:#087f79}
-html[data-theme="light"] .queue-label{color:#718a90}
-html[data-theme="light"] .empty-state{border-color:#cbdfe2;color:#6d878d}
-html[data-theme="light"] .notice-card{border-color:#e8d39d;background:#fff8e5}
-html[data-theme="light"] .notice-card p{color:#766544}
-html[data-theme="light"] .sync-notice{border-color:#e5d09c;background:#fff8e5;color:#725d31}
-html[data-theme="light"] .sync-notice strong{color:#875d05}
-html[data-theme="light"] .page-footer{border-top-color:#d7e5e8;color:#718b90}
-html[data-theme="light"] .theme-toggle{border-color:#cfdee1;background:#edf5f6;color:#23464d}
-html[data-theme="light"] .theme-toggle:hover{border-color:var(--teal);background:#e3f0f1}
-@media(max-width:560px){.theme-toggle{width:32px;min-width:32px;height:32px;min-height:32px;padding:0;border-radius:50%}.theme-toggle-label{display:none}}
+
+
+/* Keep the Live View header in its dark teal design in both light and dark page themes. */
+.live-header {
+  background: rgba(4, 30, 37, .92);
+  border-bottom-color: #24535a;
+  box-shadow: none;
+}
+.live-header .brand { color: #eefafa; }
+.live-header .brand-words strong { color: #27d3c5; }
+.live-header .brand-words small { color: #95c4c7; }
+.live-header .connection-status {
+  background: transparent;
+  border-color: #2d6569;
+  color: #b9d4d6;
+}
+.live-header .connection-status.connected i {
+  background: #37d6a1;
+  box-shadow: 0 0 9px #37d6a1;
+}
+.live-header .connection-status.local i { background: #ffb04e; }

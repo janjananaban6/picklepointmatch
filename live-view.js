@@ -45,19 +45,17 @@
   function applyTheme(theme) {
     const normalized = theme === 'light' ? 'light' : 'night';
     document.documentElement.dataset.theme = normalized;
-    const toggle = $('themeToggle');
-    if (!toggle) return;
-    const lightMode = normalized === 'light';
-    toggle.setAttribute('aria-pressed', String(lightMode));
-    const nextMode = lightMode ? 'night' : 'light';
-    const nextLabel = lightMode ? 'Night' : 'Light';
-    const nextAction = `Switch to ${nextMode} mode`;
-    const icon = toggle.querySelector('.theme-toggle-icon');
-    const label = toggle.querySelector('.theme-toggle-label');
-    if (icon) icon.textContent = lightMode ? '☾' : '☀';
-    if (label) label.textContent = nextLabel;
-    toggle.setAttribute('aria-label', nextAction);
-    toggle.title = nextAction;
+    try { localStorage.setItem(THEME_STORAGE_KEY, normalized); } catch (error) {}
+  }
+
+  async function loadRemoteTheme() {
+    if (!['http:', 'https:'].includes(location.protocol)) return;
+    try {
+      const response = await fetch('/api/live-theme', { cache: 'no-store' });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data && (data.theme === 'light' || data.theme === 'night')) applyTheme(data.theme);
+    } catch (error) {}
   }
 
   function loadTheme() {
@@ -159,6 +157,10 @@
           $('syncNotice').hidden = true;
         } catch (error) {}
       });
+      source.addEventListener('live-theme', event => {
+        const theme = String(event.data || '').trim();
+        if (theme === 'light' || theme === 'night') applyTheme(theme);
+      });
       source.onopen = () => {
         serverConnected = true;
         setConnection('connected', 'Live sync');
@@ -193,15 +195,8 @@
     }
   });
 
-  const themeToggle = $('themeToggle');
-  if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-      const nextTheme = document.documentElement.dataset.theme === 'light' ? 'night' : 'light';
-      applyTheme(nextTheme);
-      try { localStorage.setItem(THEME_STORAGE_KEY, nextTheme); } catch (error) {}
-    });
-  }
   applyTheme(loadTheme());
+  loadRemoteTheme();
 
   const boot = localSnapshot();
   if (boot) { currentState = boot; render(); }

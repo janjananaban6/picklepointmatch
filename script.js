@@ -22,6 +22,7 @@ const state={
 
 const STORAGE_KEY='pickleq_v11_state';
 const LIVE_VIEW_STORAGE_KEY='picklepoint_live_view_state_v1';
+const LIVE_VIEW_THEME_STORAGE_KEY='picklepoint_live_view_theme_v1';
 let liveViewBroadcastChannel=null;
 try{if('BroadcastChannel' in window)liveViewBroadcastChannel=new BroadcastChannel('pickle-point-match-live-view');}catch(e){}
 const LEGACY_STORAGE_KEYS=['pickleq_v10_state','pickleq_v9_state','pickleq_v8_state','pickleq_v7_state','pickleq_v6_state'];
@@ -254,6 +255,52 @@ function publishLiveViewState(keepalive=false){
 }
 function getLiveViewUrl(){
   return new URL('live.html',window.location.href);
+}
+function syncLiveViewThemeButton(theme){
+  const button=$('liveViewThemeToggle');
+  if(!button)return;
+  const normalized=theme==='light'?'light':'night';
+  const lightMode=normalized==='light';
+  const nextMode=lightMode?'night':'light';
+  button.setAttribute('aria-pressed',String(lightMode));
+  button.setAttribute('aria-label',`Switch Live View to ${nextMode} mode`);
+  button.title=`Switch Live View to ${nextMode} mode`;
+  const icon=button.querySelector('.live-view-theme-icon');
+  const label=button.querySelector('.live-view-theme-label');
+  if(icon)icon.textContent=lightMode?'☾':'☀';
+  if(label)label.textContent=lightMode?'Night':'Light';
+}
+function setLiveViewTheme(theme,publish=true){
+  const normalized=theme==='light'?'light':'night';
+  try{localStorage.setItem(LIVE_VIEW_THEME_STORAGE_KEY,normalized);}catch(e){}
+  syncLiveViewThemeButton(normalized);
+  if(publish&&(location.protocol==='http:'||location.protocol==='https:')){
+    fetch('/api/live-theme',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme:normalized}),cache:'no-store'}).catch(()=>{});
+  }
+}
+function initLiveViewThemeController(){
+  let initial='night';
+  let themeChangedLocally=false;
+  try{const saved=localStorage.getItem(LIVE_VIEW_THEME_STORAGE_KEY);if(saved==='light'||saved==='night')initial=saved;}catch(e){}
+  syncLiveViewThemeButton(initial);
+  $('liveViewThemeToggle')?.addEventListener('click',()=>{
+    themeChangedLocally=true;
+    let current='night';
+    try{const saved=localStorage.getItem(LIVE_VIEW_THEME_STORAGE_KEY);if(saved==='light'||saved==='night')current=saved;}catch(e){}
+    setLiveViewTheme(current==='light'?'night':'light',true);
+  });
+  window.addEventListener('storage',event=>{
+    if(event.key===LIVE_VIEW_THEME_STORAGE_KEY&&event.newValue){
+      themeChangedLocally=true;
+      const theme=event.newValue==='light'?'light':'night';
+      syncLiveViewThemeButton(theme);
+    }
+  });
+  if(location.protocol==='http:'||location.protocol==='https:'){
+    fetch('/api/live-theme',{cache:'no-store'}).then(response=>response.ok?response.json():null).then(data=>{
+      if(!themeChangedLocally&&data&&(data.theme==='light'||data.theme==='night'))setLiveViewTheme(data.theme,false);
+    }).catch(()=>{});
+  }
 }
 function openLiveView(){
   const url=getLiveViewUrl();
@@ -3025,7 +3072,7 @@ loadCloudRecords();
 loadState();
 bindLiveQueueStartScreen();
 bindTopbarBackButton();
-$('liveViewOpenBtn')?.addEventListener('click',openLiveView);
+initLiveViewThemeController();
 $('liveViewQrOpenBtn')?.addEventListener('click',openLiveViewQrModal);
 $('liveViewQrCopyBtn')?.addEventListener('click',copyLiveViewQrLink);
 $('liveViewQrOpenPageBtn')?.addEventListener('click',openLiveView);

@@ -6,11 +6,13 @@ const { URL } = require('node:url');
 const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'live-state.json');
+const THEME_FILE = path.join(DATA_DIR, 'live-theme.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
 const allowedFiles = new Set(['index.html','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js']);
 let latestState = null;
+let liveTheme = 'night';
 const subscribers = new Set();
 
 function sendJson(res, status, data) {
@@ -20,6 +22,10 @@ function sendJson(res, status, data) {
 function broadcast() {
   if (!latestState) return;
   const packet = `event: live-state\ndata: ${JSON.stringify(latestState)}\n\n`;
+  for (const res of subscribers) { try { res.write(packet); } catch (_) { subscribers.delete(res); } }
+}
+function broadcastTheme() {
+  const packet = `event: live-theme\ndata: ${liveTheme}\n\n`;
   for (const res of subscribers) { try { res.write(packet); } catch (_) { subscribers.delete(res); } }
 }
 async function persistState(snapshot) {
@@ -41,6 +47,18 @@ async function readBody(req, limit = 2 * 1024 * 1024) {
 async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   if (url.pathname === '/api/health' && req.method === 'GET') return sendJson(res, 200, {ok:true, service:'Pickle Point Match Live View'});
+  if (url.pathname === '/api/live-theme' && req.method === 'GET') return sendJson(res, 200, {ok:true,theme:liveTheme});
+  if (url.pathname === '/api/live-theme' && req.method === 'POST') {
+    try {
+      const body = await readBody(req, 4096);
+      if (!body || (body.theme !== 'light' && body.theme !== 'night')) return sendJson(res, 400, {ok:false,error:'Invalid Live View theme'});
+      liveTheme = body.theme;
+      await fs.promises.mkdir(DATA_DIR, {recursive:true});
+      await fs.promises.writeFile(THEME_FILE, JSON.stringify({theme:liveTheme,updatedAt:new Date().toISOString()}), 'utf8');
+      broadcastTheme();
+      return sendJson(res, 200, {ok:true,theme:liveTheme});
+    } catch (err) { return sendJson(res, 500, {ok:false,error:'Unable to save Live View theme'}); }
+  }
   if (url.pathname === '/api/live-state' && req.method === 'GET') return sendJson(res, 200, {ok:true,state:latestState});
   if (url.pathname === '/api/live-state' && req.method === 'POST') {
     try {
@@ -77,6 +95,7 @@ async function handle(req, res) {
     res.writeHead(200, {'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
     res.write('retry: 2000\n\n');
     if (latestState) res.write(`event: live-state\ndata: ${JSON.stringify(latestState)}\n\n`);
+    res.write(`event: live-theme\ndata: ${liveTheme}\n\n`);
     subscribers.add(res);
     const heartbeat = setInterval(()=>{try{res.write(': keep-alive\n\n');}catch(_){clearInterval(heartbeat);subscribers.delete(res);}},20000);
     req.on('close',()=>{clearInterval(heartbeat);subscribers.delete(res);});
@@ -100,6 +119,7 @@ async function handle(req, res) {
 
 (async()=>{
   try { const saved=await fs.promises.readFile(DATA_FILE,'utf8'); const parsed=JSON.parse(saved); if(parsed&&typeof parsed==='object')latestState=parsed; } catch (_) {}
+  try { const savedTheme=JSON.parse(await fs.promises.readFile(THEME_FILE,'utf8')); if(savedTheme&& (savedTheme.theme==='light'||savedTheme.theme==='night'))liveTheme=savedTheme.theme; } catch (_) {}
   const server=http.createServer((req,res)=>{handle(req,res).catch(err=>{console.error('Request error:',err);if(!res.headersSent)sendJson(res,500,{ok:false,error:'Internal server error'});else res.end();});});
   server.listen(PORT,HOST,()=>console.log(`Pickle Point Match running at http://localhost:${PORT}\nLive View: http://localhost:${PORT}/live.html\nFor another device on the same Wi-Fi, use this computer's local IP address.`));
   const shutdown=()=>{for(const res of subscribers){try{res.end();}catch(_){}}server.close(()=>process.exit(0));setTimeout(()=>process.exit(0),1000).unref();};
