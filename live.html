@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="live-view.css?v=1">
+  <link rel="stylesheet" href="live-view.css?v=4">
 </head>
 <body>
   <header class="live-header">
@@ -15,16 +15,16 @@
       <span class="brand-words"><b>PICKLE <strong>POINT</strong></b><small>M A T C H</small></span>
     </a>
     <div class="header-right">
+      <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to light mode" title="Switch to light mode"><span class="theme-toggle-icon" aria-hidden="true">☀</span><span class="theme-toggle-label">Light</span></button>
       <span id="connectionStatus" class="connection-status"><i></i><span>Connecting</span></span>
-      <button id="copyLiveLinkBtn" class="header-button" type="button">↗ Copy Live Link</button>
     </div>
   </header>
   <main class="page-shell">
     <section class="event-heading">
       <div class="eyebrow"><span class="live-pulse"></span> PUBLIC LIVE VIEW</div>
       <h1 id="sessionTitle">Pickle Point Match</h1>
-      <p class="event-subtitle">Live courts, waiting queue, and recent match results.</p>
-      <div class="updated-line"><span id="lastUpdated">Waiting for live session data…</span><button id="refreshLiveBtn" class="text-button" type="button">Refresh</button></div>
+      <p class="event-subtitle">Live courts and waiting queue.</p>
+      <div class="updated-line"><span id="lastUpdated">Waiting for live session data…</span></div>
     </section>
 
     <section id="inactiveNotice" class="notice-card" hidden>
@@ -36,31 +36,26 @@
       <span>This page can update in this browser. To share live updates with other phones, start the included Node server and open this app through its network URL.</span>
     </section>
 
-    <section class="stat-grid" aria-label="Live session statistics">
-      <article class="stat-card"><span class="stat-icon">⌛</span><div><small>WAITING QUEUE</small><strong id="queueStat">0</strong></div></article>
-      <article class="stat-card"><span class="stat-icon">🏟</span><div><small>ACTIVE COURTS</small><strong id="activeCourtStat">0</strong></div></article>
-      <article class="stat-card"><span class="stat-icon">✓</span><div><small>READY COURTS</small><strong id="readyCourtStat">0</strong></div></article>
-      <article class="stat-card"><span class="stat-icon">🏆</span><div><small>MATCHES FINISHED</small><strong id="matchStat">0</strong></div></article>
-    </section>
-
     <div class="content-grid">
       <section class="section-card court-section">
-        <div class="section-heading"><div><span class="section-kicker">ON THE FLOOR</span><h2>Courts</h2></div><span id="courtSectionCount" class="count-chip">0 courts</span></div>
+        <div class="section-heading"><div><h2>Courts</h2></div><span id="courtSectionCount" class="count-chip">0 courts</span></div>
         <div id="courtsList" class="courts-grid"><div class="empty-state">Waiting for court information…</div></div>
       </section>
-      <aside class="section-card queue-section">
-        <div class="section-heading"><div><span class="section-kicker">UP NEXT</span><h2>Waiting Queue</h2></div><span id="queueSectionCount" class="count-chip">0 players</span></div>
-        <div id="queueList" class="queue-list"><div class="empty-state">No players in the queue.</div></div>
-      </aside>
     </div>
 
-    <section class="section-card results-section">
-      <div class="section-heading"><div><span class="section-kicker">RECENTLY COMPLETED</span><h2>Recent Matches</h2></div><span id="recentCount" class="count-chip">0 results</span></div>
-      <div id="recentMatches" class="recent-list"><div class="empty-state">No completed matches yet.</div></div>
-    </section>
+    <div class="support-grid">
+      <aside class="section-card queue-section">
+        <div class="section-heading"><div><h2>Waiting Queue</h2></div><span id="queueSectionCount" class="count-chip">0 players</span></div>
+        <div id="queueList" class="queue-list"><div class="empty-state">No players in the queue.</div></div>
+      </aside>
+
+      <section id="waitingCourtsSection" class="section-card waiting-courts-section" hidden>
+        <div class="section-heading"><div><h2>Waiting Court</h2></div><span id="waitingCourtSectionCount" class="count-chip">0 waiting courts</span></div>
+        <div id="waitingCourtsList" class="courts-grid"></div>
+      </section>
+    </div>
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span><span>Public view · Updates automatically</span></footer>
   </main>
-  <div id="copyToast" class="copy-toast" role="status" aria-live="polite"></div>
-  <script src="live-view.js?v=1" defer></script>
+  <script src="live-view.js?v=4" defer></script>
 </body>
 </html>
