@@ -24,6 +24,11 @@ const STORAGE_KEY='pickleq_v11_state';
 const LIVE_VIEW_STORAGE_KEY='picklepoint_live_view_state_v1';
 const LIVE_VIEW_THEME_STORAGE_KEY='picklepoint_live_view_theme_v1';
 let liveViewBroadcastChannel=null;
+let liveViewPublishInFlight=false;
+let liveViewPendingSnapshot=null;
+let liveViewPublishRetryTimer=null;
+let liveViewPublishRetryDelay=3000;
+let liveViewPendingKeepalive=false;
 try{if('BroadcastChannel' in window)liveViewBroadcastChannel=new BroadcastChannel('pickle-point-match-live-view');}catch(e){}
 const LEGACY_STORAGE_KEYS=['pickleq_v10_state','pickleq_v9_state','pickleq_v8_state','pickleq_v7_state','pickleq_v6_state'];
 const CLOUD_RECORDS_KEY='pickleq_registered_cloud_records_v1';
@@ -246,16 +251,46 @@ function buildLiveViewSnapshot(){
     recentMatches
   };
 }
+function flushLiveViewState(){
+  if(liveViewPublishInFlight||!liveViewPendingSnapshot||(location.protocol!=='http:'&&location.protocol!=='https:'))return;
+  const snapshot=liveViewPendingSnapshot;
+  liveViewPendingSnapshot=null;
+  const keepalive=liveViewPendingKeepalive;
+  liveViewPendingKeepalive=false;
+  liveViewPublishInFlight=true;
+  const controller=new AbortController();
+  const timeout=window.setTimeout(()=>controller.abort(),30000);
+  fetch('/api/live-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(snapshot),keepalive:!!keepalive,cache:'no-store',signal:controller.signal})
+    .then(response=>{if(!response.ok)throw new Error(`Live state publish failed (${response.status})`);liveViewPublishRetryDelay=3000;})
+    .catch(()=>{
+      // Keep only a fresh snapshot for the retry so an older request can never
+      // replace newer queue/court state after a temporary connection failure.
+      liveViewPendingSnapshot=buildLiveViewSnapshot();
+      if(liveViewPublishRetryTimer===null){
+        const delay=liveViewPublishRetryDelay;
+        liveViewPublishRetryDelay=Math.min(30000,Math.round(liveViewPublishRetryDelay*1.7));
+        liveViewPublishRetryTimer=window.setTimeout(()=>{
+          liveViewPublishRetryTimer=null;
+          flushLiveViewState();
+        },delay);
+      }
+    })
+    .finally(()=>{
+      window.clearTimeout(timeout);
+      liveViewPublishInFlight=false;
+      if(liveViewPendingSnapshot&&liveViewPublishRetryTimer===null)flushLiveViewState();
+    });
+}
 function publishLiveViewState(keepalive=false){
   const snapshot=buildLiveViewSnapshot();
   try{localStorage.setItem(LIVE_VIEW_STORAGE_KEY,JSON.stringify(snapshot));}catch(e){}
   try{liveViewBroadcastChannel?.postMessage(snapshot);}catch(e){}
-  // Server sync enables read-only viewers on other devices. It gracefully falls
-  // back to local browser sync when the project is opened without server.js.
+  // Publish in sequence and retry transient failures. Only the latest pending
+  // snapshot is retained, preventing overlapping requests from reverting state.
   if(location.protocol==='http:'||location.protocol==='https:'){
-    try{
-      fetch('/api/live-state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(snapshot),keepalive:!!keepalive,cache:'no-store'}).catch(()=>{});
-    }catch(e){}
+    liveViewPendingSnapshot=snapshot;
+    liveViewPendingKeepalive=liveViewPendingKeepalive||!!keepalive;
+    flushLiveViewState();
   }
   return snapshot;
 }

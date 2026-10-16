@@ -89,7 +89,7 @@ async function handle(req, res) {
       }
       await persistState(snapshot);
       return sendJson(res, 200, {ok:true,updatedAt:snapshot.updatedAt});
-    } catch (err) { return sendJson(res, err.statusCode || 400, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to save live state'}); }
+    } catch (err) { return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to save live state'}); }
   }
   if (url.pathname === '/api/live-events' && req.method === 'GET') {
     res.writeHead(200, {'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
@@ -97,8 +97,13 @@ async function handle(req, res) {
     if (latestState) res.write(`event: live-state\ndata: ${JSON.stringify(latestState)}\n\n`);
     res.write(`event: live-theme\ndata: ${liveTheme}\n\n`);
     subscribers.add(res);
-    const heartbeat = setInterval(()=>{try{res.write(': keep-alive\n\n');}catch(_){clearInterval(heartbeat);subscribers.delete(res);}},20000);
-    req.on('close',()=>{clearInterval(heartbeat);subscribers.delete(res);});
+    const heartbeat = setInterval(()=>{try{res.write(': keep-alive\n\n');}catch(_){cleanup();}},20000);
+    const cleanup = () => { clearInterval(heartbeat); subscribers.delete(res); };
+    // Track the response/socket lifetime for SSE clients. The incoming request
+    // itself can finish before the long-lived event stream has ended.
+    res.on('close', cleanup);
+    res.on('error', cleanup);
+    req.on('aborted', cleanup);
     return;
   }
   if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res,405,{ok:false,error:'Method not allowed'});

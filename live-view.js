@@ -7,6 +7,10 @@
   let serverConnected = false;
   let serverTried = false;
   let channel = null;
+  let eventSource = null;
+  let reconnectTimer = null;
+  let reconnectDelay = 3000;
+  let remoteRefreshInFlight = false;
 
   const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -137,54 +141,122 @@
     render();
   }
 
-  async function connectServer() {
-    if (!['http:', 'https:'].includes(location.protocol)) {
-      serverTried = true;
-      acceptState(localSnapshot());
-      render();
-      return;
+  function isHttpPage() {
+    return location.protocol === 'http:' || location.protocol === 'https:';
+  }
+
+  function scheduleReconnect() {
+    if (!isHttpPage() || reconnectTimer !== null) return;
+    const wait = reconnectDelay;
+    reconnectDelay = Math.min(30000, Math.round(reconnectDelay * 1.7));
+    reconnectTimer = window.setTimeout(() => {
+      reconnectTimer = null;
+      connectServer();
+    }, wait);
+  }
+
+  function markServerConnected() {
+    serverTried = true;
+    serverConnected = true;
+    reconnectDelay = 3000;
+    if (reconnectTimer !== null) {
+      window.clearTimeout(reconnectTimer);
+      reconnectTimer = null;
     }
+    setConnection('connected', 'Live sync');
+    $('syncNotice').hidden = true;
+  }
+
+  function markServerDisconnected() {
+    serverTried = true;
+    serverConnected = false;
+    setConnection('local', 'Reconnecting');
+    $('syncNotice').hidden = false;
+  }
+
+  async function refreshRemoteState() {
+    if (!isHttpPage() || remoteRefreshInFlight) return false;
+    remoteRefreshInFlight = true;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 10000);
     try {
-      const response = await fetch('/api/live-state', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Live API unavailable');
+      const response = await fetch(`/api/live-state?_=${Date.now()}`, {
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error(`Live API returned ${response.status}`);
       const data = await response.json();
-      serverTried = true;
-      serverConnected = true;
-      if (data && data.state) acceptState(data.state);
-      else if (localSnapshot()) acceptState(localSnapshot());
-      setConnection('connected', 'Live sync');
-      $('syncNotice').hidden = true;
+      if (data && data.state && typeof data.state === 'object') {
+        acceptState(data.state);
+      } else {
+        // The server is reachable but has no published session. Clear any old
+        // browser-cached snapshot instead of showing stale queue data.
+        const emptyState = {
+          sessionName: 'Pickle Point Match', active: false, updatedAt: null,
+          queue: [], courts: [], courtCount: 0, waitingCourtCount: 0
+        };
+        acceptState(emptyState);
+      }
+      markServerConnected();
+      return true;
+    } catch (error) {
+      markServerDisconnected();
+      // Keep the most recent displayed state during temporary network problems.
+      // Load the browser snapshot only when this page has no state yet.
+      if (!currentState) {
+        const saved = localSnapshot();
+        if (saved) acceptState(saved);
+      }
+      return false;
+    } finally {
+      window.clearTimeout(timeout);
+      remoteRefreshInFlight = false;
+    }
+  }
+
+  function startEventStream() {
+    if (!isHttpPage() || typeof EventSource === 'undefined') return;
+    if (eventSource && eventSource.readyState !== EventSource.CLOSED) return;
+    try {
       const source = new EventSource('/api/live-events');
+      eventSource = source;
       source.addEventListener('live-state', event => {
         try {
           const parsed = JSON.parse(event.data);
-          serverConnected = true;
           acceptState(parsed);
-          setConnection('connected', 'Live sync');
-          $('syncNotice').hidden = true;
+          markServerConnected();
         } catch (error) {}
       });
       source.addEventListener('live-theme', event => {
         const theme = String(event.data || '').trim();
         if (theme === 'light' || theme === 'night') applyTheme(theme);
       });
-      source.onopen = () => {
-        serverConnected = true;
-        setConnection('connected', 'Live sync');
-        $('syncNotice').hidden = true;
-      };
+      source.onopen = () => markServerConnected();
       source.onerror = () => {
-        serverConnected = false;
-        setConnection('local', 'Reconnecting');
-        $('syncNotice').hidden = false;
+        markServerDisconnected();
+        // EventSource reconnects on its own while CONNECTING. If the stream
+        // is fully closed, recreate it after checking the API again.
+        if (source.readyState === EventSource.CLOSED) {
+          if (eventSource === source) eventSource = null;
+          scheduleReconnect();
+        }
       };
     } catch (error) {
-      serverTried = true;
-      serverConnected = false;
-      acceptState(localSnapshot());
-      setConnection('local', 'Local preview');
-      $('syncNotice').hidden = false;
+      eventSource = null;
+      scheduleReconnect();
     }
+  }
+
+  async function connectServer() {
+    if (!isHttpPage()) {
+      serverTried = true;
+      acceptState(localSnapshot());
+      render();
+      return;
+    }
+    const connected = await refreshRemoteState();
+    if (connected) startEventStream();
+    else scheduleReconnect();
   }
 
   try {
@@ -208,6 +280,23 @@
   const boot = localSnapshot();
   if (boot) { currentState = boot; render(); }
   connectServer();
+  // Polling is a recovery path if a proxy, sleeping host, or network issue
+  // interrupts Server-Sent Events. The stream still delivers normal updates
+  // immediately; polling ensures the page eventually catches up if it does not.
+  if (isHttpPage()) {
+    window.setInterval(async () => {
+      const connected = await refreshRemoteState();
+      if (connected && (!eventSource || eventSource.readyState === EventSource.CLOSED)) {
+        eventSource = null;
+        startEventStream();
+      } else if (!connected) {
+        scheduleReconnect();
+      }
+    }, 15000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) connectServer();
+    });
+  }
   setInterval(() => {
     document.querySelectorAll('[data-start]').forEach(el => {
       el.textContent = elapsed(el.dataset.start);
