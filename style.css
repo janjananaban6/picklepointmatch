@@ -14138,3 +14138,68 @@ body.podium-modal-open .topbar{
 .live-view-qr-actions button.blue{background:#087e81;color:#fff;}
 .live-view-qr-footer{margin:17px 0 0;padding-top:13px;border-top:1px solid #dce8ea;color:#607a80;font-size:11px;line-height:1.5;}
 @media(max-width:560px){.live-view-qr-modal-box{padding:15px!important;}.live-view-qr-content{grid-template-columns:1fr;gap:15px;}.live-view-qr-image-wrap{min-height:0;padding:8px;}.live-view-qr-image-wrap img{max-width:210px;}.live-view-qr-details>p{margin-bottom:10px;}}
+
+/* LIVE QUEUE START SCREEN — align with the Live page's dark teal theme.
+   Visual-only overrides: layout, controls, and queue behavior remain unchanged. */
+#liveQueueStartScreen{
+  --lqs-white:#0b3039;
+  --lqs-slate:#e8f6f7;
+  --lqs-green:#087e81;
+  --lqs-lime:#37d6c0;
+  --lqs-black:#062b31;
+  background:radial-gradient(ellipse at 50% -180px,rgba(37,170,163,.24) 0%,transparent 64%),#061e25;
+  color:var(--lqs-slate);
+  scrollbar-color:var(--lqs-lime) #0b3039;
+}
+#liveQueueStartScreen::-webkit-scrollbar-track{background:#0b3039;}
+#liveQueueStartScreen::-webkit-scrollbar-thumb{border-color:#0b3039;background:rgba(55,214,192,.78);}
+#liveQueueStartScreen .live-queue-start-card{
+  background:linear-gradient(155deg,#0d3942,#092831);
+  border:1px solid #24535a;
+  border-radius:18px;
+  box-shadow:0 18px 48px rgba(0,0,0,.3);
+}
+#liveQueueStartScreen .live-queue-start-card::before{background:#37d6c0;}
+#liveQueueStartScreen .live-queue-start-heading::before{background:#37d6c0;}
+#liveQueueStartScreen .live-queue-start-heading h1{color:#efffff;}
+#liveQueueStartScreen .live-queue-start-heading p{color:#9ebfc2;}
+#liveQueueStartScreen .existing-live-queue,
+#liveQueueStartScreen .live-queue-input,
+#liveQueueStartScreen .live-queue-choice,
+#liveQueueStartScreen .live-queue-game,
+#liveQueueStartScreen .live-queue-toggle-row{
+  border-color:#28555c;
+}
+#liveQueueStartScreen .existing-live-queue{background:linear-gradient(135deg,#103a43,#0b2d35);}
+#liveQueueStartScreen .existing-live-queue-copy strong,
+#liveQueueStartScreen .live-queue-field-label,
+#liveQueueStartScreen .live-queue-toggle-copy strong{color:#e8f6f7;}
+#liveQueueStartScreen .existing-live-queue-copy span,
+#liveQueueStartScreen .existing-live-queue-stat-label,
+#liveQueueStartScreen .live-queue-toggle-copy small{color:#91b7bb;}
+#liveQueueStartScreen .existing-live-queue-stat{background:#0b2931;border-color:#25545b;}
+#liveQueueStartScreen .existing-live-queue-stat strong{color:#37d6c0;}
+#liveQueueStartScreen .live-queue-input{
+  background:#0b2931;
+  color:#efffff;
+  border-color:#28555c;
+  box-shadow:none;
+}
+#liveQueueStartScreen .live-queue-input::placeholder{color:#71999e;}
+#liveQueueStartScreen .live-queue-input:focus{border-color:#37d6c0;box-shadow:0 0 0 3px rgba(55,214,192,.16);}
+#liveQueueStartScreen .live-queue-choice,
+#liveQueueStartScreen .live-queue-game{background:#0b2931;color:#dffafa;border-color:#28555c;}
+#liveQueueStartScreen .live-queue-choice.active,
+#liveQueueStartScreen .live-queue-game.active{background:#087e81;border-color:#37d6c0;color:#fff;box-shadow:inset 0 0 0 1px rgba(55,214,192,.12);}
+#liveQueueStartScreen .live-queue-choice.active span,
+#liveQueueStartScreen .live-queue-game.active span{color:#d8fffa;}
+#liveQueueStartScreen .live-queue-game span{color:#91b7bb;}
+#liveQueueStartScreen .live-queue-toggle-row{background:#0b2931;}
+#liveQueueStartScreen .live-queue-toggle{background:#34565c;}
+#liveQueueStartScreen .live-queue-toggle-row input:checked + .live-queue-toggle{background:#087e81;}
+#liveQueueStartScreen .continue-live-queue-btn,
+#liveQueueStartScreen .create-live-queue-btn{background:#087e81;color:#fff;border-color:#25aaa3;}
+#liveQueueStartScreen .continue-live-queue-btn:hover,
+#liveQueueStartScreen .create-live-queue-btn:hover{background:#096b70;}
+#liveQueueStartScreen button:focus-visible{outline:2px solid #37d6c0;outline-offset:3px;}
+@media(hover:hover){#liveQueueStartScreen .live-queue-start-card:hover{box-shadow:0 22px 56px rgba(0,0,0,.36);}}
