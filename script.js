@@ -262,13 +262,12 @@ function syncLiveViewThemeButton(theme){
   const normalized=theme==='light'?'light':'night';
   const lightMode=normalized==='light';
   const nextMode=lightMode?'night':'light';
+  button.classList.toggle('is-light',lightMode);
   button.setAttribute('aria-pressed',String(lightMode));
   button.setAttribute('aria-label',`Switch Live View to ${nextMode} mode`);
   button.title=`Switch Live View to ${nextMode} mode`;
-  const icon=button.querySelector('.live-view-theme-icon');
   const label=button.querySelector('.live-view-theme-label');
-  if(icon)icon.textContent=lightMode?'☾':'☀';
-  if(label)label.textContent=lightMode?'Night':'Light';
+  if(label)label.textContent=lightMode?'Light':'Night';
 }
 function setLiveViewTheme(theme,publish=true){
   const normalized=theme==='light'?'light':'night';
@@ -1306,6 +1305,7 @@ function openCourtPlayersModal(courtId){
   const started=c.playing&&c.start ? elapsed(c.start) : (isWaitingCourt ? '0:00' : '--');
   const courtName=isWaitingCourt ? 'Court #' : courtDisplayName(c);
   const genderIcon=p=>p?.gender==='Female'?'♀':'♂';
+  const courtStats=getRankingStats();
   const playerCard=(p,index)=>{
     if(!p)return `<div class="court-lineup-player court-lineup-empty"><span class="court-lineup-avatar">${index+1}</span><div class="court-lineup-player-info"><b>Open slot</b></div></div>`;
     const category=String(p.category||'CAT').toUpperCase();
@@ -1318,6 +1318,13 @@ function openCourtPlayersModal(courtId){
       </div>
     </div>`;
   };
+  const detailPlayerRow=(p,teamClass)=>{
+    if(!p)return '';
+    const st=courtStats.get(p.id)||{wins:0,losses:0};
+    const category=String(p.category||'CAT');
+    const categoryClass=p.category?`skill-${String(p.category).toLowerCase().replace(/[^a-z0-9_-]/g,'')}`:'';
+    return `<div class="detail-player-row ${teamClass}"><span class="dot"></span><div class="detail-player-info"><b>${esc(displayPlayerName(p))}</b><span class="detail-row-gender ${p.gender==='Female'?'female':'male'}" aria-label="${esc(p.gender||'Unknown')}">${genderIcon(p)}</span><span class="mini-badge ${categoryClass}">${esc(category)}</span></div><small>${Number(st.wins)||0}W · ${Number(st.losses)||0}L</small></div>`;
+  };
 
   body.innerHTML=`
     <div class="court-lineup-top">
@@ -1326,40 +1333,49 @@ function openCourtPlayersModal(courtId){
     </div>
     <div class="court-lineup-divider"></div>
     <div class="court-lineup-meta">
-      <span class="court-lineup-playing ${isWaitingCourt?'waiting':''}"><i class="court-lineup-dot" id="courtLineupDot-${c.id}"></i><span id="courtLineupStatus-${c.id}">${isWaitingCourt?'Waiting':'Playing'}</span></span>
       <span class="court-lineup-time ${isWaitingCourt?'waiting':''}" id="courtLineupTime-${c.id}">${esc(started)}</span>
       <span class="court-lineup-rule">To ${target} (win by ${winBy})</span>
     </div>
     <div class="court-lineup-divider"></div>
     <div class="court-lineup-teams">
-      <div class="court-lineup-team">${playerCard(ps[0],0)}${playerCard(ps[1],1)}</div>
+      <div class="court-lineup-team">
+        ${playerCard(ps[0],0)}${playerCard(ps[1],1)}
+      </div>
       <div class="court-lineup-vs">VS</div>
-      <div class="court-lineup-team">${playerCard(ps[2],2)}${playerCard(ps[3],3)}</div>
+      <div class="court-lineup-team">
+        ${playerCard(ps[2],2)}${playerCard(ps[3],3)}
+      </div>
     </div>
+    <div class="detail-players court-lineup-detail-players"><h4>PLAYERS</h4>${ps.slice(0,2).map(p=>detailPlayerRow(p,'team-one-dot')).join('')}${ps.slice(2,4).map(p=>detailPlayerRow(p,'team-two-dot')).join('')}</div>
     <div class="court-lineup-footer"><button class="court-lineup-close" type="button" onclick="closeCourtPlayersModal()">Close</button></div>
   `;
   body.dataset.courtId=String(c.id);
   $('courtPlayersModal').classList.remove('hidden');
   updateCourtPlayersModalTimer(c.id);
 }
+function courtLineupTimerClass(start){
+  if(!start)return 'timer-blue';
+  const sec=Math.max(0,Math.floor((Date.now()-new Date(start).getTime())/1000));
+  if(sec>=900)return 'timer-red';
+  if(sec>=600)return 'timer-amber';
+  return 'timer-blue';
+}
+
 function updateCourtPlayersModalTimer(courtId){
   const c=court(courtId);
   if(!c)return;
+  const timeEl=$(`courtLineupTime-${c.id}`);
+  if(!timeEl)return;
   if(c.waitingOnly){
-    const timeEl=$(`courtLineupTime-${c.id}`);
-    const dot=$(`courtLineupDot-${c.id}`);
-    if(timeEl)timeEl.textContent='0:00';
-    if(dot){ dot.classList.remove('timer-normal','timer-yellow','timer-red'); dot.classList.add('timer-waiting'); }
+    timeEl.textContent='0:00';
+    timeEl.classList.remove('timer-blue','timer-amber','timer-red');
+    timeEl.classList.add('waiting');
     return;
   }
   if(!c.playing)return;
-  const timeEl=$(`courtLineupTime-${c.id}`);
-  const dot=$(`courtLineupDot-${c.id}`);
-  if(timeEl)timeEl.textContent=elapsed(c.start);
-  if(dot){
-    dot.classList.remove('timer-normal','timer-yellow','timer-red');
-    dot.classList.add(timerToneClass(c.start));
-  }
+  timeEl.textContent=elapsed(c.start);
+  timeEl.classList.remove('waiting','timer-blue','timer-amber','timer-red');
+  timeEl.classList.add(courtLineupTimerClass(c.start));
 }
 
 function closeCourtPlayersModal(){
@@ -3034,8 +3050,11 @@ function showLiveQueueStartScreen(){
   document.querySelector('.workspace')?.classList.add('live-start-hidden');
   syncLiveQueueStartScreen();
 }
-function setupTopbarBackButtonModalGuard(button){
-  if(!button)return;
+function setupTopbarModalActionGuard(buttons){
+  const guardedButtons=(Array.isArray(buttons)?buttons:[buttons]).filter(Boolean);
+  if(!guardedButtons.length)return;
+  // Use the same visibility rules for every topbar action that must be locked
+  // while a dialog is open, including the tablet Results popup.
   const modalSelector='.modal, .tablet-results-modal, [role="dialog"], [aria-modal="true"], dialog[open]';
   const isVisibleModal=el=>{
     if(el.hidden||el.getAttribute('aria-hidden')==='true')return false;
@@ -3044,8 +3063,10 @@ function setupTopbarBackButtonModalGuard(button){
   };
   const sync=()=>{
     const modalIsOpen=Array.from(document.querySelectorAll(modalSelector)).some(isVisibleModal);
-    button.disabled=modalIsOpen;
-    button.setAttribute('aria-disabled',modalIsOpen?'true':'false');
+    guardedButtons.forEach(button=>{
+      button.disabled=modalIsOpen;
+      button.setAttribute('aria-disabled',modalIsOpen?'true':'false');
+    });
   };
   sync();
   const observer=new MutationObserver(sync);
@@ -3065,7 +3086,11 @@ function bindTopbarBackButton(){
     if(button.disabled)return;
     showLiveQueueStartScreen();
   });
-  setupTopbarBackButtonModalGuard(button);
+  setupTopbarModalActionGuard([
+    button,
+    $('endSessionBtn'),
+    $('liveViewQrOpenBtn')
+  ]);
 }
 
 loadCloudRecords();
