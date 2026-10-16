@@ -195,7 +195,13 @@ function buildLiveViewSnapshot(){
   const byId=new Map(roster.map(p=>[String(p.id),p]));
   const playerRef=id=>{
     const p=byId.get(String(id));
-    return p?{id:p.id,name:String(p.name||'Player'),nickname:String(p.nickname||'')}:null;
+    return p?{
+      id:p.id,
+      name:String(p.name||'Player'),
+      nickname:String(p.nickname||''),
+      gender:String(p.gender||''),
+      category:String(p.category||'')
+    }:null;
   };
   const courts=(Array.isArray(state.courts)?state.courts:[]).map(c=>{
     const ids=Array.isArray(c.players)?c.players:[];

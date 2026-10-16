@@ -16352,3 +16352,202 @@ html body #queueMainArea .queue-modern-item > .queue-avatar-stack > .queue-posit
   }
 }
 
+
+/* TABLET RESULTS BACKDROP FIX — apply blur on the full-screen overlay itself.
+   iPad/Safari may not sample the page behind an isolated modal when the filter
+   is placed only on its child backdrop. The dialog remains crisp because
+   backdrop-filter affects only the pixels behind this overlay, not its children. */
+html body #tabletResultsModal.tablet-results-modal.is-open {
+  background: rgba(2, 18, 22, .58) !important;
+  -webkit-backdrop-filter: blur(5px) saturate(.9) !important;
+  backdrop-filter: blur(5px) saturate(.9) !important;
+}
+html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-backdrop {
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* LIVE QUEUE START CARD — compact on-screen sizing.
+   Scoped only to the setup screen; all controls and behavior remain unchanged. */
+#liveQueueStartScreen{
+  padding:clamp(8px,1.5vh,16px) clamp(10px,2.2vw,20px);
+}
+#liveQueueStartScreen > .live-queue-start-brand{
+  gap:10px;
+  margin-bottom:12px;
+}
+#liveQueueStartScreen .live-queue-start-brand > img{
+  width:54px;
+  height:54px;
+}
+#liveQueueStartScreen .live-queue-start-brand-wordmark > span{
+  font-size:clamp(19px,4vw,26px);
+}
+#liveQueueStartScreen .live-queue-start-brand-wordmark > small{
+  margin-top:5px;
+  font-size:9.5px;
+  letter-spacing:3.5px;
+}
+#liveQueueStartScreen .live-queue-start-card{
+  width:min(100%,440px);
+  padding:18px 20px 16px;
+  border-radius:17px;
+}
+#liveQueueStartScreen .live-queue-start-heading{
+  margin-bottom:13px;
+}
+#liveQueueStartScreen .live-queue-start-heading::before{
+  width:24px;
+  height:3px;
+  margin-bottom:9px;
+}
+#liveQueueStartScreen .live-queue-start-heading h1{
+  font-size:clamp(22px,2.3vw,24px);
+}
+#liveQueueStartScreen .live-queue-start-heading p{
+  margin-top:5px;
+  font-size:10.5px;
+  line-height:1.4;
+}
+#liveQueueStartScreen .existing-live-queue{
+  gap:8px;
+  margin-bottom:10px;
+  padding:8px;
+}
+#liveQueueStartScreen .existing-live-queue-stats{
+  gap:6px;
+  margin:-3px 0 10px;
+}
+#liveQueueStartScreen .existing-live-queue-stat{
+  padding:8px 7px;
+}
+#liveQueueStartScreen .existing-live-queue-stat strong{
+  font-size:19px;
+}
+#liveQueueStartScreen .live-queue-form-section{
+  padding-top:1px;
+}
+#liveQueueStartScreen .live-queue-field-label{
+  margin:9px 0 5px;
+  font-size:8.5px;
+}
+#liveQueueStartScreen .live-queue-input{
+  height:36px;
+  padding:0 10px;
+  font-size:11.5px;
+}
+#liveQueueStartScreen .live-queue-choice-row{
+  gap:6px;
+}
+#liveQueueStartScreen .live-queue-choice-row.three{
+  gap:5px;
+}
+#liveQueueStartScreen .live-queue-choice{
+  min-height:34px;
+  padding:6px;
+  font-size:10.5px;
+}
+#liveQueueStartScreen .live-queue-game-list{
+  gap:5px;
+}
+#liveQueueStartScreen .live-queue-game{
+  min-height:36px;
+  padding:7px 9px;
+}
+#liveQueueStartScreen .live-queue-game b{
+  font-size:11.2px;
+}
+#liveQueueStartScreen .live-queue-game span{
+  font-size:9px;
+}
+#liveQueueStartScreen .live-queue-toggle-row{
+  min-height:46px;
+  gap:9px;
+  margin-top:6px;
+  padding:7px 9px;
+  border-radius:9px;
+}
+#liveQueueStartScreen .live-queue-toggle-copy{
+  gap:2px;
+}
+#liveQueueStartScreen .live-queue-toggle-copy strong{
+  font-size:11.2px;
+  line-height:1.25;
+}
+#liveQueueStartScreen .live-queue-toggle-copy small{
+  font-size:9px;
+  line-height:1.25;
+}
+#liveQueueStartScreen .live-queue-toggle{
+  flex-basis:36px;
+  width:36px;
+  height:21px;
+}
+#liveQueueStartScreen .live-queue-toggle::after{
+  width:15px;
+  height:15px;
+}
+#liveQueueStartScreen .live-queue-toggle-row input:checked + .live-queue-toggle::after{
+  transform:translate3d(15px,0,0);
+}
+#liveQueueStartScreen .create-live-queue-btn{
+  min-height:40px;
+  margin-top:10px;
+  padding:9px 12px;
+  font-size:11.5px;
+}
+@media (max-width:520px){
+  #liveQueueStartScreen > .live-queue-start-brand{margin-bottom:10px;}
+  #liveQueueStartScreen .live-queue-start-brand > img{width:46px;height:46px;}
+  #liveQueueStartScreen .live-queue-start-brand-wordmark > span{font-size:clamp(17px,4.8vw,22px);}
+  #liveQueueStartScreen .live-queue-start-brand-wordmark > small{font-size:8.5px;letter-spacing:3px;}
+  #liveQueueStartScreen .live-queue-start-card{padding:16px 15px 13px;border-radius:16px;}
+}
+@media (max-height:820px){
+  #liveQueueStartScreen{padding-top:8px;padding-bottom:8px;}
+  #liveQueueStartScreen > .live-queue-start-brand{margin-bottom:8px;}
+  #liveQueueStartScreen .live-queue-start-brand > img{width:48px;height:48px;}
+  #liveQueueStartScreen .live-queue-start-card{padding-top:15px;padding-bottom:13px;}
+  #liveQueueStartScreen .live-queue-start-heading{margin-bottom:10px;}
+  #liveQueueStartScreen .live-queue-field-label{margin-top:7px;margin-bottom:4px;}
+  #liveQueueStartScreen .live-queue-input{height:34px;}
+  #liveQueueStartScreen .live-queue-choice{min-height:32px;padding-top:5px;padding-bottom:5px;}
+  #liveQueueStartScreen .live-queue-game{min-height:34px;padding-top:6px;padding-bottom:6px;}
+  #liveQueueStartScreen .live-queue-toggle-row{padding-top:6px;padding-bottom:6px;}
+  #liveQueueStartScreen .create-live-queue-btn{min-height:37px;margin-top:8px;padding-top:7px;padding-bottom:7px;}
+}
+@media (max-height:720px){
+  #liveQueueStartScreen{padding:6px 10px;}
+  #liveQueueStartScreen > .live-queue-start-brand{margin-bottom:6px;}
+  #liveQueueStartScreen .live-queue-start-brand > img{width:40px;height:40px;}
+  #liveQueueStartScreen .live-queue-start-brand-wordmark > span{font-size:clamp(17px,3.8vw,21px);}
+  #liveQueueStartScreen .live-queue-start-brand-wordmark > small{margin-top:4px;font-size:8px;letter-spacing:2.8px;}
+  #liveQueueStartScreen .live-queue-start-card{padding:12px 17px 10px;}
+  #liveQueueStartScreen .live-queue-start-heading{margin-bottom:8px;}
+  #liveQueueStartScreen .live-queue-start-heading h1{font-size:21px;}
+  #liveQueueStartScreen .live-queue-start-heading p{font-size:10px;}
+  #liveQueueStartScreen .live-queue-field-label{margin-top:6px;margin-bottom:4px;}
+  #liveQueueStartScreen .live-queue-input{height:32px;}
+  #liveQueueStartScreen .live-queue-choice{min-height:30px;padding-top:4px;padding-bottom:4px;}
+  #liveQueueStartScreen .live-queue-game{min-height:32px;padding-top:5px;padding-bottom:5px;}
+  #liveQueueStartScreen .live-queue-toggle-row{min-height:42px;padding-top:5px;padding-bottom:5px;}
+  #liveQueueStartScreen .create-live-queue-btn{min-height:35px;margin-top:7px;padding-top:6px;padding-bottom:6px;}
+}
+
+/* LIVE QUEUE START SCREEN — top-aligned on every device.
+   Keep the brand/logo area at the top instead of vertically centering the stack.
+   Scoped only to this screen; setup card and controls remain unchanged. */
+#liveQueueStartScreen {
+  justify-content: flex-start !important;
+  align-items: center !important;
+  padding-top: max(10px, env(safe-area-inset-top, 0px)) !important;
+  padding-bottom: 12px !important;
+}
+#liveQueueStartScreen > .live-queue-start-brand {
+  flex: 0 0 auto;
+  margin-top: 0 !important;
+}
+#liveQueueStartScreen > .live-queue-start-card {
+  flex: 0 0 auto;
+}

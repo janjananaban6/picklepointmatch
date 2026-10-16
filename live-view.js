@@ -12,8 +12,12 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[ch]));
   const playerName = p => p
-    ? String(p.name || 'Player') + (p.nickname && String(p.nickname).trim().toLowerCase() !== String(p.name || '').trim().toLowerCase() ? ` (${p.nickname})` : '')
+    ? String(p.name || 'Player') + (String(p.nickname || '').trim() ? ` (${String(p.nickname).trim()})` : '')
     : 'Waiting for player';
+  const playerGenderClass = p => p?.gender === 'Female' ? 'female' : 'male';
+  const playerGenderIcon = p => p?.gender === 'Female' ? '♀' : '♂';
+  const playerCategory = p => String(p?.category || 'CAT').trim().toUpperCase();
+  const playerCategoryClass = p => ({ BEG: 'skill-beg', NOV: 'skill-nov', INT: 'skill-int', ADV: 'skill-adv', EXP: 'skill-exp' })[playerCategory(p)] || '';
   const formatTime = value => {
     if (!value) return '';
     const date = new Date(value);
@@ -80,7 +84,10 @@
     const team = arr => [0, 1].map(i => {
       const player = arr[i];
       const name = player ? playerName(player) : 'Open slot';
-      return `<div class="player-chip${player ? '' : ' empty'}"><span class="player-chip-name">${escapeHTML(name)}</span></div>`;
+      const playerMeta = player
+        ? `<span class="live-player-gender ${playerGenderClass(player)}" title="${playerGenderClass(player) === 'female' ? 'Female' : 'Male'}" aria-label="${playerGenderClass(player) === 'female' ? 'Female' : 'Male'}">${playerGenderIcon(player)}</span><span class="live-player-category ${playerCategoryClass(player)}" title="Skill category">${escapeHTML(playerCategory(player))}</span>`
+        : '';
+      return `<div class="player-chip${player ? '' : ' empty'}"><span class="player-chip-name">${escapeHTML(name)}</span>${playerMeta}</div>`;
     }).join('');
     const courtName = c.waitingOnly ? 'Court #' : (c.name || 'Court');
     const matchMeta = c.playing
@@ -113,7 +120,7 @@
 
     const queue = s?.queue || [];
     $('queueList').innerHTML = queue.length
-      ? queue.map((p, i) => `<div class="queue-item"><span class="queue-number">${i + 1}</span><div class="queue-player-wrap"><div class="queue-player">${escapeHTML(playerName(p))}</div></div></div>`).join('')
+      ? queue.map((p, i) => `<div class="queue-item"><span class="queue-number">${i + 1}</span><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${escapeHTML(playerName(p))}</div><span class="live-player-gender ${playerGenderClass(p)}" title="${playerGenderClass(p) === 'female' ? 'Female' : 'Male'}" aria-label="${playerGenderClass(p) === 'female' ? 'Female' : 'Male'}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span></div></div></div>`).join('')
       : '<div class="empty-state">No players are waiting in queue.</div>';
 
     const usingHttpServer = location.protocol === 'http:' || location.protocol === 'https:';
