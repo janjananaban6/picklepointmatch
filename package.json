@@ -1,0 +1,12 @@
+{
+  "name": "pickleball-queueing-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pickle Point Match queueing system with public real-time Live View",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

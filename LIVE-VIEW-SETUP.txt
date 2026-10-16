@@ -1,0 +1,42 @@
+PICKLE POINT MATCH — LIVE VIEW WITH QR SHARE
+===========================================
+
+WHAT IT DOES
+- Adds a separate read-only Live View for courts, queue, and recent results.
+- Adds a “QR Share” button in the admin topbar. It shows a QR code and the exact Live View URL.
+- The QR code is built from the current site URL. After public HTTPS deployment, players can scan it from phones using mobile data or any internet connection.
+- Live updates are sent by the included Node server using Server-Sent Events.
+- While a session is active, the admin page refreshes the shared snapshot every 30 seconds. This helps the public Live View recover if the host restarts while the admin page remains open.
+- Existing queueing files and functions are retained.
+
+IMPORTANT: A QR CODE DOES NOT MAKE A LOCAL WEBSITE PUBLIC BY ITSELF
+-------------------------------------------------------------------
+If the app is opened at localhost or a private 192.168.x.x / 10.x.x.x address, the QR only points to that computer/network. People outside that network cannot open it.
+For anywhere access, deploy the app to a public HTTPS URL first. The QR Share feature automatically uses that deployed URL; no URL editing is needed.
+
+DEPLOY ONLINE (RENDER EXAMPLE)
+------------------------------
+1. Extract this ZIP. Open the “PICKLEBALL QUEUEING SYSTEM” folder.
+2. Create a GitHub repository and upload the CONTENTS of this folder (including render.yaml, package.json, server.js, index.html, script.js, CSS and image files).
+3. Sign in to Render and choose New > Blueprint, then connect the GitHub repository containing render.yaml.
+4. Deploy the service. Render will assign a public URL similar to https://your-service-name.onrender.com.
+5. Open that HTTPS URL on the organizer computer and use the Pickle Point Match admin normally.
+6. Create or continue a live queue. Click “QR Share” in the topbar and show/print the QR for players.
+7. Scan the QR with a phone using mobile data or Wi-Fi. It should open https://your-service-name.onrender.com/live.html.
+8. Keep the organizer page open and connected to the same deployed service during the session so updates keep being published.
+
+RUN LOCALLY FIRST
+-----------------
+1. Install Node.js 18 or newer: https://nodejs.org/
+2. Open a terminal in this folder.
+3. Run: npm start
+4. Open http://localhost:3000 on the organizer computer.
+5. Click “QR Share” to preview the QR/link feature. localhost links work only on that same computer; private network links may work only on the same Wi-Fi.
+
+DATA / HOSTING NOTES
+--------------------
+- Live View broadcasts one current live session at a time.
+- This build uses the included Node server and its live-state snapshot. It is intended for one running server instance; do not scale it to multiple instances without shared storage/pub-sub.
+- Some free hosting plans can sleep and use temporary disk storage. Keep the organizer page open during the session; it republishes the latest queue snapshot every 30 seconds while the session is active. If the organizer page was closed during a host restart, reopen it to republish the locally saved queue.
+- The current app has no user login. Treat the public queue and player names as public information when deploying. Anyone who knows the API endpoint can currently submit a snapshot; use authenticated write access before running private or sensitive sessions.
+- The QR code image is generated through the external QR Server image endpoint, so an internet connection is needed to display the QR image. The copy-link button still provides the exact URL.
