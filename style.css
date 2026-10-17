@@ -16658,3 +16658,572 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
     will-change:auto;
   }
 }
+
+/* Queue List gender icons use the same fixed-size SVG artwork as Live View.
+   SVG geometry and a centered flex box avoid OS/browser Unicode baseline differences. */
+#queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline{
+  align-self:center!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 17px!important;
+  width:17px!important;
+  min-width:17px!important;
+  height:17px!important;
+  margin:0!important;
+  padding:0!important;
+  line-height:0!important;
+  vertical-align:middle!important;
+}
+#queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-inline{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 17px!important;
+  width:17px!important;
+  min-width:17px!important;
+  height:17px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  font-size:0!important;
+  line-height:0!important;
+  text-align:center!important;
+  overflow:visible!important;
+}
+#queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-symbol{
+  display:block!important;
+  flex:0 0 13px!important;
+  width:13px!important;
+  min-width:13px!important;
+  height:13px!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:visible!important;
+  shape-rendering:geometricPrecision;
+}
+#queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-inline.male{color:#2676b7!important;}
+#queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-inline.female{color:#c43b7b!important;}
+
+
+
+/* Final queue gender-color correction: males stay blue and females stay pink.
+   Explicit SVG stroke rules avoid any legacy cascade changing individual icons. */
+.queue-gender-inline .gender-inline.male,
+#queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-inline.male {
+  color: #2676b7 !important;
+}
+.queue-gender-inline .gender-inline.male .gender-symbol,
+#queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-inline.male .gender-symbol {
+  color: #2676b7 !important;
+}
+.queue-gender-inline .gender-inline.male .gender-symbol *,
+#queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-inline.male .gender-symbol * {
+  stroke: #2676b7 !important;
+}
+.queue-gender-inline .gender-inline.female,
+#queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-inline.female {
+  color: #c43b7b !important;
+}
+.queue-gender-inline .gender-inline.female .gender-symbol,
+#queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-inline.female .gender-symbol {
+  color: #c43b7b !important;
+}
+.queue-gender-inline .gender-inline.female .gender-symbol *,
+#queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-inline.female .gender-symbol * {
+  stroke: #c43b7b !important;
+}
+
+
+/* System-wide gender icon polish — one SVG size, consistent centering, and stable gender colors. */
+.gender-symbol{
+  display:block;
+  width:13px;
+  height:13px;
+  min-width:13px;
+  max-width:none;
+  flex:0 0 13px;
+  overflow:visible;
+  shape-rendering:geometricPrecision;
+}
+.gender-symbol circle,
+.gender-symbol path{
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.gender-symbol-male{color:#2676b7!important;}
+.gender-symbol-female{color:#c43b7b!important;}
+
+.cloud-gender,
+.court-lineup-gender,
+.detail-gender-icon,
+.detail-row-gender,
+.slot-gender-icon,
+.match-gender,
+.expanded-ranking-gender,
+.queue-lock-partner-gender,
+.picker-gender{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  vertical-align:middle!important;
+  box-sizing:border-box!important;
+  flex:0 0 14px!important;
+  width:14px!important;
+  min-width:14px!important;
+  height:14px!important;
+  margin-top:0!important;
+  margin-bottom:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  font-size:0!important;
+  line-height:0!important;
+  overflow:visible!important;
+}
+
+/* SVG colors are applied directly so legacy container rules cannot turn a male icon pink. */
+.gender-symbol-male,
+.gender-symbol-male *{color:#2676b7!important;stroke:#2676b7!important;}
+.gender-symbol-female,
+.gender-symbol-female *{color:#c43b7b!important;stroke:#c43b7b!important;}
+
+/* Keep icons inline with text where they appear inside compact buttons or labels. */
+.registered-result small .gender-symbol,
+.court-picker .picker-filter .gender-symbol{
+  display:inline-block!important;
+  vertical-align:-2px!important;
+  width:12px!important;
+  height:12px!important;
+  min-width:12px!important;
+  max-width:12px!important;
+  margin:0 3px 0 0!important;
+}
+.gender-choice .gender-symbol{
+  display:block!important;
+  width:19px!important;
+  height:19px!important;
+  min-width:19px!important;
+  max-width:19px!important;
+  flex:0 0 19px!important;
+}
+
+/* Live Queue start-screen matching-mode cards, matching the reference layout. */
+#liveQueueStartScreen .live-queue-matching-list{
+  display:grid;
+  gap:7px;
+  min-width:0;
+}
+#liveQueueStartScreen .live-queue-matching-option{
+  display:block;
+  width:100%;
+  min-width:0;
+  padding:10px 11px;
+  border:1px solid rgba(15,23,42,.075);
+  border-radius:12px;
+  background:#f8fafc;
+  color:var(--lqs-slate);
+  text-align:left;
+  box-shadow:none;
+  cursor:pointer;
+  transform:none!important;
+  transition:border-color .16s ease,background-color .16s ease,box-shadow .16s ease;
+}
+#liveQueueStartScreen .live-queue-matching-option:hover{
+  border-color:rgba(7,91,61,.22);
+  background:#f6faf7;
+}
+#liveQueueStartScreen .live-queue-matching-option.active{
+  border-color:rgba(7,91,61,.45);
+  background:#f5faf6;
+  box-shadow:0 0 0 1px rgba(7,91,61,.04);
+}
+#liveQueueStartScreen .live-queue-matching-option:focus-visible{
+  outline:2px solid var(--lqs-lime);
+  outline-offset:2px;
+}
+#liveQueueStartScreen .live-queue-matching-copy{
+  display:grid;
+  gap:5px;
+  min-width:0;
+}
+#liveQueueStartScreen .live-queue-matching-title{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  color:#0f172a;
+  font-size:12px;
+  font-weight:750;
+  line-height:1.35;
+}
+#liveQueueStartScreen .live-queue-matching-description{
+  display:block;
+  color:rgba(15,23,42,.66);
+  font-size:10px;
+  font-weight:450;
+  line-height:1.45;
+  white-space:normal;
+}
+#liveQueueStartScreen .live-queue-mode-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:16px;
+  padding:2px 7px;
+  border-radius:999px;
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.025em;
+  line-height:1.2;
+  white-space:nowrap;
+}
+#liveQueueStartScreen .live-queue-mode-badge.recommended{
+  background:#dcfce7;
+  color:#15803d;
+}
+#liveQueueStartScreen .live-queue-mode-badge.improved{
+  background:#f3e8ff;
+  color:#7e22ce;
+}
+#liveQueueStartScreen .live-queue-matching-list + .live-queue-toggle-row{
+  margin-top:12px;
+}
+
+#liveQueueStartScreen .live-queue-matching-option:disabled{cursor:default;}
+
+/* LIVE QUEUE START — align the setup screen with the Live View light theme. */
+#liveQueueStartScreen{
+  --lqs-slate:#18383e;
+  --lqs-green:#087f80;
+  --lqs-lime:#27b8ae;
+  --lqs-white:#ffffff;
+  --lqs-black:#18383e;
+  color:var(--lqs-slate);
+  background:radial-gradient(ellipse at 50% 0%,rgba(8,127,128,.09) 0%,rgba(8,127,128,0) 47%),#f1f7f8;
+  scrollbar-color:#9bbfc0 #e5eff0;
+}
+#liveQueueStartScreen::-webkit-scrollbar-track{background:#e5eff0;}
+#liveQueueStartScreen::-webkit-scrollbar-thumb{border-color:#e5eff0;background:#9bbfc0;}
+#liveQueueStartScreen::-webkit-scrollbar-thumb:hover{background:#087f80;}
+#liveQueueStartScreen .live-queue-start-card{
+  border:1px solid #d4e2e4;
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 18px 48px rgba(24,56,62,.10),0 2px 8px rgba(24,56,62,.035);
+}
+#liveQueueStartScreen .live-queue-start-card::before,
+#liveQueueStartScreen .live-queue-start-heading::before{background:#087f80;}
+#liveQueueStartScreen .live-queue-start-heading p{color:#5b7379;}
+#liveQueueStartScreen .live-queue-start-brand-wordmark > span{color:#18383e;}
+#liveQueueStartScreen .live-queue-start-brand-wordmark > span b{color:#087f80;}
+#liveQueueStartScreen .live-queue-start-brand-wordmark > small{color:#607e83;}
+#liveQueueStartScreen .live-queue-field-label{color:#527078;}
+#liveQueueStartScreen .live-queue-input,
+#liveQueueStartScreen input[type="text"],
+#liveQueueStartScreen input:not([type]){
+  border-color:#d4e2e4;
+  background:#fff;
+  color:#18383e;
+}
+#liveQueueStartScreen .live-queue-input:focus,
+#liveQueueStartScreen input[type="text"]:focus,
+#liveQueueStartScreen input:not([type]):focus{
+  border-color:#087f80;
+  box-shadow:0 0 0 3px rgba(8,127,128,.12);
+  outline:none;
+}
+#liveQueueStartScreen .existing-live-queue,
+#liveQueueStartScreen .existing-live-queue-stat,
+#liveQueueStartScreen .live-queue-toggle-row{
+  border-color:#dce8ea;
+  background:#f7fafb;
+}
+#liveQueueStartScreen .existing-live-queue-copy strong,
+#liveQueueStartScreen .existing-live-queue-stat strong{color:#18383e;}
+#liveQueueStartScreen .existing-live-queue-copy span,
+#liveQueueStartScreen .existing-live-queue-stat-label{color:#607980;}
+#liveQueueStartScreen .existing-live-queue-icon{background:#e0f3f2;color:#087f80;}
+#liveQueueStartScreen .continue-live-queue-btn{
+  border:1px solid #087f80;
+  background:#087f80;
+  color:#fff;
+}
+#liveQueueStartScreen .live-queue-choice,
+#liveQueueStartScreen .live-queue-game{
+  border-color:#d4e2e4;
+  background:#fff;
+  color:#24464c;
+}
+#liveQueueStartScreen .live-queue-choice.active{
+  border-color:#087f80;
+  background:#e4f5f4;
+  color:#075e63;
+  box-shadow:inset 0 0 0 1px rgba(8,127,128,.08);
+}
+#liveQueueStartScreen .live-queue-game.active{
+  border-color:#087f80;
+  background:#087f80;
+  color:#fff;
+}
+#liveQueueStartScreen .live-queue-game span{color:#607980;}
+#liveQueueStartScreen .live-queue-game.active span{color:rgba(255,255,255,.84);}
+#liveQueueStartScreen .live-queue-toggle-copy strong{color:#18383e;}
+#liveQueueStartScreen .live-queue-toggle-copy small{color:#607980;}
+#liveQueueStartScreen .live-queue-toggle-row input:checked + .live-queue-toggle{background:#087f80;}
+#liveQueueStartScreen .live-queue-toggle-row input:checked + .live-queue-toggle::after{background:#fff;}
+#liveQueueStartScreen .create-live-queue-btn{
+  border-color:#087f80;
+  background:#087f80;
+  color:#fff;
+  box-shadow:0 5px 13px rgba(8,127,128,.16);
+}
+#liveQueueStartScreen .create-live-queue-btn::after{color:#baf3ec;}
+#liveQueueStartScreen button:focus-visible,
+#liveQueueStartScreen .live-queue-matching-option:focus-visible{
+  outline:3px solid rgba(8,127,128,.28);
+  outline-offset:2px;
+}
+#liveQueueStartScreen .live-queue-matching-option{
+  border-color:#dce8ea;
+  background:#f7fafb;
+  color:#18383e;
+}
+#liveQueueStartScreen .live-queue-matching-option:hover{border-color:#9fc9c9;background:#f2f9f9;}
+#liveQueueStartScreen .live-queue-matching-option.active{
+  border-color:#087f80;
+  background:#eef8f7;
+  box-shadow:inset 0 0 0 1px rgba(8,127,128,.08);
+}
+#liveQueueStartScreen .live-queue-matching-title{color:#18383e;}
+#liveQueueStartScreen .live-queue-matching-description{color:#5b7379;}
+@media (hover:hover) and (pointer:fine){
+  #liveQueueStartScreen .live-queue-start-card:hover{box-shadow:0 20px 52px rgba(24,56,62,.12),0 2px 8px rgba(24,56,62,.04);}
+  #liveQueueStartScreen .existing-live-queue:hover,
+  #liveQueueStartScreen .live-queue-toggle-row:hover{background:#f2f8f9;}
+  #liveQueueStartScreen .live-queue-choice.active:hover{background:#d9f0ef;color:#075e63;}
+  #liveQueueStartScreen .live-queue-game.active:hover,
+  #liveQueueStartScreen .create-live-queue-btn:hover:not(:disabled),
+  #liveQueueStartScreen .continue-live-queue-btn:hover:not(:disabled){background:#066c6e;color:#fff;}
+}
+
+/* LIVE QUEUE START SCREEN — final layout polish: three independent light-mode panels. */
+#liveQueueStartScreen .live-queue-start-card{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:11px;
+  width:min(100%,440px);
+  max-width:440px;
+  padding:0!important;
+  overflow:visible;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+}
+#liveQueueStartScreen .live-queue-start-card::before{display:none;content:none;}
+#liveQueueStartScreen .live-queue-start-card:hover{box-shadow:none;}
+#liveQueueStartScreen .live-queue-start-panel{
+  min-width:0;
+  padding:14px 15px 13px;
+  border:1px solid #d4e2e4;
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 4px 14px rgba(24,56,62,.045);
+}
+#liveQueueStartScreen .live-queue-start-heading{
+  margin:0 0 12px;
+  text-align:left;
+}
+#liveQueueStartScreen .live-queue-start-heading::before{
+  display:none!important;
+  content:none!important;
+}
+#liveQueueStartScreen .live-queue-start-heading h1{margin:0;}
+#liveQueueStartScreen .live-queue-start-heading p{max-width:none;}
+#liveQueueStartScreen .live-queue-form-section{
+  padding-top:0;
+  border-top:0;
+}
+#liveQueueStartScreen .live-queue-form-section > .live-queue-field-label:first-child{
+  margin-top:0;
+}
+#liveQueueStartScreen .live-queue-start-panel-matching > .live-queue-field-label{
+  margin-top:0;
+}
+#liveQueueStartScreen .live-queue-start-panel-actions .live-queue-toggle-row:first-child{
+  margin-top:0;
+}
+#liveQueueStartScreen .live-queue-start-panel-actions .create-live-queue-btn{
+  margin-top:11px;
+}
+@media (hover:hover) and (pointer:fine){
+  #liveQueueStartScreen #liveQueueMatchType .live-queue-choice:hover:not(:disabled),
+  #liveQueueStartScreen #liveQueueWinBy .live-queue-choice:hover:not(:disabled){
+    border-color:#087f80;
+    background:#e8f7f6;
+    color:#075e63;
+    box-shadow:0 2px 8px rgba(8,127,128,.12);
+  }
+  #liveQueueStartScreen #liveQueueMatchType .live-queue-choice.active:hover:not(:disabled),
+  #liveQueueStartScreen #liveQueueWinBy .live-queue-choice.active:hover:not(:disabled){
+    border-color:#087f80;
+    background:#d4efed;
+    color:#075e63;
+    box-shadow:inset 0 0 0 1px rgba(8,127,128,.10),0 2px 8px rgba(8,127,128,.10);
+  }
+  #liveQueueStartScreen .live-queue-start-panel:hover{
+    box-shadow:0 5px 16px rgba(24,56,62,.06);
+  }
+}
+@media (max-width:520px){
+  #liveQueueStartScreen .live-queue-start-card{
+    width:100%;
+    max-width:440px;
+    gap:9px;
+  }
+  #liveQueueStartScreen .live-queue-start-panel{padding:12px 12px 11px;border-radius:13px;}
+}
+@media (max-width:360px){
+  #liveQueueStartScreen .live-queue-start-panel{padding:11px 10px 10px;}
+}
+
+/* Live queue start screen: amber outline for the DUPR toggle row only. */
+#liveQueueStartScreen .live-queue-toggle-row:has(#liveQueueDupr){
+  border-color:#f59e0b;
+}
+
+/* Live court announce control moved into the header, immediately before Expand. */
+#courtsList .court-card.court-live-card .court-head.live-head .court-head-right > .court-announce-icon {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  flex: 0 0 25px !important;
+  width: 25px !important;
+  min-width: 25px !important;
+  max-width: 25px !important;
+  height: 25px !important;
+  min-height: 25px !important;
+  max-height: 25px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  color: #8793a0 !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+#courtsList .court-card.court-live-card .court-head.live-head .court-head-right > .court-announce-icon:hover {
+  filter: brightness(1.06);
+  outline: none !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+#courtsList .court-card.court-live-card .court-head.live-head .court-head-right > .court-announce-icon:focus-visible {
+  outline: 2px solid #d8c7ff;
+  outline-offset: 1px;
+}
+
+/* With Announce now in the header, keep the win-only footer balanced at two actions. */
+@media (min-width: 1101px) {
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer:not(.delete-confirming),
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer.delete-confirming {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+
+/* Live match action row: Delete Match | Mix Teams | Submit Score, kept compact. */
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 3px 8px 6px !important;
+  box-sizing: border-box !important;
+}
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) > button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  box-sizing: border-box !important;
+  padding: 0 4px !important;
+  border-radius: 9px !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+}
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) .cancel-match {
+  justify-self: stretch !important;
+  color: #dc5862 !important;
+  background: transparent !important;
+}
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) .mix-live {
+  border: 0 !important;
+  color: #fff !important;
+  background: linear-gradient(90deg, #f12c9b, #bd35ef) !important;
+}
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) .submit-score {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 4px !important;
+  border-radius: 9px !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+}
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) .mix-live-disabled {
+  opacity: .62 !important;
+  cursor: not-allowed !important;
+}
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer).delete-confirming,
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer).submit-confirming {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr) !important;
+  gap: 7px !important;
+  padding: 3px 8px 6px !important;
+  align-items: center !important;
+}
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer).delete-confirming .delete-match-note,
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer).submit-confirming .submit-score-note {
+  grid-column: 1 / -1 !important;
+}
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer).submit-confirming .delete-match-disabled,
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer).submit-confirming .mix-live-disabled,
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer).submit-confirming .submit-score-disabled {
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+}
+
+/* Match ready-actions-v2 button height on narrow screens, while preserving the three-button row. */
+@media (max-width: 620px) {
+  #courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) > button,
+  #courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) .submit-score,
+  #courtsList .court-card.court-live-card .live-footer:not(.win-only-footer).submit-confirming .delete-match-disabled,
+  #courtsList .court-card.court-live-card .live-footer:not(.win-only-footer).submit-confirming .mix-live-disabled,
+  #courtsList .court-card.court-live-card .live-footer:not(.win-only-footer).submit-confirming .submit-score-disabled {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+  }
+}

@@ -6,88 +6,11 @@
   <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
   <title>Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=online-offline-queueing-1">
+  <link rel="stylesheet" href="style.css?v=start-panels-hover-20261017">
 </head>
 <body>
-<div id="liveQueueStartScreen" class="live-queue-start-screen">
-  <div class="live-queue-start-brand" aria-label="Pickle Point Match">
-    <img src="pickleball-p-emblem.png" alt="" aria-hidden="true">
-    <div class="live-queue-start-brand-wordmark">
-      <span>PICKLE <b>POINT</b></span>
-      <small>M A T C H</small>
-    </div>
-  </div>
-  <div class="live-queue-start-card">
-    <div class="live-queue-start-heading">
-      <h1>Live Queue</h1>
-      <p id="liveQueueStartSubtitle">Create a live queue session before entering the queueing workspace.</p>
-    </div>
-
-    <div id="existingLiveQueueCard" class="existing-live-queue hidden">
-      <div class="existing-live-queue-icon">▶</div>
-      <div class="existing-live-queue-copy">
-        <strong>Existing Live Queue</strong>
-        <span id="existingLiveQueueName">Live Queue</span>
-      </div>
-      <button type="button" id="continueLiveQueueBtn" class="continue-live-queue-btn">Continue</button>
-    </div>
-
-    <div id="existingLiveQueueStats" class="existing-live-queue-stats hidden" aria-label="Existing live queue statistics">
-      <div class="existing-live-queue-stat">
-        <span class="existing-live-queue-stat-label">Players on Queue</span>
-        <strong id="existingLiveQueuePlayersCount">0</strong>
-      </div>
-      <div class="existing-live-queue-stat">
-        <span class="existing-live-queue-stat-label">Court Session</span>
-        <strong id="existingLiveQueueCourtsCount">0</strong>
-      </div>
-      <div class="existing-live-queue-stat">
-        <span class="existing-live-queue-stat-label">Matches Total</span>
-        <strong id="existingLiveQueueMatchesCount">0</strong>
-      </div>
-    </div>
-
-    <div class="live-queue-form-section">
-      <label class="live-queue-field-label">SESSION NAME</label>
-      <input id="liveQueueSessionName" class="live-queue-input" type="text" value="(NON DUPR MATCH) Open Play" autocomplete="off" aria-label="Session name. Match type prefix is automatic and cannot be removed.">
-
-      <label class="live-queue-field-label">MATCH TYPE</label>
-      <div class="live-queue-choice-row two" id="liveQueueMatchType">
-        <button type="button" class="live-queue-choice active" data-value="Doubles">👥 <span>Doubles</span></button>
-        <button type="button" class="live-queue-choice" data-value="Singles" disabled aria-disabled="true">👤 <span>Singles</span></button>
-      </div>
-
-      <label class="live-queue-field-label">GAME MODE</label>
-      <div class="live-queue-game-list" id="liveQueueGameMode">
-        <button type="button" class="live-queue-game active" data-target="11"><b>Race to 11</b><span>Standard open play</span></button>
-        <button type="button" class="live-queue-game" data-target="15"><b>Race to 15</b><span>Extended play</span></button>
-        <button type="button" class="live-queue-game" data-target="21" disabled aria-disabled="true"><b>Rally to 21</b><span>MLP/PPA format</span></button>
-      </div>
-
-      <label class="live-queue-field-label">WIN BY</label>
-      <div class="live-queue-choice-row three" id="liveQueueWinBy">
-        <button type="button" class="live-queue-choice active" data-value="1">Win by 1</button>
-        <button type="button" class="live-queue-choice" data-value="2">Win by 2</button>
-        <button type="button" class="live-queue-choice" data-value="3">Win by 3</button>
-      </div>
-
-      <label class="live-queue-toggle-row record-results-toggle-row" title="Choose whether to record numeric game scores">
-        <span class="live-queue-toggle-copy"><strong>Recording results</strong><small>Record game scores</small><small>Save the final score of each game.</small></span>
-        <input id="liveQueueRecordResults" type="checkbox" aria-label="Record game scores">
-        <span class="live-queue-toggle" aria-hidden="true"></span>
-      </label>
-
-      <label class="live-queue-toggle-row">
-        <span class="live-queue-toggle-copy"><strong>DUPR Match</strong><small>Results will be uploaded to DUPR.com</small></span>
-        <input id="liveQueueDupr" type="checkbox" disabled aria-disabled="true">
-        <span class="live-queue-toggle" aria-hidden="true"></span>
-      </label>
-    </div>
-
-    <button type="button" id="createLiveQueueBtn" class="create-live-queue-btn">Create Live Queue</button>
-  </div>
-</div>
-
+<!-- Live Queue setup is loaded from live-queue-start-card.html. -->
+<div id="liveQueueStartMount"></div>
 <header class="topbar">
   <button type="button" class="topbar-back-btn" id="topbarBackToStartBtn" aria-label="Back to Live Queue start screen" title="Back to Live Queue start screen">く</button>
   <div class="topbar-logo" role="img" aria-label="Pickleball"><img class="topbar-logo-img" src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div>
@@ -176,8 +99,8 @@
         <div class="registration-inline-control registration-gender-control">
           <label class="registration-field-label">GENDER <span class="registration-required-star" aria-hidden="true">*</span></label>
           <div class="registration-choice-row gender-logo-row">
-            <button type="button" class="gender-choice gender-logo-male" data-gender="Male" aria-label="Male" title="Male">♂</button>
-            <button type="button" class="gender-choice gender-logo-female" data-gender="Female" aria-label="Female" title="Female">♀</button>
+            <button type="button" class="gender-choice gender-logo-male" data-gender="Male" aria-label="Male" title="Male"><svg class="gender-symbol gender-symbol-male" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.35" cy="10.65" r="3.45" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.8 8.2 14.1 1.9M9.35 1.9h4.75v4.75" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button type="button" class="gender-choice gender-logo-female" data-gender="Female" aria-label="Female" title="Female"><svg class="gender-symbol gender-symbol-female" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="4.8" r="3.55" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.4v5.9M5.25 11.35h5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
           </div>
         </div>
       </div>
@@ -420,7 +343,7 @@ Maria Santos,Female"></textarea>
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<script src="script.js?v=live-qr-auto-online-2" defer></script>
+<script src="live-queue-start-loader.js?v=matching-modes-20261017" defer></script>
 
 
 

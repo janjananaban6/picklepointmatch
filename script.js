@@ -13,6 +13,8 @@ const state={
   pendingLeftDelete:null,
   pendingRemoveCourt:null,
   eventRules:{target:11,winBy:1,type:'Doubles'},
+  matchingMode:'balanced',
+  winnersLosersNextGroup:'winners',
   sessionMetrics:{cloudCheckins:0,newRegistered:0},
   sessionActive:false,
   sessionName:'Open Play — Oct 6, 2026',
@@ -33,8 +35,26 @@ try{if('BroadcastChannel' in window)liveViewBroadcastChannel=new BroadcastChanne
 const LEGACY_STORAGE_KEYS=['pickleq_v10_state','pickleq_v9_state','pickleq_v8_state','pickleq_v7_state','pickleq_v6_state'];
 const CLOUD_RECORDS_KEY='pickleq_registered_cloud_records_v1';
 let cloudRecords={players:[],logs:[],sessions:[]};let pendingCloudDeleteId=null;let pendingCloudMatchDeleteId=null;let pendingCloudMatchPlayerId=null;let pendingCloudMatchEditId=null;let pendingCloudMatchEditPlayerId=null;
-function loadCloudRecords(){try{const d=JSON.parse(localStorage.getItem(CLOUD_RECORDS_KEY)||'null');if(d)cloudRecords={players:d.players||[],logs:d.logs||[],sessions:d.sessions||[]};}catch(e){}}
-function saveCloudRecords(){try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));}catch(e){}}
+const sharedClientId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():`pp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+let sharedSyncReady=false,sharedSyncAvailable=false,sharedSyncInitializing=false,sharedSyncRetryTimer=null;
+let sharedAppRevision=0,sharedCloudRevision=0,appSyncInFlight=false,appSyncPending=null,cloudSyncInFlight=false,cloudSyncPending=null,applyingRemoteAppState=false,sharedEvents=null;
+function isHttpApp(){return location.protocol==='http:'||location.protocol==='https:';}
+function cloneSharedData(value){try{return JSON.parse(JSON.stringify(value));}catch(e){return value;}}
+function loadCloudRecords(){try{const d=JSON.parse(localStorage.getItem(CLOUD_RECORDS_KEY)||'null');if(d)cloudRecords={players:Array.isArray(d.players)?d.players:[],logs:Array.isArray(d.logs)?d.logs:[],sessions:Array.isArray(d.sessions)?d.sessions:[]};}catch(e){}}
+function queueCloudRecordsSync(){if(applyingRemoteAppState)return;cloudSyncPending=cloneSharedData(cloudRecords);flushCloudRecordsSync();}
+function saveCloudRecords(){try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));}catch(e){}queueCloudRecordsSync();}
+function flushCloudRecordsSync(){if(!sharedSyncAvailable||!sharedSyncReady||cloudSyncInFlight||!cloudSyncPending||!isHttpApp())return;const records=cloudSyncPending;cloudSyncPending=null;cloudSyncInFlight=true;fetch('/api/cloud-records',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({records,clientId:sharedClientId,baseRevision:sharedCloudRevision})}).then(async response=>{const data=await response.json();if(response.status===409&&data.conflict)applySharedCloudRecords({revision:data.revision,clientId:null,records:data.records});if(!response.ok)throw new Error(`Cloud records sync failed (${response.status})`);sharedCloudRevision=Math.max(sharedCloudRevision,Number(data.revision)||0);}).catch(()=>{cloudSyncPending=cloneSharedData(cloudRecords);scheduleSharedSyncRetry();}).finally(()=>{cloudSyncInFlight=false;if(cloudSyncPending)flushCloudRecordsSync();});}
+function applySharedCloudRecords(payload,force=false){if(!payload||!payload.records)return;const revision=Number(payload.revision)||0;if(!force&&revision<=sharedCloudRevision)return;sharedCloudRevision=Math.max(sharedCloudRevision,revision);if(payload.clientId===sharedClientId&&!force)return;cloudRecords={players:Array.isArray(payload.records.players)?payload.records.players:[],logs:Array.isArray(payload.records.logs)?payload.records.logs:[],sessions:Array.isArray(payload.records.sessions)?payload.records.sessions:[]};try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));}catch(e){}cloudSyncPending=null;if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();}
+function getSharedAppStateSnapshot(){return {schemaVersion:11,players:state.players,left:state.left,queue:state.queue,lockedPartners:state.lockedPartners,courts:state.courts,logs:state.logs,nextPlayer:state.nextPlayer,nextCourt:state.nextCourt,nextWaitingCourt:state.nextWaitingCourt,nextLog:state.nextLog,sessionMetrics:state.sessionMetrics,sessionActive:state.sessionActive,sessionName:state.sessionName,duprMatch:state.duprMatch,recordScores:state.recordScores,eventRules:state.eventRules,matchingMode:state.matchingMode,winnersLosersNextGroup:state.winnersLosersNextGroup};}
+function queueSharedAppStateSync(snapshot){if(applyingRemoteAppState)return;appSyncPending=cloneSharedData(snapshot);flushSharedAppStateSync();}
+function flushSharedAppStateSync(){if(!sharedSyncAvailable||!sharedSyncReady||appSyncInFlight||!appSyncPending||!isHttpApp())return;const snapshot=appSyncPending;appSyncPending=null;appSyncInFlight=true;fetch('/api/app-state',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({state:snapshot,clientId:sharedClientId,baseRevision:sharedAppRevision})}).then(async response=>{const data=await response.json();if(response.status===409&&data.conflict)applySharedAppState({revision:data.revision,clientId:null,state:data.state});if(!response.ok)throw new Error(`Application state sync failed (${response.status})`);sharedAppRevision=Math.max(sharedAppRevision,Number(data.revision)||0);}).catch(()=>{appSyncPending=getSharedAppStateSnapshot();scheduleSharedSyncRetry();}).finally(()=>{appSyncInFlight=false;if(appSyncPending)flushSharedAppStateSync();});}
+function applySharedAppState(payload,force=false){if(!payload||!payload.state||typeof payload.state!=='object')return;const revision=Number(payload.revision)||0;if(!force&&revision<=sharedAppRevision)return;sharedAppRevision=Math.max(sharedAppRevision,revision);if(payload.clientId===sharedClientId&&!force)return;appSyncPending=null;applyingRemoteAppState=true;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(payload.state));loadState();render();syncLiveQueueStartScreen();}catch(e){console.warn('Could not apply shared queue state',e);}finally{applyingRemoteAppState=false;}}
+function scheduleSharedSyncRetry(){if(sharedSyncRetryTimer!==null||!isHttpApp())return;sharedSyncRetryTimer=setTimeout(()=>{sharedSyncRetryTimer=null;if(!sharedSyncAvailable){initializeSharedDataSync();return;}flushSharedAppStateSync();flushCloudRecordsSync();},5000);}
+async function initializeSharedDataSync(){if(!isHttpApp()){sharedSyncReady=true;return;}if(sharedSyncInitializing||sharedSyncAvailable)return;sharedSyncInitializing=true;try{const responses=await Promise.all([fetch(`/api/app-state?_=${Date.now()}`,{cache:'no-store'}),fetch(`/api/cloud-records?_=${Date.now()}`,{cache:'no-store'})]);if(responses.some(response=>!response.ok))throw new Error('Shared data API is not available');const [remoteApp,remoteCloud]=await Promise.all(responses.map(response=>response.json()));
+  if(remoteApp.state&&typeof remoteApp.state==='object'){appSyncPending=null;applySharedAppState({revision:remoteApp.revision,clientId:null,state:remoteApp.state},true);}else{const response=await fetch('/api/app-state',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({state:getSharedAppStateSnapshot(),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize shared queue state');const seeded=await response.json();sharedAppRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.state)applySharedAppState({revision:seeded.revision,clientId:null,state:seeded.state},true);}
+  if(remoteCloud.records&&typeof remoteCloud.records==='object'){cloudSyncPending=null;applySharedCloudRecords({revision:remoteCloud.revision,clientId:null,records:remoteCloud.records},true);}else{const response=await fetch('/api/cloud-records',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({records:cloneSharedData(cloudRecords),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize Registered Player Cloud');const seeded=await response.json();sharedCloudRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.records)applySharedCloudRecords({revision:seeded.revision,clientId:null,records:seeded.records},true);}
+  sharedSyncAvailable=true;sharedSyncReady=true;sharedEvents=new EventSource('/api/shared-events');sharedEvents.addEventListener('app-state',event=>{try{applySharedAppState(JSON.parse(event.data));}catch(e){}});sharedEvents.addEventListener('cloud-records',event=>{try{applySharedCloudRecords(JSON.parse(event.data));}catch(e){}});publishLiveViewState();flushSharedAppStateSync();flushCloudRecordsSync();
+ }catch(error){sharedSyncReady=true;console.warn('Shared device sync is temporarily unavailable:',error);scheduleSharedSyncRetry();}finally{sharedSyncInitializing=false;}}
 function upsertCloudPlayer(p){if(!p||!p.name)return;loadCloudRecords();let a=cloudRecords.players.find(x=>x.name.toLowerCase()===p.name.toLowerCase());if(!a){a={cloudId:Date.now()+Math.floor(Math.random()*100000),name:p.name,matches:0,wins:0,losses:0};cloudRecords.players.push(a);}Object.assign(a,{name:p.name,nickname:p.nickname||a.nickname||'',gender:p.gender||a.gender||'',category:p.category||a.category||'',opgId:p.opgId||a.opgId||''});saveCloudRecords();}
 function archiveLiveSession(){
   loadCloudRecords();
@@ -66,7 +86,7 @@ function archiveLiveSession(){
   cloudRecords.sessions.push({id:sid,endedAt:new Date().toISOString(),playerCount:state.players.length+state.left.length,matchCount:logs.length,sessionName:state.sessionName||''});
   saveCloudRecords();
 }
-function renderCloudRecords(){const previouslyOpenCloudLogs=new Set([...document.querySelectorAll('#cloudRecordsContent .cloud-match-details[open]')].map(d=>Number(d.dataset.cloudPlayerId)));ensureCloudMatchIds();loadCloudRecords();enforceSingleCloudMatchLogOpen();const count=$('cloudRecordsCount');if(count)count.textContent=`(${cloudRecords.players.length})`;const q=($('cloudRecordsSearch').value||'').trim().toLowerCase();const players=cloudRecords.players.filter(p=>[p.name,p.nickname,p.gender,p.category,p.opgId].join(' ').toLowerCase().includes(q));const sessionNames={};cloudRecords.sessions.forEach(s=>{if(s&&s.id)sessionNames[s.id]=s.sessionName||'';});$('cloudRecordsSummary').innerHTML=`<span>👤 <b>${cloudRecords.players.length}</b> registered</span><span>🏓 <b>${cloudRecords.logs.length}</b> match record${cloudRecords.logs.length===1?'':'s'}</span><span>☁ <b>${cloudRecords.sessions.length}</b> archived session${cloudRecords.sessions.length===1?'':'s'}</span>`;$('cloudRecordsContent').innerHTML=players.map((p,index)=>{const logs=cloudRecords.logs.filter(l=>{if((l._cloudDeletedFor||[]).some(id=>Number(id)===Number(p.cloudId)))return false;return [...(l.team1Names||[]),...(l.team2Names||[])].some(n=>n.toLowerCase()===p.name.toLowerCase());});const cat=({BEG:'BEG',NOV:'NOV',INT:'INT',ADV:'ADV',EXP:'EXP'})[p.category]||p.category||'—';const cls=({BEG:'beg',NOV:'nov',INT:'int',ADV:'adv',EXP:'exp'})[p.category]||'nov';const active=state.players.find(sp=>String(sp.name||'').trim().toLowerCase()===String(p.name||'').trim().toLowerCase()&&(state.queue.includes(sp.id)||!!sp.court||(state.courts||[]).some(c=>(c.players||[]).includes(sp.id))));const alreadyQueued=!!active;const hasPendingMatch=Number(pendingCloudMatchDeleteId)>0&&Number(pendingCloudMatchPlayerId)===Number(p.cloudId)&&logs.some(l=>Number(l._cloudMatchId||0)===Number(pendingCloudMatchDeleteId));const keepMatchLogOpen=hasPendingMatch||Number(pendingCloudMatchEditPlayerId)===Number(p.cloudId);return `<article class="cloud-player-card"><div class="cloud-player-main"><div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${esc((p.name||'?').charAt(0).toUpperCase())}</div><div class="cloud-player-ident"><b>${esc(p.name)}${p.nickname?` (${esc(p.nickname)})`:''} <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${p.gender==='Female'?'♀':'♂'}</span></b><small class="cloud-player-summary"><span class="cloud-category-badge skill-${cls}">${esc(cat)}</span><span class="cloud-player-stats"><span>${p.matches||0} Matches</span><span class="cloud-win">${p.wins||0} Wins</span><span class="cloud-loss">${p.losses||0} Losses</span></span></small></div><div class="cloud-player-actions"><button class="cloud-checkin-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Player is already checked in or playing on court"':''} onclick="checkInCloudPlayer(${Number(p.cloudId)})">${alreadyQueued?'Checked In':'Check in'}</button>${Number(pendingCloudDeleteId)===Number(p.cloudId)?'':`<button class="cloud-delete-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Cannot delete a checked-in player"':''} onclick="requestDeleteCloudPlayer(${Number(p.cloudId)})">Delete</button>`}</div></div>${Number(pendingCloudDeleteId)===Number(p.cloudId)?`<div class="cloud-delete-warning">Delete this registered profile? Match history will be kept. <button onclick="deleteCloudPlayer(${Number(p.cloudId)})">Confirm</button> <button onclick="cancelDeleteCloudPlayer()">Cancel</button></div>`:''}<details class="cloud-match-details" data-cloud-player-id="${Number(p.cloudId)}"${(keepMatchLogOpen||previouslyOpenCloudLogs.has(Number(p.cloudId)))?' open':''}><summary><span class="cloud-match-details-label">Match Log (${logs.length})</span></summary>${logs.slice().reverse().map((l,matchIndex)=>{const mid=Number(l._cloudMatchId||0),pendingMatch=Number(pendingCloudMatchDeleteId)===mid&&Number(pendingCloudMatchPlayerId)===Number(p.cloudId),pendingEdit=Number(pendingCloudMatchEditId)===mid&&Number(pendingCloudMatchEditPlayerId)===Number(p.cloudId),deleteDisabled=pendingMatch||pendingEdit,editDisabled=pendingMatch||pendingEdit;return `<div class="cloud-match-row"><button class="cloud-match-delete-icon${deleteDisabled?' is-disabled':''}" type="button" title="${pendingEdit?'Edit confirmation active':pendingMatch?'Delete confirmation active':'Delete match'}" aria-label="Delete match" ${deleteDisabled?'disabled aria-disabled="true"':''} onclick="event.stopPropagation();deleteCloudMatch(${Number(p.cloudId)},${mid})">🗑</button><b>${esc((l.team1Names||[]).join(' & '))} vs ${esc((l.team2Names||[]).join(' & '))}</b><span class="cloud-match-score"><button class="cloud-match-edit-icon${editDisabled?' is-disabled':''}" type="button" title="${pendingMatch?'Delete confirmation active':pendingEdit?'Edit confirmation active':'Edit score'}" aria-label="Edit score" ${editDisabled?'disabled aria-disabled="true"':''} onclick="event.stopPropagation();editCloudMatch(${Number(p.cloudId)},${mid})">✎</button>${l.recordingMode==='win-only'?'WIN / LOSS':esc(l.score||'--')}</span><small>${esc(l.court||'Court')} · ${esc(l.duration||'--')} · ${l.endedAt?new Date(l.endedAt).toLocaleString():''}${(l.sessionName||sessionNames[l.sessionId])?` · ${esc(l.sessionName||sessionNames[l.sessionId])}`:''}</small>${pendingMatch?`<div class="cloud-match-delete-warning">Delete this match records? <span>Team 1 · <b>${esc((l.team1Names||[]).join(' & ')||'Team 1')}</b> VS Team 2 · <b>${esc((l.team2Names||[]).join(' & ')||'Team 2')}</b></span> <button onclick="confirmDeleteCloudMatch()">Confirm</button> <button class="cloud-match-cancel-confirm" onclick="cancelDeleteCloudMatch()">Cancel</button></div>`:''}${pendingEdit?`<div class="cloud-match-edit-warning"><span>Edit match score?</span><label>Team 1 · <input id="cloudEditScore1-${mid}" type="number" min=0 step=1 inputmode="numeric" value="${esc(String(l.score||'0-0').split('-')[0]||'0')}"></label><label>Team 2 · <input id="cloudEditScore2-${mid}" type="number" min=0 step=1 inputmode="numeric" value="${esc(String(l.score||'0-0').split('-')[1]||'0')}"></label><button class="cloud-match-edit-confirm" onclick="confirmEditCloudMatch()">OK</button><button class="cloud-match-cancel-confirm" onclick="cancelEditCloudMatch()">Cancel</button></div>`:''}</div>`}).join('')||'<small>No match records yet.</small>'}</details></article>`}).join('')||'<div class="cloud-empty"><div class="cloud-empty-icon">🏓</div><div>No registered player records found.</div></div>';}
+function renderCloudRecords(){const previouslyOpenCloudLogs=new Set([...document.querySelectorAll('#cloudRecordsContent .cloud-match-details[open]')].map(d=>Number(d.dataset.cloudPlayerId)));ensureCloudMatchIds();loadCloudRecords();enforceSingleCloudMatchLogOpen();const count=$('cloudRecordsCount');if(count)count.textContent=`(${cloudRecords.players.length})`;const q=($('cloudRecordsSearch').value||'').trim().toLowerCase();const players=cloudRecords.players.filter(p=>[p.name,p.nickname,p.gender,p.category,p.opgId].join(' ').toLowerCase().includes(q));const sessionNames={};cloudRecords.sessions.forEach(s=>{if(s&&s.id)sessionNames[s.id]=s.sessionName||'';});$('cloudRecordsSummary').innerHTML=`<span>👤 <b>${cloudRecords.players.length}</b> registered</span><span>🏓 <b>${cloudRecords.logs.length}</b> match record${cloudRecords.logs.length===1?'':'s'}</span><span>☁ <b>${cloudRecords.sessions.length}</b> archived session${cloudRecords.sessions.length===1?'':'s'}</span>`;$('cloudRecordsContent').innerHTML=players.map((p,index)=>{const logs=cloudRecords.logs.filter(l=>{if((l._cloudDeletedFor||[]).some(id=>Number(id)===Number(p.cloudId)))return false;return [...(l.team1Names||[]),...(l.team2Names||[])].some(n=>n.toLowerCase()===p.name.toLowerCase());});const cat=({BEG:'BEG',NOV:'NOV',INT:'INT',ADV:'ADV',EXP:'EXP'})[p.category]||p.category||'—';const cls=({BEG:'beg',NOV:'nov',INT:'int',ADV:'adv',EXP:'exp'})[p.category]||'nov';const active=state.players.find(sp=>String(sp.name||'').trim().toLowerCase()===String(p.name||'').trim().toLowerCase()&&(state.queue.includes(sp.id)||!!sp.court||(state.courts||[]).some(c=>(c.players||[]).includes(sp.id))));const alreadyQueued=!!active;const hasPendingMatch=Number(pendingCloudMatchDeleteId)>0&&Number(pendingCloudMatchPlayerId)===Number(p.cloudId)&&logs.some(l=>Number(l._cloudMatchId||0)===Number(pendingCloudMatchDeleteId));const keepMatchLogOpen=hasPendingMatch||Number(pendingCloudMatchEditPlayerId)===Number(p.cloudId);return `<article class="cloud-player-card"><div class="cloud-player-main"><div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${esc((p.name||'?').charAt(0).toUpperCase())}</div><div class="cloud-player-ident"><b>${esc(p.name)}${p.nickname?` (${esc(p.nickname)})`:''} <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b><small class="cloud-player-summary"><span class="cloud-category-badge skill-${cls}">${esc(cat)}</span><span class="cloud-player-stats"><span>${p.matches||0} Matches</span><span class="cloud-win">${p.wins||0} Wins</span><span class="cloud-loss">${p.losses||0} Losses</span></span></small></div><div class="cloud-player-actions"><button class="cloud-checkin-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Player is already checked in or playing on court"':''} onclick="checkInCloudPlayer(${Number(p.cloudId)})">${alreadyQueued?'Checked In':'Check in'}</button>${Number(pendingCloudDeleteId)===Number(p.cloudId)?'':`<button class="cloud-delete-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Cannot delete a checked-in player"':''} onclick="requestDeleteCloudPlayer(${Number(p.cloudId)})">Delete</button>`}</div></div>${Number(pendingCloudDeleteId)===Number(p.cloudId)?`<div class="cloud-delete-warning">Delete this registered profile? Match history will be kept. <button onclick="deleteCloudPlayer(${Number(p.cloudId)})">Confirm</button> <button onclick="cancelDeleteCloudPlayer()">Cancel</button></div>`:''}<details class="cloud-match-details" data-cloud-player-id="${Number(p.cloudId)}"${(keepMatchLogOpen||previouslyOpenCloudLogs.has(Number(p.cloudId)))?' open':''}><summary><span class="cloud-match-details-label">Match Log (${logs.length})</span></summary>${logs.slice().reverse().map((l,matchIndex)=>{const mid=Number(l._cloudMatchId||0),pendingMatch=Number(pendingCloudMatchDeleteId)===mid&&Number(pendingCloudMatchPlayerId)===Number(p.cloudId),pendingEdit=Number(pendingCloudMatchEditId)===mid&&Number(pendingCloudMatchEditPlayerId)===Number(p.cloudId),deleteDisabled=pendingMatch||pendingEdit,editDisabled=pendingMatch||pendingEdit;return `<div class="cloud-match-row"><button class="cloud-match-delete-icon${deleteDisabled?' is-disabled':''}" type="button" title="${pendingEdit?'Edit confirmation active':pendingMatch?'Delete confirmation active':'Delete match'}" aria-label="Delete match" ${deleteDisabled?'disabled aria-disabled="true"':''} onclick="event.stopPropagation();deleteCloudMatch(${Number(p.cloudId)},${mid})">🗑</button><b>${esc((l.team1Names||[]).join(' & '))} vs ${esc((l.team2Names||[]).join(' & '))}</b><span class="cloud-match-score"><button class="cloud-match-edit-icon${editDisabled?' is-disabled':''}" type="button" title="${pendingMatch?'Delete confirmation active':pendingEdit?'Edit confirmation active':'Edit score'}" aria-label="Edit score" ${editDisabled?'disabled aria-disabled="true"':''} onclick="event.stopPropagation();editCloudMatch(${Number(p.cloudId)},${mid})">✎</button>${l.recordingMode==='win-only'?'WIN / LOSS':esc(l.score||'--')}</span><small>${esc(l.court||'Court')} · ${esc(l.duration||'--')} · ${l.endedAt?new Date(l.endedAt).toLocaleString():''}${(l.sessionName||sessionNames[l.sessionId])?` · ${esc(l.sessionName||sessionNames[l.sessionId])}`:''}</small>${pendingMatch?`<div class="cloud-match-delete-warning">Delete this match records? <span>Team 1 · <b>${esc((l.team1Names||[]).join(' & ')||'Team 1')}</b> VS Team 2 · <b>${esc((l.team2Names||[]).join(' & ')||'Team 2')}</b></span> <button onclick="confirmDeleteCloudMatch()">Confirm</button> <button class="cloud-match-cancel-confirm" onclick="cancelDeleteCloudMatch()">Cancel</button></div>`:''}${pendingEdit?`<div class="cloud-match-edit-warning"><span>Edit match score?</span><label>Team 1 · <input id="cloudEditScore1-${mid}" type="number" min=0 step=1 inputmode="numeric" value="${esc(String(l.score||'0-0').split('-')[0]||'0')}"></label><label>Team 2 · <input id="cloudEditScore2-${mid}" type="number" min=0 step=1 inputmode="numeric" value="${esc(String(l.score||'0-0').split('-')[1]||'0')}"></label><button class="cloud-match-edit-confirm" onclick="confirmEditCloudMatch()">OK</button><button class="cloud-match-cancel-confirm" onclick="cancelEditCloudMatch()">Cancel</button></div>`:''}</div>`}).join('')||'<small>No match records yet.</small>'}</details></article>`}).join('')||'<div class="cloud-empty"><div class="cloud-empty-icon">🏓</div><div>No registered player records found.</div></div>';}
 function getCloudMatchId(log){return Number(log?._cloudMatchId)||0;}
 function ensureCloudMatchIds(){loadCloudRecords();let changed=false,seq=Date.now();cloudRecords.logs.forEach(l=>{if(!Number(l._cloudMatchId)){l._cloudMatchId=seq++;changed=true;}});if(changed)saveCloudRecords();return changed;}
 function findCloudMatch(matchId){loadCloudRecords();return cloudRecords.logs.find(l=>Number(l._cloudMatchId)===Number(matchId));}
@@ -114,6 +134,15 @@ let registrationSkillLevel='';
 let courtSettingsDraft=null;
 
 const $=id=>document.getElementById(id);
+
+// Shared SVG gender symbols keep all player icons crisp and aligned across browsers.
+function genderSvgIcon(gender){
+  const value=String(gender||'').trim().toLowerCase();
+  const isFemale=['female','f','woman','women'].includes(value);
+  return isFemale
+    ? '<svg class="gender-symbol gender-symbol-female" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="4.8" r="3.55" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.4v5.9M5.25 11.35h5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>'
+    : '<svg class="gender-symbol gender-symbol-male" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.35" cy="10.65" r="3.45" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.8 8.2 14.1 1.9M9.35 1.9h4.75v4.75" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
 
 // Main queue workspace network indicator. Queueing remains local-first, so it
 // can continue working when the device loses its network connection.
@@ -274,6 +303,7 @@ function buildLiveViewSnapshot(){
   };
 }
 function flushLiveViewState(){
+  if(!sharedSyncReady)return;
   if(liveViewPublishInFlight||!liveViewPendingSnapshot||(location.protocol!=='http:'&&location.protocol!=='https:'))return;
   const snapshot=liveViewPendingSnapshot;
   liveViewPendingSnapshot=null;
@@ -471,14 +501,9 @@ async function copyLiveViewQrLink(){
   catch(e){field.focus();field.select();let copied=false;try{copied=document.execCommand('copy');}catch(err){}toast(copied?'Live View link copied.':'Select and copy the Live View link.');}
 }
 function saveState(){
-  try{
-    const snapshot={
-      schemaVersion:11,
-      players:state.players,left:state.left,queue:state.queue,lockedPartners:state.lockedPartners,courts:state.courts,logs:state.logs,
-      nextPlayer:state.nextPlayer,nextCourt:state.nextCourt,nextWaitingCourt:state.nextWaitingCourt,nextLog:state.nextLog,sessionMetrics:state.sessionMetrics,sessionActive:state.sessionActive,sessionName:state.sessionName,duprMatch:state.duprMatch,recordScores:state.recordScores,eventRules:state.eventRules
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
-  }catch(e){ console.warn('PickleQ save failed',e); }
+  const snapshot=getSharedAppStateSnapshot();
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot));}catch(e){console.warn('PickleQ save failed',e);}
+  queueSharedAppStateSync(snapshot);
   publishLiveViewState();
 }
 
@@ -512,6 +537,8 @@ function loadState(){
     state.sessionName=String(data.sessionName||'Open Play — Oct 6, 2026');
     state.duprMatch=!!data.duprMatch;
     state.recordScores=typeof data.recordScores==='boolean'?data.recordScores:false;
+    state.matchingMode=['balanced','social-mix','skill-separated','winners-losers'].includes(data.matchingMode)?data.matchingMode:'balanced';
+    state.winnersLosersNextGroup=data.winnersLosersNextGroup==='losers'?'losers':'winners';
     state.nextPlayer=Number(data.nextPlayer)||((state.players.reduce((m,p)=>Math.max(m,Number(p.id)||0),0))+1);
     state.nextCourt=Number(data.nextCourt)||((state.courts.reduce((m,c)=>Math.max(m,Number(c.number)||0),0))+1);
     state.nextWaitingCourt=Number(data.nextWaitingCourt)||1;
@@ -951,7 +978,7 @@ function renderLeftPlayerRows(popup=false){
       return `<article class="cloud-player-card left-cloud-player-card ${pending?'delete-pending':''}">
         <div class="cloud-player-main">
           <div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${esc((p.name||'?').charAt(0).toUpperCase())}</div>
-          <div class="cloud-player-ident"><b>${esc(p.name||'Unknown')}${p.nickname?` (${esc(p.nickname)})`:''} <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${p.gender==='Female'?'♀':'♂'}</span></b>
+          <div class="cloud-player-ident"><b>${esc(p.name||'Unknown')}${p.nickname?` (${esc(p.nickname)})`:''} <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b>
             <small class="cloud-player-summary"><span class="cloud-category-badge skill-${catClass}">${esc(category)}</span><span class="cloud-player-stats"><span>${matches} Matches</span><span class="cloud-win">${liveStats.wins} Wins</span><span class="cloud-loss">${liveStats.losses} Losses</span></span></small>
           </div>
           <div class="cloud-player-actions"><button class="cloud-checkin-btn" ${pending?'disabled':''} onclick="event.stopPropagation();checkIn(${p.id})">Check in</button>${pending?'':`<button class="cloud-delete-btn" onclick="event.stopPropagation();requestDeleteLeftPlayer(${p.id})">Remove</button>`}</div>
@@ -1069,6 +1096,179 @@ function selectCourt(id){
   render();
 }
 
+function autoMatchHistoryContext(){
+  const teammateCounts=new Map();
+  const opponentCounts=new Map();
+  const outcomeById=new Map();
+  const makePairKey=(a,b)=>{const first=String(a),second=String(b);return first<second?`${first}|${second}`:`${second}|${first}`;};
+  const queueIndexById=new Map((state.queue||[]).map((id,index)=>[Number(id),index]));
+  const addPair=(map,a,b)=>{
+    if(a==null||b==null||String(a)===String(b))return;
+    const key=makePairKey(a,b);
+    map.set(key,(map.get(key)||0)+1);
+  };
+  (state.logs||[]).forEach(log=>{
+    const team1=[...new Set((Array.isArray(log.team1Ids)?log.team1Ids:[]).filter(id=>id!=null).map(String))];
+    const team2=[...new Set((Array.isArray(log.team2Ids)?log.team2Ids:[]).filter(id=>id!=null).map(String))];
+    for(let i=0;i<team1.length;i++)for(let j=i+1;j<team1.length;j++)addPair(teammateCounts,team1[i],team1[j]);
+    for(let i=0;i<team2.length;i++)for(let j=i+1;j<team2.length;j++)addPair(teammateCounts,team2[i],team2[j]);
+    team1.forEach(a=>team2.forEach(b=>addPair(opponentCounts,a,b)));
+
+    let winnerTeam=Number(log.winnerTeam);
+    if(winnerTeam!==1&&winnerTeam!==2){
+      const score=String(log.score||'').split('-').map(value=>Number(value.trim()));
+      if(score.length===2&&Number.isFinite(score[0])&&Number.isFinite(score[1])&&score[0]!==score[1])winnerTeam=score[0]>score[1]?1:2;
+    }
+    if(winnerTeam===1||winnerTeam===2){
+      const winnerIds=winnerTeam===1?team1:team2;
+      const loserIds=winnerTeam===1?team2:team1;
+      winnerIds.forEach(id=>outcomeById.set(String(id),'winners'));
+      loserIds.forEach(id=>outcomeById.set(String(id),'losers'));
+    }
+  });
+  return {teammateCounts,opponentCounts,outcomeById,makePairKey,queueIndexById};
+}
+
+function autoMatchSkillLevel(p){
+  if(!p)return null;
+  const categoryLevel={BEG:1,NOV:2,INT:3,ADV:4,EXP:5}[String(p.category||'').toUpperCase()];
+  if(categoryLevel)return categoryLevel;
+  const rawValues=[p.rating,p.duprRating,p.dupr_rating,p.ratingLevel,p.rankLevel,p.level];
+  for(const raw of rawValues){
+    const value=Number.parseFloat(String(raw??'').trim());
+    if(Number.isFinite(value)&&value>0&&value<10)return Math.max(1,Math.min(5,value-1));
+  }
+  return null;
+}
+
+function autoMatchRating(p){
+  if(!p)return null;
+  const rawValues=[p.rating,p.duprRating,p.dupr_rating,p.ratingLevel,p.rankLevel,p.level];
+  for(const raw of rawValues){
+    const value=Number.parseFloat(String(raw??'').trim());
+    if(Number.isFinite(value)&&value>0&&value<10)return Math.max(1,Math.min(5,value-1));
+  }
+  return autoMatchSkillLevel(p);
+}
+
+function autoMatchAssignmentScore(slots,mode,history,selectedIds){
+  const people=slots.map(id=>id==null?null:player(id));
+  if(people.some(person=>!person))return Infinity;
+
+  // Never split a locked-in partner pair across teams when auto-matching.
+  for(let index=0;index<slots.length;index++){
+    const partnerId=getLockedPartnerId(slots[index]);
+    if(partnerId==null)continue;
+    const partnerIndex=slots.findIndex(id=>Number(id)===Number(partnerId));
+    if(partnerIndex<0||Math.floor(index/2)!==Math.floor(partnerIndex/2))return Infinity;
+  }
+
+  const pairKey=history.makePairKey;
+  const teammateCounts=[
+    history.teammateCounts.get(pairKey(slots[0],slots[1]))||0,
+    history.teammateCounts.get(pairKey(slots[2],slots[3]))||0
+  ];
+  const opponentPairs=[
+    history.opponentCounts.get(pairKey(slots[0],slots[2]))||0,
+    history.opponentCounts.get(pairKey(slots[0],slots[3]))||0,
+    history.opponentCounts.get(pairKey(slots[1],slots[2]))||0,
+    history.opponentCounts.get(pairKey(slots[1],slots[3]))||0
+  ];
+  const queuePenalty=(selectedIds||[]).reduce((sum,id)=>sum+Math.max(0,history.queueIndexById.get(Number(id))??0),0)*0.025;
+
+  if(mode==='social-mix'){
+    // Social Mix is deliberately independent of player ratings and skill labels.
+    // An unused partner pairing always outranks a repeated pairing; opponent
+    // exposure is then spread as evenly as the available history allows.
+    const partnerPenalty=teammateCounts.reduce((sum,count)=>sum+(count>0?10000+count*250:0),0);
+    const opponentSum=opponentPairs.reduce((sum,count)=>sum+count,0);
+    const average=opponentSum/opponentPairs.length;
+    const opponentVariance=opponentPairs.reduce((sum,count)=>sum+Math.pow(count-average,2),0);
+    const opponentRange=Math.max(...opponentPairs)-Math.min(...opponentPairs);
+    const opponentPenalty=opponentVariance*20+opponentRange*5+opponentSum*1.5;
+    return partnerPenalty+opponentPenalty+queuePenalty;
+  }
+
+  if(mode==='winners-losers'){
+    const outcomes=people.map(person=>history.outcomeById.get(String(person.id))||null);
+    let teamOutcomePenalty=0;
+    [[0,1],[2,3]].forEach(([a,b])=>{
+      if(outcomes[a]&&outcomes[b]&&outcomes[a]!==outcomes[b])teamOutcomePenalty+=1500;
+      else if((outcomes[a]&&!outcomes[b])||(!outcomes[a]&&outcomes[b]))teamOutcomePenalty+=25;
+    });
+    return teamOutcomePenalty+teammateCounts.reduce((sum,count)=>sum+count*5,0)
+      +opponentPairs.reduce((sum,count)=>sum+count*2,0)+queuePenalty;
+  }
+
+  const skillLevels=people.map(autoMatchSkillLevel).filter(value=>value!==null);
+  const skillSpread=skillLevels.length>1?Math.max(...skillLevels)-Math.min(...skillLevels):0;
+  if(mode==='skill-separated'&&skillSpread>1.01)return Infinity;
+
+  const ratings=people.map(autoMatchRating);
+  const ratingA=ratings.slice(0,2).filter(value=>value!==null);
+  const ratingB=ratings.slice(2,4).filter(value=>value!==null);
+  const teamRatingGap=ratingA.length&&ratingB.length
+    ?Math.abs(ratingA.reduce((sum,value)=>sum+value,0)/ratingA.length-ratingB.reduce((sum,value)=>sum+value,0)/ratingB.length)
+    :0;
+
+  if(mode==='skill-separated'){
+    const teammateSkillGap=Math.abs((autoMatchSkillLevel(people[0])??2.5)-(autoMatchSkillLevel(people[1])??2.5))
+      +Math.abs((autoMatchSkillLevel(people[2])??2.5)-(autoMatchSkillLevel(people[3])??2.5));
+    const missingSkillPenalty=people.filter(person=>autoMatchSkillLevel(person)===null).length*(skillLevels.length?10:0);
+    return skillSpread*100+teammateSkillGap*20+teamRatingGap*10
+      +teammateCounts.reduce((sum,count)=>sum+count*4,0)
+      +opponentPairs.reduce((sum,count)=>sum+count,0)+missingSkillPenalty+queuePenalty;
+  }
+
+  // Balanced: pair the teams by combined skill/rating first, then prefer
+  // players who have not already partnered or faced one another repeatedly.
+  return teamRatingGap*100
+    +teammateCounts.reduce((sum,count)=>sum+count*35,0)
+    +opponentPairs.reduce((sum,count)=>sum+count*5,0)
+    +queuePenalty;
+}
+
+function findBestAutoMatchAssignment(c,combos,mode,history){
+  const baseSlots=[0,1,2,3].map(index=>Array.isArray(c.players)?(c.players[index]??null):null);
+  const emptyIndexes=baseSlots.map((id,index)=>id==null?index:-1).filter(index=>index>=0);
+  let best=null;
+  combos.forEach(combo=>{
+    const candidateIds=combo.map(person=>person.id);
+    if(emptyIndexes.length===4&&combo.length===4){
+      const [a,b,cPlayer,d]=combo;
+      const partitions=[
+        [a.id,b.id,cPlayer.id,d.id],
+        [a.id,cPlayer.id,b.id,d.id],
+        [a.id,d.id,b.id,cPlayer.id]
+      ];
+      partitions.forEach(slots=>{
+        const score=autoMatchAssignmentScore(slots,mode,history,candidateIds);
+        if(Number.isFinite(score)&&(!best||score<best.score))best={score,slots:slots.slice(),combo:combo.slice()};
+      });
+      return;
+    }
+    const remaining=combo.slice();
+    function place(index){
+      if(index===emptyIndexes.length){
+        const score=autoMatchAssignmentScore(baseSlots,mode,history,candidateIds);
+        if(Number.isFinite(score)&&(!best||score<best.score))best={score,slots:baseSlots.slice(),combo:combo.slice()};
+        return;
+      }
+      const slotIndex=emptyIndexes[index];
+      for(let i=0;i<remaining.length;i++){
+        const person=remaining[i];
+        remaining.splice(i,1);
+        baseSlots[slotIndex]=person.id;
+        place(index+1);
+        remaining.splice(i,0,person);
+        baseSlots[slotIndex]=null;
+      }
+    }
+    place(0);
+  });
+  return best;
+}
+
 function autoMatchVariety(courtId){
   const c=court(courtId);
   if(!c||c.playing)return;
@@ -1077,86 +1277,126 @@ function autoMatchVariety(courtId){
     return;
   }
 
+  const mode=['balanced','social-mix','skill-separated','winners-losers'].includes(state.matchingMode)?state.matchingMode:'balanced';
   const needed=4-c.players.filter(Boolean).length;
   const allowedSkills=Array.isArray(c.allowedSkills)?c.allowedSkills:[];
-  const available=state.queue.map(player).filter(Boolean).filter(p=>!allowedSkills.length || allowedSkills.includes(p.category));
+  const available=state.queue.map(player).filter(Boolean).filter(p=>!allowedSkills.length||allowedSkills.includes(p.category));
   if(available.length<needed){
-    toast(`Need ${needed} more player${needed===1?'':'s'} in Queue. Only ${available.length} available.`);
+    toast(mode==='skill-separated'
+      ?'Skill Separated left this court waiting; more players at a similar skill level are needed.'
+      :`Need ${needed} more player${needed===1?'':'s'} in Queue. Only ${available.length} available.`);
     return;
   }
-  const combos=[];
-  function walk(index, chosen, count){
-    if(count===needed){ combos.push(chosen.slice()); return; }
-    if(count>needed || index>=available.length)return;
-    for(let i=index;i<available.length;i++) walk(i+1, chosen.concat([available[i]]), count+1);
-  }
-  walk(0,[],0);
 
-  // Locked partners are a single selection unit: never auto-match only one
-  // member of a locked pair.
-  const chosenIdsFor = combo => new Set(combo.map(p=>Number(p.id)));
-  const validCombos = combos.filter(combo=>{
+  const history=autoMatchHistoryContext();
+  const availableById=new Map(available.map(person=>[Number(person.id),person]));
+  const pool=[];
+  const poolLimit=24;
+  const addToPool=person=>{
+    if(!person||pool.length>=poolLimit||pool.some(existing=>Number(existing.id)===Number(person.id)))return false;
+    pool.push(person);return true;
+  };
+  if(mode==='skill-separated'){
+    // Sample every level rather than only the queue head, so a suitable skill
+    // group is still found behind players from unrelated categories.
+    ['BEG','NOV','INT','ADV','EXP'].forEach(category=>available.filter(person=>String(person.category||'').toUpperCase()===category).slice(0,4).forEach(addToPool));
+    available.filter(person=>!autoMatchSkillLevel(person)).slice(0,2).forEach(addToPool);
+  }else if(mode==='winners-losers'){
+    ['winners','losers'].forEach(group=>available.filter(person=>history.outcomeById.get(String(person.id))===group).slice(0,4).forEach(addToPool));
+    available.filter(person=>!history.outcomeById.has(String(person.id))).slice(0,4).forEach(addToPool);
+    available.slice(0,8).forEach(addToPool);
+  }else{
+    available.slice(0,16).forEach(addToPool);
+  }
+  // Locked-in partners outside the queue sample must still be considered.
+  for(let index=0;index<pool.length&&pool.length<poolLimit;index++){
+    const partnerId=getLockedPartnerId(pool[index].id);
+    if(partnerId!=null)addToPool(availableById.get(Number(partnerId)));
+  }
+  // Fill any remaining candidate slots in queue order, keeping the sample capped
+  // so large queues do not make the combination search unresponsive.
+  for(const person of available){
+    if(pool.length>=poolLimit)break;
+    if(pool.some(existing=>Number(existing.id)===Number(person.id)))continue;
+    addToPool(person);
+    const partnerId=getLockedPartnerId(person.id);
+    if(partnerId!=null)addToPool(availableById.get(Number(partnerId)));
+  }
+
+  const combos=[];
+  function walk(index,chosen){
+    if(chosen.length===needed){combos.push(chosen.slice());return;}
+    const stillNeeded=needed-chosen.length;
+    for(let i=index;i<=pool.length-stillNeeded;i++)walk(i+1,chosen.concat(pool[i]));
+  }
+  walk(0,[]);
+
+  const chosenIdsFor=combo=>new Set(combo.map(person=>Number(person.id)));
+  const validCombos=combos.filter(combo=>{
     const ids=chosenIdsFor(combo);
-    for(const p of combo){
-      const partnerId=getLockedPartnerId(p.id);
-      if(partnerId==null) continue;
-      if(c.players.includes(partnerId)) continue;
-      const partner=player(partnerId);
-      if(!partner || !available.some(x=>Number(x.id)===partnerId) || !ids.has(partnerId)) return false;
+    for(const person of combo){
+      const partnerId=getLockedPartnerId(person.id);
+      if(partnerId==null)continue;
+      if(c.players.some(id=>Number(id)===Number(partnerId)))continue;
+      if(!availableById.has(Number(partnerId))||!ids.has(Number(partnerId)))return false;
     }
-    for(const pid of c.players.filter(Boolean)){
-      const partnerId=getLockedPartnerId(pid);
-      if(partnerId!=null && !c.players.includes(partnerId) && !ids.has(partnerId)) return false;
+    for(const playerId of c.players.filter(Boolean)){
+      const partnerId=getLockedPartnerId(playerId);
+      if(partnerId!=null&&!c.players.some(id=>Number(id)===Number(partnerId))&&!ids.has(Number(partnerId)))return false;
+    }
+    if(mode==='skill-separated'){
+      const skillLevels=[...c.players.filter(Boolean),...combo.map(person=>person.id)].map(id=>autoMatchSkillLevel(player(id))).filter(value=>value!==null);
+      if(skillLevels.length>1&&Math.max(...skillLevels)-Math.min(...skillLevels)>1.01)return false;
     }
     return true;
   });
-  combos.length=0;
-  combos.push(...validCombos);
-
-  if(!combos.length){
-    toast('No matching combination fits the remaining court slots.');
+  if(!validCombos.length){
+    toast(mode==='skill-separated'
+      ?'Skill Separated could not find four players within the same or adjacent skill levels. This court is left waiting.'
+      :'No matching combination fits the remaining court slots and locked partners.');
     return;
   }
 
-  // Prefer gender variety, then players closest to the front of the Queue.
-  const existing= c.players.map(player).filter(Boolean);
-  const existingFemale=existing.filter(p=>p.gender==='Female').length;
-  const existingMale=existing.length-existingFemale;
-  const scored=combos.map(combo=>{
-    const people=combo.flat();
-    const female=existingFemale+people.filter(p=>p.gender==='Female').length;
-    const male=existingMale+people.length-people.filter(p=>p.gender==='Female').length;
-    const balance=Math.abs(female-male);
-    const queueIndex=people.reduce((sum,p)=>sum+Math.max(0,state.queue.indexOf(p.id)),0);
-    return {people,balance,queueIndex};
-  }).sort((a,b)=>a.balance-b.balance || a.queueIndex-b.queueIndex);
-
-  const chosen=scored[0].people;
-  // Keep each locked pair in the same team (slots 0/1 or 2/3).
-  const remaining=chosen.slice();
-  for(let i=0;i<remaining.length;i++){
-    const p=remaining[i];
-    if(!p) continue;
-    const partnerId=getLockedPartnerId(p.id);
-    if(partnerId==null) continue;
-    const j=remaining.findIndex((x,k)=>k!==i&&x&&Number(x.id)===partnerId);
-    if(j<0 || j<i) continue;
-    const firstEmpty=c.players.findIndex(v=>!v);
-    const teamStarts=firstEmpty<2?[0,2]:[2,0];
-    const start=teamStarts.find(st=>!c.players[st]&&!c.players[st+1]);
-    if(start!==undefined){
-      const partner=remaining[j];
-      c.players[start]=p.id;c.players[start+1]=partner.id;
-      p.court=c.id;partner.court=c.id;
-      state.queue=state.queue.filter(id=>Number(id)!==Number(p.id)&&Number(id)!==Number(partner.id));
-      remaining[i]=null;remaining[j]=null;
+  let best=null;
+  let matchedOutcomeGroup=null;
+  if(mode==='winners-losers'){
+    const firstGroup=state.winnersLosersNextGroup==='losers'?'losers':'winners';
+    for(const group of [firstGroup,firstGroup==='winners'?'losers':'winners']){
+      const groupCombos=validCombos.filter(combo=>{
+        const ids=[...c.players.filter(Boolean),...combo.map(person=>person.id)];
+        const outcomes=ids.map(id=>history.outcomeById.get(String(id))||null);
+        const targetCount=outcomes.filter(outcome=>outcome===group).length;
+        const oppositeCount=outcomes.filter(outcome=>outcome&&outcome!==group).length;
+        return targetCount>0&&oppositeCount===0;
+      });
+      if(!groupCombos.length)continue;
+      const groupedBest=findBestAutoMatchAssignment(c,groupCombos,mode,history);
+      if(groupedBest){best=groupedBest;matchedOutcomeGroup=group;break;}
     }
   }
-  remaining.filter(Boolean).forEach(p=>assignOneToCourt(p.id,c));
+  if(!best)best=findBestAutoMatchAssignment(c,validCombos,mode,history);
+  if(!best){
+    toast(mode==='skill-separated'
+      ?'Skill Separated could not find four players within the same or adjacent skill levels. This court is left waiting.'
+      :'No matching combination fits the selected mode and court slots.');
+    return;
+  }
+
+  c.players=best.slots.slice();
+  best.combo.forEach(person=>{
+    person.court=c.id;
+    state.queue=state.queue.filter(id=>Number(id)!==Number(person.id));
+  });
+  if(mode==='winners-losers'){
+    const actualGroup=matchedOutcomeGroup;
+    if(actualGroup)state.winnersLosersNextGroup=actualGroup==='winners'?'losers':'winners';
+    else state.winnersLosersNextGroup=state.winnersLosersNextGroup==='losers'?'winners':'losers';
+  }
   state.selectedCourt=null;
   saveState();
   render();
-  toast(`${courtDisplayName(c)} filled with 4 players and is ready.`);
+  const modeLabel=({'balanced':'Balanced','social-mix':'Social Mix','skill-separated':'Skill Separated','winners-losers':'Winners / Losers'})[mode];
+  toast(`${courtDisplayName(c)} auto-matched using ${modeLabel}.`);
 }
 function autoMatchEmptySlot(courtId,slotIndex){
   const c=court(courtId); if(!c||c.playing)return;
@@ -1377,7 +1617,7 @@ function updateSubmitState(id){
     if(confirmedScore!==currentScore){
       footer.classList.remove('submit-confirming');
       footer.dataset.confirmScore='';
-      footer.innerHTML=`<button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button><button class="submit-score" data-court="${c.id}" onclick="requestSubmitScore(${c.id})" ${validScore?'':'disabled'}>Submit Score</button>`;
+      footer.innerHTML=`<button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button><button class="mix-live" onclick="mixCourt(${c.id})">⇄ Mix Teams</button><button class="submit-score" data-court="${c.id}" onclick="requestSubmitScore(${c.id})" ${validScore?'':'disabled'}>Submit Score</button>`;
       return;
     }
   }
@@ -1431,7 +1671,7 @@ function openCourtPlayersModal(courtId){
   const isWaitingCourt=!!c.waitingOnly;
   const started=c.playing&&c.start ? elapsed(c.start) : (isWaitingCourt ? '0:00' : '--');
   const courtName=isWaitingCourt ? 'Court #' : courtDisplayName(c);
-  const genderIcon=p=>p?.gender==='Female'?'♀':'♂';
+  const genderIcon=p=>genderSvgIcon(p?.gender);
   const courtStats=getRankingStats();
   const playerCard=(p,index)=>{
     if(!p)return `<div class="court-lineup-player court-lineup-empty"><span class="court-lineup-avatar">${index+1}</span><div class="court-lineup-player-info"><b>Open slot</b></div></div>`;
@@ -1535,6 +1775,7 @@ function requestSubmitScore(id){
     footer.dataset.confirmScore=currentScore;
     footer.innerHTML=`
       <button class="cancel-match delete-match-disabled" type="button" disabled aria-disabled="true">Delete Match</button>
+      <button class="mix-live mix-live-disabled" type="button" disabled aria-disabled="true">⇄ Mix Teams</button>
       <button class="submit-score submit-score-disabled" data-court="${c.id}" type="button" disabled aria-disabled="true">Submit Score</button>
       <div class="submit-score-note">
         <span>Submit this score? This will end the live match.</span>
@@ -1554,7 +1795,7 @@ function cancelSubmitScore(id){
   const footer=document.querySelector(`.live-footer[data-court="${id}"]`);
   if(!footer)return;
   footer.classList.remove('submit-confirming');
-  footer.innerHTML=`<button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button><button class="submit-score" data-court="${c.id}" onclick="requestSubmitScore(${c.id})">Submit Score</button>`;
+  footer.innerHTML=`<button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button><button class="mix-live" onclick="mixCourt(${c.id})">⇄ Mix Teams</button><button class="submit-score" data-court="${c.id}" onclick="requestSubmitScore(${c.id})">Submit Score</button>`;
 }
 
 function confirmSubmitScore(id){
@@ -1712,8 +1953,8 @@ function requestCancelMatch(id){
   // Keep the original action buttons in place while showing the confirmation.
   // This prevents the footer grid from changing widths during confirmation.
   const actionButtons=state.recordScores
-    ? `<button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button><button class="submit-score" data-court="${c.id}" onclick="requestSubmitScore(${c.id})" disabled>Submit Score</button>`
-    : `<button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button><div class="live-actions live-actions-win-only"><button class="announce" onclick="announcePlayers(${c.id})">♬ Announce Players</button><div class="mix-action-wrap"><button class="mix-live" onclick="mixCourt(${c.id})">⇄ Mix Teams</button></div></div>`;
+    ? `<button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button><button class="mix-live" onclick="mixCourt(${c.id})">⇄ Mix Teams</button><button class="submit-score" data-court="${c.id}" onclick="requestSubmitScore(${c.id})" disabled>Submit Score</button>`
+    : `<button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button><div class="live-actions live-actions-win-only"><div class="mix-action-wrap"><button class="mix-live" onclick="mixCourt(${c.id})">⇄ Mix Teams</button></div></div>`;
   footer.innerHTML=`${actionButtons}
     <div class="delete-match-note">
       <span>Delete this match? Players will be returned to the queue.</span>
@@ -1733,10 +1974,10 @@ function cancelDeleteMatch(id){
     const s=scoreState(id);
     const canSubmit=s.valid && s.hasScore && !s.tie;
     footer.classList.remove('win-only-footer');
-    footer.innerHTML=`<button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button><button class="submit-score" data-court="${c.id}" onclick="requestSubmitScore(${c.id})" ${canSubmit?'':'disabled'}>Submit Score</button>`;
+    footer.innerHTML=`<button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button><button class="mix-live" onclick="mixCourt(${c.id})">⇄ Mix Teams</button><button class="submit-score" data-court="${c.id}" onclick="requestSubmitScore(${c.id})" ${canSubmit?'':'disabled'}>Submit Score</button>`;
   }else{
     footer.classList.add('win-only-footer');
-    footer.innerHTML=`<button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button><div class="live-actions live-actions-win-only"><button class="announce" onclick="announcePlayers(${c.id})">♬ Announce Players</button><div class="mix-action-wrap"><button class="mix-live" onclick="mixCourt(${c.id})">⇄ Mix Teams</button></div></div>`;
+    footer.innerHTML=`<button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button><div class="live-actions live-actions-win-only"><div class="mix-action-wrap"><button class="mix-live" onclick="mixCourt(${c.id})">⇄ Mix Teams</button></div></div>`;
   }
 }
 function confirmCancelMatch(id){
@@ -1873,7 +2114,7 @@ function renderRegisteredSearch(){
   }).slice(0,12);
   area.innerHTML=matches.map(p=>{
     const alreadyQueued=state.queue.includes(p.id);
-    return `<button type="button" class="registered-result ${alreadyQueued?'already-queued':''}" onclick="addRegisteredToQueue(${p.id})"><span><b>${esc(displayPlayerName(p))}</b><small>${p.gender==='Female'?'♀ Female':'♂ Male'} • ${p.category||'CAT'} • ${p.wins}W${p.opgId?` • OPG ${esc(p.opgId)}`:''}</small></span><strong>${alreadyQueued?'✓ QUEUED':'＋ QUEUE'}</strong></button>`;
+    return `<button type="button" class="registered-result ${alreadyQueued?'already-queued':''}" onclick="addRegisteredToQueue(${p.id})"><span><b>${esc(displayPlayerName(p))}</b><small>${genderSvgIcon(p.gender)} ${p.gender==='Female'?'Female':'Male'} • ${p.category||'CAT'} • ${p.wins}W${p.opgId?` • OPG ${esc(p.opgId)}`:''}</small></span><strong>${alreadyQueued?'✓ QUEUED':'＋ QUEUE'}</strong></button>`;
   }).join('')||'<div class="registered-search-hint">No registered player found.</div>';
 }
 function addRegisteredToQueue(id){
@@ -1941,7 +2182,7 @@ function renderLockInPartnerChoices(playerId){
   // Only show Queue List players who do not already have a locked-in partner.
   const candidates=state.queue.filter(id=>Number(id)!==Number(playerId)&&getLockedPartnerId(id)==null).map(id=>player(id)).filter(Boolean);
   const searchValue=String(lockPartnerSearchValues[Number(playerId)]||'');
-  const options=candidates.map(candidate=>`<button type="button" class="queue-lock-partner-option" title="Lock in ${esc(displayPlayerName(candidate))}" aria-label="Lock in ${esc(displayPlayerName(candidate))}" onclick="event.stopPropagation();toggleLockInPartner(${playerId},${candidate.id})"><span class="queue-lock-partner-option-ident"><span class="queue-lock-partner-option-name">${esc(displayPlayerName(candidate))}</span><span class="queue-lock-partner-option-meta"><span class="queue-lock-partner-gender ${candidate.gender==='Female'?'female':'male'}" aria-label="${candidate.gender==='Female'?'Female':'Male'}">${candidate.gender==='Female'?'♀':'♂'}</span><span class="queue-lock-partner-category ${candidate.category?'skill-'+String(candidate.category).toLowerCase():''}">${esc(candidate.category||'—')}</span></span></span><span class="queue-lock-partner-option-state" aria-hidden="true">🔓</span></button>`).join('');
+  const options=candidates.map(candidate=>`<button type="button" class="queue-lock-partner-option" title="Lock in ${esc(displayPlayerName(candidate))}" aria-label="Lock in ${esc(displayPlayerName(candidate))}" onclick="event.stopPropagation();toggleLockInPartner(${playerId},${candidate.id})"><span class="queue-lock-partner-option-ident"><span class="queue-lock-partner-option-name">${esc(displayPlayerName(candidate))}</span><span class="queue-lock-partner-option-meta"><span class="queue-lock-partner-gender ${candidate.gender==='Female'?'female':'male'}" aria-label="${candidate.gender==='Female'?'Female':'Male'}">${genderSvgIcon(candidate.gender)}</span><span class="queue-lock-partner-category ${candidate.category?'skill-'+String(candidate.category).toLowerCase():''}">${esc(candidate.category||'—')}</span></span></span><span class="queue-lock-partner-option-state" aria-hidden="true">🔓</span></button>`).join('');
   return `<div class="queue-lock-partner"><div class="queue-lock-partner-heading">Lock in partner</div><span class="queue-lock-partner-divider" aria-hidden="true"></span><div class="queue-lock-partner-search-wrap"><svg class="queue-lock-partner-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg><input class="queue-lock-partner-search" data-player-id="${Number(playerId)}" type="search" placeholder="Search players..." aria-label="Search lock in partner players" value="${esc(searchValue)}" oninput="lockPartnerSearchValues[${Number(playerId)}]=this.value;filterLockInPartnerOptions(${Number(playerId)})" onclick="event.stopPropagation()"></div><div class="queue-lock-partner-list ${candidates.length>=5?'has-scroll':''}">${options||'<small class="queue-lock-partner-empty">No other players in the Queue List.</small>'}</div></div>`;
 }
 function renderQueue(){
@@ -1965,7 +2206,8 @@ function renderQueue(){
   $('queueEmpty').style.display=ids.length?'none':'flex';
   q.innerHTML=ids.map((id,i)=>{
     const p=player(id);
-    const gender=p.gender==='Female'?'Female':'Male';
+    const genderValue=String(p.gender??'').trim().toLowerCase();
+    const gender=['female','f','woman','women'].includes(genderValue)?'Female':'Male';
     const st=rankingStats.get(p.id)||{matches:0,wins:0,losses:0};
     const opgId=p.opgId||p.opgID||p.opg_id||'';
     const duprId=p.duprId||p.duprID||p.dupr_id||p.dupr||'';
@@ -1982,7 +2224,9 @@ function renderQueue(){
         <div class="queue-name-line">
           <span class="queue-name">${esc(displayPlayerName(p))}</span>
           <span class="queue-gender-inline">
-            <span class="gender-inline ${gender==='Female'?'female':'male'}" title="Gender" aria-label="Gender">${gender==='Female'?'♀':'♂'}</span>
+            <span class="gender-inline ${gender==='Female'?'female':'male'}" title="${gender}" aria-label="${gender}">${gender==='Female'
+              ? '<svg class="gender-symbol" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="4.8" r="3.55" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.4v5.9M5.25 11.35h5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>'
+              : '<svg class="gender-symbol" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.35" cy="10.65" r="3.45" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.8 8.2 14.1 1.9M9.35 1.9h4.75v4.75" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>'}</span>
           </span>
         </div>
         <div class="queue-stats-line">
@@ -2118,7 +2362,7 @@ function readySlot(p,courtId,slotIndex){
   // MIX TEAMS keeps the lock-in relationship saved, but hides the icon when they
   // land on opposite teams; it returns automatically when they are paired again.
   const lockedOnCourt=lockedPartnerId!=null && teammateId!=null && Number(teammateId)===Number(lockedPartnerId);
-  return `<div class="team-player tap-slot filled-slot ${paired?'paired-before-player':''}" onclick="selectCourt(${courtId})"><span class="slot-player-name"><span class="slot-gender ${genderClass}">${initialLetter}</span><span class="slot-player-text">${esc(displayPlayerName(p))}</span><span class="slot-gender-icon ${genderClass}" aria-label="${p.gender}">${p.gender==='Female'?'♀':'♂'}</span><span class="slot-category ${p.category?'skill-'+String(p.category).toLowerCase():''}">${esc(category)}</span></span>${lockedOnCourt?'<span class="slot-lock-icon" title="Locked-in partner" aria-label="Locked-in partner">🔒</span>':''}<button class="slot-remove" title="Remove player from court" onclick="event.stopPropagation();removePlayerFromCourt(${p.id},${courtId})">×</button></div>`;
+  return `<div class="team-player tap-slot filled-slot ${paired?'paired-before-player':''}" onclick="selectCourt(${courtId})"><span class="slot-player-name"><span class="slot-gender ${genderClass}">${initialLetter}</span><span class="slot-player-text">${esc(displayPlayerName(p))}</span><span class="slot-gender-icon ${genderClass}" aria-label="${p.gender}">${genderSvgIcon(p.gender)}</span><span class="slot-category ${p.category?'skill-'+String(p.category).toLowerCase():''}">${esc(category)}</span></span>${lockedOnCourt?'<span class="slot-lock-icon" title="Locked-in partner" aria-label="Locked-in partner">🔒</span>':''}<button class="slot-remove" title="Remove player from court" onclick="event.stopPropagation();removePlayerFromCourt(${p.id},${courtId})">×</button></div>`;
 }
 
 function pickerCandidatePairedBefore(courtId, candidateId){
@@ -2171,7 +2415,7 @@ function renderCourts(){
         <div class="court-box live-box">
           <div class="court-head live-head">
             ${renderCourtTitle(c)}
-            <div class="court-head-right"><button class="court-expand" ${ps.length ? '' : 'disabled'} title="${ps.length ? 'Expand court' : 'Court is empty'}" aria-label="${ps.length ? 'Expand court' : 'Court is empty'}" aria-disabled="${ps.length ? 'false' : 'true'}" onclick="toggleCourtExpand(${c.id})">⛶</button><span class="status live"><span class="status-dot"></span> Playing</span></div>
+            <div class="court-head-right"><button type="button" class="court-announce-icon" title="Announce Players" aria-label="Announce Players" onclick="announcePlayers(${c.id})">📢</button><button class="court-expand" ${ps.length ? '' : 'disabled'} title="${ps.length ? 'Expand court' : 'Court is empty'}" aria-label="${ps.length ? 'Expand court' : 'Court is empty'}" aria-disabled="${ps.length ? 'false' : 'true'}" onclick="toggleCourtExpand(${c.id})">⛶</button><span class="status live"><span class="status-dot"></span> Playing</span></div>
           </div>
           <div class="live-meta"><span id="timer-${c.id}" class="live-timer ${timerToneClass(c.start)}">${elapsed(c.start)}</span><span>To ${c.target} (win by ${c.winBy})</span></div>
           ${renderExpandedCourtPlayers(c)}
@@ -2179,8 +2423,8 @@ function renderCourts(){
           <div class="matchmaking-sheet">
             <div class="match-team team-one">
               <div class="match-players">
-                <div class="match-player"><span class="avatar orange">${initial(team1[0]?.name)}</span><div class="match-player-line"><b>${esc(team1[0]?displayPlayerName(team1[0]):'Player 1')}</b><span class="match-gender ${team1[0]?.gender==='Female'?'female':'male'}">${team1[0]?.gender==='Female'?'♀':'♂'}</span><span class="match-category ${team1[0]?.category?'skill-'+String(team1[0].category).toLowerCase():''}">${esc(team1[0]?.category||'CAT')}</span></div></div>
-                <div class="match-player second"><span class="avatar orange-light">${initial(team1[1]?.name)}</span><div class="match-player-line"><b>${esc(team1[1]?displayPlayerName(team1[1]):'Player 2')}</b><span class="match-gender ${team1[1]?.gender==='Female'?'female':'male'}">${team1[1]?.gender==='Female'?'♀':'♂'}</span><span class="match-category ${team1[1]?.category?'skill-'+String(team1[1].category).toLowerCase():''}">${esc(team1[1]?.category||'CAT')}</span></div></div>
+                <div class="match-player"><span class="avatar orange">${initial(team1[0]?.name)}</span><div class="match-player-line"><b>${esc(team1[0]?displayPlayerName(team1[0]):'Player 1')}</b><span class="match-gender ${team1[0]?.gender==='Female'?'female':'male'}">${genderSvgIcon(team1[0]?.gender)}</span><span class="match-category ${team1[0]?.category?'skill-'+String(team1[0].category).toLowerCase():''}">${esc(team1[0]?.category||'CAT')}</span></div></div>
+                <div class="match-player second"><span class="avatar orange-light">${initial(team1[1]?.name)}</span><div class="match-player-line"><b>${esc(team1[1]?displayPlayerName(team1[1]):'Player 2')}</b><span class="match-gender ${team1[1]?.gender==='Female'?'female':'male'}">${genderSvgIcon(team1[1]?.gender)}</span><span class="match-category ${team1[1]?.category?'skill-'+String(team1[1].category).toLowerCase():''}">${esc(team1[1]?.category||'CAT')}</span></div></div>
               </div>
               ${state.recordScores ? `<div class="score-control"><button onclick="setScore(${c.id},1,-1)">−</button><input class="score-input" data-court="${c.id}" data-team="1" type="number" min="0" step="1" value="${score1}" oninput="updateSubmitState(${c.id})"><button class="score-plus" onclick="setScore(${c.id},1,1)">+</button></div>` : `<button type="button" class="team-win-btn team-one-win-btn" onclick="recordMatchWin(${c.id},1)" aria-label="Record Team 1 win">🏆 WIN</button>`}
             </div>
@@ -2189,20 +2433,14 @@ function renderCourts(){
 
             <div class="match-team team-two">
               <div class="match-players">
-                <div class="match-player"><span class="avatar gray">${initial(team2[0]?.name)}</span><div class="match-player-line"><b>${esc(team2[0]?displayPlayerName(team2[0]):'Player 3')}</b><span class="match-gender ${team2[0]?.gender==='Female'?'female':'male'}">${team2[0]?.gender==='Female'?'♀':'♂'}</span><span class="match-category ${team2[0]?.category?'skill-'+String(team2[0].category).toLowerCase():''}">${esc(team2[0]?.category||'CAT')}</span></div></div>
-                <div class="match-player second"><span class="avatar gray-light">${initial(team2[1]?.name)}</span><div class="match-player-line"><b>${esc(team2[1]?displayPlayerName(team2[1]):'Player 4')}</b><span class="match-gender ${team2[1]?.gender==='Female'?'female':'male'}">${team2[1]?.gender==='Female'?'♀':'♂'}</span><span class="match-category ${team2[1]?.category?'skill-'+String(team2[1].category).toLowerCase():''}">${esc(team2[1]?.category||'CAT')}</span></div></div>
+                <div class="match-player"><span class="avatar gray">${initial(team2[0]?.name)}</span><div class="match-player-line"><b>${esc(team2[0]?displayPlayerName(team2[0]):'Player 3')}</b><span class="match-gender ${team2[0]?.gender==='Female'?'female':'male'}">${genderSvgIcon(team2[0]?.gender)}</span><span class="match-category ${team2[0]?.category?'skill-'+String(team2[0].category).toLowerCase():''}">${esc(team2[0]?.category||'CAT')}</span></div></div>
+                <div class="match-player second"><span class="avatar gray-light">${initial(team2[1]?.name)}</span><div class="match-player-line"><b>${esc(team2[1]?displayPlayerName(team2[1]):'Player 4')}</b><span class="match-gender ${team2[1]?.gender==='Female'?'female':'male'}">${genderSvgIcon(team2[1]?.gender)}</span><span class="match-category ${team2[1]?.category?'skill-'+String(team2[1].category).toLowerCase():''}">${esc(team2[1]?.category||'CAT')}</span></div></div>
               </div>
               ${state.recordScores ? `<div class="score-control"><button onclick="setScore(${c.id},2,-1)">−</button><input class="score-input" data-court="${c.id}" data-team="2" type="number" min="0" step="1" value="${score2}" oninput="updateSubmitState(${c.id})"><button class="score-plus" onclick="setScore(${c.id},2,1)">+</button></div>` : `<button type="button" class="team-win-btn team-two-win-btn" onclick="recordMatchWin(${c.id},2)" aria-label="Record Team 2 win">🏆 WIN</button>`}
             </div>
           </div>
 
-          ${state.recordScores ? `<div class="live-actions">
-            <div class="mix-action-wrap">
-              <button class="mix-live" onclick="mixCourt(${c.id})">⇄ Mix Teams</button>
-            </div>
-            <button class="announce" onclick="announcePlayers(${c.id})">♬ Announce Players</button>
-          </div>` : ''}
-          <div class="live-footer ${state.recordScores?'':'win-only-footer'}" data-court="${c.id}"><button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button>${state.recordScores ? `<button class="submit-score" data-court="${c.id}" onclick="requestSubmitScore(${c.id})" disabled>Submit Score</button>` : `<div class="live-actions live-actions-win-only"><button class="announce" onclick="announcePlayers(${c.id})">♬ Announce Players</button><div class="mix-action-wrap"><button class="mix-live" onclick="mixCourt(${c.id})">⇄ Mix Teams</button></div></div>`}</div>
+          <div class="live-footer ${state.recordScores?'':'win-only-footer'}" data-court="${c.id}"><button class="cancel-match" data-court="${c.id}" onclick="requestCancelMatch(${c.id})">Delete Match</button>${state.recordScores ? `<button class="mix-live" onclick="mixCourt(${c.id})">⇄ Mix Teams</button><button class="submit-score" data-court="${c.id}" onclick="requestSubmitScore(${c.id})" disabled>Submit Score</button>` : `<div class="live-actions live-actions-win-only"><div class="mix-action-wrap"><button class="mix-live" onclick="mixCourt(${c.id})">⇄ Mix Teams</button></div></div>`}</div>
         </div>
       </div>`;
     }
@@ -2229,7 +2467,7 @@ function renderCourts(){
           </div>
         </div>
       </div>
-      ${selected && ps.length<4 ? `<div class="court-picker"><div class="picker-title"><div class="picker-search-wrap"><span class="picker-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="courtPickerSearch" class="picker-search" type="search" placeholder="Search player..." autocomplete="off" oninput="filterCourtPicker()"></div><div class="picker-filter-row category-filters"><button type="button" class="picker-filter ${courtPickerFilters.category==='ALL'?'active':''}" data-filter-type="category" data-filter-value="ALL" onclick="setCourtPickerFilter('category','ALL',this)">All (${state.queue.length})</button>${['BEG','NOV','INT','ADV','EXP'].map(cat=>{const n=state.queue.filter(pid=>player(pid)?.category===cat).length;return `<button type="button" class="picker-filter skill-${cat.toLowerCase()} ${courtPickerFilters.category===cat?'active':''}" data-filter-type="category" data-filter-value="${cat}" onclick="setCourtPickerFilter('category','${cat}',this)">${cat} (${n})</button>`}).join('')}</div><div class="picker-filter-row gender-filters"><button type="button" class="picker-filter ${courtPickerFilters.gender==='ALL'?'active':''}" data-filter-type="gender" data-filter-value="ALL" onclick="setCourtPickerFilter('gender','ALL',this)">All (${state.queue.length})</button><button type="button" class="picker-filter gender-male ${courtPickerFilters.gender==='Male'?'active':''}" data-filter-type="gender" data-filter-value="Male" onclick="setCourtPickerFilter('gender','Male',this)">♂ M (${state.queue.filter(pid=>player(pid)?.gender==='Male').length})</button><button type="button" class="picker-filter gender-female ${courtPickerFilters.gender==='Female'?'active':''}" data-filter-type="gender" data-filter-value="Female" onclick="setCourtPickerFilter('gender','Female',this)">♀ F (${state.queue.filter(pid=>player(pid)?.gender==='Female').length})</button></div><div class="picker-filter-row wait-filters"><button type="button" class="picker-filter ${courtPickerFilters.wait===0?'active':''}" data-filter-type="wait" data-filter-value="0" onclick="setCourtPickerFilter('wait',0,this)">⏱︎ All (${state.queue.length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===5?'active':''}" data-filter-type="wait" data-filter-value="5" onclick="setCourtPickerFilter('wait',5,this)">⏱︎ 5m+ (${state.queue.filter(pid=>{const q=player(pid);return q&&(Date.now()-(q.waitingSince||q.queuedAt||Date.now()))>=300000}).length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===10?'active':''}" data-filter-type="wait" data-filter-value="10" onclick="setCourtPickerFilter('wait',10,this)">⏱︎ 10m+ (${state.queue.filter(pid=>{const q=player(pid);return q&&(Date.now()-(q.waitingSince||q.queuedAt||Date.now()))>=600000}).length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===15?'active':''}" data-filter-type="wait" data-filter-value="15" onclick="setCourtPickerFilter('wait',15,this)">⏱︎ 15m+ (${state.queue.filter(pid=>{const q=player(pid);return q&&(Date.now()-(q.waitingSince||q.queuedAt||Date.now()))>=900000}).length})</button></div></div><div class="picker-player-list">${state.queue.slice().sort((a,b)=>{const pa=player(a),pb=player(b);return (Number(pa?.waitingSince||pa?.queuedAt||Date.now())-Number(pb?.waitingSince||pb?.queuedAt||Date.now()))||(Number(a)-Number(b));}).map(pid=>{const qp=player(pid);if(!qp)return '';const wait=Math.max(0,Math.floor((Date.now()-(qp.waitingSince||qp.queuedAt||Date.now()))/60000));return `<button class="picker-player ${pickerCandidatePairedBefore(c.id,qp.id)?'paired-before-player':''}" data-player-name="${esc(`${displayPlayerName(qp)} ${qp.nickname||''}`).toLowerCase()}" data-category="${esc(qp.category||'')}" data-gender="${esc(qp.gender||'')}" data-queued-at="${Number(qp.waitingSince||qp.queuedAt||Date.now())}" data-wait="${wait}" onclick="choosePlayerForCourt(${pid},${c.id})"><span class="picker-info"><span class="picker-meta"><b>${esc(displayPlayerName(qp))}</b><span class="picker-gender ${qp.gender==='Female'?'female':'male'}">${qp.gender==='Female'?'♀':'♂'}</span><span class="picker-category ${qp.category?'skill-'+qp.category.toLowerCase():''}">${esc(qp.category||'CAT')}</span>${getLockedPartnerId(qp.id)!=null?`<span class="partner-inline-badge" title="Locked-in partner"><span class="partner-inline-lock" aria-hidden="true">🔒</span><span class="partner-inline-name">${esc(String(player(getLockedPartnerId(qp.id))?.name||'').trim().split(/\s+/)[0]||displayPlayerName(player(getLockedPartnerId(qp.id))))}</span></span>`:''}${pickerCandidatePairedBefore(c.id,qp.id)?'<span class="paired-before-label picker-paired-before">(Paired Before)</span>':''}</span></span></span><span class="picker-wait ${wait>=15?'wait-red':wait>=10?'wait-yellow':''}">⏱ ${formatWaitingDuration(wait)}</span></button>`}).join('')||'<div class="picker-empty">No players waiting in Queue.</div>'}</div></div>` : ''}
+      ${selected && ps.length<4 ? `<div class="court-picker"><div class="picker-title"><div class="picker-search-wrap"><span class="picker-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="courtPickerSearch" class="picker-search" type="search" placeholder="Search player..." autocomplete="off" oninput="filterCourtPicker()"></div><div class="picker-filter-row category-filters"><button type="button" class="picker-filter ${courtPickerFilters.category==='ALL'?'active':''}" data-filter-type="category" data-filter-value="ALL" onclick="setCourtPickerFilter('category','ALL',this)">All (${state.queue.length})</button>${['BEG','NOV','INT','ADV','EXP'].map(cat=>{const n=state.queue.filter(pid=>player(pid)?.category===cat).length;return `<button type="button" class="picker-filter skill-${cat.toLowerCase()} ${courtPickerFilters.category===cat?'active':''}" data-filter-type="category" data-filter-value="${cat}" onclick="setCourtPickerFilter('category','${cat}',this)">${cat} (${n})</button>`}).join('')}</div><div class="picker-filter-row gender-filters"><button type="button" class="picker-filter ${courtPickerFilters.gender==='ALL'?'active':''}" data-filter-type="gender" data-filter-value="ALL" onclick="setCourtPickerFilter('gender','ALL',this)">All (${state.queue.length})</button><button type="button" class="picker-filter gender-male ${courtPickerFilters.gender==='Male'?'active':''}" data-filter-type="gender" data-filter-value="Male" onclick="setCourtPickerFilter('gender','Male',this)">${genderSvgIcon('Male')} M (${state.queue.filter(pid=>player(pid)?.gender==='Male').length})</button><button type="button" class="picker-filter gender-female ${courtPickerFilters.gender==='Female'?'active':''}" data-filter-type="gender" data-filter-value="Female" onclick="setCourtPickerFilter('gender','Female',this)">${genderSvgIcon('Female')} F (${state.queue.filter(pid=>player(pid)?.gender==='Female').length})</button></div><div class="picker-filter-row wait-filters"><button type="button" class="picker-filter ${courtPickerFilters.wait===0?'active':''}" data-filter-type="wait" data-filter-value="0" onclick="setCourtPickerFilter('wait',0,this)">⏱︎ All (${state.queue.length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===5?'active':''}" data-filter-type="wait" data-filter-value="5" onclick="setCourtPickerFilter('wait',5,this)">⏱︎ 5m+ (${state.queue.filter(pid=>{const q=player(pid);return q&&(Date.now()-(q.waitingSince||q.queuedAt||Date.now()))>=300000}).length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===10?'active':''}" data-filter-type="wait" data-filter-value="10" onclick="setCourtPickerFilter('wait',10,this)">⏱︎ 10m+ (${state.queue.filter(pid=>{const q=player(pid);return q&&(Date.now()-(q.waitingSince||q.queuedAt||Date.now()))>=600000}).length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===15?'active':''}" data-filter-type="wait" data-filter-value="15" onclick="setCourtPickerFilter('wait',15,this)">⏱︎ 15m+ (${state.queue.filter(pid=>{const q=player(pid);return q&&(Date.now()-(q.waitingSince||q.queuedAt||Date.now()))>=900000}).length})</button></div></div><div class="picker-player-list">${state.queue.slice().sort((a,b)=>{const pa=player(a),pb=player(b);return (Number(pa?.waitingSince||pa?.queuedAt||Date.now())-Number(pb?.waitingSince||pb?.queuedAt||Date.now()))||(Number(a)-Number(b));}).map(pid=>{const qp=player(pid);if(!qp)return '';const wait=Math.max(0,Math.floor((Date.now()-(qp.waitingSince||qp.queuedAt||Date.now()))/60000));return `<button class="picker-player ${pickerCandidatePairedBefore(c.id,qp.id)?'paired-before-player':''}" data-player-name="${esc(`${displayPlayerName(qp)} ${qp.nickname||''}`).toLowerCase()}" data-category="${esc(qp.category||'')}" data-gender="${esc(qp.gender||'')}" data-queued-at="${Number(qp.waitingSince||qp.queuedAt||Date.now())}" data-wait="${wait}" onclick="choosePlayerForCourt(${pid},${c.id})"><span class="picker-info"><span class="picker-meta"><b>${esc(displayPlayerName(qp))}</b><span class="picker-gender ${qp.gender==='Female'?'female':'male'}">${genderSvgIcon(qp.gender)}</span><span class="picker-category ${qp.category?'skill-'+qp.category.toLowerCase():''}">${esc(qp.category||'CAT')}</span>${getLockedPartnerId(qp.id)!=null?`<span class="partner-inline-badge" title="Locked-in partner"><span class="partner-inline-lock" aria-hidden="true">🔒</span><span class="partner-inline-name">${esc(String(player(getLockedPartnerId(qp.id))?.name||'').trim().split(/\s+/)[0]||displayPlayerName(player(getLockedPartnerId(qp.id))))}</span></span>`:''}${pickerCandidatePairedBefore(c.id,qp.id)?'<span class="paired-before-label picker-paired-before">(Paired Before)</span>':''}</span></span></span><span class="picker-wait ${wait>=15?'wait-red':wait>=10?'wait-yellow':''}">⏱ ${formatWaitingDuration(wait)}</span></button>`}).join('')||'<div class="picker-empty">No players waiting in Queue.</div>'}</div></div>` : ''}
       <div class="ready-actions ready-actions-v2">
         ${selected && ps.length<4
           ? `<button class="ready-cancel active picker-cancel" onclick="cancelCourtPicker(${c.id})">CANCEL</button>
@@ -2254,7 +2492,7 @@ function renderCourts(){
         <div class="ready-match-vs">VS</div>
         <div class="ready-match-team ready-team-two ${!!team2[0] && !!team2[1] && werePairedBefore(team2[0].id,team2[1].id)?'has-paired-before':''}"><div class="ready-team-heading">TEAM 2${!!team2[0] && !!team2[1] && werePairedBefore(team2[0].id,team2[1].id)?' <span class="paired-before-label">(Paired Before)</span>':''}</div><div class="ready-team-players">${readySlot(team2[0],c.id,2)}${readySlot(team2[1],c.id,3)}</div></div>
       </div>
-      ${selected && ps.length<4 ? `<div class="court-picker"><div class="picker-title"><div class="picker-search-wrap"><span class="picker-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="courtPickerSearch" class="picker-search" type="search" placeholder="Search player..." autocomplete="off" oninput="filterCourtPicker()"></div><div class="picker-filter-row category-filters"><button type="button" class="picker-filter ${courtPickerFilters.category==='ALL'?'active':''}" data-filter-type="category" data-filter-value="ALL" onclick="setCourtPickerFilter('category','ALL',this)">All (${state.queue.length})</button>${['BEG','NOV','INT','ADV','EXP'].map(cat=>{const n=state.queue.filter(pid=>player(pid)?.category===cat).length;return `<button type="button" class="picker-filter skill-${cat.toLowerCase()} ${courtPickerFilters.category===cat?'active':''}" data-filter-type="category" data-filter-value="${cat}" onclick="setCourtPickerFilter('category','${cat}',this)">${cat} (${n})</button>`}).join('')}</div><div class="picker-filter-row gender-filters"><button type="button" class="picker-filter ${courtPickerFilters.gender==='ALL'?'active':''}" data-filter-type="gender" data-filter-value="ALL" onclick="setCourtPickerFilter('gender','ALL',this)">All (${state.queue.length})</button><button type="button" class="picker-filter gender-male ${courtPickerFilters.gender==='Male'?'active':''}" data-filter-type="gender" data-filter-value="Male" onclick="setCourtPickerFilter('gender','Male',this)">♂ M (${state.queue.filter(pid=>player(pid)?.gender==='Male').length})</button><button type="button" class="picker-filter gender-female ${courtPickerFilters.gender==='Female'?'active':''}" data-filter-type="gender" data-filter-value="Female" onclick="setCourtPickerFilter('gender','Female',this)">♀ F (${state.queue.filter(pid=>player(pid)?.gender==='Female').length})</button></div><div class="picker-filter-row wait-filters"><button type="button" class="picker-filter ${courtPickerFilters.wait===0?'active':''}" data-filter-type="wait" data-filter-value="0" onclick="setCourtPickerFilter('wait',0,this)">⏱︎ All (${state.queue.length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===5?'active':''}" data-filter-type="wait" data-filter-value="5" onclick="setCourtPickerFilter('wait',5,this)">5m+</button><button type="button" class="picker-filter ${courtPickerFilters.wait===10?'active':''}" data-filter-type="wait" data-filter-value="10" onclick="setCourtPickerFilter('wait',10,this)">10m+</button><button type="button" class="picker-filter ${courtPickerFilters.wait===15?'active':''}" data-filter-type="wait" data-filter-value="15" onclick="setCourtPickerFilter('wait',15,this)">15m+</button></div></div><div class="picker-player-list">${state.queue.slice().sort((a,b)=>{const pa=player(a),pb=player(b);return (Number(pa?.waitingSince||pa?.queuedAt||Date.now())-Number(pb?.waitingSince||pb?.queuedAt||Date.now()))||(Number(a)-Number(b));}).map(pid=>{const qp=player(pid);if(!qp)return '';const wait=Math.max(0,Math.floor((Date.now()-(qp.waitingSince||qp.queuedAt||Date.now()))/60000));return `<button class="picker-player ${pickerCandidatePairedBefore(c.id,qp.id)?'paired-before-player':''}" data-player-name="${esc(`${displayPlayerName(qp)} ${qp.nickname||''}`).toLowerCase()}" data-category="${esc(qp.category||'')}" data-gender="${esc(qp.gender||'')}" data-queued-at="${Number(qp.waitingSince||qp.queuedAt||Date.now())}" data-wait="${wait}" onclick="choosePlayerForCourt(${pid},${c.id})"><span class="picker-info"><span class="picker-meta"><b>${esc(displayPlayerName(qp))}</b><span class="picker-gender ${qp.gender==='Female'?'female':'male'}">${qp.gender==='Female'?'♀':'♂'}</span><span class="picker-category ${qp.category?'skill-'+qp.category.toLowerCase():''}">${esc(qp.category||'CAT')}</span>${getLockedPartnerId(qp.id)!=null?`<span class="partner-inline-badge" title="Locked-in partner"><span class="partner-inline-lock" aria-hidden="true">🔒</span><span class="partner-inline-name">${esc(String(player(getLockedPartnerId(qp.id))?.name||'').trim().split(/\s+/)[0]||displayPlayerName(player(getLockedPartnerId(qp.id))))}</span></span>`:''}${pickerCandidatePairedBefore(c.id,qp.id)?'<span class="paired-before-label picker-paired-before">(Paired Before)</span>':''}</span></span><span class="picker-wait ${wait>=15?'wait-red':wait>=10?'wait-yellow':''}">⏱ ${formatWaitingDuration(wait)}</span></button>`}).join('')||'<div class="picker-empty">No players waiting in Queue.</div>'}</div></div>` : ''}
+      ${selected && ps.length<4 ? `<div class="court-picker"><div class="picker-title"><div class="picker-search-wrap"><span class="picker-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="courtPickerSearch" class="picker-search" type="search" placeholder="Search player..." autocomplete="off" oninput="filterCourtPicker()"></div><div class="picker-filter-row category-filters"><button type="button" class="picker-filter ${courtPickerFilters.category==='ALL'?'active':''}" data-filter-type="category" data-filter-value="ALL" onclick="setCourtPickerFilter('category','ALL',this)">All (${state.queue.length})</button>${['BEG','NOV','INT','ADV','EXP'].map(cat=>{const n=state.queue.filter(pid=>player(pid)?.category===cat).length;return `<button type="button" class="picker-filter skill-${cat.toLowerCase()} ${courtPickerFilters.category===cat?'active':''}" data-filter-type="category" data-filter-value="${cat}" onclick="setCourtPickerFilter('category','${cat}',this)">${cat} (${n})</button>`}).join('')}</div><div class="picker-filter-row gender-filters"><button type="button" class="picker-filter ${courtPickerFilters.gender==='ALL'?'active':''}" data-filter-type="gender" data-filter-value="ALL" onclick="setCourtPickerFilter('gender','ALL',this)">All (${state.queue.length})</button><button type="button" class="picker-filter gender-male ${courtPickerFilters.gender==='Male'?'active':''}" data-filter-type="gender" data-filter-value="Male" onclick="setCourtPickerFilter('gender','Male',this)">${genderSvgIcon('Male')} M (${state.queue.filter(pid=>player(pid)?.gender==='Male').length})</button><button type="button" class="picker-filter gender-female ${courtPickerFilters.gender==='Female'?'active':''}" data-filter-type="gender" data-filter-value="Female" onclick="setCourtPickerFilter('gender','Female',this)">${genderSvgIcon('Female')} F (${state.queue.filter(pid=>player(pid)?.gender==='Female').length})</button></div><div class="picker-filter-row wait-filters"><button type="button" class="picker-filter ${courtPickerFilters.wait===0?'active':''}" data-filter-type="wait" data-filter-value="0" onclick="setCourtPickerFilter('wait',0,this)">⏱︎ All (${state.queue.length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===5?'active':''}" data-filter-type="wait" data-filter-value="5" onclick="setCourtPickerFilter('wait',5,this)">5m+</button><button type="button" class="picker-filter ${courtPickerFilters.wait===10?'active':''}" data-filter-type="wait" data-filter-value="10" onclick="setCourtPickerFilter('wait',10,this)">10m+</button><button type="button" class="picker-filter ${courtPickerFilters.wait===15?'active':''}" data-filter-type="wait" data-filter-value="15" onclick="setCourtPickerFilter('wait',15,this)">15m+</button></div></div><div class="picker-player-list">${state.queue.slice().sort((a,b)=>{const pa=player(a),pb=player(b);return (Number(pa?.waitingSince||pa?.queuedAt||Date.now())-Number(pb?.waitingSince||pb?.queuedAt||Date.now()))||(Number(a)-Number(b));}).map(pid=>{const qp=player(pid);if(!qp)return '';const wait=Math.max(0,Math.floor((Date.now()-(qp.waitingSince||qp.queuedAt||Date.now()))/60000));return `<button class="picker-player ${pickerCandidatePairedBefore(c.id,qp.id)?'paired-before-player':''}" data-player-name="${esc(`${displayPlayerName(qp)} ${qp.nickname||''}`).toLowerCase()}" data-category="${esc(qp.category||'')}" data-gender="${esc(qp.gender||'')}" data-queued-at="${Number(qp.waitingSince||qp.queuedAt||Date.now())}" data-wait="${wait}" onclick="choosePlayerForCourt(${pid},${c.id})"><span class="picker-info"><span class="picker-meta"><b>${esc(displayPlayerName(qp))}</b><span class="picker-gender ${qp.gender==='Female'?'female':'male'}">${genderSvgIcon(qp.gender)}</span><span class="picker-category ${qp.category?'skill-'+qp.category.toLowerCase():''}">${esc(qp.category||'CAT')}</span>${getLockedPartnerId(qp.id)!=null?`<span class="partner-inline-badge" title="Locked-in partner"><span class="partner-inline-lock" aria-hidden="true">🔒</span><span class="partner-inline-name">${esc(String(player(getLockedPartnerId(qp.id))?.name||'').trim().split(/\s+/)[0]||displayPlayerName(player(getLockedPartnerId(qp.id))))}</span></span>`:''}${pickerCandidatePairedBefore(c.id,qp.id)?'<span class="paired-before-label picker-paired-before">(Paired Before)</span>':''}</span></span><span class="picker-wait ${wait>=15?'wait-red':wait>=10?'wait-yellow':''}">⏱ ${formatWaitingDuration(wait)}</span></button>`}).join('')||'<div class="picker-empty">No players waiting in Queue.</div>'}</div></div>` : ''}
       <div class="ready-actions ready-actions-v2">${selected && ps.length<4?`<button class="ready-cancel active picker-cancel" onclick="cancelCourtPicker(${c.id})">CANCEL</button><button class="auto-match-ready" onclick="autoMatchVariety(${c.id})">AUTO-MATCH VARIETY</button><button class="start" disabled>WAITING FOR COURT</button>`:`<button class="ready-cancel ${ps.length===4?'active':''}" onclick="${ps.length===4?`cancelReadyMatch(${c.id})`:`autoMatchVariety(${c.id})`}">${ps.length===4?'CANCEL MATCH':'AUTO-MATCH VARIETY'}</button><button class="mix-live" onclick="mixCourt(${c.id})" ${ps.length!==4?'disabled':''}>⇄ MIX TEAMS</button><button class="start" disabled>${ps.length===4?'WAITING FOR COURT':'WAITING COURT'}</button>`}</div>
     </div></div>`;
   }).join('');
@@ -2558,7 +2796,7 @@ function renderExpandedPodium(){
         <div class="ranking-player-main">
           <div class="ranking-name-line">
             <b>${esc(displayPlayerName(p))}</b>
-            <span class="expanded-ranking-gender ${p.gender==='Female'?'female':'male'}" aria-label="${p.gender==='Female'?'Female':'Male'}">${p.gender==='Female'?'♀':'♂'}</span>
+            <span class="expanded-ranking-gender ${p.gender==='Female'?'female':'male'}" aria-label="${p.gender==='Female'?'Female':'Male'}">${genderSvgIcon(p.gender)}</span>
             ${p.category?`<span class="rank-category skill-${String(p.category).toLowerCase()}">${esc(p.category)}</span>`:''}
             ${getLockedPartnerId(p.id)?`<span class="queue-locked-partner-inline" title="Locked in with ${esc(displayPlayerName(player(getLockedPartnerId(p.id))||{name:'partner'}))}" aria-label="Locked in with partner" role="img">🔒</span>`:''}
             ${isPlayerPlaying(p)?'<span class="playing-badge">Playing</span>':''}
@@ -2708,8 +2946,8 @@ function openHistoryDetail(logId,preservePendingWinner=false){
     });
     return st;
   };
-  const renderDetailPlayer=p=>`<div class="detail-player"><span class="detail-player-name">${esc(displayPlayerName(p))}</span><span class="detail-gender-icon ${p.gender==='Female'?'female':'male'}" aria-label="${p.gender||'Unknown'}">${p.gender==='Female'?'♀':'♂'}</span><span class="mini-badge ${p.category?'skill-'+String(p.category).toLowerCase():''}">${esc(p.category||'CAT')}</span></div>`;
-  const renderDetailRow=(p,teamClass)=>{const st=getHistoryStats(p);return `<div class="detail-player-row ${teamClass}"><span class="dot"></span><div class="detail-player-info"><b>${esc(displayPlayerName(p))}</b><span class="detail-row-gender ${p.gender==='Female'?'female':'male'}" aria-label="${p.gender||'Unknown'}">${p.gender==='Female'?'♀':'♂'}</span><span class="mini-badge ${p.category?'skill-'+String(p.category).toLowerCase():''}">${esc(p.category||'CAT')}</span></div><small>${Number(st.wins)||0}W · ${Number(st.losses)||0}L</small></div>`;};
+  const renderDetailPlayer=p=>`<div class="detail-player"><span class="detail-player-name">${esc(displayPlayerName(p))}</span><span class="detail-gender-icon ${p.gender==='Female'?'female':'male'}" aria-label="${p.gender||'Unknown'}">${genderSvgIcon(p.gender)}</span><span class="mini-badge ${p.category?'skill-'+String(p.category).toLowerCase():''}">${esc(p.category||'CAT')}</span></div>`;
+  const renderDetailRow=(p,teamClass)=>{const st=getHistoryStats(p);return `<div class="detail-player-row ${teamClass}"><span class="dot"></span><div class="detail-player-info"><b>${esc(displayPlayerName(p))}</b><span class="detail-row-gender ${p.gender==='Female'?'female':'male'}" aria-label="${p.gender||'Unknown'}">${genderSvgIcon(p.gender)}</span><span class="mini-badge ${p.category?'skill-'+String(p.category).toLowerCase():''}">${esc(p.category||'CAT')}</span></div><small>${Number(st.wins)||0}W · ${Number(st.losses)||0}L</small></div>`;};
   $('historyDetailBody').innerHTML=`<div class="detail-score-grid ${winOnly?'detail-winner-only':''}">
     <div class="detail-team winner"><div class="detail-label">WINNER</div>${winOnly?'':`<input id="editScoreWin" class="detail-score-input" type="number" min="0" value="${winnerScore}">`}${winTeam.map(renderDetailPlayer).join('')}</div>
     <div class="detail-vs"><span>VS</span>${winOnly?`<button type="button" class="history-swap-btn detail-history-swap-btn" title="Swap WIN and LOSS" aria-label="Swap WIN and LOSS" onclick="event.stopPropagation();toggleHistoryWinnerPreview(${l.id})">⇄</button>`:''}</div>
@@ -3099,6 +3337,14 @@ function syncLiveQueueStartScreen(){
   if(input && !existing) syncLiveQueueSessionName();
   const recordToggle=$('liveQueueRecordResults');
   if(recordToggle) recordToggle.checked=!!state.recordScores;
+  const selectedMode=['balanced','social-mix','skill-separated','winners-losers'].includes(state.matchingMode)?state.matchingMode:'balanced';
+  document.querySelectorAll('#liveQueueMatchingMode .live-queue-matching-option').forEach(option=>{
+    const active=option.dataset.mode===selectedMode;
+    option.classList.toggle('active',active);
+    option.setAttribute('aria-pressed',active?'true':'false');
+    option.disabled=existing;
+    option.setAttribute('aria-disabled',existing?'true':'false');
+  });
   const create=$('createLiveQueueBtn');
   if(create){
     create.textContent='Create Live Queue';
@@ -3111,6 +3357,7 @@ function enterLiveQueueFromStart(){
   const type=document.querySelector('#liveQueueMatchType .live-queue-choice.active')?.dataset.value||'Doubles';
   const target=Number(document.querySelector('#liveQueueGameMode .live-queue-game.active')?.dataset.target)||11;
   const winBy=Number(document.querySelector('#liveQueueWinBy .live-queue-choice.active')?.dataset.value)||1;
+  const matchingMode=document.querySelector('#liveQueueMatchingMode .live-queue-matching-option.active')?.dataset.mode||'balanced';
   const sessionInput=$('liveQueueSessionName');
   enforceLiveQueueSessionPrefix();
   state.sessionName=sessionInput?.value?.trim()||name;
@@ -3118,6 +3365,8 @@ function enterLiveQueueFromStart(){
   state.duprMatch=!!$('liveQueueDupr')?.checked;
   state.recordScores=!!$('liveQueueRecordResults')?.checked;
   state.eventRules={target,winBy,type};
+  state.matchingMode=['balanced','social-mix','skill-separated','winners-losers'].includes(matchingMode)?matchingMode:'balanced';
+  state.winnersLosersNextGroup='winners';
   saveState();
   showLiveQueueWorkspace();
 }
@@ -3129,6 +3378,15 @@ function bindLiveQueueStartScreen(){
   document.querySelectorAll('#liveQueueWinBy .live-queue-choice').forEach(btn=>btn.addEventListener('click',()=>{
     if(btn.disabled) return;
     document.querySelectorAll('#liveQueueWinBy .live-queue-choice').forEach(x=>x.classList.remove('active')); btn.classList.add('active');
+  }));
+  document.querySelectorAll('#liveQueueMatchingMode .live-queue-matching-option').forEach(btn=>btn.addEventListener('click',()=>{
+    const mode=btn.dataset.mode;
+    if(!['balanced','social-mix','skill-separated','winners-losers'].includes(mode))return;
+    document.querySelectorAll('#liveQueueMatchingMode .live-queue-matching-option').forEach(option=>{
+      const active=option===btn;
+      option.classList.toggle('active',active);
+      option.setAttribute('aria-pressed',active?'true':'false');
+    });
   }));
   document.querySelectorAll('#liveQueueGameMode .live-queue-game').forEach(btn=>btn.addEventListener('click',()=>{
     if(btn.disabled) return;
@@ -3232,6 +3490,7 @@ $('liveViewQrOpenPageBtn')?.addEventListener('click',openLiveView);
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeLiveViewQrModal();});
 render();
 publishLiveViewState();
+initializeSharedDataSync();
 // Keep the shared live snapshot available while an active event is running.
 // The server ignores unchanged heartbeats, so this does not repeatedly write data.
 setInterval(()=>{
