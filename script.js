@@ -115,6 +115,26 @@ let courtSettingsDraft=null;
 
 const $=id=>document.getElementById(id);
 
+// Main queue workspace network indicator. Queueing remains local-first, so it
+// can continue working when the device loses its network connection.
+function initQueueNetworkStatus(){
+  const badge=document.querySelector('.topbar .top-actions .online');
+  if(!badge)return;
+  const sync=()=>{
+    const isOnline=navigator.onLine!==false;
+    badge.classList.toggle('offline',!isOnline);
+    badge.innerHTML=`<i aria-hidden="true"></i> ${isOnline?'Online Queueing':'Offline Queueing'}`;
+    badge.setAttribute('role','status');
+    badge.setAttribute('aria-live','polite');
+    badge.setAttribute('aria-label',isOnline?'Online Queueing: network detected':'Offline Queueing: no network detected');
+    badge.title=isOnline?'Network detected. Queueing can continue.':'No network detected. Queueing can continue offline.';
+  };
+  window.addEventListener('online',sync);
+  window.addEventListener('offline',sync);
+  window.addEventListener('focus',sync);
+  sync();
+}
+
 const endSessionCountTimers={};
 function animateEndSessionCount(id,target){
   const el=$(id);
@@ -205,7 +225,9 @@ function buildLiveViewSnapshot(){
       name:String(p.name||'Player'),
       nickname:String(p.nickname||''),
       gender:String(p.gender||''),
-      category:String(p.category||'')
+      category:String(p.category||''),
+      queuedAt:p.queuedAt||null,
+      waitingSince:p.waitingSince||p.queuedAt||null
     }:null;
   };
   const courts=(Array.isArray(state.courts)?state.courts:[]).map(c=>{
@@ -346,38 +368,102 @@ function openLiveView(){
   const url=getLiveViewUrl();
   window.open(url.href,'_blank','noopener');
 }
-function openLiveViewQrModal(){
+function syncLiveViewQrNetworkState(forceQrRefresh=false){
   const modal=$('liveViewQrModal');
-  const url=getLiveViewUrl();
-  const urlField=$('liveViewQrUrl');
+  const wrap=$('liveViewQrImageWrap');
   const image=$('liveViewQrImage');
   const unavailable=$('liveViewQrUnavailable');
+  const loader=$('liveViewQrOfflineLoader');
   const statusTitle=$('liveViewQrStatusTitle');
   const statusNote=$('liveViewQrStatusNote');
-  if(!modal||!urlField||!image)return;
-  urlField.value=url.href;
+  if(!modal||!wrap||!image||!unavailable||!loader)return;
+
+  // Bind image events once so the QR becomes visible as soon as it loads,
+  // and use a second QR endpoint automatically if the primary one fails.
+  if(!image.dataset.qrNetworkEventsBound){
+    image.dataset.qrNetworkEventsBound='true';
+    image.addEventListener('load',()=>{
+      if(navigator.onLine===false)return;
+      image.hidden=false;
+      loader.hidden=true;
+      unavailable.hidden=true;
+    });
+    image.addEventListener('error',()=>{
+      if(navigator.onLine===false){syncLiveViewQrNetworkState();return;}
+      const target=image.dataset.qrTarget;
+      if(target&&image.dataset.qrFallbackAttempted!=='true'){
+        image.dataset.qrFallbackAttempted='true';
+        image.src='https://quickchart.io/qr?size=280&margin=8&text='+encodeURIComponent(target);
+        return;
+      }
+      image.hidden=true;
+      loader.hidden=true;
+      unavailable.textContent='QR preview could not load. It will retry automatically when the connection is restored.';
+      unavailable.hidden=false;
+    });
+  }
+
+  const isOnline=navigator.onLine!==false;
+  wrap.classList.toggle('is-offline',!isOnline);
+  if(!isOnline){
+    image.hidden=true;
+    image.removeAttribute('src');
+    delete image.dataset.qrTarget;
+    image.dataset.qrFallbackAttempted='false';
+    loader.hidden=false;
+    unavailable.hidden=true;
+    if(statusTitle)statusTitle.textContent='Offline mode';
+    if(statusNote)statusNote.textContent='The QR preview is paused while the system is offline. It will return automatically when the connection is restored.';
+    return;
+  }
+
+  loader.hidden=true;
+  const url=getLiveViewUrl();
   const isHttp=['http:','https:'].includes(url.protocol);
   image.hidden=!isHttp;
   unavailable.hidden=isHttp;
-  image.removeAttribute('src');
-  if(isHttp){
-    // The QR is generated from the actual deployed URL, so the same code works
-    // for every viewer after the app has been deployed to public hosting.
-    image.src='https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data='+encodeURIComponent(url.href);
+  if(!isHttp){
+    image.removeAttribute('src');
+    delete image.dataset.qrTarget;
+    if(statusTitle)statusTitle.textContent='Local / private link';
+    if(statusNote)statusNote.textContent='QR code will appear when opened through a web server.';
+    return;
   }
+
+  // Prepare the QR as soon as the app detects an online connection, even
+  // while this modal is closed, so opening it can show the QR immediately.
+  const target=url.href;
+  const imageFailed=image.complete&&image.naturalWidth===0;
+  const needsRefresh=forceQrRefresh===true||image.dataset.qrTarget!==target||!image.getAttribute('src')||imageFailed;
+  if(needsRefresh){
+    image.dataset.qrTarget=target;
+    image.dataset.qrFallbackAttempted='false';
+    image.src='https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data='+encodeURIComponent(target);
+  }
+
   const host=url.hostname;
   const privateIpv4=/^(10\.|192\.168\.|127\.|169\.254\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(host);
   const localHost=host==='localhost'||host==='0.0.0.0'||host==='::1'||privateIpv4;
   const publicReady=url.protocol==='https:'&&!localHost;
-  if(publicReady){
-    statusTitle.textContent='Public link ready';
-    statusNote.textContent='Anyone with this QR code and an internet connection can open the live page.';
-  }else{
-    statusTitle.textContent='Local / private link';
-    statusNote.textContent='This QR code currently points to this computer or local network. To let players scan from anywhere, deploy the app to public HTTPS hosting, then reopen this screen.';
-  }
-  modal.classList.remove('hidden');
+  if(statusTitle)statusTitle.textContent=publicReady?'Public link ready':'Local / private link';
+  if(statusNote)statusNote.textContent=publicReady
+    ?'Anyone with this QR code and an internet connection can open the live page.'
+    :'This QR code currently points to this computer or local network. To let players scan from anywhere, deploy the app to public HTTPS hosting, then reopen this screen.';
 }
+function openLiveViewQrModal(){
+  const modal=$('liveViewQrModal');
+  const url=getLiveViewUrl();
+  const urlField=$('liveViewQrUrl');
+  if(!modal||!urlField)return;
+  urlField.value=url.href;
+  modal.classList.remove('hidden');
+  syncLiveViewQrNetworkState();
+}
+window.addEventListener('online',()=>syncLiveViewQrNetworkState(true));
+window.addEventListener('offline',()=>syncLiveViewQrNetworkState());
+window.addEventListener('focus',()=>syncLiveViewQrNetworkState());
+// Preload the QR while online so the share modal opens directly to the QR.
+syncLiveViewQrNetworkState();
 function closeLiveViewQrModal(){ $('liveViewQrModal')?.classList.add('hidden'); }
 async function copyLiveViewQrLink(){
   const field=$('liveViewQrUrl');if(!field)return;
@@ -3138,6 +3224,7 @@ loadCloudRecords();
 loadState();
 bindLiveQueueStartScreen();
 bindTopbarBackButton();
+initQueueNetworkStatus();
 initLiveViewThemeController();
 $('liveViewQrOpenBtn')?.addEventListener('click',openLiveViewQrModal);
 $('liveViewQrCopyBtn')?.addEventListener('click',copyLiveViewQrLink);

@@ -36,6 +36,21 @@
     const totalSeconds = elapsedSeconds(start);
     return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, '0')}`;
   };
+  const waitingDuration = start => {
+    if (!start) return '0m waiting';
+    const totalSeconds = Math.max(0, Math.floor((Date.now() - Number(start)) / 1000));
+    if (totalSeconds < 60) return '0m waiting';
+    const minutes = Math.floor(totalSeconds / 60);
+    if (minutes < 60) return `${minutes}m waiting`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m waiting`;
+  };
+  const waitingTimeClass = start => {
+    const totalSeconds = start ? Math.max(0, Math.floor((Date.now() - Number(start)) / 1000)) : 0;
+    if (totalSeconds >= 15 * 60) return 'waiting-red';
+    if (totalSeconds >= 10 * 60) return 'waiting-amber';
+    return '';
+  };
   const timerClass = start => {
     const totalSeconds = elapsedSeconds(start);
     if (totalSeconds >= 15 * 60) return 'timer-red';
@@ -124,7 +139,10 @@
 
     const queue = s?.queue || [];
     $('queueList').innerHTML = queue.length
-      ? queue.map((p, i) => `<div class="queue-item"><span class="queue-number">${i + 1}</span><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${escapeHTML(playerName(p))}</div><span class="live-player-gender ${playerGenderClass(p)}" title="${playerGenderClass(p) === 'female' ? 'Female' : 'Male'}" aria-label="${playerGenderClass(p) === 'female' ? 'Female' : 'Male'}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span></div></div></div>`).join('')
+      ? queue.map((p, i) => {
+          const waitingSince = p.waitingSince || p.queuedAt || null;
+          return `<div class="queue-item"><span class="queue-number">${i + 1}</span><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${escapeHTML(playerName(p))}</div><span class="live-player-gender ${playerGenderClass(p)}" title="${playerGenderClass(p) === 'female' ? 'Female' : 'Male'}" aria-label="${playerGenderClass(p) === 'female' ? 'Female' : 'Male'}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span></div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
+        }).join('')
       : '<div class="empty-state">No players are waiting in queue.</div>';
 
     const usingHttpServer = location.protocol === 'http:' || location.protocol === 'https:';
@@ -302,6 +320,12 @@
       el.textContent = elapsed(el.dataset.start);
       el.classList.remove('timer-blue', 'timer-amber', 'timer-red');
       el.classList.add(timerClass(el.dataset.start));
+    });
+    document.querySelectorAll('.queue-waiting-time[data-waiting-since]').forEach(el => {
+      el.textContent = waitingDuration(el.dataset.waitingSince);
+      el.classList.remove('waiting-amber', 'waiting-red');
+      const waitingClass = waitingTimeClass(el.dataset.waitingSince);
+      if (waitingClass) el.classList.add(waitingClass);
     });
   }, 1000);
 })();

@@ -181,3 +181,13 @@ html[data-theme="light"] .live-player-category.skill-int{background:#fff4d7;bord
 html[data-theme="light"] .live-player-category.skill-adv{background:#f1eaff;border-color:#d9c9f5;color:#7250ad}
 html[data-theme="light"] .live-player-category.skill-exp{background:#ffecef;border-color:#f2c8cd;color:#c43d4b}
 @media(max-width:560px){.queue-player-line{gap:4px}.queue-player-line .queue-player{font-size:11px}.live-player-category{padding:3px 4px;font-size:7px}.player-chip{gap:4px}}
+
+
+/* Display each player's Queueing-page waiting duration at the far right of the Live View row. */
+.queue-waiting-time{flex:0 0 auto;margin-left:auto;padding-left:8px;color:var(--teal);font-size:10px;font-weight:850;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+.queue-waiting-time.waiting-amber{color:#ffbf47}
+.queue-waiting-time.waiting-red{color:#ff5757}
+html[data-theme="light"] .queue-waiting-time{color:#087f80}
+html[data-theme="light"] .queue-waiting-time.waiting-amber{color:#986000}
+html[data-theme="light"] .queue-waiting-time.waiting-red{color:#bd2935}
+@media(max-width:560px){.queue-waiting-time{font-size:9px;padding-left:4px}}

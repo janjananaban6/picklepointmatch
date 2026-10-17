@@ -6,7 +6,7 @@
   <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
   <title>Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=live-start-card-top-aligned-2">
+  <link rel="stylesheet" href="style.css?v=online-offline-queueing-1">
 </head>
 <body>
 <div id="liveQueueStartScreen" class="live-queue-start-screen">
@@ -403,7 +403,7 @@ Maria Santos,Female"></textarea>
       <button type="button" class="live-view-qr-close" onclick="closeLiveViewQrModal()" aria-label="Close QR code">×</button>
     </div>
     <div class="live-view-qr-content">
-      <div class="live-view-qr-image-wrap"><img id="liveViewQrImage" alt="QR code for Pickle Point Match Live View"><span id="liveViewQrUnavailable" hidden>QR code will appear when opened through a web server.</span></div>
+      <div class="live-view-qr-image-wrap" id="liveViewQrImageWrap"><img id="liveViewQrImage" alt="QR code for Pickle Point Match Live View"><span id="liveViewQrUnavailable" hidden>QR code will appear when opened through a web server.</span><div id="liveViewQrOfflineLoader" class="live-view-qr-offline-loader" hidden role="status" aria-label="Live View QR unavailable while offline"><img src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div></div>
       <div class="live-view-qr-details">
         <strong id="liveViewQrStatusTitle">Ready to share</strong>
         <p id="liveViewQrStatusNote">Scan with a phone camera to open the live page.</p>
@@ -420,7 +420,7 @@ Maria Santos,Female"></textarea>
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<script src="script.js?v=live-sync-recovery-1" defer></script>
+<script src="script.js?v=live-qr-auto-online-2" defer></script>
 
 
 

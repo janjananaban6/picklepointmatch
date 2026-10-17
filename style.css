@@ -16551,3 +16551,110 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
 #liveQueueStartScreen > .live-queue-start-card {
   flex: 0 0 auto;
 }
+
+
+/* Automatic network status for the main queue workspace only.
+   Preserve the existing badge dimensions while using the requested light colors. */
+.topbar .top-actions .online:not(.offline) {
+  color: #1D4ED8 !important;
+  border-color: #93C5FD !important;
+  background: #DBEAFE !important;
+}
+.topbar .top-actions .online:not(.offline) i {
+  background: #3B82F6 !important;
+}
+.topbar .top-actions .online.offline {
+  color: #92400E !important;
+  border-color: #FCD34D !important;
+  background: #FEF3C7 !important;
+}
+.topbar .top-actions .online.offline i {
+  background: #F59E0B !important;
+}
+
+
+/* Requested status appearance: keep Online/Offline labels, remove visible chip fill and border. */
+.topbar .top-actions .online:not(.offline),
+.topbar .top-actions .online.offline {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+/* Use a blue outline for the Live View QR button in every interaction state. */
+.topbar .top-actions .live-view-qr-open-btn,
+.topbar .top-actions .live-view-qr-open-btn:hover,
+.topbar .top-actions .live-view-qr-open-btn:active,
+.topbar .top-actions .live-view-qr-open-btn:focus-visible {
+  border-color: #60A5FA !important;
+}
+
+/* Online/offline status: transparent fill, keep the colored edge. */
+.topbar .top-actions .online:not(.offline),
+.topbar .top-actions .online:not(.offline):hover,
+.topbar .top-actions .online:not(.offline):active,
+.topbar .top-actions .online:not(.offline):focus-visible {
+  color: #60A5FA !important;
+  background: transparent !important;
+  border: 1px solid #60A5FA !important;
+}
+.topbar .top-actions .online:not(.offline) i {
+  background: #60A5FA !important;
+}
+.topbar .top-actions .online.offline,
+.topbar .top-actions .online.offline:hover,
+.topbar .top-actions .online.offline:active,
+.topbar .top-actions .online.offline:focus-visible {
+  color: #F59E0B !important;
+  background: transparent !important;
+  border: 1px solid #F59E0B !important;
+}
+.topbar .top-actions .online.offline i {
+  background: #F59E0B !important;
+}
+
+
+/* Offline fallback for the Live View QR preview: show only the fading topbar emblem. */
+.live-view-qr-image-wrap{position:relative;overflow:hidden;}
+.live-view-qr-image-wrap #liveViewQrImage[hidden],
+.live-view-qr-image-wrap #liveViewQrUnavailable[hidden],
+.live-view-qr-image-wrap .live-view-qr-offline-loader[hidden]{display:none!important;}
+.live-view-qr-image-wrap .live-view-qr-offline-loader{
+  position:absolute;inset:12px;display:flex;align-items:center;justify-content:center;
+  pointer-events:none;
+}
+.live-view-qr-image-wrap .live-view-qr-offline-loader img{
+  display:block;width:76px;height:76px;max-width:42%;max-height:42%;object-fit:contain;
+  transform-origin:center;
+  will-change:opacity,filter,transform;
+  animation:liveViewQrLogoColorFade 1.9s ease-in-out infinite;
+  filter:saturate(.7) brightness(.82) drop-shadow(0 0 2px rgba(132,204,22,.12));
+}
+@keyframes liveViewQrLogoColorFade{
+  0%,100%{
+    opacity:.24;
+    transform:scale(.94);
+    filter:saturate(.7) brightness(.82) drop-shadow(0 0 2px rgba(132,204,22,.12));
+  }
+  30%{
+    opacity:.68;
+    transform:scale(.98);
+    filter:saturate(1.15) brightness(1.02) drop-shadow(0 0 6px rgba(132,204,22,.3));
+  }
+  52%{
+    opacity:1;
+    transform:scale(1.02);
+    filter:saturate(1.65) brightness(1.2) drop-shadow(0 0 13px rgba(132,204,22,.58));
+  }
+  76%{
+    opacity:.72;
+    transform:scale(.985);
+    filter:saturate(1.1) brightness(.98) drop-shadow(0 0 7px rgba(132,204,22,.34));
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .live-view-qr-image-wrap .live-view-qr-offline-loader img{
+    animation:none;opacity:.9;transform:none;
+    filter:saturate(1.25) brightness(1.05) drop-shadow(0 0 5px rgba(132,204,22,.25));
+    will-change:auto;
+  }
+}
