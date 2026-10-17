@@ -6,7 +6,7 @@
     return;
   }
 
-  fetch('live-queue-start-card.html', { cache: 'no-cache' })
+  fetch('live-queue-start-card.html', { cache: 'no-store' })
     .then(response => {
       if (!response.ok) throw new Error(`Could not load Live Queue setup (${response.status}).`);
       return response.text();
@@ -14,7 +14,7 @@
     .then(markup => {
       mount.outerHTML = markup;
       const app = document.createElement('script');
-      app.src = 'script.js?v=cloud-sync-20261017';
+      app.src = 'script.js?v=refresh-stability-20261017-1';
       app.onerror = () => console.error('Pickle Point Match could not load script.js.');
       document.body.appendChild(app);
     })

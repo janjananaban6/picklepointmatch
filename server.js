@@ -225,7 +225,9 @@ async function handle(req, res) {
   try {
     const stat = await fs.promises.stat(filePath);
     if (!stat.isFile()) return sendJson(res,404,{ok:false,error:'Not found'});
-    res.writeHead(200, {'Content-Type':MIME[path.extname(filePath).toLowerCase()]||'application/octet-stream','Content-Length':stat.size,'Cache-Control':name==='index.html'||name==='live.html'?'no-cache':'public, max-age=300','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});
+    const extension=path.extname(filePath).toLowerCase();
+    const mutableAsset=['.html','.js','.css'].includes(extension);
+    res.writeHead(200, {'Content-Type':MIME[extension]||'application/octet-stream','Content-Length':stat.size,'Cache-Control':mutableAsset?'no-cache, must-revalidate':'public, max-age=300','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});
     if(req.method==='HEAD')return res.end();
     fs.createReadStream(filePath).pipe(res);
   } catch (_) { return sendJson(res,404,{ok:false,error:'Not found'}); }

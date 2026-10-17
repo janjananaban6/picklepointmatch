@@ -23,6 +23,10 @@ const state={
 };
 
 const STORAGE_KEY='pickleq_v11_state';
+const LOCAL_STATE_SAVED_AT_KEY='pickleq_v11_state_saved_at';
+const LOCAL_STATE_PENDING_SYNC_KEY='pickleq_v11_state_pending_sync';
+const CLOUD_RECORDS_SAVED_AT_KEY='pickleq_registered_cloud_records_saved_at';
+const CLOUD_RECORDS_PENDING_SYNC_KEY='pickleq_registered_cloud_records_pending_sync';
 const LIVE_VIEW_STORAGE_KEY='picklepoint_live_view_state_v1';
 const LIVE_VIEW_THEME_STORAGE_KEY='picklepoint_live_view_theme_v1';
 let liveViewBroadcastChannel=null;
@@ -40,19 +44,104 @@ let sharedSyncReady=false,sharedSyncAvailable=false,sharedSyncInitializing=false
 let sharedAppRevision=0,sharedCloudRevision=0,appSyncInFlight=false,appSyncPending=null,cloudSyncInFlight=false,cloudSyncPending=null,applyingRemoteAppState=false,sharedEvents=null;
 function isHttpApp(){return location.protocol==='http:'||location.protocol==='https:';}
 function cloneSharedData(value){try{return JSON.parse(JSON.stringify(value));}catch(e){return value;}}
+function readLocalTimestamp(key){try{return Number(localStorage.getItem(key))||0;}catch(e){return 0;}}
+function toTimestamp(value){if(typeof value==='number'&&Number.isFinite(value)&&value>0)return value;const numeric=Number(value);if(Number.isFinite(numeric)&&numeric>0)return numeric;const parsed=Date.parse(value);return Number.isFinite(parsed)&&parsed>0?parsed:0;}
+function hasFreshLocalPending(savedAtKey,pendingKey,remoteUpdatedAt){const savedAt=readLocalTimestamp(savedAtKey),pendingAt=readLocalTimestamp(pendingKey);return pendingAt>0&&pendingAt===savedAt&&savedAt>toTimestamp(remoteUpdatedAt);}
+function clearLocalPendingSync(pendingKey,savedAtKey,expectedSavedAt){try{if(Number(localStorage.getItem(pendingKey))===Number(expectedSavedAt)&&Number(localStorage.getItem(savedAtKey))===Number(expectedSavedAt))localStorage.removeItem(pendingKey);}catch(e){}}
+function stampRemoteSave(savedAtKey,pendingKey,updatedAt){try{localStorage.setItem(savedAtKey,String(toTimestamp(updatedAt)||Date.now()));localStorage.removeItem(pendingKey);}catch(e){}}
 function loadCloudRecords(){try{const d=JSON.parse(localStorage.getItem(CLOUD_RECORDS_KEY)||'null');if(d)cloudRecords={players:Array.isArray(d.players)?d.players:[],logs:Array.isArray(d.logs)?d.logs:[],sessions:Array.isArray(d.sessions)?d.sessions:[]};}catch(e){}}
 function queueCloudRecordsSync(){if(applyingRemoteAppState)return;cloudSyncPending=cloneSharedData(cloudRecords);flushCloudRecordsSync();}
-function saveCloudRecords(){try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));}catch(e){}queueCloudRecordsSync();}
-function flushCloudRecordsSync(){if(!sharedSyncAvailable||!sharedSyncReady||cloudSyncInFlight||!cloudSyncPending||!isHttpApp())return;const records=cloudSyncPending;cloudSyncPending=null;cloudSyncInFlight=true;fetch('/api/cloud-records',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({records,clientId:sharedClientId,baseRevision:sharedCloudRevision})}).then(async response=>{const data=await response.json();if(response.status===409&&data.conflict)applySharedCloudRecords({revision:data.revision,clientId:null,records:data.records});if(!response.ok)throw new Error(`Cloud records sync failed (${response.status})`);sharedCloudRevision=Math.max(sharedCloudRevision,Number(data.revision)||0);}).catch(()=>{cloudSyncPending=cloneSharedData(cloudRecords);scheduleSharedSyncRetry();}).finally(()=>{cloudSyncInFlight=false;if(cloudSyncPending)flushCloudRecordsSync();});}
-function applySharedCloudRecords(payload,force=false){if(!payload||!payload.records)return;const revision=Number(payload.revision)||0;if(!force&&revision<=sharedCloudRevision)return;sharedCloudRevision=Math.max(sharedCloudRevision,revision);if(payload.clientId===sharedClientId&&!force)return;cloudRecords={players:Array.isArray(payload.records.players)?payload.records.players:[],logs:Array.isArray(payload.records.logs)?payload.records.logs:[],sessions:Array.isArray(payload.records.sessions)?payload.records.sessions:[]};try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));}catch(e){}cloudSyncPending=null;if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();}
+function saveCloudRecords(){const savedAt=Date.now();try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));localStorage.setItem(CLOUD_RECORDS_SAVED_AT_KEY,String(savedAt));if(isHttpApp())localStorage.setItem(CLOUD_RECORDS_PENDING_SYNC_KEY,String(savedAt));else localStorage.removeItem(CLOUD_RECORDS_PENDING_SYNC_KEY);}catch(e){}queueCloudRecordsSync();}
+function flushCloudRecordsSync(){
+  if(!sharedSyncAvailable||!sharedSyncReady||cloudSyncInFlight||!cloudSyncPending||!isHttpApp())return;
+  const records=cloudSyncPending;cloudSyncPending=null;cloudSyncInFlight=true;
+  let failed=false;
+  const savedAt=readLocalTimestamp(CLOUD_RECORDS_SAVED_AT_KEY);
+  fetch('/api/cloud-records',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({records,clientId:sharedClientId,baseRevision:sharedCloudRevision})})
+    .then(async response=>{
+      const data=await response.json();
+      if(response.status===409&&data.conflict){
+        if(hasFreshLocalPending(CLOUD_RECORDS_SAVED_AT_KEY,CLOUD_RECORDS_PENDING_SYNC_KEY,data.updatedAt))sharedCloudRevision=Math.max(sharedCloudRevision,Number(data.revision)||0);
+        else applySharedCloudRecords({revision:data.revision,updatedAt:data.updatedAt,clientId:null,records:data.records});
+      }
+      if(!response.ok)throw new Error(`Cloud records sync failed (${response.status})`);
+      sharedCloudRevision=Math.max(sharedCloudRevision,Number(data.revision)||0);
+      if(savedAt&&JSON.stringify(cloudRecords)===JSON.stringify(records))clearLocalPendingSync(CLOUD_RECORDS_PENDING_SYNC_KEY,CLOUD_RECORDS_SAVED_AT_KEY,savedAt);
+    })
+    .catch(()=>{failed=true;cloudSyncPending=cloneSharedData(cloudRecords);scheduleSharedSyncRetry();})
+    .finally(()=>{cloudSyncInFlight=false;if(cloudSyncPending&&!failed)flushCloudRecordsSync();});
+}
+function applySharedCloudRecords(payload,force=false){
+  if(!payload||!payload.records)return;
+  const revision=Number(payload.revision)||0;
+  if(!force&&revision<=sharedCloudRevision)return;
+  sharedCloudRevision=Math.max(sharedCloudRevision,revision);
+  // Keep a more recent, locally saved edit when its upload has not reached the server yet.
+  if(hasFreshLocalPending(CLOUD_RECORDS_SAVED_AT_KEY,CLOUD_RECORDS_PENDING_SYNC_KEY,payload.updatedAt)){
+    cloudSyncPending=cloneSharedData(cloudRecords);
+    if(sharedSyncAvailable)flushCloudRecordsSync();
+    return;
+  }
+  if(payload.clientId===sharedClientId&&!force){
+    if(JSON.stringify(payload.records)===JSON.stringify(cloudRecords))clearLocalPendingSync(CLOUD_RECORDS_PENDING_SYNC_KEY,CLOUD_RECORDS_SAVED_AT_KEY,readLocalTimestamp(CLOUD_RECORDS_SAVED_AT_KEY));
+    return;
+  }
+  cloudRecords={players:Array.isArray(payload.records.players)?payload.records.players:[],logs:Array.isArray(payload.records.logs)?payload.records.logs:[],sessions:Array.isArray(payload.records.sessions)?payload.records.sessions:[]};
+  try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));}catch(e){}
+  stampRemoteSave(CLOUD_RECORDS_SAVED_AT_KEY,CLOUD_RECORDS_PENDING_SYNC_KEY,payload.updatedAt);
+  cloudSyncPending=null;
+  if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
+}
 function getSharedAppStateSnapshot(){return {schemaVersion:11,players:state.players,left:state.left,queue:state.queue,lockedPartners:state.lockedPartners,courts:state.courts,logs:state.logs,nextPlayer:state.nextPlayer,nextCourt:state.nextCourt,nextWaitingCourt:state.nextWaitingCourt,nextLog:state.nextLog,sessionMetrics:state.sessionMetrics,sessionActive:state.sessionActive,sessionName:state.sessionName,duprMatch:state.duprMatch,recordScores:state.recordScores,eventRules:state.eventRules,matchingMode:state.matchingMode,winnersLosersNextGroup:state.winnersLosersNextGroup};}
 function queueSharedAppStateSync(snapshot){if(applyingRemoteAppState)return;appSyncPending=cloneSharedData(snapshot);flushSharedAppStateSync();}
-function flushSharedAppStateSync(){if(!sharedSyncAvailable||!sharedSyncReady||appSyncInFlight||!appSyncPending||!isHttpApp())return;const snapshot=appSyncPending;appSyncPending=null;appSyncInFlight=true;fetch('/api/app-state',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({state:snapshot,clientId:sharedClientId,baseRevision:sharedAppRevision})}).then(async response=>{const data=await response.json();if(response.status===409&&data.conflict)applySharedAppState({revision:data.revision,clientId:null,state:data.state});if(!response.ok)throw new Error(`Application state sync failed (${response.status})`);sharedAppRevision=Math.max(sharedAppRevision,Number(data.revision)||0);}).catch(()=>{appSyncPending=getSharedAppStateSnapshot();scheduleSharedSyncRetry();}).finally(()=>{appSyncInFlight=false;if(appSyncPending)flushSharedAppStateSync();});}
-function applySharedAppState(payload,force=false){if(!payload||!payload.state||typeof payload.state!=='object')return;const revision=Number(payload.revision)||0;if(!force&&revision<=sharedAppRevision)return;sharedAppRevision=Math.max(sharedAppRevision,revision);if(payload.clientId===sharedClientId&&!force)return;appSyncPending=null;applyingRemoteAppState=true;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(payload.state));loadState();render();syncLiveQueueStartScreen();}catch(e){console.warn('Could not apply shared queue state',e);}finally{applyingRemoteAppState=false;}}
+function flushSharedAppStateSync(){
+  if(!sharedSyncAvailable||!sharedSyncReady||appSyncInFlight||!appSyncPending||!isHttpApp())return;
+  const snapshot=appSyncPending;appSyncPending=null;appSyncInFlight=true;
+  let failed=false;
+  const savedAt=readLocalTimestamp(LOCAL_STATE_SAVED_AT_KEY);
+  fetch('/api/app-state',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({state:snapshot,clientId:sharedClientId,baseRevision:sharedAppRevision})})
+    .then(async response=>{
+      const data=await response.json();
+      if(response.status===409&&data.conflict){
+        if(hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,data.updatedAt))sharedAppRevision=Math.max(sharedAppRevision,Number(data.revision)||0);
+        else applySharedAppState({revision:data.revision,updatedAt:data.updatedAt,clientId:null,state:data.state});
+      }
+      if(!response.ok)throw new Error(`Application state sync failed (${response.status})`);
+      sharedAppRevision=Math.max(sharedAppRevision,Number(data.revision)||0);
+      if(savedAt&&JSON.stringify(getSharedAppStateSnapshot())===JSON.stringify(snapshot))clearLocalPendingSync(LOCAL_STATE_PENDING_SYNC_KEY,LOCAL_STATE_SAVED_AT_KEY,savedAt);
+    })
+    .catch(()=>{failed=true;appSyncPending=getSharedAppStateSnapshot();scheduleSharedSyncRetry();})
+    .finally(()=>{appSyncInFlight=false;if(appSyncPending&&!failed)flushSharedAppStateSync();});
+}
+function applySharedAppState(payload,force=false){
+  if(!payload||!payload.state||typeof payload.state!=='object')return;
+  const revision=Number(payload.revision)||0;
+  if(!force&&revision<=sharedAppRevision)return;
+  sharedAppRevision=Math.max(sharedAppRevision,revision);
+  // Avoid discarding state entered just before or during refresh when it is still unsynced.
+  if(hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt)){
+    appSyncPending=getSharedAppStateSnapshot();
+    if(sharedSyncAvailable)flushSharedAppStateSync();
+    return;
+  }
+  if(payload.clientId===sharedClientId&&!force){
+    if(JSON.stringify(payload.state)===JSON.stringify(getSharedAppStateSnapshot()))clearLocalPendingSync(LOCAL_STATE_PENDING_SYNC_KEY,LOCAL_STATE_SAVED_AT_KEY,readLocalTimestamp(LOCAL_STATE_SAVED_AT_KEY));
+    return;
+  }
+  appSyncPending=null;
+  applyingRemoteAppState=true;
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(payload.state));
+    stampRemoteSave(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt);
+    loadState();render();
+    if(hasExistingLiveQueue())syncLiveQueueStartScreen();else showLiveQueueStartScreen();
+  }catch(e){console.warn('Could not apply shared queue state',e);}
+  finally{applyingRemoteAppState=false;}
+}
 function scheduleSharedSyncRetry(){if(sharedSyncRetryTimer!==null||!isHttpApp())return;sharedSyncRetryTimer=setTimeout(()=>{sharedSyncRetryTimer=null;if(!sharedSyncAvailable){initializeSharedDataSync();return;}flushSharedAppStateSync();flushCloudRecordsSync();},5000);}
 async function initializeSharedDataSync(){if(!isHttpApp()){sharedSyncReady=true;return;}if(sharedSyncInitializing||sharedSyncAvailable)return;sharedSyncInitializing=true;try{const responses=await Promise.all([fetch(`/api/app-state?_=${Date.now()}`,{cache:'no-store'}),fetch(`/api/cloud-records?_=${Date.now()}`,{cache:'no-store'})]);if(responses.some(response=>!response.ok))throw new Error('Shared data API is not available');const [remoteApp,remoteCloud]=await Promise.all(responses.map(response=>response.json()));
-  if(remoteApp.state&&typeof remoteApp.state==='object'){appSyncPending=null;applySharedAppState({revision:remoteApp.revision,clientId:null,state:remoteApp.state},true);}else{const response=await fetch('/api/app-state',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({state:getSharedAppStateSnapshot(),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize shared queue state');const seeded=await response.json();sharedAppRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.state)applySharedAppState({revision:seeded.revision,clientId:null,state:seeded.state},true);}
-  if(remoteCloud.records&&typeof remoteCloud.records==='object'){cloudSyncPending=null;applySharedCloudRecords({revision:remoteCloud.revision,clientId:null,records:remoteCloud.records},true);}else{const response=await fetch('/api/cloud-records',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({records:cloneSharedData(cloudRecords),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize Registered Player Cloud');const seeded=await response.json();sharedCloudRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.records)applySharedCloudRecords({revision:seeded.revision,clientId:null,records:seeded.records},true);}
+  if(remoteApp.state&&typeof remoteApp.state==='object'){applySharedAppState({revision:remoteApp.revision,updatedAt:remoteApp.updatedAt,clientId:null,state:remoteApp.state},true);}else{const response=await fetch('/api/app-state',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({state:getSharedAppStateSnapshot(),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize shared queue state');const seeded=await response.json();sharedAppRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.state)applySharedAppState({revision:seeded.revision,updatedAt:seeded.updatedAt,clientId:null,state:seeded.state},true);}
+  if(remoteCloud.records&&typeof remoteCloud.records==='object'){applySharedCloudRecords({revision:remoteCloud.revision,updatedAt:remoteCloud.updatedAt,clientId:null,records:remoteCloud.records},true);}else{const response=await fetch('/api/cloud-records',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({records:cloneSharedData(cloudRecords),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize Registered Player Cloud');const seeded=await response.json();sharedCloudRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.records)applySharedCloudRecords({revision:seeded.revision,updatedAt:seeded.updatedAt,clientId:null,records:seeded.records},true);}
   sharedSyncAvailable=true;sharedSyncReady=true;sharedEvents=new EventSource('/api/shared-events');sharedEvents.addEventListener('app-state',event=>{try{applySharedAppState(JSON.parse(event.data));}catch(e){}});sharedEvents.addEventListener('cloud-records',event=>{try{applySharedCloudRecords(JSON.parse(event.data));}catch(e){}});publishLiveViewState();flushSharedAppStateSync();flushCloudRecordsSync();
  }catch(error){sharedSyncReady=true;console.warn('Shared device sync is temporarily unavailable:',error);scheduleSharedSyncRetry();}finally{sharedSyncInitializing=false;}}
 function upsertCloudPlayer(p){if(!p||!p.name)return;loadCloudRecords();let a=cloudRecords.players.find(x=>x.name.toLowerCase()===p.name.toLowerCase());if(!a){a={cloudId:Date.now()+Math.floor(Math.random()*100000),name:p.name,matches:0,wins:0,losses:0};cloudRecords.players.push(a);}Object.assign(a,{name:p.name,nickname:p.nickname||a.nickname||'',gender:p.gender||a.gender||'',category:p.category||a.category||'',opgId:p.opgId||a.opgId||''});saveCloudRecords();}
@@ -206,9 +295,8 @@ function closeEndSessionConfirmation(){
 function endSession(){
   closeEndSessionConfirmation();
   archiveLiveSession();
-  try{
-    [STORAGE_KEY,...LEGACY_STORAGE_KEYS].forEach(k=>localStorage.removeItem(k));
-  }catch(e){ console.warn('PickleQ reset failed',e); }
+  try{LEGACY_STORAGE_KEYS.forEach(k=>localStorage.removeItem(k));}
+  catch(e){console.warn('PickleQ reset cleanup failed',e);}
 
   state.players=[];
   state.left=[];
@@ -229,13 +317,21 @@ function endSession(){
   state.sessionName='Open Play — Oct 6, 2026';
   state.duprMatch=false;
   state.recordScores=false;
+  state.matchingMode='balanced';
+  state.winnersLosersNextGroup='winners';
   openCategoryPlayerId=null;
   openGenderPlayerId=null;
   registrationGender='';
+  // Restore the setup controls to their original defaults without forcing a reload.
+  document.querySelectorAll('#liveQueueMatchType .live-queue-choice').forEach(btn=>btn.classList.toggle('active',btn.dataset.value==='Doubles'));
+  document.querySelectorAll('#liveQueueWinBy .live-queue-choice').forEach(btn=>btn.classList.toggle('active',btn.dataset.value==='1'));
+  document.querySelectorAll('#liveQueueGameMode .live-queue-game').forEach(btn=>btn.classList.toggle('active',btn.dataset.target==='11'));
+  if($('liveQueueRecordResults'))$('liveQueueRecordResults').checked=false;
+  // Persist the empty queue to shared storage before any subsequent refresh.
+  // Keeping the page alive avoids cancelling the just-started sync request.
+  saveState();
   publishLiveViewState(true);
-
-  // Refresh automatically so every screen returns to the clean starting state.
-  window.location.reload();
+  showLiveQueueStartScreen();
 }
 
 function liveViewPlayerLabel(p){
@@ -443,7 +539,7 @@ function syncLiveViewQrNetworkState(forceQrRefresh=false){
     loader.hidden=false;
     unavailable.hidden=true;
     if(statusTitle)statusTitle.textContent='Offline mode';
-    if(statusNote)statusNote.textContent='The QR preview is paused while the system is offline. It will return automatically when the connection is restored.';
+    if(statusNote)statusNote.textContent='You are offline, so the QR preview is paused. Reconnect to restore QR sharing.';
     return;
   }
 
@@ -456,7 +552,7 @@ function syncLiveViewQrNetworkState(forceQrRefresh=false){
     image.removeAttribute('src');
     delete image.dataset.qrTarget;
     if(statusTitle)statusTitle.textContent='Local / private link';
-    if(statusNote)statusNote.textContent='QR code will appear when opened through a web server.';
+    if(statusNote)statusNote.textContent='Open Pickle Point Match through a web server to generate a scannable QR code.';
     return;
   }
 
@@ -477,8 +573,8 @@ function syncLiveViewQrNetworkState(forceQrRefresh=false){
   const publicReady=url.protocol==='https:'&&!localHost;
   if(statusTitle)statusTitle.textContent=publicReady?'Public link ready':'Local / private link';
   if(statusNote)statusNote.textContent=publicReady
-    ?'Anyone with this QR code and an internet connection can open the live page.'
-    :'This QR code currently points to this computer or local network. To let players scan from anywhere, deploy the app to public HTTPS hosting, then reopen this screen.';
+    ?'Anyone with this link can watch the live queue from a phone or browser.'
+    :'This link is limited to this computer or local network. For access from anywhere, host the app on a public HTTPS address.';
 }
 function openLiveViewQrModal(){
   const modal=$('liveViewQrModal');
@@ -502,7 +598,13 @@ async function copyLiveViewQrLink(){
 }
 function saveState(){
   const snapshot=getSharedAppStateSnapshot();
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot));}catch(e){console.warn('PickleQ save failed',e);}
+  const savedAt=Date.now();
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot));
+    localStorage.setItem(LOCAL_STATE_SAVED_AT_KEY,String(savedAt));
+    if(isHttpApp())localStorage.setItem(LOCAL_STATE_PENDING_SYNC_KEY,String(savedAt));
+    else localStorage.removeItem(LOCAL_STATE_PENDING_SYNC_KEY);
+  }catch(e){console.warn('PickleQ save failed',e);}
   queueSharedAppStateSync(snapshot);
   publishLiveViewState();
 }
@@ -876,8 +978,6 @@ function assignOneToCourt(pid,c){
   if(slot<0) slot=c.players.length;
   c.players[slot]=pid;p.court=c.id;state.queue=state.queue.filter(x=>x!==pid);return true;
 }
-function choosePlayerForCourt(playerId,courtId,silent=false){ choosePlayerForCourt(playerId,courtId); }
-
 function importPlayers(){
   const raw=$('importText').value.trim(); if(!raw){toast('Paste player names first.');return;}
   let added=0;
@@ -2198,7 +2298,7 @@ function renderQueue(){
   // The gender menu is portaled to <body> so no queue/panel overflow can clip it.
   cleanupGenderMenuPortal();
   const q=$('queueList');
-  const search=($('registeredPlayerSearch')?.value ?? $('searchQueue')?.value ?? '').trim().toLowerCase();
+  const search=String($('registeredPlayerSearch')?.value||'').trim().toLowerCase();
   const ids=state.queue.filter(id=>{const p=player(id);const hay=`${p?.name||''} ${p?.nickname||''}`.toLowerCase();return p&&(!search||hay.includes(search));});
   const rankingStats=getRankingStats();
   // Preserve expanded player/lock-in details while the 1-second waiting timer refreshes the queue.
@@ -3188,9 +3288,7 @@ $('importSave').onclick=importPlayers;
 $('courtNameInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')saveCourt();});
 $('historySearchInput')?.addEventListener('input',renderHistoryTable);
 $('searchQueue')?.addEventListener('input',renderQueue);
-$('registeredPlayerSearch')?.addEventListener('input',renderQueue);
-$('registeredPlayerSearch')?.addEventListener('keyup',renderQueue);
-$('registeredPlayerSearch')?.addEventListener('change',renderQueue);
+$('registeredPlayerSearch')?.addEventListener('input',()=>{renderQueue();renderRegisteredSearch();});
 $('registeredSearchUpdateBtn')?.addEventListener('click',()=>{
   const updateBtn=$('registeredSearchUpdateBtn');
   if(!updateBtn || updateBtn.classList.contains('is-loading')) return;
@@ -3505,7 +3603,7 @@ if(hasExistingLiveQueue() && savedLiveQueueView==='workspace'){
 }
 
 
-// Tablet-only results modal; preserve the original results panel location on other devices.
+// Mobile/tablet Results modal; preserve the original results panel location on desktop.
 (function setupTabletResultsModal(){
   const panel=document.querySelector('.results-panel');
   const modal=document.getElementById('tabletResultsModal');
@@ -3517,9 +3615,9 @@ if(hasExistingLiveQueue() && savedLiveQueueView==='workspace'){
   if(!panel||!modal||!modalBody||!openBtn||!courtsPanel||!courtsList)return;
   const marker=document.createComment('results-panel-original-location');
   panel.parentNode.insertBefore(marker,panel);
-  const tablet=()=>window.matchMedia('(min-width: 768px) and (max-width: 1100px)').matches;
+  const compactScreen=()=>window.matchMedia('(max-width: 1100px)').matches;
   function syncLayout(){
-    if(tablet()){
+    if(compactScreen()){
       if(panel.parentNode!==modalBody) modalBody.appendChild(panel);
       openBtn.style.display='inline-flex';
     }else{
@@ -3529,7 +3627,7 @@ if(hasExistingLiveQueue() && savedLiveQueueView==='workspace'){
     }
     syncWaitingScroll();
   }
-  function openModal(){if(!tablet())return;modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';closeBtn?.focus();}
+  function openModal(){if(!compactScreen())return;modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';closeBtn?.focus();}
   function closeTabletResultsPopup(){modal.classList.remove('is-open');modal.setAttribute('aria-hidden','true');document.body.style.removeProperty('overflow');}
   function closeModal(){closeTabletResultsPopup();}
   function syncWaitingScroll(){

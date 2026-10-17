@@ -194,3 +194,44 @@ html[data-theme="light"] .queue-waiting-time{color:#087f80}
 html[data-theme="light"] .queue-waiting-time.waiting-amber{color:#986000}
 html[data-theme="light"] .queue-waiting-time.waiting-red{color:#bd2935}
 @media(max-width:560px){.queue-waiting-time{font-size:9px;padding-left:4px}}
+
+/* GLOBAL SCROLLBAR THEME — match the Live Queue Start screen.
+   Keep the intentionally hidden desktop courts-list scrollbar hidden. */
+html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override),
+body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override),
+html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override) {
+  scrollbar-color: #287f83 transparent !important;
+  scrollbar-width: thin !important;
+}
+
+html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar,
+body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar,
+html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-track,
+body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-track,
+html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-track {
+  background: transparent !important;
+  border-radius: 999px !important;
+}
+
+html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb,
+body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb,
+html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb {
+  min-height: 36px !important;
+  background: #287f83 !important;
+  border: 2px solid transparent !important;
+  background-clip: padding-box !important;
+  border-radius: 999px !important;
+}
+
+html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb:hover,
+body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb:hover,
+html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb:hover {
+  background: #27d3c5 !important;
+  background-clip: padding-box !important;
+}
+

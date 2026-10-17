@@ -16907,12 +16907,13 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
   --lqs-white:#ffffff;
   --lqs-black:#18383e;
   color:var(--lqs-slate);
-  background:radial-gradient(ellipse at 50% 0%,rgba(8,127,128,.09) 0%,rgba(8,127,128,0) 47%),#f1f7f8;
-  scrollbar-color:#9bbfc0 #e5eff0;
+  background:radial-gradient(ellipse at 50% -220px,#18515b 0,transparent 62%),#061f27;
+  scrollbar-color:#27d3c5 #0b3039;
 }
-#liveQueueStartScreen::-webkit-scrollbar-track{background:#e5eff0;}
-#liveQueueStartScreen::-webkit-scrollbar-thumb{border-color:#e5eff0;background:#9bbfc0;}
-#liveQueueStartScreen::-webkit-scrollbar-thumb:hover{background:#087f80;}
+#liveQueueStartScreen::-webkit-scrollbar{width:8px;}
+#liveQueueStartScreen::-webkit-scrollbar-track{background:#0b3039;}
+#liveQueueStartScreen::-webkit-scrollbar-thumb{border:2px solid #0b3039;border-radius:999px;background:#287f83;}
+#liveQueueStartScreen::-webkit-scrollbar-thumb:hover{background:#27d3c5;}
 #liveQueueStartScreen .live-queue-start-card{
   border:1px solid #d4e2e4;
   border-radius:18px;
@@ -16922,9 +16923,11 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
 #liveQueueStartScreen .live-queue-start-card::before,
 #liveQueueStartScreen .live-queue-start-heading::before{background:#087f80;}
 #liveQueueStartScreen .live-queue-start-heading p{color:#5b7379;}
-#liveQueueStartScreen .live-queue-start-brand-wordmark > span{color:#18383e;}
-#liveQueueStartScreen .live-queue-start-brand-wordmark > span b{color:#087f80;}
-#liveQueueStartScreen .live-queue-start-brand-wordmark > small{color:#607e83;}
+#liveQueueStartScreen .live-queue-start-brand-wordmark > span{color:#eefafa;}
+#liveQueueStartScreen .live-queue-start-brand-wordmark > span b{color:#27d3c5;}
+#liveQueueStartScreen .live-queue-start-brand-wordmark > small{color:#95c4c7;}
+#liveQueueStartScreen .live-queue-start-brand-wordmark > small::before,
+#liveQueueStartScreen .live-queue-start-brand-wordmark > small::after{background:#27d3c5;}
 #liveQueueStartScreen .live-queue-field-label{color:#527078;}
 #liveQueueStartScreen .live-queue-input,
 #liveQueueStartScreen input[type="text"],
@@ -17225,5 +17228,1080 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
     height: 36px !important;
     min-height: 36px !important;
     max-height: 36px !important;
+  }
+}
+
+/* QUEUE PANEL DESIGN REFRESH — outer panel and its header only.
+   Keeps queue content, controls, dimensions, and behavior unchanged. */
+.workspace > .queue-panel {
+  border: 1px solid #cfe1e4 !important;
+  border-radius: 15px !important;
+  background: #ffffff !important;
+  box-shadow: 0 12px 30px rgba(17, 54, 65, 0.09),
+              0 2px 7px rgba(17, 54, 65, 0.045) !important;
+}
+/* Removed the top accent line from the queue panel header, per design request. */
+.workspace > .queue-panel > .queue-header-modern {
+  background: linear-gradient(135deg, #fcffff 0%, #f0faf9 100%) !important;
+  border-bottom: 1px solid #d8eae9 !important;
+}
+.workspace > .queue-panel > .queue-header-modern h2 {
+  color: #18383e !important;
+}
+.workspace > .queue-panel > .queue-header-modern .panel-count {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 0 7px !important;
+  border: 1px solid #cce9e6 !important;
+  border-radius: 999px !important;
+  background: #e8f8f6 !important;
+  color: #087f80 !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+}
+.workspace > .queue-panel > .queue-header-modern .import-btn {
+  border-color: #bfe6e1 !important;
+  background: linear-gradient(180deg, #f0fcfa 0%, #e3f7f4 100%) !important;
+  color: #087f80 !important;
+  box-shadow: 0 1px 2px rgba(8, 127, 128, 0.06) !important;
+}
+.workspace > .queue-panel > .queue-header-modern .import-btn:hover {
+  border-color: #8fd8d0 !important;
+  background: #ddf5f1 !important;
+}
+.workspace > .queue-panel .left-section {
+  background: linear-gradient(180deg, #fbfefe 0%, #f5fbfa 100%) !important;
+  border-top-color: #d8eae9 !important;
+}
+
+/* COURTS + RESULTS PANEL DESIGN REFRESH — mirrors the Queue panel's teal theme.
+   Styling only: preserves panel layout, dimensions, content, and interactions. */
+.workspace > .courts-panel,
+.workspace > .results-panel {
+  position: sticky;
+  border: 1px solid #cfe1e4 !important;
+  border-radius: 15px !important;
+  background: #ffffff !important;
+  box-shadow: 0 12px 30px rgba(17, 54, 65, 0.09),
+              0 2px 7px rgba(17, 54, 65, 0.045) !important;
+}
+/* Removed top accent lines from the courts and results panel headers, per design request. */
+
+/* Courts header follows the same soft mint header treatment as Queue. */
+.workspace > .courts-panel > .panel-title {
+  position: relative;
+  background: linear-gradient(135deg, #fcffff 0%, #f0faf9 100%) !important;
+  border-bottom: 1px solid #d8eae9 !important;
+}
+.workspace > .courts-panel > .panel-title h2 {
+  color: #18383e !important;
+}
+.workspace > .courts-panel > .panel-title h2 #courtCount,
+.workspace > .courts-panel > .panel-title h2 .panel-count {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 20px !important;
+  padding: 0 7px !important;
+  border: 1px solid #cce9e6 !important;
+  border-radius: 999px !important;
+  background: #e8f8f6 !important;
+  color: #087f80 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+.workspace > .courts-panel > .panel-title .court-header-actions #addCourtBtn,
+.workspace > .courts-panel > .panel-title .court-header-actions #courtSettingsBtn {
+  border-color: #bfe6e1 !important;
+  background: linear-gradient(180deg, #f0fcfa 0%, #e3f7f4 100%) !important;
+  color: #087f80 !important;
+  box-shadow: 0 1px 2px rgba(8, 127, 128, 0.06) !important;
+}
+.workspace > .courts-panel > .panel-title .court-header-actions #addCourtBtn:hover,
+.workspace > .courts-panel > .panel-title .court-header-actions #courtSettingsBtn:hover {
+  border-color: #8fd8d0 !important;
+  background: #ddf5f1 !important;
+}
+
+/* Results panel tabs serve as its header, using the same teal/mint palette. */
+.workspace > .results-panel > .tabs {
+  position: relative;
+  background: linear-gradient(135deg, #fcffff 0%, #f0faf9 100%) !important;
+  border-bottom: 1px solid #d8eae9 !important;
+}
+.workspace > .results-panel > .tabs .tab {
+  background: transparent !important;
+  color: #61787d !important;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+.workspace > .results-panel > .tabs .tab:hover {
+  background: #eaf8f6 !important;
+  color: #087f80 !important;
+}
+.workspace > .results-panel > .tabs .tab.active {
+  background: linear-gradient(180deg, #ffffff 0%, #f5fcfb 100%) !important;
+  color: #087f80 !important;
+  border-bottom: 3px solid #27d3c5 !important;
+}
+.workspace > .results-panel > #rankingView h2,
+.workspace > .results-panel > #historyView h2 {
+  color: #18383e;
+}
+
+
+/* Refined Live View QR action buttons — visual-only polish; preserve existing layout and behavior. */
+.live-view-qr-actions > button:not(.live-view-theme-toggle) {
+  border: 1px solid #c7dfe0 !important;
+  border-radius: 9px !important;
+  padding: 0 12px !important;
+  background: linear-gradient(180deg, #f6fcfb 0%, #e7f5f3 100%) !important;
+  color: #1b4b52 !important;
+  box-shadow: 0 2px 5px rgba(7, 62, 72, 0.07) !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.01em;
+  line-height: 1 !important;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.live-view-qr-actions > #liveViewQrCopyBtn,
+.live-view-qr-actions > #liveViewQrCopyBtn.blue {
+  border-color: #087e81 !important;
+  background: linear-gradient(180deg, #0d918d 0%, #087e81 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 8px rgba(8, 126, 129, 0.2) !important;
+}
+.live-view-qr-actions > #liveViewQrOpenPageBtn {
+  border-color: #b8dcd8 !important;
+  background: linear-gradient(180deg, #f7fcfb 0%, #e6f5f2 100%) !important;
+  color: #15565a !important;
+}
+.live-view-qr-actions > #liveViewQrCopyBtn:hover,
+.live-view-qr-actions > #liveViewQrCopyBtn.blue:hover {
+  border-color: #066a6d !important;
+  background: linear-gradient(180deg, #0b817f 0%, #066d70 100%) !important;
+  box-shadow: 0 4px 10px rgba(8, 126, 129, 0.25) !important;
+  transform: translateY(-1px);
+}
+.live-view-qr-actions > #liveViewQrOpenPageBtn:hover {
+  border-color: #8bcfc7 !important;
+  background: linear-gradient(180deg, #eaf9f6 0%, #d9f1ed 100%) !important;
+  color: #0b6566 !important;
+  box-shadow: 0 4px 9px rgba(7, 94, 99, 0.1) !important;
+  transform: translateY(-1px);
+}
+.live-view-qr-actions > button:not(.live-view-theme-toggle):active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(7, 62, 72, 0.1) !important;
+}
+.live-view-qr-actions > button:focus-visible {
+  outline: 2px solid #27d3c5 !important;
+  outline-offset: 2px !important;
+}
+.live-view-qr-actions > #liveViewThemeToggle {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 5px rgba(7, 38, 45, 0.13) !important;
+}
+.live-view-qr-actions > #liveViewThemeToggle:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 3px 8px rgba(7, 38, 45, 0.18) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-view-qr-actions > button {
+    transition: none !important;
+  }
+}
+
+
+/* Final polish requested: prevent QR action buttons from jumping on hover. */
+.live-view-qr-actions > #liveViewQrCopyBtn:hover,
+.live-view-qr-actions > #liveViewQrCopyBtn.blue:hover,
+.live-view-qr-actions > #liveViewQrOpenPageBtn:hover,
+.live-view-qr-actions > button:not(.live-view-theme-toggle):active {
+  transform: none !important;
+}
+.live-view-qr-actions > button:not(.live-view-theme-toggle) {
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+/* Keep panel and history counters as plain text, without a colored chip or border. */
+.panel-count,
+.history-count {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  min-height: 0 !important;
+}
+
+
+/* Explicitly override the more-specific legacy counter chip rules. */
+html body .workspace > .queue-panel > .queue-header-modern .panel-count,
+html body .workspace > .courts-panel > .panel-title h2 #courtCount,
+html body .workspace > .courts-panel > .panel-title h2 .panel-count,
+html body #cloudRecordsModal .cloud-records-head .history-count,
+html body #leftPlayersModal .left-players-head .history-count {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+
+/* Final targeted fix: remove the legacy pill fill and outline from both modal counters.
+   ID-level selectors override the older, more-specific counter chip declarations. */
+html body #cloudRecordsModal .cloud-records-head #cloudRecordsCount,
+html body #leftPlayersModal .left-players-head #leftPopupCount {
+  display: inline !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin-left: 4px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: #087d79 !important;
+}
+
+/* Match the dashboard live-timer colors to the Live View match-timer palette. */
+.live-timer.timer-normal,
+.live-timer.timer-normal:hover,
+.live-timer.timer-normal:focus {
+  color: #4da3ff !important;
+  animation: none !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+.live-timer.timer-normal::before {
+  background: #4da3ff !important;
+  box-shadow: none !important;
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.live-timer.timer-yellow,
+.live-timer.timer-yellow:hover,
+.live-timer.timer-yellow:focus {
+  color: #ffbf47 !important;
+  animation: none !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+.live-timer.timer-yellow::before {
+  background: #ffbf47 !important;
+  box-shadow: none !important;
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.live-timer.timer-red,
+.live-timer.timer-red:hover,
+.live-timer.timer-red:focus {
+  color: #ff5757 !important;
+  animation: none !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+.live-timer.timer-red::before {
+  background: #ff5757 !important;
+  box-shadow: none !important;
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* GLOBAL SCROLLBAR THEME — use the Live Queue Start rounded teal thumb,
+   but keep each scroll area's own background visible through the track.
+   Keep the intentionally hidden desktop courts-list scrollbar hidden. */
+html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override),
+body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override),
+html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override) {
+  scrollbar-color: #287f83 transparent !important;
+  scrollbar-width: thin !important;
+}
+
+html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar,
+body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar,
+html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-track,
+body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-track,
+html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-track {
+  background: transparent !important;
+  border-radius: 999px !important;
+}
+
+html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb,
+body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb,
+html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb {
+  min-height: 36px !important;
+  background: #287f83 !important;
+  border: 2px solid transparent !important;
+  background-clip: padding-box !important;
+  border-radius: 999px !important;
+}
+
+html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb:hover,
+body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb:hover,
+html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb:hover {
+  background: #27d3c5 !important;
+  background-clip: padding-box !important;
+}
+
+
+
+/* TOP ACTIONS DESIGN POLISH — coordinated teal controls, refined status badge,
+   and a restrained red End action. Visual styling only; preserve all behavior. */
+.topbar .top-actions {
+  align-items: center !important;
+  gap: 8px !important;
+}
+.topbar .top-actions > button {
+  box-sizing: border-box !important;
+  border-radius: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: .01em !important;
+  box-shadow: 0 2px 6px rgba(0, 16, 21, .16) !important;
+  transition: background-color .16s ease, background .16s ease, border-color .16s ease,
+              color .16s ease, box-shadow .16s ease !important;
+  transform: none !important;
+}
+.topbar .top-actions > button:hover,
+.topbar .top-actions > button:active {
+  transform: none !important;
+}
+.topbar .top-actions > button:focus-visible {
+  outline: 2px solid #27d3c5 !important;
+  outline-offset: 2px !important;
+}
+
+/* QR Share: confident teal primary action. */
+.topbar .top-actions > #liveViewQrOpenBtn,
+.topbar .top-actions > #liveViewQrOpenBtn:focus-visible {
+  background: linear-gradient(180deg, #10817d 0%, #096965 100%) !important;
+  color: #f1fffd !important;
+  border: 1px solid #2aaca4 !important;
+  box-shadow: 0 3px 8px rgba(10, 128, 122, .22) !important;
+}
+.topbar .top-actions > #liveViewQrOpenBtn:hover {
+  background: linear-gradient(180deg, #14928b 0%, #0b7772 100%) !important;
+  border-color: #55d5c9 !important;
+  box-shadow: 0 3px 9px rgba(10, 128, 122, .28) !important;
+}
+.topbar .top-actions > #liveViewQrOpenBtn:active {
+  background: #096965 !important;
+  box-shadow: 0 1px 3px rgba(10, 128, 122, .2) !important;
+}
+
+/* Results: light mint contrast against the dark topbar, not the old lime fill. */
+.topbar .top-actions > #tabletResultsOpenBtn,
+.topbar .top-actions > #tabletResultsOpenBtn:focus-visible {
+  background: linear-gradient(180deg, #e5faf6 0%, #c8eee8 100%) !important;
+  color: #15555a !important;
+  border: 1px solid #8bd4cb !important;
+  box-shadow: 0 2px 6px rgba(0, 16, 21, .12) !important;
+}
+.topbar .top-actions > #tabletResultsOpenBtn:hover {
+  background: linear-gradient(180deg, #effdfa 0%, #d9f5f0 100%) !important;
+  color: #0d484d !important;
+  border-color: #b0e8e0 !important;
+  box-shadow: 0 3px 8px rgba(39, 211, 197, .14) !important;
+}
+.topbar .top-actions > #tabletResultsOpenBtn:active {
+  background: #bde8e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 16, 21, .12) !important;
+}
+
+/* Online/offline: retain the transparent status treatment and meaningful colors. */
+.topbar .top-actions > .online {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-weight: 800 !important;
+  letter-spacing: .005em !important;
+}
+.topbar .top-actions > .online:not(.offline),
+.topbar .top-actions > .online:not(.offline):hover,
+.topbar .top-actions > .online:not(.offline):focus-visible {
+  color: #8bc8ff !important;
+  border-color: rgba(96, 165, 250, .52) !important;
+  background: transparent !important;
+}
+.topbar .top-actions > .online:not(.offline) i {
+  background: #60a5fa !important;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, .12) !important;
+}
+.topbar .top-actions > .online.offline,
+.topbar .top-actions > .online.offline:hover,
+.topbar .top-actions > .online.offline:focus-visible {
+  color: #ffc25c !important;
+  border-color: rgba(245, 158, 11, .48) !important;
+  background: transparent !important;
+}
+.topbar .top-actions > .online.offline i {
+  background: #f59e0b !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .12) !important;
+}
+
+/* End: clearly distinct without competing with the main actions. */
+.topbar .top-actions > #endSessionBtn,
+.topbar .top-actions > #endSessionBtn:hover,
+.topbar .top-actions > #endSessionBtn:focus-visible {
+  background: rgba(255, 92, 102, .075) !important;
+  color: #ff7e87 !important;
+  border: 1px solid rgba(255, 105, 115, .42) !important;
+  box-shadow: none !important;
+}
+.topbar .top-actions > #endSessionBtn:hover {
+  background: rgba(255, 92, 102, .15) !important;
+  color: #ff9aa1 !important;
+  border-color: rgba(255, 126, 135, .72) !important;
+  box-shadow: 0 2px 7px rgba(255, 92, 102, .09) !important;
+}
+.topbar .top-actions > #endSessionBtn:active {
+  background: rgba(255, 92, 102, .2) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar .top-actions > button {
+    transition: none !important;
+  }
+}
+
+
+/* TOP ACTIONS — flat/unstyled request: remove fills, hover treatments, and all
+   button/status-chip borders while preserving labels, status dots, and actions. */
+.topbar .top-actions,
+.topbar .top-actions:hover,
+.topbar .top-actions:focus,
+.topbar .top-actions:focus-visible {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.topbar .top-actions > button,
+.topbar .top-actions > button:hover,
+.topbar .top-actions > button:active,
+.topbar .top-actions > button:focus,
+.topbar .top-actions > button:focus-visible,
+.topbar .top-actions > .online,
+.topbar .top-actions > .online:hover,
+.topbar .top-actions > .online:focus,
+.topbar .top-actions > .online:focus-visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  transition: none !important;
+}
+.topbar .top-actions > #liveViewQrOpenBtn,
+.topbar .top-actions > #liveViewQrOpenBtn:hover,
+.topbar .top-actions > #liveViewQrOpenBtn:active,
+.topbar .top-actions > #liveViewQrOpenBtn:focus-visible {
+  color: #27d3c5 !important;
+}
+.topbar .top-actions > #tabletResultsOpenBtn,
+.topbar .top-actions > #tabletResultsOpenBtn:hover,
+.topbar .top-actions > #tabletResultsOpenBtn:active,
+.topbar .top-actions > #tabletResultsOpenBtn:focus-visible {
+  color: #d9f7f5 !important;
+}
+.topbar .top-actions > #endSessionBtn,
+.topbar .top-actions > #endSessionBtn:hover,
+.topbar .top-actions > #endSessionBtn:active,
+.topbar .top-actions > #endSessionBtn:focus-visible {
+  color: #ff7e87 !important;
+}
+.topbar .top-actions > .online,
+.topbar .top-actions > .online:hover,
+.topbar .top-actions > .online:focus-visible {
+  border-radius: 0 !important;
+}
+
+/* TOP-ACTIONS CLEAN RESET — the request is no fill, no hover treatment, and no borders/lines.
+   Keep text/status colors and all button behavior; reset every visual state last so older
+   component rules cannot reintroduce backgrounds, outlines, shadows, or decorative lines. */
+.topbar .top-actions,
+.topbar .top-actions:hover,
+.topbar .top-actions:focus,
+.topbar .top-actions:focus-visible,
+.topbar .top-actions::before,
+.topbar .top-actions::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 none transparent !important;
+  border-color: transparent !important;
+  border-style: none !important;
+  box-shadow: none !important;
+  outline: 0 none transparent !important;
+  text-decoration: none !important;
+}
+
+.topbar .top-actions > button,
+.topbar .top-actions > button:hover,
+.topbar .top-actions > button:active,
+.topbar .top-actions > button:focus,
+.topbar .top-actions > button:focus-visible,
+.topbar .top-actions > .online,
+.topbar .top-actions > .online:hover,
+.topbar .top-actions > .online:active,
+.topbar .top-actions > .online:focus,
+.topbar .top-actions > .online:focus-visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 none transparent !important;
+  border-color: transparent !important;
+  border-style: none !important;
+  outline: 0 none transparent !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  filter: none !important;
+  transform: none !important;
+  translate: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+.topbar .top-actions > button::before,
+.topbar .top-actions > button::after,
+.topbar .top-actions > .online::before,
+.topbar .top-actions > .online::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  border: 0 none transparent !important;
+  box-shadow: none !important;
+}
+
+/* Keep label colors constant in every interaction state; do not recolor on hover/focus. */
+.topbar .top-actions > #liveViewQrOpenBtn,
+.topbar .top-actions > #liveViewQrOpenBtn:hover,
+.topbar .top-actions > #liveViewQrOpenBtn:active,
+.topbar .top-actions > #liveViewQrOpenBtn:focus,
+.topbar .top-actions > #liveViewQrOpenBtn:focus-visible {
+  color: #27d3c5 !important;
+}
+.topbar .top-actions > #tabletResultsOpenBtn,
+.topbar .top-actions > #tabletResultsOpenBtn:hover,
+.topbar .top-actions > #tabletResultsOpenBtn:active,
+.topbar .top-actions > #tabletResultsOpenBtn:focus,
+.topbar .top-actions > #tabletResultsOpenBtn:focus-visible {
+  color: #d9f7f5 !important;
+}
+.topbar .top-actions > #endSessionBtn,
+.topbar .top-actions > #endSessionBtn:hover,
+.topbar .top-actions > #endSessionBtn:active,
+.topbar .top-actions > #endSessionBtn:focus,
+.topbar .top-actions > #endSessionBtn:focus-visible {
+  color: #ff7e87 !important;
+}
+.topbar .top-actions > .online:not(.offline),
+.topbar .top-actions > .online:not(.offline):hover,
+.topbar .top-actions > .online:not(.offline):active,
+.topbar .top-actions > .online:not(.offline):focus,
+.topbar .top-actions > .online:not(.offline):focus-visible {
+  color: #8bc8ff !important;
+}
+.topbar .top-actions > .online.offline,
+.topbar .top-actions > .online.offline:hover,
+.topbar .top-actions > .online.offline:active,
+.topbar .top-actions > .online.offline:focus,
+.topbar .top-actions > .online.offline:focus-visible {
+  color: #ffc25c !important;
+}
+
+
+
+/* TOP ACTIONS FINAL OVERRIDE — truly transparent, borderless, and hover-neutral.
+   Keep label/status colors and click behavior; remove all button/status-chip decoration. */
+html body header.topbar div.top-actions,
+html body header.topbar div.top-actions:hover,
+html body header.topbar div.top-actions:focus,
+html body header.topbar div.top-actions:focus-visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 none transparent !important;
+  border-color: transparent !important;
+  border-style: none !important;
+  outline: 0 none transparent !important;
+  box-shadow: none !important;
+}
+
+html body header.topbar div.top-actions > button,
+html body header.topbar div.top-actions > button:hover,
+html body header.topbar div.top-actions > button:active,
+html body header.topbar div.top-actions > button:focus,
+html body header.topbar div.top-actions > button:focus-visible,
+html body header.topbar div.top-actions > span.online,
+html body header.topbar div.top-actions > span.online:hover,
+html body header.topbar div.top-actions > span.online:active,
+html body header.topbar div.top-actions > span.online:focus,
+html body header.topbar div.top-actions > span.online:focus-visible {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 none transparent !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+  border-style: none !important;
+  outline: 0 none transparent !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  filter: none !important;
+  transform: none !important;
+  translate: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+html body header.topbar div.top-actions > button::before,
+html body header.topbar div.top-actions > button::after,
+html body header.topbar div.top-actions > span.online::before,
+html body header.topbar div.top-actions > span.online::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  border: 0 none transparent !important;
+  box-shadow: none !important;
+  outline: 0 none transparent !important;
+}
+
+/* Keep the same text colors in every state; the status dot remains meaningful. */
+html body header.topbar div.top-actions > #liveViewQrOpenBtn,
+html body header.topbar div.top-actions > #liveViewQrOpenBtn:hover,
+html body header.topbar div.top-actions > #liveViewQrOpenBtn:active,
+html body header.topbar div.top-actions > #liveViewQrOpenBtn:focus,
+html body header.topbar div.top-actions > #liveViewQrOpenBtn:focus-visible {
+  color: #27d3c5 !important;
+}
+html body header.topbar div.top-actions > #tabletResultsOpenBtn,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:hover,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:active,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus-visible {
+  color: #d9f7f5 !important;
+}
+html body header.topbar div.top-actions > #endSessionBtn,
+html body header.topbar div.top-actions > #endSessionBtn:hover,
+html body header.topbar div.top-actions > #endSessionBtn:active,
+html body header.topbar div.top-actions > #endSessionBtn:focus,
+html body header.topbar div.top-actions > #endSessionBtn:focus-visible {
+  color: #ff7e87 !important;
+}
+html body header.topbar div.top-actions > span.online:not(.offline),
+html body header.topbar div.top-actions > span.online:not(.offline):hover,
+html body header.topbar div.top-actions > span.online:not(.offline):active,
+html body header.topbar div.top-actions > span.online:not(.offline):focus,
+html body header.topbar div.top-actions > span.online:not(.offline):focus-visible {
+  color: #8bc8ff !important;
+}
+html body header.topbar div.top-actions > span.online.offline,
+html body header.topbar div.top-actions > span.online.offline:hover,
+html body header.topbar div.top-actions > span.online.offline:active,
+html body header.topbar div.top-actions > span.online.offline:focus,
+html body header.topbar div.top-actions > span.online.offline:focus-visible {
+  color: #ffc25c !important;
+}
+
+
+/* TARGETED TOP-ACTIONS FIX — only QR Share, Results, Online/Offline, and End.
+   These selectors intentionally match the specificity of the existing topbar rules.
+   Labels, status-dot colors, layout, and button behavior remain unchanged. */
+html body header.topbar div.top-actions > #liveViewQrOpenBtn,
+html body header.topbar div.top-actions > #liveViewQrOpenBtn:hover,
+html body header.topbar div.top-actions > #liveViewQrOpenBtn:active,
+html body header.topbar div.top-actions > #liveViewQrOpenBtn:focus,
+html body header.topbar div.top-actions > #liveViewQrOpenBtn:focus-visible,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:hover,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:active,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus-visible,
+html body header.topbar div.top-actions > #endSessionBtn,
+html body header.topbar div.top-actions > #endSessionBtn:hover,
+html body header.topbar div.top-actions > #endSessionBtn:active,
+html body header.topbar div.top-actions > #endSessionBtn:focus,
+html body header.topbar div.top-actions > #endSessionBtn:focus-visible,
+html body header.topbar div.top-actions > span.online,
+html body header.topbar div.top-actions > span.online:hover,
+html body header.topbar div.top-actions > span.online:active,
+html body header.topbar div.top-actions > span.online:focus,
+html body header.topbar div.top-actions > span.online:focus-visible,
+html body header.topbar div.top-actions > span.online:not(.offline),
+html body header.topbar div.top-actions > span.online:not(.offline):hover,
+html body header.topbar div.top-actions > span.online:not(.offline):active,
+html body header.topbar div.top-actions > span.online:not(.offline):focus,
+html body header.topbar div.top-actions > span.online:not(.offline):focus-visible,
+html body header.topbar div.top-actions > span.online.offline,
+html body header.topbar div.top-actions > span.online.offline:hover,
+html body header.topbar div.top-actions > span.online.offline:active,
+html body header.topbar div.top-actions > span.online.offline:focus,
+html body header.topbar div.top-actions > span.online.offline:focus-visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 none transparent !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+  border-style: none !important;
+  box-shadow: none !important;
+  outline: 0 none transparent !important;
+  text-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  transition: none !important;
+}
+
+/* Lock the original text colors so hover/active states do not recolor labels. */
+html body header.topbar div.top-actions > #liveViewQrOpenBtn,
+html body header.topbar div.top-actions > #liveViewQrOpenBtn:hover,
+html body header.topbar div.top-actions > #liveViewQrOpenBtn:active,
+html body header.topbar div.top-actions > #liveViewQrOpenBtn:focus,
+html body header.topbar div.top-actions > #liveViewQrOpenBtn:focus-visible { color: #27d3c5 !important; }
+
+html body header.topbar div.top-actions > #tabletResultsOpenBtn,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:hover,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:active,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus-visible { color: #d9f7f5 !important; }
+
+html body header.topbar div.top-actions > span.online:not(.offline),
+html body header.topbar div.top-actions > span.online:not(.offline):hover,
+html body header.topbar div.top-actions > span.online:not(.offline):active,
+html body header.topbar div.top-actions > span.online:not(.offline):focus,
+html body header.topbar div.top-actions > span.online:not(.offline):focus-visible { color: #8bc8ff !important; }
+
+html body header.topbar div.top-actions > span.online.offline,
+html body header.topbar div.top-actions > span.online.offline:hover,
+html body header.topbar div.top-actions > span.online.offline:active,
+html body header.topbar div.top-actions > span.online.offline:focus,
+html body header.topbar div.top-actions > span.online.offline:focus-visible { color: #ffc25c !important; }
+
+html body header.topbar div.top-actions > #endSessionBtn,
+html body header.topbar div.top-actions > #endSessionBtn:hover,
+html body header.topbar div.top-actions > #endSessionBtn:active,
+html body header.topbar div.top-actions > #endSessionBtn:focus,
+html body header.topbar div.top-actions > #endSessionBtn:focus-visible { color: #ff7e87 !important; }
+
+
+/* FINAL QR SHARE OVERRIDE ONLY.
+   Keep the previously cleaned Results, Online/Offline, and End controls untouched.
+   High-specificity selectors defeat earlier QR button hover/background/border rules. */
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:hover,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:active,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:focus,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:focus-visible {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-image: none !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  color: #27d3c5 !important;
+  filter: none !important;
+}
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn::before,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn::after,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:hover::before,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:hover::after,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:active::before,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:active::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+
+/* V43 — top actions coordinated with the dark teal Live View UI.
+   QR Share and Results keep refined accent borders; network status uses a
+   dashed state-colored outline; End intentionally remains borderless. */
+html body header.topbar div.top-actions {
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+/* QR Share — teal outline and restrained dark surface. */
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:hover,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:active,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:focus,
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:focus-visible {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 30px !important;
+  padding: 5px 10px !important;
+  border: 1px solid #2a8d88 !important;
+  border-radius: 10px !important;
+  background: linear-gradient(180deg, #103941 0%, #0b3038 100%) !important;
+  background-color: #0b3038 !important;
+  color: #72e4d9 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 2px 7px rgba(0,0,0,.14) !important;
+  outline: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  transition: background .16s ease, border-color .16s ease, box-shadow .16s ease !important;
+}
+html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:hover {
+  border-color: #49c9be !important;
+  background: linear-gradient(180deg, #164850 0%, #0e383f 100%) !important;
+  box-shadow: 0 3px 9px rgba(39,211,197,.12) !important;
+}
+
+/* Results — a quiet sea-glass outline that fits Live View's palette. */
+html body header.topbar div.top-actions > #tabletResultsOpenBtn,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:hover,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:active,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus,
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus-visible {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 30px !important;
+  padding: 5px 10px !important;
+  border: 1px solid #356a70 !important;
+  border-radius: 10px !important;
+  background: linear-gradient(180deg, #123740 0%, #0b2d35 100%) !important;
+  background-color: #0b2d35 !important;
+  color: #d9f7f5 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 2px 7px rgba(0,0,0,.12) !important;
+  outline: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  transition: background .16s ease, border-color .16s ease, box-shadow .16s ease !important;
+}
+html body header.topbar div.top-actions > #tabletResultsOpenBtn:hover {
+  border-color: #69a9a9 !important;
+  background: linear-gradient(180deg, #17434b 0%, #10353c 100%) !important;
+  box-shadow: 0 3px 9px rgba(39,211,197,.08) !important;
+}
+
+/* Online: dashed light-blue border. */
+html body header.topbar div.top-actions > span.online:not(.offline),
+html body header.topbar div.top-actions > span.online:not(.offline):hover,
+html body header.topbar div.top-actions > span.online:not(.offline):active,
+html body header.topbar div.top-actions > span.online:not(.offline):focus,
+html body header.topbar div.top-actions > span.online:not(.offline):focus-visible {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  min-height: 30px !important;
+  padding: 4px 9px !important;
+  border: 1px dashed #8bc8ff !important;
+  border-radius: 999px !important;
+  background: rgba(139,200,255,.045) !important;
+  background-color: rgba(139,200,255,.045) !important;
+  color: #8bc8ff !important;
+  box-shadow: none !important;
+  outline: none !important;
+  text-shadow: none !important;
+}
+html body header.topbar div.top-actions > span.online:not(.offline) i {
+  width: 6px !important;
+  height: 6px !important;
+  flex: 0 0 6px !important;
+  border-radius: 50% !important;
+  background: #8bc8ff !important;
+  box-shadow: 0 0 0 3px rgba(139,200,255,.11) !important;
+}
+
+/* Offline: dashed light-amber border. */
+html body header.topbar div.top-actions > span.online.offline,
+html body header.topbar div.top-actions > span.online.offline:hover,
+html body header.topbar div.top-actions > span.online.offline:active,
+html body header.topbar div.top-actions > span.online.offline:focus,
+html body header.topbar div.top-actions > span.online.offline:focus-visible {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  min-height: 30px !important;
+  padding: 4px 9px !important;
+  border: 1px dashed #ffc25c !important;
+  border-radius: 999px !important;
+  background: rgba(255,194,92,.045) !important;
+  background-color: rgba(255,194,92,.045) !important;
+  color: #ffc25c !important;
+  box-shadow: none !important;
+  outline: none !important;
+  text-shadow: none !important;
+}
+html body header.topbar div.top-actions > span.online.offline i {
+  width: 6px !important;
+  height: 6px !important;
+  flex: 0 0 6px !important;
+  border-radius: 50% !important;
+  background: #ffc25c !important;
+  box-shadow: 0 0 0 3px rgba(255,194,92,.10) !important;
+}
+
+/* End stays visually restrained and has no border in any interaction state. */
+html body header.topbar div.top-actions > #endSessionBtn,
+html body header.topbar div.top-actions > #endSessionBtn:hover,
+html body header.topbar div.top-actions > #endSessionBtn:active,
+html body header.topbar div.top-actions > #endSessionBtn:focus,
+html body header.topbar div.top-actions > #endSessionBtn:focus-visible {
+  border: 0 none transparent !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+  border-style: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #ff7e87 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  text-decoration: none !important;
+}
+html body header.topbar div.top-actions > #endSessionBtn:hover {
+  color: #ff9aa1 !important;
+  background: rgba(255,126,135,.07) !important;
+}
+
+@media (max-width: 760px) {
+  html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn,
+  html body header.topbar div.top-actions > #tabletResultsOpenBtn {
+    min-height: 29px !important;
+    padding: 4px 9px !important;
+  }
+  html body header.topbar div.top-actions > span.online:not(.offline),
+  html body header.topbar div.top-actions > span.online.offline {
+    min-height: 29px !important;
+    padding: 4px 8px !important;
+    font-size: 10px !important;
+  }
+}
+
+
+/* V44 — compact Top Actions height and responsive Results button visibility.
+   Results is available on phones/tablets only; desktop keeps the original panel. */
+@media (min-width: 1101px) {
+  html body header.topbar div.top-actions > #tabletResultsOpenBtn,
+  html body header.topbar div.top-actions > #tabletResultsOpenBtn:hover,
+  html body header.topbar div.top-actions > #tabletResultsOpenBtn:active,
+  html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus,
+  html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus-visible {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  html body header.topbar div.top-actions > #tabletResultsOpenBtn,
+  html body header.topbar div.top-actions > #tabletResultsOpenBtn:hover,
+  html body header.topbar div.top-actions > #tabletResultsOpenBtn:active,
+  html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus,
+  html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus-visible {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 29px !important;
+    padding: 4px 9px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Small-screen Results modal — the existing tablet modal also works on mobile. */
+@media (max-width: 767px) {
+  #tabletResultsModal.tablet-results-modal.is-open {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  #tabletResultsModal .tablet-results-backdrop {
+    position: absolute !important;
+    inset: 0 !important;
+    background: rgba(5, 18, 24, .62) !important;
+  }
+  #tabletResultsModal .tablet-results-dialog {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 620px !important;
+    max-height: 88dvh !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    border-radius: 12px !important;
+  }
+  #tabletResultsModal .tablet-results-modal-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex: 0 0 auto !important;
+  }
+  #tabletResultsModal #tabletResultsModalBody {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: calc(88dvh - 52px) !important;
+    overflow: auto !important;
+    overscroll-behavior: contain !important;
+  }
+  #tabletResultsModal #tabletResultsModalBody > .results-panel {
+    display: block !important;
+    position: static !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
 }
