@@ -19,7 +19,11 @@
     ? String(p.name || 'Player') + (String(p.nickname || '').trim() ? ` (${String(p.nickname).trim()})` : '')
     : 'Waiting for player';
   const playerGenderClass = p => p?.gender === 'Female' ? 'female' : 'male';
-  const playerGenderIcon = p => p?.gender === 'Female' ? '♀' : '♂';
+  // Use inline SVG instead of platform-dependent Unicode glyphs so gender icons
+  // stay consistently sized and aligned across Windows, Android, iOS and browsers.
+  const playerGenderIcon = p => p?.gender === 'Female'
+    ? '<svg class="gender-symbol" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="4.8" r="3.55" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.4v5.9M5.25 11.35h5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>'
+    : '<svg class="gender-symbol" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.35" cy="10.65" r="3.45" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.8 8.2 14.1 1.9M9.35 1.9h4.75v4.75" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const playerCategory = p => String(p?.category || 'CAT').trim().toUpperCase();
   const playerCategoryClass = p => ({ BEG: 'skill-beg', NOV: 'skill-nov', INT: 'skill-int', ADV: 'skill-adv', EXP: 'skill-exp' })[playerCategory(p)] || '';
   const formatTime = value => {

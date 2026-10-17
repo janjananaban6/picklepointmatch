@@ -159,9 +159,11 @@ html[data-theme="light"] .page-footer {
 
 
 /* Player identity details in Live View: name, gender icon and skill category. */
-.queue-player-line{display:flex;align-items:center;gap:6px;min-width:0;width:100%}
-.queue-player-line .queue-player{flex:0 1 auto;min-width:0}
-.live-player-gender{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:auto;height:auto;padding:0;border:0;border-radius:0;background:transparent;font-size:12px;font-weight:950;line-height:1}
+.queue-player-line{display:flex;align-items:center;gap:6px;min-width:0;width:100%;flex-wrap:nowrap}
+.queue-player-line .queue-player{flex:0 1 auto;min-width:0;line-height:1.25}
+/* Fixed-size icon box and vector artwork avoid Unicode baseline/font differences between devices. */
+.live-player-gender{display:inline-flex;align-items:center;justify-content:center;flex:0 0 14px;width:14px;height:14px;min-width:14px;padding:0;border:0;border-radius:0;background:transparent;font-size:0;line-height:0;vertical-align:middle}
+.live-player-gender .gender-symbol{display:block;flex:0 0 13px;width:13px;height:13px;overflow:visible}
 .live-player-gender.male{background:transparent;color:#8dceff}
 .live-player-gender.female{background:transparent;color:#ffacd1}
 .live-player-category{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:25px;padding:3px 5px;border:1px solid #36535b;border-radius:6px;background:#17383f;color:#c2d9dc;font-size:8px;font-weight:950;line-height:1;letter-spacing:.15px}
@@ -171,7 +173,8 @@ html[data-theme="light"] .page-footer {
 .live-player-category.skill-adv{background:#3d2c5a;border-color:#5d4382;color:#d8beff}
 .live-player-category.skill-exp{background:#542d38;border-color:#82414e;color:#ffb4bf}
 .player-chip .live-player-category{font-size:7px;padding:3px 4px;min-width:23px}
-.player-chip .live-player-gender{flex-basis:auto;width:auto;height:auto;font-size:10px}
+.player-chip .live-player-gender{flex-basis:12px;width:12px;height:12px;min-width:12px}
+.player-chip .live-player-gender .gender-symbol{flex-basis:11px;width:11px;height:11px}
 html[data-theme="light"] .live-player-gender.male{background:transparent;color:#2676b7}
 html[data-theme="light"] .live-player-gender.female{background:transparent;color:#c43b7b}
 html[data-theme="light"] .live-player-category{background:#f0f5f6;border-color:#cfdddf;color:#526a70}
