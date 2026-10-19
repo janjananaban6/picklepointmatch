@@ -19349,3 +19349,106 @@ html body #podiumExpandModal .expanded-ranking-list .ranking-name-line .playing-
 @media (prefers-reduced-motion: reduce) {
   .live-ranking-admin-switch, .live-ranking-admin-switch-thumb { transition: none !important; }
 }
+
+/* COURTS LIST LIVE FOOTER — even side insets, consistent vertical spacing,
+   and no horizontal overflow for recorded and unrecorded-score footers. */
+#courtsList .court-card.court-live-card .live-footer {
+  width: calc(100% - 12px) !important;
+  min-width: 0 !important;
+  max-width: calc(100% - 12px) !important;
+  margin: 6px auto !important;
+  box-sizing: border-box !important;
+}
+
+#courtsList .court-card.court-live-card .live-footer > button,
+#courtsList .court-card.court-live-card .live-footer .live-actions-win-only,
+#courtsList .court-card.court-live-card .live-footer .live-actions-win-only > * {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* The narrow win-only layout previously expanded this row by 24px beyond
+   its parent. Keep the action row inside the footer and align both side edges. */
+@media (max-width: 1100px) {
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer:not(.delete-confirming) .live-actions-win-only,
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer.delete-confirming .live-actions-win-only {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 8px 0 4px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* Match the Live View QR close button to the Registered Player Cloud "Close" button. */
+html body .live-view-qr-close {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  padding: 6px 10px !important;
+  border: 1px solid #d7e3e5 !important;
+  border-radius: 8px !important;
+  background: #f5f9f9 !important;
+  color: #35575c !important;
+  font-family: inherit !important;
+  font-size: 9px !important;
+  font-weight: 400 !important;
+  line-height: normal !important;
+  white-space: nowrap !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: pointer !important;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease !important;
+}
+html body .live-view-qr-close:hover,
+html body .live-view-qr-close:focus-visible {
+  background: #eaf5f4 !important;
+  border-color: #bddbd9 !important;
+  color: #183f43 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* V23 — match only the inactive ready-cancel button to auto-match-ready.
+   Preserve the active ready-cancel state and the separate picker-cancel colors. */
+.ready-actions .ready-cancel:not(.active),
+.ready-actions-v2 .ready-cancel:not(.active){
+  background:#e9fbfa!important;
+  color:#0b9f96!important;
+  border:1px solid #c8dfe0!important;
+}
+.ready-actions .ready-cancel:not(.active):hover,
+.ready-actions-v2 .ready-cancel:not(.active):hover{
+  background:#d9f7f5!important;
+  color:#0b9f96!important;
+  border-color:#8bd9d4!important;
+}
+
+/* Hide the lock-partner opener only when the player is already locked. */
+#queueMainArea .queue-row-actions .queue-lock-open-btn.is-locked {
+  display: none !important;
+}
+
+
+/* Keep each player's match-record badge visible regardless of lock state.
+   Allow the badge to wrap rather than shrink away beside the category chip. */
+#queueMainArea .queue-modern-item .queue-stats-line > .queue-record-badge {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}

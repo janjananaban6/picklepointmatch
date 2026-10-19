@@ -78,7 +78,7 @@
   <div class="topbar-logo" role="img" aria-label="Pickleball"><img class="topbar-logo-img" src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div>
   <div class="event-info">
     <div class="event-title" id="eventTitle" aria-label="Event title">(DUPR MATCH) @PICKLE WORLD DOWNTOWN | 7PM - 11PM</div>
-    <div class="event-stats" id="topStats"><span class="event-stat-text">0 players</span><span class="event-stat-sep">•</span><span class="event-stat-text">0 courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn">Race to 11</button><span class="event-stat-sep">•</span><span class="event-stat-text">Doubles</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn">Win by 1</button></div>
+    <div class="event-stats" id="topStats"><span class="event-stat-text">0 players</span><span class="event-stat-sep">•</span><span class="event-stat-text">0 courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn">Race to 11</button><span class="event-stat-sep">•</span><span class="event-stat-text">Doubles</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn">Win by 1</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventMatchingModeBtn" title="Change matching mode">Balance</button></div>
   </div>
   <div class="top-actions">
     <button type="button" id="liveViewQrOpenBtn" class="live-view-qr-open-btn" title="Show QR code and share link for the Live View">▦ QR Share</button>
@@ -385,7 +385,7 @@ Maria Santos,Female"></textarea>
   <div class="modal-box live-view-qr-modal-box" role="dialog" aria-modal="true" aria-labelledby="liveViewQrTitle">
     <div class="live-view-qr-heading">
       <div><h2 id="liveViewQrTitle">Share Live View</h2><p>Players can scan this QR code to watch the live queue on their phones.</p></div>
-      <button type="button" class="live-view-qr-close" onclick="closeLiveViewQrModal()" aria-label="Close QR code">×</button>
+      <button type="button" class="live-view-qr-close" onclick="closeLiveViewQrModal()" aria-label="Close QR code">Close</button>
     </div>
     <div class="live-view-qr-content">
       <div class="live-view-qr-image-wrap" id="liveViewQrImageWrap"><img id="liveViewQrImage" alt="QR code for Pickle Point Match Live View"><span id="liveViewQrUnavailable" hidden>QR code will appear when opened through a web server.</span><div id="liveViewQrOfflineLoader" class="live-view-qr-offline-loader" hidden role="status" aria-label="Live View QR unavailable while offline"><img src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div></div>
@@ -396,7 +396,7 @@ Maria Santos,Female"></textarea>
         <input id="liveViewQrUrl" type="text" readonly spellcheck="false">
         <div class="live-view-qr-actions">
           <button type="button" id="liveViewThemeToggle" class="live-view-theme-toggle" aria-pressed="false" aria-label="Switch Live View to light mode" title="Switch Live View to light mode"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-sun">☀</span><span class="theme-switch-icon theme-switch-moon">☾</span><span class="theme-switch-thumb"></span></span><span class="live-view-theme-label">Night</span></button>
-          <button type="button" id="liveRankingAdminToggle" class="live-ranking-admin-toggle is-enabled" aria-pressed="true" aria-label="Turn Live Ranking off" title="Turn Live Ranking off"><span class="live-ranking-admin-switch" aria-hidden="true"><span class="live-ranking-admin-switch-thumb"></span></span><span class="live-ranking-admin-label">Live Ranking: On</span></button>
+          <button type="button" id="liveRankingAdminToggle" class="live-ranking-admin-toggle is-enabled" aria-pressed="true" aria-label="Turn Live Standing off" title="Turn Live Standing off"><span class="live-ranking-admin-switch" aria-hidden="true"><span class="live-ranking-admin-switch-thumb"></span></span><span class="live-ranking-admin-label">Live Standing: On</span></button>
           <button type="button" id="liveViewQrCopyBtn" class="blue">Copy Link</button>
           <button type="button" id="liveViewQrOpenPageBtn">Open Live View</button>
         </div>

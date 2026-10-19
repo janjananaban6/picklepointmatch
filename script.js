@@ -358,10 +358,10 @@ function syncLiveRankingAdminToggle(enabled=isLiveRankingEnabled()){
   button.classList.toggle('is-enabled',isEnabled);
   button.classList.toggle('is-disabled',!isEnabled);
   button.setAttribute('aria-pressed',String(isEnabled));
-  button.setAttribute('aria-label',isEnabled?'Turn Live Ranking off':'Turn Live Ranking on');
-  button.title=isEnabled?'Turn Live Ranking off':'Turn Live Ranking on';
+  button.setAttribute('aria-label',isEnabled?'Turn Live Standing off':'Turn Live Standing on');
+  button.title=isEnabled?'Turn Live Standing off':'Turn Live Standing on';
   const label=button.querySelector('.live-ranking-admin-label');
-  if(label)label.textContent=`Live Ranking: ${isEnabled?'On':'Off'}`;
+  if(label)label.textContent=`Live Standing: ${isEnabled?'On':'Off'}`;
 }
 function initLiveRankingAdminToggle(){
   const button=$('liveRankingAdminToggle');
@@ -372,7 +372,7 @@ function initLiveRankingAdminToggle(){
     try{localStorage.setItem(LIVE_RANKING_ENABLED_KEY,String(enabled));}catch(e){}
     syncLiveRankingAdminToggle(enabled);
     publishLiveViewState();
-    if(typeof toast==='function')toast(`Live Ranking ${enabled?'enabled':'disabled'} on Live View.`);
+    if(typeof toast==='function')toast(`Live Standing ${enabled?'enabled':'disabled'} on Live View.`);
   });
   window.addEventListener('storage',event=>{
     if(event.key===LIVE_RANKING_ENABLED_KEY){
@@ -436,6 +436,7 @@ function buildLiveViewSnapshot(){
         id:String(p.id),
         name:String(p.name||'Player'),
         nickname:String(p.nickname||''),
+        gender:String(p.gender||''),
         category:String(p.category||''),
         matches:Number(st.matches)||0,
         wins:Number(st.wins)||0,
@@ -1329,6 +1330,9 @@ function autoMatchRating(p){
 function autoMatchAssignmentScore(slots,mode,history,selectedIds){
   const people=slots.map(id=>id==null?null:player(id));
   if(people.some(person=>!person))return Infinity;
+  // Skill Separated must use actual skill information; unknown levels cannot be
+  // assumed to match the known players. Other modes can still include them.
+  if(mode==='skill-separated'&&people.some(person=>autoMatchSkillLevel(person)===null))return Infinity;
 
   // Never split a locked-in partner pair across teams when auto-matching.
   for(let index=0;index<slots.length;index++){
@@ -1379,20 +1383,23 @@ function autoMatchAssignmentScore(slots,mode,history,selectedIds){
   const skillSpread=skillLevels.length>1?Math.max(...skillLevels)-Math.min(...skillLevels):0;
   if(mode==='skill-separated'&&skillSpread>1.01)return Infinity;
 
-  const ratings=people.map(autoMatchRating);
-  const ratingA=ratings.slice(0,2).filter(value=>value!==null);
-  const ratingB=ratings.slice(2,4).filter(value=>value!==null);
-  const teamRatingGap=ratingA.length&&ratingB.length
-    ?Math.abs(ratingA.reduce((sum,value)=>sum+value,0)/ratingA.length-ratingB.reduce((sum,value)=>sum+value,0)/ratingB.length)
-    :0;
+  // Every player contributes to the team average. A player without a rating
+  // is treated as neutral (3/5), instead of being omitted and skewing teams
+  // when the two sides have different numbers of rated players.
+  const ratings=people.map(person=>autoMatchRating(person)??3);
+  const ratingA=ratings.slice(0,2);
+  const ratingB=ratings.slice(2,4);
+  const teamRatingGap=Math.abs(
+    ratingA.reduce((sum,value)=>sum+value,0)/ratingA.length
+    -ratingB.reduce((sum,value)=>sum+value,0)/ratingB.length
+  );
 
   if(mode==='skill-separated'){
-    const teammateSkillGap=Math.abs((autoMatchSkillLevel(people[0])??2.5)-(autoMatchSkillLevel(people[1])??2.5))
-      +Math.abs((autoMatchSkillLevel(people[2])??2.5)-(autoMatchSkillLevel(people[3])??2.5));
-    const missingSkillPenalty=people.filter(person=>autoMatchSkillLevel(person)===null).length*(skillLevels.length?10:0);
+    const teammateSkillGap=Math.abs(autoMatchSkillLevel(people[0])-autoMatchSkillLevel(people[1]))
+      +Math.abs(autoMatchSkillLevel(people[2])-autoMatchSkillLevel(people[3]));
     return skillSpread*100+teammateSkillGap*20+teamRatingGap*10
       +teammateCounts.reduce((sum,count)=>sum+count*4,0)
-      +opponentPairs.reduce((sum,count)=>sum+count,0)+missingSkillPenalty+queuePenalty;
+      +opponentPairs.reduce((sum,count)=>sum+count,0)+queuePenalty;
   }
 
   // Balanced: pair the teams by combined skill/rating first, then prefer
@@ -1520,8 +1527,11 @@ function autoMatchVariety(courtId){
       if(partnerId!=null&&!c.players.some(id=>Number(id)===Number(partnerId))&&!ids.has(Number(partnerId)))return false;
     }
     if(mode==='skill-separated'){
-      const skillLevels=[...c.players.filter(Boolean),...combo.map(person=>person.id)].map(id=>autoMatchSkillLevel(player(id))).filter(value=>value!==null);
-      if(skillLevels.length>1&&Math.max(...skillLevels)-Math.min(...skillLevels)>1.01)return false;
+      const allIds=[...c.players.filter(Boolean),...combo.map(person=>person.id)];
+      const skillLevels=allIds.map(id=>autoMatchSkillLevel(player(id)));
+      // Only accept a lineup when all four players have known, similar skill levels.
+      if(skillLevels.length!==4||skillLevels.some(value=>value===null))return false;
+      if(Math.max(...skillLevels)-Math.min(...skillLevels)>1.01)return false;
     }
     return true;
   });
@@ -3303,11 +3313,30 @@ function syncEventRuleButtonAvailability(){
     button.title=enabled?enabledTitle:'Enable score recording to change event rules';
   });
 }
+function matchingModeDisplayName(mode){
+  return ({
+    'balanced':'Balance',
+    'social-mix':'Social Mix',
+    'skill-separated':'Skill Separated',
+    'winners-losers':'Winner / Loser'
+  })[mode]||'Balance';
+}
 function bindEventRuleButtons(){
-  const race=$('eventRaceBtn'), win=$('eventWinByBtn');
+  const race=$('eventRaceBtn'), win=$('eventWinByBtn'), mode=$('eventMatchingModeBtn');
   syncEventRuleButtonAvailability();
   if(race && !race.dataset.bound){race.dataset.bound='1';race.addEventListener('click',()=>cycleEventRule('target'));}
   if(win && !win.dataset.bound){win.dataset.bound='1';win.addEventListener('click',()=>cycleEventRule('winBy'));}
+  if(mode && !mode.dataset.bound){mode.dataset.bound='1';mode.addEventListener('click',cycleEventMatchingMode);}
+}
+function cycleEventMatchingMode(){
+  const values=['balanced','social-mix','skill-separated','winners-losers'];
+  const current=values.includes(state.matchingMode)?state.matchingMode:'balanced';
+  state.matchingMode=values[(values.indexOf(current)+1)%values.length];
+  // Start the winners/losers rotation from winners whenever that mode is selected.
+  if(state.matchingMode==='winners-losers')state.winnersLosersNextGroup='winners';
+  saveState();
+  render();
+  toast(`Matching mode: ${matchingModeDisplayName(state.matchingMode)}`);
 }
 function cycleEventRule(kind){
   if(!state.recordScores)return;
@@ -3330,7 +3359,7 @@ function render(){
   renderQueue(); renderCourts(); renderResults(); renderRegisteredSearch();
   updateAddWaitingCourtButton();
   const realCourts=state.courts.filter(c=>!c.waitingOnly); const waitingCourts=state.courts.filter(c=>c.waitingOnly);
-  const stats=$('topStats'); if(stats){ stats.innerHTML=`<span class="event-stat-text">${state.players.length} players</span><span class="event-stat-sep">•</span><span class="event-stat-text">${realCourts.length} courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn" title="Change race target" ${state.recordScores?'':'disabled aria-disabled="true"'}>Race to ${state.eventRules.target}</button><span class="event-stat-sep">•</span><span class="event-stat-text">${esc(state.eventRules.type||'Doubles')}</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn" title="Change win-by rule" ${state.recordScores?'':'disabled aria-disabled="true"'}>Win by ${state.eventRules.winBy}</button>`; bindEventRuleButtons(); }
+  const stats=$('topStats'); if(stats){ stats.innerHTML=`<span class="event-stat-text">${state.players.length} players</span><span class="event-stat-sep">•</span><span class="event-stat-text">${realCourts.length} courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn" title="Change race target" ${state.recordScores?'':'disabled aria-disabled="true"'}>Race to ${state.eventRules.target}</button><span class="event-stat-sep">•</span><span class="event-stat-text">${esc(state.eventRules.type||'Doubles')}</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn" title="Change win-by rule" ${state.recordScores?'':'disabled aria-disabled="true"'}>Win by ${state.eventRules.winBy}</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventMatchingModeBtn" title="Change matching mode" aria-label="Change matching mode, current mode ${matchingModeDisplayName(state.matchingMode)}">${matchingModeDisplayName(state.matchingMode)}</button>`; bindEventRuleButtons(); }
   const title=$('eventTitle'); if(title) title.textContent=state.sessionName||'(DUPR MATCH) @PICKLE WORLD DOWNTOWN | 7PM - 11PM';
 }
 

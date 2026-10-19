@@ -597,26 +597,36 @@ html body .player-chip .live-player-gender svg.gender-symbol {
 .live-ranking-toggle:focus-visible,.live-ranking-close:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
 html[data-theme="light"] .live-ranking-toggle{border-color:#a9dcd6;background:#e3f8f5;color:#087f80}
 html[data-theme="light"] .live-ranking-toggle:hover{background:#d4f2ee}
-.live-ranking-modal{position:fixed;inset:58px 0 0;z-index:1000;display:grid;place-items:center;padding:18px}
+.live-ranking-modal{position:fixed;inset:58px 0 0;z-index:1000;display:grid;place-items:center;padding:14px 18px}
 .live-ranking-modal[hidden]{display:none!important}
 .live-ranking-backdrop{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;background:rgba(0,12,17,.76);cursor:default;backdrop-filter:none;-webkit-backdrop-filter:none}
 .live-ranking-dialog{position:relative;z-index:1;display:flex;flex-direction:column;width:min(620px,100%);max-height:min(calc(100vh - 94px),760px);max-height:min(calc(100dvh - 94px),760px);overflow:hidden;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--text);box-shadow:0 24px 80px rgba(0,0,0,.35)}
+@media(min-width:561px){.live-ranking-dialog{width:min(520px,100%)}}
 .live-ranking-dialog-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:19px 20px 15px;border-bottom:1px solid var(--line);background:linear-gradient(130deg,var(--panel2),var(--panel))}
 .live-ranking-eyebrow{color:var(--teal);font-size:9px;font-weight:950;letter-spacing:1.7px}
 .live-ranking-dialog-header h2{margin:5px 0 4px;font-size:22px;line-height:1.2;font-weight:950;letter-spacing:-.45px}
 .live-ranking-dialog-header p{margin:0;color:var(--muted);font-size:11px;line-height:1.45}
+.live-ranking-dialog-header p strong{display:block;margin-bottom:3px;color:var(--text);font-size:10px;font-weight:900;line-height:1.35}
 .live-ranking-close{display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--text);font:inherit;font-size:24px;line-height:1;cursor:pointer}
+.live-ranking-search{position:relative;display:flex;align-items:center;gap:8px;min-height:31px;margin:12px 15px 0;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--muted);box-sizing:border-box}
+.live-ranking-search:focus-within{border-color:var(--teal);box-shadow:0 0 0 2px rgba(45,212,191,.12)}
+.live-ranking-search-icon{display:block;flex:0 0 14px;width:14px;height:14px}
+.live-ranking-search input{display:block;width:100%;min-width:0;height:29px;padding:0;border:0;outline:0;background:transparent;color:var(--text);font:inherit;font-size:11px;font-weight:650;box-shadow:none}
+.live-ranking-search input::placeholder{color:var(--muted);opacity:.9}
+.live-ranking-search input::-webkit-search-cancel-button{cursor:pointer}
+.live-ranking-search-hit{padding:0 1px;border-radius:3px;background:#ffe16b;color:#18252a;font-weight:950;box-shadow:0 0 0 1px rgba(255,193,7,.22);-webkit-box-decoration-break:clone;box-decoration-break:clone}
+
 .live-ranking-list{display:flex;flex-direction:column;gap:8px;min-height:100px;padding:13px 15px 16px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#4d777d transparent}
 .live-ranking-list::-webkit-scrollbar{width:6px}.live-ranking-list::-webkit-scrollbar-track{background:transparent}.live-ranking-list::-webkit-scrollbar-thumb{border-radius:99px;background:#4d777d}
 .live-ranking-row{display:grid;grid-template-columns:36px minmax(0,1fr) 63px;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
-.live-ranking-list>.live-ranking-row:nth-child(1){border-color:#f3d56b}
-.live-ranking-list>.live-ranking-row:nth-child(2){border-color:#dce7f1}
-.live-ranking-list>.live-ranking-row:nth-child(3){border-color:#ffd5a8}
+.live-ranking-row.rank-1{border-color:#f3d56b}
+.live-ranking-row.rank-2{border-color:#dce7f1}
+.live-ranking-row.rank-3{border-color:#ffd5a8}
 .live-ranking-position{color:var(--muted);text-align:center;font-size:12px;font-weight:900;line-height:1.1;white-space:nowrap}
-.live-ranking-row:nth-child(1) .live-ranking-position,.live-ranking-row:nth-child(2) .live-ranking-position,.live-ranking-row:nth-child(3) .live-ranking-position{font-size:21px}
+.live-ranking-row.rank-1 .live-ranking-position,.live-ranking-row.rank-2 .live-ranking-position,.live-ranking-row.rank-3 .live-ranking-position{font-size:21px}
 .live-ranking-main{min-width:0}.live-ranking-name-line{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
 .live-ranking-name-line strong{min-width:0;overflow-wrap:anywhere;font-size:12px;font-weight:850;line-height:1.25}
-.live-ranking-category{display:inline-flex;align-items:center;justify-content:center;padding:3px 5px;border:1px solid #dfe5e9;border-radius:6px;background:#f8f9fa;color:#6b7b8d;font-size:8px;font-weight:900;line-height:1}
+.live-ranking-category{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;white-space:nowrap;min-width:25px;padding:2px 5px;border:1px solid #dfe5e9;border-radius:6px;font-size:7px;font-weight:900;line-height:1;letter-spacing:.1px;background:#f8f9fa;color:#a0aec0;box-sizing:border-box}
 .live-ranking-category.skill-beg{background:#e8f3ff;border-color:#bce0fd;color:#2b6cb0}.live-ranking-category.skill-nov{background:#e0f8f3;border-color:#a2f0df;color:#227a68}.live-ranking-category.skill-int{background:#fff6d6;border-color:#fce38a;color:#9a6700}.live-ranking-category.skill-adv{background:#f1eaff;border-color:#d9c9f5;color:#7250ad}.live-ranking-category.skill-exp{background:#ffecef;border-color:#f2c8cd;color:#c43d4b}
 .live-ranking-playing{display:inline-flex;align-items:center;padding:3px 6px;border-radius:999px;background:#164b43;color:#65e2b5;font-size:8px;font-weight:850;line-height:1}
 .live-ranking-stats{display:flex;flex-wrap:wrap;gap:9px;margin-top:6px;color:var(--muted);font-size:9px;font-weight:750}
@@ -626,7 +636,115 @@ html[data-theme="light"] .live-ranking-toggle:hover{background:#d4f2ee}
 .live-ranking-result strong{font-size:17px;font-weight:950;line-height:1;font-variant-numeric:tabular-nums}.live-ranking-result span{color:var(--muted);font-size:8px;white-space:nowrap}
 .live-ranking-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:30px 12px;color:var(--muted);text-align:center;font-size:11px}.live-ranking-empty>span:first-child{font-size:28px}.live-ranking-empty strong{color:var(--text);font-size:13px}
 body.live-ranking-open{overflow:hidden}html[data-theme="light"] .live-ranking-playing{background:#e0f8ee;color:#087e59}
-@media(max-width:560px){.live-header{gap:7px}.header-right{gap:5px}.live-ranking-toggle{height:25px;min-height:25px;padding:0 7px;gap:4px;font-size:9px}.connection-status{height:25px;gap:5px}.live-ranking-dialog-header{padding:15px 14px 12px}.live-ranking-dialog-header h2{font-size:19px}.live-ranking-dialog-header p{font-size:10px}.live-ranking-list{padding:10px}.live-ranking-row{grid-template-columns:29px minmax(0,1fr) 51px;gap:7px;padding:9px 8px}.live-ranking-position{font-size:9px}.live-ranking-row:nth-child(1) .live-ranking-position,.live-ranking-row:nth-child(2) .live-ranking-position,.live-ranking-row:nth-child(3) .live-ranking-position{font-size:17px}.live-ranking-name-line strong{font-size:10px}.live-ranking-stats{gap:6px;font-size:8px}.live-ranking-result strong{font-size:14px}.live-ranking-result span{font-size:7px}}
+@media(max-width:560px){.live-header{gap:7px}.header-right{gap:5px}.live-ranking-modal{padding:10px 18px}.live-ranking-toggle{height:25px;min-height:25px;padding:0 7px;gap:4px;font-size:9px}.connection-status{height:25px;gap:5px}.live-ranking-dialog-header{padding:15px 14px 12px}.live-ranking-search{margin:8px 10px 0;min-height:29px;padding:0 9px;gap:7px}.live-ranking-search-icon{flex-basis:13px;width:13px;height:13px}.live-ranking-search input{height:27px;font-size:10px}.live-ranking-dialog-header h2{font-size:19px}.live-ranking-dialog-header p{font-size:10px}.live-ranking-list{padding:10px;max-height:548px}.live-ranking-row{grid-template-columns:29px minmax(0,1fr) 51px;gap:7px;padding:9px 8px}.live-ranking-position{font-size:9px}.live-ranking-row.rank-1 .live-ranking-position,.live-ranking-row.rank-2 .live-ranking-position,.live-ranking-row.rank-3 .live-ranking-position{font-size:17px}.live-ranking-name-line strong{font-size:10px}.live-ranking-stats{gap:6px;font-size:8px}.live-ranking-result strong{font-size:14px}.live-ranking-result span{font-size:7px}}
 @media(max-width:370px){.live-ranking-toggle-label{display:none}.live-ranking-toggle{width:31px;height:25px;min-height:25px;padding:0 6px}}
 
 .live-ranking-toggle[hidden]{display:none!important}
+
+
+/* Match the Live Ranking close button to the Registered Player Cloud "Close" button. */
+html body .live-ranking-close {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  padding: 6px 10px !important;
+  border: 1px solid #d7e3e5 !important;
+  border-radius: 8px !important;
+  background: #f5f9f9 !important;
+  color: #35575c !important;
+  font-family: inherit !important;
+  font-size: 9px !important;
+  font-weight: 400 !important;
+  line-height: normal !important;
+  white-space: nowrap !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: pointer !important;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease !important;
+}
+html body .live-ranking-close:hover,
+html body .live-ranking-close:focus-visible {
+  background: #eaf5f4 !important;
+  border-color: #bddbd9 !important;
+  color: #183f43 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+
+/* Live Standing: make the ranking explanation heading a real, accessible show/hide control. */
+.live-ranking-subtitle {
+  min-width: 0;
+  margin: 0;
+}
+.live-ranking-subtitle-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  list-style: none;
+}
+.live-ranking-subtitle-toggle::-webkit-details-marker { display: none; }
+.live-ranking-subtitle-toggle::marker { content: ""; }
+.live-ranking-subtitle-toggle::before {
+  content: "▸";
+  display: inline-block;
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+}
+.live-ranking-subtitle[open] > .live-ranking-subtitle-toggle::before { content: "▾"; }
+.live-ranking-subtitle-toggle:hover { color: var(--teal); }
+.live-ranking-subtitle-toggle:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 3px; }
+.live-ranking-subtitle .live-ranking-explanation {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+@media (max-width: 560px) {
+  .live-ranking-subtitle .live-ranking-explanation { font-size: 10px; }
+}
+
+/* LIGHT MODE SCROLLBAR — keep the track/background fully transparent.
+   Preserve the scrollbar thumb and leave dark mode unchanged. */
+html[data-theme="light"],
+html[data-theme="light"] body,
+html[data-theme="light"] body * {
+  scrollbar-color: #d1d5db transparent !important;
+}
+html[data-theme="light"]::-webkit-scrollbar,
+html[data-theme="light"] body::-webkit-scrollbar,
+html[data-theme="light"] body *::-webkit-scrollbar {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+html[data-theme="light"]::-webkit-scrollbar-track,
+html[data-theme="light"] body::-webkit-scrollbar-track,
+html[data-theme="light"] body *::-webkit-scrollbar-track,
+html[data-theme="light"]::-webkit-scrollbar-track-piece,
+html[data-theme="light"] body::-webkit-scrollbar-track-piece,
+html[data-theme="light"] body *::-webkit-scrollbar-track-piece,
+html[data-theme="light"]::-webkit-scrollbar-corner,
+html[data-theme="light"] body::-webkit-scrollbar-corner,
+html[data-theme="light"] body *::-webkit-scrollbar-corner {
+  background: transparent !important;
+  background-color: transparent !important;
+}

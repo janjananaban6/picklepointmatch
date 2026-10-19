@@ -15,6 +15,23 @@
   const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[ch]));
+  // Render browser-style search highlights while keeping player names HTML-safe.
+  const highlightSearchMatch = (value, term) => {
+    const text = String(value ?? '');
+    const query = String(term ?? '').trim();
+    if (!query) return escapeHTML(text);
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(escapedQuery, 'gi');
+    let output = '';
+    let cursor = 0;
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      output += escapeHTML(text.slice(cursor, match.index));
+      output += `<mark class="live-ranking-search-hit">${escapeHTML(match[0])}</mark>`;
+      cursor = pattern.lastIndex;
+    }
+    return output + escapeHTML(text.slice(cursor));
+  };
   const playerName = p => p
     ? String(p.name || 'Player') + (String(p.nickname || '').trim() ? ` (${String(p.nickname).trim()})` : '')
     : 'Waiting for player';
@@ -123,31 +140,46 @@
 
   function renderLiveRanking() {
     const list = $('liveRankingList');
-    const subtitle = $('liveRankingSubtitle');
     if (!list) return;
     const ranking = Array.isArray(currentState?.ranking) ? currentState.ranking : [];
-    if (subtitle) {
-      const totalMatches = Number(currentState?.matchCount) || ranking.reduce((sum, p) => sum + (Number(p.matches) || 0), 0);
-      subtitle.textContent = `${ranking.length} ranked player${ranking.length === 1 ? '' : 's'} · ${totalMatches} completed match${totalMatches === 1 ? '' : 'es'} · updates automatically`;
-    }
     if (!ranking.length) {
       list.innerHTML = '<div class="live-ranking-empty"><span aria-hidden="true">🏆</span><strong>No ranking standings yet</strong><span>Complete a recorded match to start the live ranking.</span></div>';
       return;
     }
+
+    const searchTerm = String($('liveRankingSearch')?.value || '').trim().toLocaleLowerCase();
+    const filteredRanking = ranking
+      .map((player, index) => ({ player, index, rank: Number(player.position) || index + 1 }))
+      .filter(({ player }) => {
+        if (!searchTerm) return true;
+        const name = String(player.name || 'Player');
+        const nickname = String(player.nickname || '').trim();
+        return [name, nickname, `${name} ${nickname}`]
+          .some(value => value.toLocaleLowerCase().includes(searchTerm));
+      });
+
+    if (!filteredRanking.length) {
+      list.innerHTML = `<div class="live-ranking-empty"><span aria-hidden="true">🔎</span><strong>No players found</strong><span>No players match “${escapeHTML(String($('liveRankingSearch')?.value || '').trim())}”. Try another name.</span></div>`;
+      return;
+    }
+
     const medals = ['🥇', '🥈', '🥉'];
-    list.innerHTML = ranking.map((p, i) => {
+    list.innerHTML = filteredRanking.map(({ player: p, rank }) => {
       const name = String(p.name || 'Player');
       const nickname = String(p.nickname || '').trim();
       const displayName = nickname && nickname.toLowerCase() !== name.trim().toLowerCase()
         ? `${name} (${nickname})` : name;
-      const position = i < 3 ? medals[i] : `#${Number(p.position) || i + 1}`;
+      const position = rank >= 1 && rank <= 3 ? medals[rank - 1] : `#${rank}`;
+      const genderClass = playerGenderClass(p);
+      const genderLabel = genderClass === 'female' ? 'Female' : 'Male';
       const category = String(p.category || '').trim().toUpperCase();
       const categoryClass = ({ BEG: 'skill-beg', NOV: 'skill-nov', INT: 'skill-int', ADV: 'skill-adv', EXP: 'skill-exp' })[category] || '';
       const winRate = Math.max(0, Math.min(100, Number(p.winRate) || 0));
-      return `<article class="live-ranking-row">
-        <div class="live-ranking-position" aria-label="Rank ${Number(p.position) || i + 1}">${position}</div>
+      const rankClass = rank >= 1 && rank <= 3 ? ` rank-${rank}` : '';
+      return `<article class="live-ranking-row${rankClass}">
+        <div class="live-ranking-position" aria-label="Rank ${rank}">${position}</div>
         <div class="live-ranking-main">
-          <div class="live-ranking-name-line"><strong>${escapeHTML(displayName)}</strong>${category ? `<span class="live-ranking-category ${categoryClass}">${escapeHTML(category)}</span>` : ''}${p.playing ? '<span class="live-ranking-playing">Playing</span>' : ''}</div>
+          <div class="live-ranking-name-line"><strong>${highlightSearchMatch(displayName, searchTerm)}</strong><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span>${category ? `<span class="live-ranking-category ${categoryClass}">${escapeHTML(category)}</span>` : ''}${p.playing ? '<span class="live-ranking-playing">Playing</span>' : ''}</div>
           <div class="live-ranking-stats"><span>${Number(p.wins) || 0}W - ${Number(p.losses) || 0}L</span><span>${Number(p.matches) || 0} match${Number(p.matches) === 1 ? '' : 'es'}</span></div>
           <div class="live-ranking-progress" aria-label="Win rate ${winRate}%"><span style="width:${winRate}%"></span></div>
         </div>
@@ -157,12 +189,15 @@
   }
 
   function syncLiveRankingAvailability() {
-    const enabled = currentState?.liveRankingEnabled !== false;
+    // Show Live Standing only during an active session and when the organizer has enabled it.
+    const enabled = !!currentState?.active && currentState?.liveRankingEnabled !== false;
     const toggle = $('liveRankingToggle');
     const modal = $('liveRankingModal');
     if (toggle) toggle.hidden = !enabled;
     if (!enabled && modal && !modal.hidden) {
       modal.hidden = true;
+      const subtitle = $('liveRankingSubtitle');
+      if (subtitle) subtitle.open = false;
       toggle?.setAttribute('aria-expanded', 'false');
       document.body.classList.remove('live-ranking-open');
     }
@@ -181,6 +216,9 @@
       $('liveRankingClose')?.focus();
       document.body.classList.add('live-ranking-open');
     } else {
+      // Always collapse the ranking explanation when the modal closes.
+      const subtitle = $('liveRankingSubtitle');
+      if (subtitle) subtitle.open = false;
       document.body.classList.remove('live-ranking-open');
       toggle.focus();
     }
@@ -191,7 +229,8 @@
     syncLiveRankingAvailability();
     renderLiveRanking();
     const active = !!s?.active;
-    $('sessionTitle').textContent = s?.sessionName || 'Pickle Point Match';
+    // Never show a stale dated session title when there is no active session.
+    $('sessionTitle').textContent = active ? (s?.sessionName || 'Open Play') : 'Open Play';
     $('inactiveNotice').hidden = active;
     $('queueSectionCount').textContent = `(${s?.queue?.length || 0})`;
     $('lastUpdated').textContent = s?.updatedAt
@@ -371,6 +410,11 @@
     }
   });
 
+  // Keep the ranking explanation collapsed by default and whenever the modal closes.
+  const liveRankingSubtitle = $('liveRankingSubtitle');
+  if (liveRankingSubtitle) liveRankingSubtitle.open = false;
+
+  $('liveRankingSearch')?.addEventListener('input', renderLiveRanking);
   $('liveRankingToggle')?.addEventListener('click', () => setLiveRankingOpen(true));
   $('liveRankingClose')?.addEventListener('click', () => setLiveRankingOpen(false));
   $('liveRankingModal')?.querySelectorAll('[data-close-live-ranking]').forEach(el => {
@@ -384,7 +428,18 @@
   loadRemoteTheme();
 
   const boot = localSnapshot();
-  if (boot) { currentState = boot; render(); }
+  if (boot) {
+    currentState = boot;
+    render();
+  } else {
+    // Render the inactive-queue notice immediately while the first shared-state
+    // request is loading, or if the server cannot be reached on a fresh device.
+    currentState = {
+      sessionName: 'Pickle Point Match', active: false, updatedAt: null,
+      queue: [], courts: [], ranking: [], courtCount: 0, waitingCourtCount: 0
+    };
+    render();
+  }
   connectServer();
   // Polling is a recovery path if a proxy, sleeping host, or network issue
   // interrupts Server-Sent Events. The stream still delivers normal updates

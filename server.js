@@ -178,6 +178,7 @@ async function handle(req, res) {
           id:p?.id==null?null:String(p.id).slice(0,100),
           name:String(p?.name||'Player').slice(0,120),
           nickname:String(p?.nickname||'').slice(0,80),
+          gender:String(p?.gender||'').slice(0,20),
           category:String(p?.category||'').slice(0,10),
           matches:Math.max(0,Number(p?.matches)||0),
           wins:Math.max(0,Number(p?.wins)||0),
