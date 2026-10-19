@@ -17,10 +17,10 @@ For anywhere access, deploy the app to a public HTTPS URL first. The QR Share fe
 DEPLOY ONLINE (RENDER EXAMPLE)
 ------------------------------
 1. Extract this ZIP. Open the “PICKLEBALL QUEUEING SYSTEM” folder.
-2. Create a GitHub repository and upload the CONTENTS of this folder (including render.yaml, package.json, server.js, index.html, script.js, CSS and image files).
+2. Create a GitHub repository and upload the CONTENTS of this folder (including render.yaml, package.json, server.js, index.html, queueing.html, start-page.js, queueing-app-loader.js, script.js, CSS and image files).
 3. Sign in to Render and choose New > Blueprint, then connect the GitHub repository containing render.yaml.
 4. Deploy the service. Render will assign a public URL similar to https://your-service-name.onrender.com.
-5. Open that HTTPS URL on the organizer computer and use the Pickle Point Match admin normally.
+5. Open that HTTPS URL on the organizer computer. The root URL opens the Start Screen (`index.html`); creating or continuing a session opens the separate Queueing workspace (`queueing.html`).
 6. Create or continue a live queue. Click “QR Share” in the topbar and show/print the QR for players.
 7. Scan the QR with a phone using mobile data or Wi-Fi. It should open https://your-service-name.onrender.com/live.html.
 8. Keep the organizer page open and connected to the same deployed service during the session so updates keep being published.

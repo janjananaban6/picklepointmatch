@@ -17199,6 +17199,11 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
   opacity: .62 !important;
   cursor: not-allowed !important;
 }
+
+/* Keep win-only footer button text aligned with ready-actions-v2. */
+#courtsList .court-card.court-live-card .live-footer.win-only-footer button {
+  font-size: 10px !important;
+}
 #courtsList .court-card.court-live-card .live-footer:not(.win-only-footer).delete-confirming,
 #courtsList .court-card.court-live-card .live-footer:not(.win-only-footer).submit-confirming {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr) !important;
@@ -17530,7 +17535,7 @@ html body #leftPlayersModal .left-players-head #leftPopupCount {
 html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override),
 body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override),
 html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override) {
-  scrollbar-color: #287f83 transparent !important;
+  scrollbar-color: #d1d5db transparent !important;
   scrollbar-width: thin !important;
 }
 
@@ -17552,7 +17557,7 @@ html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollba
 body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb,
 html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb {
   min-height: 36px !important;
-  background: #287f83 !important;
+  background: #d1d5db !important;
   border: 2px solid transparent !important;
   background-clip: padding-box !important;
   border-radius: 999px !important;
@@ -17561,7 +17566,7 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
 html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb:hover,
 body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb:hover,
 html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb:hover {
-  background: #27d3c5 !important;
+  background: #c4c9d1 !important;
   background-clip: padding-box !important;
 }
 
@@ -18602,4 +18607,745 @@ html body #queueMainArea #registeredPlayerSearch:focus-visible {
   border-color: #27bdb1 !important;
   box-shadow: 0 0 0 3px rgba(39, 189, 177, .15) !important;
   background: #fff !important;
+}
+
+
+/* Disable event-rule controls whenever match scores are not being recorded. */
+.topbar .event-rule-btn:disabled{
+  opacity:.45!important;
+  cursor:not-allowed!important;
+}
+
+/* Disabled event-rule buttons must not react visually to hover, focus, or active states. */
+html body .topbar .event-stats .event-rule-btn:disabled,
+html body .topbar .event-stats .event-rule-btn:disabled:hover,
+html body .topbar .event-stats .event-rule-btn:disabled:focus,
+html body .topbar .event-stats .event-rule-btn:disabled:focus-visible,
+html body .topbar .event-stats .event-rule-btn:disabled:active {
+  color:#27d3c5!important;
+  background:transparent!important;
+  border-color:transparent!important;
+  text-decoration:none!important;
+  box-shadow:none!important;
+  filter:none!important;
+  outline:none!important;
+  transform:none!important;
+  translate:none!important;
+  animation:none!important;
+  transition:none!important;
+}
+
+
+/* Minor UI polish (2026-10-19): keep history swap controls visually transparent. */
+html body .history-swap-btn,
+html body .history-swap-btn:hover,
+html body .history-swap-btn:focus,
+html body .history-swap-btn:focus-visible,
+html body .history-swap-btn:active,
+html body .history-card-win-only .history-result-labels .history-swap-btn,
+html body .history-card-win-only .history-result-labels .history-swap-btn:hover,
+html body .history-card-win-only .history-result-labels .history-swap-btn:focus-visible,
+html body .history-card-win-only .history-result-labels .history-swap-btn:active,
+html body #historyDetailModal .modal-box.history-detail-box .detail-vs .detail-history-swap-btn,
+html body #historyDetailModal .modal-box.history-detail-box .detail-vs .detail-history-swap-btn:hover,
+html body #historyDetailModal .modal-box.history-detail-box .detail-vs .detail-history-swap-btn:focus,
+html body #historyDetailModal .modal-box.history-detail-box .detail-vs .detail-history-swap-btn:focus-visible,
+html body #historyDetailModal .modal-box.history-detail-box .detail-vs .detail-history-swap-btn:active {
+  background: transparent !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Reduce gender symbols consistently across the Index app without changing control sizes. */
+html body svg.gender-symbol {
+  width: 10px !important;
+  height: 10px !important;
+  min-width: 10px !important;
+  max-width: 10px !important;
+  flex: 0 0 10px !important;
+}
+html body .gender-choice svg.gender-symbol,
+html body .registration-area .registration-gender-control .gender-choice svg.gender-symbol {
+  width: 14px !important;
+  height: 14px !important;
+  min-width: 14px !important;
+  max-width: 14px !important;
+  flex: 0 0 14px !important;
+}
+html body .registered-result small svg.gender-symbol,
+html body .court-picker .picker-filter svg.gender-symbol {
+  display: inline-block !important;
+  width: 10px !important;
+  height: 10px !important;
+  min-width: 10px !important;
+  max-width: 10px !important;
+  flex: 0 0 10px !important;
+  margin: 0 2px 0 0 !important;
+  vertical-align: -1px !important;
+}
+html body #queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline svg.gender-symbol {
+  display: block !important;
+  width: 10px !important;
+  height: 10px !important;
+  min-width: 10px !important;
+  max-width: 10px !important;
+  flex: 0 0 10px !important;
+}
+
+
+/* V47 — Apply the bordered player-row treatment to History only; keep Court Players styling intact. */
+
+/* History details: clean, borderless list container with teal-outlined player rows. */
+html body #historyDetailModal .modal-box.history-detail-box .detail-players {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-top: 11px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players h4 {
+  margin: 0 0 6px !important;
+  color: #087d79 !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  letter-spacing: .35px !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row {
+  display: grid !important;
+  grid-template-columns: 7px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 7px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-top: 4px !important;
+  padding: 7px !important;
+  color: #24484d !important;
+  border: 1px solid #d6e6e8 !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  transform: none !important;
+  translate: none !important;
+  transition: none !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row .dot {
+  width: 7px !important;
+  height: 7px !important;
+  min-width: 7px !important;
+  flex: 0 0 7px !important;
+  border-radius: 50% !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row.team-one-dot .dot {
+  background: #27bdb1 !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row.team-two-dot .dot {
+  background: #7b9ba1 !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row .detail-player-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row b {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  text-align: left !important;
+  color: #183b40 !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row small {
+  margin-left: 0 !important;
+  color: #60777b !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+  font-size: 8px !important;
+}
+
+/* Court Players: preserve its original neutral rows and team-colored dots. */
+html body #courtPlayersModal .modal-box.court-players-modal-box .court-lineup-detail-players {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-top: 11px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html body #courtPlayersModal .modal-box.court-players-modal-box .court-lineup-detail-players h4 {
+  margin: 0 0 6px !important;
+  color: #8d98a4 !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  letter-spacing: .35px !important;
+}
+html body #courtPlayersModal .modal-box.court-players-modal-box .court-lineup-detail-players .detail-player-row {
+  display: grid !important;
+  grid-template-columns: 7px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 7px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-top: 4px !important;
+  padding: 7px !important;
+  color: #283746 !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: #f8f9fa !important;
+  box-shadow: none !important;
+  transform: none !important;
+  translate: none !important;
+  transition: none !important;
+}
+html body #courtPlayersModal .modal-box.court-players-modal-box .court-lineup-detail-players .detail-player-row .dot {
+  width: 7px !important;
+  height: 7px !important;
+  min-width: 7px !important;
+  flex: 0 0 7px !important;
+  border-radius: 50% !important;
+}
+html body #courtPlayersModal .modal-box.court-players-modal-box .court-lineup-detail-players .detail-player-row.team-one-dot .dot {
+  background: #6ba4df !important;
+}
+html body #courtPlayersModal .modal-box.court-players-modal-box .court-lineup-detail-players .detail-player-row.team-two-dot .dot {
+  background: #9a7ae0 !important;
+}
+html body #courtPlayersModal .modal-box.court-players-modal-box .court-lineup-detail-players .detail-player-row .detail-player-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+html body #courtPlayersModal .modal-box.court-players-modal-box .court-lineup-detail-players .detail-player-row b {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  text-align: left !important;
+  color: #283746 !important;
+}
+html body #courtPlayersModal .modal-box.court-players-modal-box .court-lineup-detail-players .detail-player-row small {
+  margin-left: 0 !important;
+  color: #9aa3ad !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+  font-size: 8px !important;
+}
+@media (max-width: 560px) {
+  html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row,
+  html body #courtPlayersModal .modal-box.court-players-modal-box .court-lineup-detail-players .detail-player-row {
+    gap: 5px !important;
+    padding: 6px !important;
+  }
+  html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row .detail-player-info,
+  html body #courtPlayersModal .modal-box.court-players-modal-box .court-lineup-detail-players .detail-player-row .detail-player-info {
+    gap: 4px !important;
+  }
+}
+
+
+/* V49 — Match History detail-players: screenshot styling with row height matched to Court Players. */
+html body #historyDetailModal .modal-box.history-detail-box .detail-players {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-top: 11px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players h4 {
+  margin: 0 0 6px !important;
+  color: #8d98a4 !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  letter-spacing: .35px !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row {
+  display: grid !important;
+  grid-template-columns: 7px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 7px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-top: 4px !important;
+  padding: 7px !important;
+  color: #283746 !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: #f8f9fa !important;
+  box-shadow: none !important;
+  transform: none !important;
+  translate: none !important;
+  transition: none !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row .dot {
+  width: 7px !important;
+  height: 7px !important;
+  min-width: 7px !important;
+  flex: 0 0 7px !important;
+  border-radius: 50% !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row.team-one-dot .dot {
+  background: #6ba4df !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row.team-two-dot .dot {
+  background: #9a7ae0 !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row .detail-player-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row b {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  text-align: left !important;
+  color: #283746 !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row small {
+  margin-left: 0 !important;
+  color: #9aa3ad !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+  font-size: 8px !important;
+}
+@media (max-width: 560px) {
+  html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row {
+    gap: 5px !important;
+    padding: 6px !important;
+  }
+  html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row .detail-player-info {
+    gap: 4px !important;
+  }
+}
+
+
+/* Browser-style highlight for matching names across every index-page search. */
+.search-match-highlight,
+#historyView .history-search-highlight {
+  background: #ffe66b !important;
+  color: #202b36 !important;
+  border-radius: 2px;
+  padding: 0 1px;
+  font-weight: 700;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* COURT LINEUP STATUS — mirror the main court status badges without changing layout. */
+html body #courtPlayersModal .court-lineup-count.playing {
+  color: #08764e !important;
+  background: #dff6ed !important;
+  border-color: #b7e9d4 !important;
+}
+html body #courtPlayersModal .court-lineup-count.playing b {
+  color: #08764e !important;
+}
+html body #courtPlayersModal .court-lineup-count.playing .court-lineup-dot {
+  background: #08764e !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+html body #courtPlayersModal .court-lineup-count.ready {
+  color: #176a9f !important;
+  background: #e3f2fb !important;
+  border-color: #cbe5f5 !important;
+}
+html body #courtPlayersModal .court-lineup-count.ready b {
+  color: #176a9f !important;
+}
+html body #courtPlayersModal .court-lineup-count.ready .court-lineup-dot {
+  background: #176a9f !important;
+  box-shadow: 0 0 0 2px #d4eaf8 !important;
+  animation: none !important;
+}
+html body #courtPlayersModal .court-lineup-count.waiting {
+  color: #00a99d !important;
+  background: #e5f7f6 !important;
+  border-color: #8adfd5 !important;
+}
+html body #courtPlayersModal .court-lineup-count.waiting b {
+  color: #00a99d !important;
+}
+html body #courtPlayersModal .court-lineup-count.waiting .court-lineup-dot {
+  background: #00a99d !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+/* FINAL TARGETED SYNC — Court Players modal category badges match Cloud Category Badge styling.
+   Scope is limited to category pills inside courtPlayersModal; other modal badges remain unchanged. */
+html body #courtPlayersModal .court-players-modal-body .court-lineup-category,
+html body #courtPlayersModal .court-players-modal-body .mini-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  min-width: 25px !important;
+  padding: 2px 5px !important;
+  border: 1px solid #dfe5e9 !important;
+  border-radius: 6px !important;
+  font-size: 7px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  letter-spacing: .1px !important;
+  background: #f8f9fa !important;
+  color: #a0aec0 !important;
+  box-sizing: border-box !important;
+}
+html body #courtPlayersModal .court-players-modal-body .court-lineup-category.skill-beg,
+html body #courtPlayersModal .court-players-modal-body .mini-badge.skill-beg {
+  background: #e8f3ff !important; border-color: #bce0fd !important; color: #2b6cb0 !important;
+}
+html body #courtPlayersModal .court-players-modal-body .court-lineup-category.skill-nov,
+html body #courtPlayersModal .court-players-modal-body .mini-badge.skill-nov {
+  background: #e0f8f3 !important; border-color: #a2f0df !important; color: #227a68 !important;
+}
+html body #courtPlayersModal .court-players-modal-body .court-lineup-category.skill-int,
+html body #courtPlayersModal .court-players-modal-body .mini-badge.skill-int {
+  background: #fff6d6 !important; border-color: #fce38a !important; color: #9a6700 !important;
+}
+html body #courtPlayersModal .court-players-modal-body .court-lineup-category.skill-adv,
+html body #courtPlayersModal .court-players-modal-body .mini-badge.skill-adv {
+  background: #f1eaff !important; border-color: #d9c9f5 !important; color: #7250ad !important;
+}
+html body #courtPlayersModal .court-players-modal-body .court-lineup-category.skill-exp,
+html body #courtPlayersModal .court-players-modal-body .mini-badge.skill-exp {
+  background: #ffecef !important; border-color: #f2c8cd !important; color: #c43d4b !important;
+}
+
+
+
+/* FINAL SYNC — Match the Expanded Ranking List Playing badge to the tablet Results panel badge. */
+html body #podiumExpandModal .expanded-ranking-list .ranking-name-line .playing-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  padding: 3px 7px !important;
+  font-size: 8px !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  background: transparent !important;
+  color: #08764e !important;
+  white-space: nowrap !important;
+  flex: 0 0 auto !important;
+  box-shadow: none !important;
+  align-self: center !important;
+  margin-left: 0 !important;
+  vertical-align: middle !important;
+}
+html body #podiumExpandModal .expanded-ranking-list .ranking-name-line .playing-badge::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 3px !important;
+  height: 3px !important;
+  min-width: 3px !important;
+  min-height: 3px !important;
+  flex: 0 0 3px !important;
+  margin: 0 !important;
+  border-radius: 50% !important;
+  background: #08764e !important;
+  box-shadow: none !important;
+}
+
+
+/* MOBILE REPAIR — normalize the Tablet Results dialog/header after prior tablet-specific overrides.
+   Only phone widths are affected; tablet and desktop layouts remain unchanged. */
+@media (max-width: 767px) {
+  html body #tabletResultsModal.tablet-results-modal.is-open {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 10px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    z-index: 2147483000 !important;
+    isolation: isolate !important;
+  }
+  html body #tabletResultsModal .tablet-results-backdrop {
+    position: absolute !important;
+    inset: 0 !important;
+    background: rgba(5, 18, 24, .62) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  html body #tabletResultsModal .tablet-results-dialog {
+    position: relative !important;
+    z-index: 1 !important;
+    display: flex !important;
+    flex: 0 1 auto !important;
+    flex-direction: column !important;
+    width: min(560px, calc(100vw - 20px)) !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 20px) !important;
+    height: min(86dvh, 680px) !important;
+    min-height: min(300px, calc(100dvh - 20px)) !important;
+    max-height: calc(100dvh - 20px) !important;
+    margin: auto !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    border: 1px solid #e1e7ec !important;
+    border-radius: 14px !important;
+    background: #fff !important;
+    box-shadow: 0 18px 55px rgba(0, 0, 0, .24) !important;
+  }
+  html body #tabletResultsModal .tablet-results-modal-header {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    padding: 10px 12px !important;
+    box-sizing: border-box !important;
+    border: 0 !important;
+    border-bottom: 1px solid #e6ebf0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+  html body #tabletResultsModal .tablet-results-modal-header strong {
+    display: block !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    color: #263443 !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+    line-height: 1.25 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  html body #tabletResultsModal .tablet-results-modal-header #tabletResultsCloseBtn {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    min-width: 48px !important;
+    max-width: none !important;
+    height: 29px !important;
+    min-height: 29px !important;
+    margin: 0 !important;
+    padding: 0 9px !important;
+    border: 1px solid #d93025 !important;
+    border-radius: 7px !important;
+    background: #fff !important;
+    color: #d93025 !important;
+    font-family: inherit !important;
+    font-size: 10px !important;
+    font-weight: 750 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    box-shadow: none !important;
+    text-transform: none !important;
+  }
+  html body #tabletResultsModal .tablet-results-modal-header #tabletResultsCloseBtn:hover,
+  html body #tabletResultsModal .tablet-results-modal-header #tabletResultsCloseBtn:focus-visible {
+    background: #fff5f5 !important;
+    color: #b42318 !important;
+    border-color: #b42318 !important;
+    outline: 2px solid rgba(217, 48, 37, .15) !important;
+    outline-offset: 1px !important;
+  }
+  html body #tabletResultsModal #tabletResultsModalBody {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+  html body #tabletResultsModal #tabletResultsModalBody > .results-panel {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  html body #tabletResultsModal .results-panel > .tabs {
+    display: grid !important;
+    flex: 0 0 auto !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+  html body #tabletResultsModal .results-panel > .tabs .tab {
+    min-width: 0 !important;
+    min-height: 42px !important;
+    padding: 10px 4px !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+  }
+  html body #tabletResultsModal #rankingView:not(.hidden),
+  html body #tabletResultsModal #historyView:not(.hidden) {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+  html body #tabletResultsModal #rankingView #rankingTable,
+  html body #tabletResultsModal #historyView #historyTable {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  html body #tabletResultsModal #rankingView #podiumList {
+    flex: 0 0 auto !important;
+    max-height: 36% !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+}
+
+
+/* Live Ranking organizer switch — scoped to the Share Live View actions. */
+.live-view-qr-actions {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+}
+.live-view-qr-actions > #liveViewThemeToggle,
+.live-view-qr-actions > #liveRankingAdminToggle,
+.live-view-qr-actions > #liveViewQrCopyBtn,
+.live-view-qr-actions > #liveViewQrOpenPageBtn {
+  width: 100% !important;
+  justify-self: stretch !important;
+}
+.live-view-qr-actions > #liveViewThemeToggle { grid-column: 1; grid-row: 1; }
+.live-view-qr-actions > #liveRankingAdminToggle { grid-column: 2; grid-row: 1; }
+.live-view-qr-actions > #liveViewQrCopyBtn { grid-column: 1; grid-row: 2; }
+.live-view-qr-actions > #liveViewQrOpenPageBtn { grid-column: 2; grid-row: 2; }
+.live-view-qr-actions > #liveRankingAdminToggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  height: 33px !important;
+  min-height: 33px !important;
+  padding: 4px 9px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #a9dcd6 !important;
+  border-radius: 9px !important;
+  background: linear-gradient(180deg, #f2fbf9 0%, #e4f5f2 100%) !important;
+  color: #15565a !important;
+  box-shadow: 0 2px 5px rgba(7, 62, 72, 0.08) !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  cursor: pointer;
+}
+.live-view-qr-actions > #liveRankingAdminToggle.is-disabled {
+  border-color: #d5dfe2 !important;
+  background: linear-gradient(180deg, #f7f9fa 0%, #ebeff1 100%) !important;
+  color: #64777d !important;
+}
+.live-ranking-admin-switch {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 29px;
+  width: 29px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid #087e81;
+  border-radius: 99px;
+  background: #0c918c;
+  transition: background .16s ease, border-color .16s ease;
+}
+.live-ranking-admin-switch-thumb {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  transition: right .16s ease;
+}
+#liveRankingAdminToggle.is-disabled .live-ranking-admin-switch {
+  border-color: #9baab0;
+  background: #c4cfd3;
+}
+#liveRankingAdminToggle.is-disabled .live-ranking-admin-switch-thumb {
+  right: 15px;
+  background: #fff;
+}
+.live-view-qr-actions > #liveRankingAdminToggle:focus-visible {
+  outline: 2px solid #27d3c5 !important;
+  outline-offset: 2px !important;
+}
+@media (max-width: 390px) {
+  .live-view-qr-actions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+  .live-view-qr-actions > #liveViewQrOpenPageBtn {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    justify-self: stretch !important;
+    width: 100% !important;
+  }
+  .live-view-qr-actions > #liveRankingAdminToggle { padding: 4px 5px !important; gap: 5px !important; }
+  .live-view-qr-actions > #liveRankingAdminToggle .live-ranking-admin-label { font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-ranking-admin-switch, .live-ranking-admin-switch-thumb { transition: none !important; }
 }

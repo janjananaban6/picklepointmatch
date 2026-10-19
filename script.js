@@ -29,6 +29,7 @@ const CLOUD_RECORDS_SAVED_AT_KEY='pickleq_registered_cloud_records_saved_at';
 const CLOUD_RECORDS_PENDING_SYNC_KEY='pickleq_registered_cloud_records_pending_sync';
 const LIVE_VIEW_STORAGE_KEY='picklepoint_live_view_state_v1';
 const LIVE_VIEW_THEME_STORAGE_KEY='picklepoint_live_view_theme_v1';
+const LIVE_RANKING_ENABLED_KEY='picklepoint_live_ranking_enabled_v1';
 const RESULTS_TAB_STORAGE_KEY='picklepoint_results_tab_v1';
 let liveViewBroadcastChannel=null;
 let liveViewPublishInFlight=false;
@@ -178,7 +179,7 @@ function archiveLiveSession(){
   cloudRecords.sessions.push({id:sid,endedAt:new Date().toISOString(),playerCount:state.players.length+state.left.length,matchCount:logs.length,sessionName:state.sessionName||''});
   saveCloudRecords();
 }
-function renderCloudRecords(){const previouslyOpenCloudLogs=new Set([...document.querySelectorAll('#cloudRecordsContent .cloud-match-details[open]')].map(d=>Number(d.dataset.cloudPlayerId)));ensureCloudMatchIds();loadCloudRecords();enforceSingleCloudMatchLogOpen();const count=$('cloudRecordsCount');if(count)count.textContent=`(${cloudRecords.players.length})`;const q=($('cloudRecordsSearch').value||'').trim().toLowerCase();const players=cloudRecords.players.filter(p=>[p.name,p.nickname,p.gender,p.category,p.opgId].join(' ').toLowerCase().includes(q));const sessionNames={};cloudRecords.sessions.forEach(s=>{if(s&&s.id)sessionNames[s.id]=s.sessionName||'';});$('cloudRecordsSummary').innerHTML=`<span>👤 <b>${cloudRecords.players.length}</b> registered</span><span>🏓 <b>${cloudRecords.logs.length}</b> match record${cloudRecords.logs.length===1?'':'s'}</span><span>☁ <b>${cloudRecords.sessions.length}</b> archived session${cloudRecords.sessions.length===1?'':'s'}</span>`;$('cloudRecordsContent').innerHTML=players.map((p,index)=>{const logs=cloudRecords.logs.filter(l=>{if((l._cloudDeletedFor||[]).some(id=>Number(id)===Number(p.cloudId)))return false;return [...(l.team1Names||[]),...(l.team2Names||[])].some(n=>n.toLowerCase()===p.name.toLowerCase());});const cat=({BEG:'BEG',NOV:'NOV',INT:'INT',ADV:'ADV',EXP:'EXP'})[p.category]||p.category||'—';const cls=({BEG:'beg',NOV:'nov',INT:'int',ADV:'adv',EXP:'exp'})[p.category]||'nov';const active=state.players.find(sp=>String(sp.name||'').trim().toLowerCase()===String(p.name||'').trim().toLowerCase()&&(state.queue.includes(sp.id)||!!sp.court||(state.courts||[]).some(c=>(c.players||[]).includes(sp.id))));const alreadyQueued=!!active;const hasPendingMatch=Number(pendingCloudMatchDeleteId)>0&&Number(pendingCloudMatchPlayerId)===Number(p.cloudId)&&logs.some(l=>Number(l._cloudMatchId||0)===Number(pendingCloudMatchDeleteId));const keepMatchLogOpen=hasPendingMatch||Number(pendingCloudMatchEditPlayerId)===Number(p.cloudId);return `<article class="cloud-player-card"><div class="cloud-player-main"><div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${esc((p.name||'?').charAt(0).toUpperCase())}</div><div class="cloud-player-ident"><b>${esc(p.name)}${p.nickname?` (${esc(p.nickname)})`:''} <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b><small class="cloud-player-summary"><span class="cloud-category-badge skill-${cls}">${esc(cat)}</span><span class="cloud-player-stats"><span>${p.matches||0} Matches</span><span class="cloud-win">${p.wins||0} Wins</span><span class="cloud-loss">${p.losses||0} Losses</span></span></small></div><div class="cloud-player-actions"><button class="cloud-checkin-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Player is already checked in or playing on court"':''} onclick="checkInCloudPlayer(${Number(p.cloudId)})">${alreadyQueued?'Checked In':'Check in'}</button>${Number(pendingCloudDeleteId)===Number(p.cloudId)?'':`<button class="cloud-delete-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Cannot delete a checked-in player"':''} onclick="requestDeleteCloudPlayer(${Number(p.cloudId)})">Delete</button>`}</div></div>${Number(pendingCloudDeleteId)===Number(p.cloudId)?`<div class="cloud-delete-warning">Delete this registered profile? Match history will be kept. <button onclick="deleteCloudPlayer(${Number(p.cloudId)})">Confirm</button> <button onclick="cancelDeleteCloudPlayer()">Cancel</button></div>`:''}<details class="cloud-match-details" data-cloud-player-id="${Number(p.cloudId)}"${(keepMatchLogOpen||previouslyOpenCloudLogs.has(Number(p.cloudId)))?' open':''}><summary><span class="cloud-match-details-label">Match Log (${logs.length})</span></summary>${logs.slice().reverse().map((l,matchIndex)=>{const mid=Number(l._cloudMatchId||0),pendingMatch=Number(pendingCloudMatchDeleteId)===mid&&Number(pendingCloudMatchPlayerId)===Number(p.cloudId),pendingEdit=Number(pendingCloudMatchEditId)===mid&&Number(pendingCloudMatchEditPlayerId)===Number(p.cloudId),deleteDisabled=pendingMatch||pendingEdit,editDisabled=pendingMatch||pendingEdit;return `<div class="cloud-match-row"><button class="cloud-match-delete-icon${deleteDisabled?' is-disabled':''}" type="button" title="${pendingEdit?'Edit confirmation active':pendingMatch?'Delete confirmation active':'Delete match'}" aria-label="Delete match" ${deleteDisabled?'disabled aria-disabled="true"':''} onclick="event.stopPropagation();deleteCloudMatch(${Number(p.cloudId)},${mid})">🗑</button><b>${esc((l.team1Names||[]).join(' & '))} vs ${esc((l.team2Names||[]).join(' & '))}</b><span class="cloud-match-score"><button class="cloud-match-edit-icon${editDisabled?' is-disabled':''}" type="button" title="${pendingMatch?'Delete confirmation active':pendingEdit?'Edit confirmation active':'Edit score'}" aria-label="Edit score" ${editDisabled?'disabled aria-disabled="true"':''} onclick="event.stopPropagation();editCloudMatch(${Number(p.cloudId)},${mid})">✎</button>${l.recordingMode==='win-only'?'WIN / LOSS':esc(l.score||'--')}</span><small>${esc(l.court||'Court')} · ${esc(l.duration||'--')} · ${l.endedAt?new Date(l.endedAt).toLocaleString():''}${(l.sessionName||sessionNames[l.sessionId])?` · ${esc(l.sessionName||sessionNames[l.sessionId])}`:''}</small>${pendingMatch?`<div class="cloud-match-delete-warning">Delete this match records? <span>Team 1 · <b>${esc((l.team1Names||[]).join(' & ')||'Team 1')}</b> VS Team 2 · <b>${esc((l.team2Names||[]).join(' & ')||'Team 2')}</b></span> <button onclick="confirmDeleteCloudMatch()">Confirm</button> <button class="cloud-match-cancel-confirm" onclick="cancelDeleteCloudMatch()">Cancel</button></div>`:''}${pendingEdit?`<div class="cloud-match-edit-warning"><span>Edit match score?</span><label>Team 1 · <input id="cloudEditScore1-${mid}" type="number" min=0 step=1 inputmode="numeric" value="${esc(String(l.score||'0-0').split('-')[0]||'0')}"></label><label>Team 2 · <input id="cloudEditScore2-${mid}" type="number" min=0 step=1 inputmode="numeric" value="${esc(String(l.score||'0-0').split('-')[1]||'0')}"></label><button class="cloud-match-edit-confirm" onclick="confirmEditCloudMatch()">OK</button><button class="cloud-match-cancel-confirm" onclick="cancelEditCloudMatch()">Cancel</button></div>`:''}</div>`}).join('')||'<small>No match records yet.</small>'}</details></article>`}).join('')||'<div class="cloud-empty"><div class="cloud-empty-icon">🏓</div><div>No registered player records found.</div></div>';}
+function renderCloudRecords(){const previouslyOpenCloudLogs=new Set([...document.querySelectorAll('#cloudRecordsContent .cloud-match-details[open]')].map(d=>Number(d.dataset.cloudPlayerId)));ensureCloudMatchIds();loadCloudRecords();enforceSingleCloudMatchLogOpen();const count=$('cloudRecordsCount');if(count)count.textContent=`(${cloudRecords.players.length})`;const q=($('cloudRecordsSearch').value||'').trim().toLowerCase();const players=cloudRecords.players.filter(p=>[p.name,p.nickname,p.gender,p.category,p.opgId].join(' ').toLowerCase().includes(q));const sessionNames={};cloudRecords.sessions.forEach(s=>{if(s&&s.id)sessionNames[s.id]=s.sessionName||'';});$('cloudRecordsSummary').innerHTML=`<span>👤 <b>${cloudRecords.players.length}</b> registered</span><span>🏓 <b>${cloudRecords.logs.length}</b> match record${cloudRecords.logs.length===1?'':'s'}</span><span>☁ <b>${cloudRecords.sessions.length}</b> archived session${cloudRecords.sessions.length===1?'':'s'}</span>`;$('cloudRecordsContent').innerHTML=players.map((p,index)=>{const logs=cloudRecords.logs.filter(l=>{if((l._cloudDeletedFor||[]).some(id=>Number(id)===Number(p.cloudId)))return false;return [...(l.team1Names||[]),...(l.team2Names||[])].some(n=>n.toLowerCase()===p.name.toLowerCase());});const cat=({BEG:'BEG',NOV:'NOV',INT:'INT',ADV:'ADV',EXP:'EXP'})[p.category]||p.category||'—';const cls=({BEG:'beg',NOV:'nov',INT:'int',ADV:'adv',EXP:'exp'})[p.category]||'nov';const active=state.players.find(sp=>String(sp.name||'').trim().toLowerCase()===String(p.name||'').trim().toLowerCase()&&(state.queue.includes(sp.id)||!!sp.court||(state.courts||[]).some(c=>(c.players||[]).includes(sp.id))));const alreadyQueued=!!active;const hasPendingMatch=Number(pendingCloudMatchDeleteId)>0&&Number(pendingCloudMatchPlayerId)===Number(p.cloudId)&&logs.some(l=>Number(l._cloudMatchId||0)===Number(pendingCloudMatchDeleteId));const keepMatchLogOpen=hasPendingMatch||Number(pendingCloudMatchEditPlayerId)===Number(p.cloudId);return `<article class="cloud-player-card"><div class="cloud-player-main"><div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${esc((p.name||'?').charAt(0).toUpperCase())}</div><div class="cloud-player-ident"><b>${highlightSearchMatch(p.name,q)}${p.nickname?` (${highlightSearchMatch(p.nickname,q)})`:''} <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b><small class="cloud-player-summary"><span class="cloud-category-badge skill-${cls}">${esc(cat)}</span><span class="cloud-player-stats"><span>${p.matches||0} Matches</span><span class="cloud-win">${p.wins||0} Wins</span><span class="cloud-loss">${p.losses||0} Losses</span></span></small></div><div class="cloud-player-actions"><button class="cloud-checkin-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Player is already checked in or playing on court"':''} onclick="checkInCloudPlayer(${Number(p.cloudId)})">${alreadyQueued?'Checked In':'Check in'}</button>${Number(pendingCloudDeleteId)===Number(p.cloudId)?'':`<button class="cloud-delete-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Cannot delete a checked-in player"':''} onclick="requestDeleteCloudPlayer(${Number(p.cloudId)})">Delete</button>`}</div></div>${Number(pendingCloudDeleteId)===Number(p.cloudId)?`<div class="cloud-delete-warning">Delete this registered profile? Match history will be kept. <button onclick="deleteCloudPlayer(${Number(p.cloudId)})">Confirm</button> <button onclick="cancelDeleteCloudPlayer()">Cancel</button></div>`:''}<details class="cloud-match-details" data-cloud-player-id="${Number(p.cloudId)}"${(keepMatchLogOpen||previouslyOpenCloudLogs.has(Number(p.cloudId)))?' open':''}><summary><span class="cloud-match-details-label">Match Log (${logs.length})</span></summary>${logs.slice().reverse().map((l,matchIndex)=>{const mid=Number(l._cloudMatchId||0),pendingMatch=Number(pendingCloudMatchDeleteId)===mid&&Number(pendingCloudMatchPlayerId)===Number(p.cloudId),pendingEdit=Number(pendingCloudMatchEditId)===mid&&Number(pendingCloudMatchEditPlayerId)===Number(p.cloudId),deleteDisabled=pendingMatch||pendingEdit,editDisabled=pendingMatch||pendingEdit;return `<div class="cloud-match-row"><button class="cloud-match-delete-icon${deleteDisabled?' is-disabled':''}" type="button" title="${pendingEdit?'Edit confirmation active':pendingMatch?'Delete confirmation active':'Delete match'}" aria-label="Delete match" ${deleteDisabled?'disabled aria-disabled="true"':''} onclick="event.stopPropagation();deleteCloudMatch(${Number(p.cloudId)},${mid})">🗑</button><b>${highlightSearchMatch((l.team1Names||[]).join(' & '),q)} vs ${highlightSearchMatch((l.team2Names||[]).join(' & '),q)}</b><span class="cloud-match-score"><button class="cloud-match-edit-icon${editDisabled?' is-disabled':''}" type="button" title="${pendingMatch?'Delete confirmation active':pendingEdit?'Edit confirmation active':'Edit score'}" aria-label="Edit score" ${editDisabled?'disabled aria-disabled="true"':''} onclick="event.stopPropagation();editCloudMatch(${Number(p.cloudId)},${mid})">✎</button>${l.recordingMode==='win-only'?'WIN / LOSS':esc(l.score||'--')}</span><small>${esc(l.court||'Court')} · ${esc(l.duration||'--')} · ${l.endedAt?new Date(l.endedAt).toLocaleString():''}${(l.sessionName||sessionNames[l.sessionId])?` · ${esc(l.sessionName||sessionNames[l.sessionId])}`:''}</small>${pendingMatch?`<div class="cloud-match-delete-warning">Delete this match records? <span>Team 1 · <b>${esc((l.team1Names||[]).join(' & ')||'Team 1')}</b> VS Team 2 · <b>${esc((l.team2Names||[]).join(' & ')||'Team 2')}</b></span> <button onclick="confirmDeleteCloudMatch()">Confirm</button> <button class="cloud-match-cancel-confirm" onclick="cancelDeleteCloudMatch()">Cancel</button></div>`:''}${pendingEdit?`<div class="cloud-match-edit-warning"><span>Edit match score?</span><label>Team 1 · <input id="cloudEditScore1-${mid}" type="number" min=0 step=1 inputmode="numeric" value="${esc(String(l.score||'0-0').split('-')[0]||'0')}"></label><label>Team 2 · <input id="cloudEditScore2-${mid}" type="number" min=0 step=1 inputmode="numeric" value="${esc(String(l.score||'0-0').split('-')[1]||'0')}"></label><button class="cloud-match-edit-confirm" onclick="confirmEditCloudMatch()">OK</button><button class="cloud-match-cancel-confirm" onclick="cancelEditCloudMatch()">Cancel</button></div>`:''}</div>`}).join('')||'<small>No match records yet.</small>'}</details></article>`}).join('')||'<div class="cloud-empty"><div class="cloud-empty-icon">🏓</div><div>No registered player records found.</div></div>';}
 function getCloudMatchId(log){return Number(log?._cloudMatchId)||0;}
 function ensureCloudMatchIds(){loadCloudRecords();let changed=false,seq=Date.now();cloudRecords.logs.forEach(l=>{if(!Number(l._cloudMatchId)){l._cloudMatchId=seq++;changed=true;}});if(changed)saveCloudRecords();return changed;}
 function findCloudMatch(matchId){loadCloudRecords();return cloudRecords.logs.find(l=>Number(l._cloudMatchId)===Number(matchId));}
@@ -334,6 +335,10 @@ function endSession(){
   // Keeping the page alive avoids cancelling the just-started sync request.
   saveState();
   publishLiveViewState(true);
+  if(document.body?.dataset.page==='queueing'){
+    window.location.assign('index.html');
+    return;
+  }
   showLiveQueueStartScreen();
 }
 
@@ -343,6 +348,40 @@ function liveViewPlayerLabel(p){
   const nickname=String(p.nickname||'').trim();
   return name+(nickname&&nickname.toLowerCase()!==name.toLowerCase()?` (${nickname})`:'');
 }
+function isLiveRankingEnabled(){
+  try{return localStorage.getItem(LIVE_RANKING_ENABLED_KEY)!=='false';}catch(e){return true;}
+}
+function syncLiveRankingAdminToggle(enabled=isLiveRankingEnabled()){
+  const button=$('liveRankingAdminToggle');
+  if(!button)return;
+  const isEnabled=enabled!==false;
+  button.classList.toggle('is-enabled',isEnabled);
+  button.classList.toggle('is-disabled',!isEnabled);
+  button.setAttribute('aria-pressed',String(isEnabled));
+  button.setAttribute('aria-label',isEnabled?'Turn Live Ranking off':'Turn Live Ranking on');
+  button.title=isEnabled?'Turn Live Ranking off':'Turn Live Ranking on';
+  const label=button.querySelector('.live-ranking-admin-label');
+  if(label)label.textContent=`Live Ranking: ${isEnabled?'On':'Off'}`;
+}
+function initLiveRankingAdminToggle(){
+  const button=$('liveRankingAdminToggle');
+  if(!button)return;
+  syncLiveRankingAdminToggle();
+  button.addEventListener('click',()=>{
+    const enabled=!isLiveRankingEnabled();
+    try{localStorage.setItem(LIVE_RANKING_ENABLED_KEY,String(enabled));}catch(e){}
+    syncLiveRankingAdminToggle(enabled);
+    publishLiveViewState();
+    if(typeof toast==='function')toast(`Live Ranking ${enabled?'enabled':'disabled'} on Live View.`);
+  });
+  window.addEventListener('storage',event=>{
+    if(event.key===LIVE_RANKING_ENABLED_KEY){
+      syncLiveRankingAdminToggle(event.newValue!=='false');
+      publishLiveViewState();
+    }
+  });
+}
+
 function buildLiveViewSnapshot(){
   const roster=[...(Array.isArray(state.players)?state.players:[]),...(Array.isArray(state.left)?state.left:[])];
   const byId=new Map(roster.map(p=>[String(p.id),p]));
@@ -385,18 +424,51 @@ function buildLiveViewSnapshot(){
     endedAt:l.endedAt||null,
     duration:String(l.duration||'')
   }));
+  const rankingStats=getRankingStats();
+  const rankingPlayers=[...new Map([...state.players,...state.left].map(p=>[String(p.id),p])).values()];
+  const liveRanking=rankingPlayers
+    .filter(p=>(rankingStats.get(p.id)?.matches||0)>0)
+    .sort((a,b)=>compareLeaderboardPlayers(a,b,rankingStats))
+    .map((p,index)=>{
+      const st=rankingStats.get(p.id)||{matches:0,wins:0,losses:0,winRate:0,totalSeconds:0};
+      return {
+        position:index+1,
+        id:String(p.id),
+        name:String(p.name||'Player'),
+        nickname:String(p.nickname||''),
+        category:String(p.category||''),
+        matches:Number(st.matches)||0,
+        wins:Number(st.wins)||0,
+        losses:Number(st.losses)||0,
+        winRate:Number(st.winRate)||0,
+        totalSeconds:Number(st.totalSeconds)||0,
+        playing:isPlayerPlaying(p)
+      };
+    });
   return {
     sessionName:String(state.sessionName||'Pickle Point Match'),
     active:!!state.sessionActive,
+    recordScores:!!state.recordScores,
+    liveRankingEnabled:isLiveRankingEnabled(),
     updatedAt:new Date().toISOString(),
     playerCount:roster.length,
-    queue:(Array.isArray(state.queue)?state.queue:[]).map(playerRef).filter(Boolean),
+    queue:(Array.isArray(state.queue)?state.queue:[]).map(id=>{
+      const queuedPlayer=playerRef(id);
+      if(!queuedPlayer)return null;
+      const lockedPair=(Array.isArray(state.lockedPartners)?state.lockedPartners:[])
+        .find(pair=>Array.isArray(pair)&&pair.map(Number).includes(Number(id)));
+      const partnerId=lockedPair?.find(partnerId=>Number(partnerId)!==Number(id));
+      const partner=partnerId!=null?byId.get(String(partnerId)):null;
+      const partnerFirstName=String(partner?.name||'').trim().split(/\s+/)[0]||'';
+      return {...queuedPlayer,lockedPartnerName:partnerFirstName};
+    }).filter(Boolean),
     courts,
     activeCourtCount:courts.filter(c=>!c.waitingOnly&&c.playing).length,
     readyCourtCount:courts.filter(c=>!c.waitingOnly&&!c.playing).length,
     courtCount:courts.filter(c=>!c.waitingOnly).length,
     waitingCourtCount:courts.filter(c=>c.waitingOnly).length,
     matchCount:Array.isArray(state.logs)?state.logs.length:0,
+    ranking:liveRanking,
     eventRules:{target:Number(state.eventRules?.target)||11,winBy:Number(state.eventRules?.winBy)||1,type:String(state.eventRules?.type||'Doubles')},
     recentMatches
   };
@@ -1081,7 +1153,7 @@ function renderLeftPlayerRows(popup=false){
       return `<article class="cloud-player-card left-cloud-player-card ${pending?'delete-pending':''}">
         <div class="cloud-player-main">
           <div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${esc((p.name||'?').charAt(0).toUpperCase())}</div>
-          <div class="cloud-player-ident"><b>${esc(p.name||'Unknown')}${p.nickname?` (${esc(p.nickname)})`:''} <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b>
+          <div class="cloud-player-ident"><b>${highlightSearchMatch(p.name||'Unknown',query)}${p.nickname?` (${highlightSearchMatch(p.nickname,query)})`:''} <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b>
             <small class="cloud-player-summary"><span class="cloud-category-badge skill-${catClass}">${esc(category)}</span><span class="cloud-player-stats"><span>${matches} Matches</span><span class="cloud-win">${liveStats.wins} Wins</span><span class="cloud-loss">${liveStats.losses} Losses</span></span></small>
           </div>
           <div class="cloud-player-actions"><button class="cloud-checkin-btn" ${pending?'disabled':''} onclick="event.stopPropagation();checkIn(${p.id})">Check in</button>${pending?'':`<button class="cloud-delete-btn" onclick="event.stopPropagation();requestDeleteLeftPlayer(${p.id})">Remove</button>`}</div>
@@ -1523,6 +1595,12 @@ function filterCourtPicker(){
     const queuedAt=Number(btn.getAttribute('data-queued-at')||0);
     const wait=Math.max(0,Math.floor((Date.now()-(queuedAt||Date.now()))/60000));
     const okName=!term||name.includes(term);
+    const nameLabel=btn.querySelector('.picker-meta b');
+    if(nameLabel){
+      const original=nameLabel.dataset.searchName||nameLabel.textContent||'';
+      nameLabel.dataset.searchName=original;
+      nameLabel.innerHTML=highlightSearchMatch(original,term);
+    }
     const okCategory=courtPickerFilters.category==='ALL'||category===courtPickerFilters.category;
     const okGender=courtPickerFilters.gender==='ALL'||gender===courtPickerFilters.gender;
     const okWait=!courtPickerFilters.wait||wait>=courtPickerFilters.wait;
@@ -1799,7 +1877,7 @@ function openCourtPlayersModal(courtId){
   body.innerHTML=`
     <div class="court-lineup-top">
       <div class="court-lineup-title"><span class="court-lineup-court-icon" aria-hidden="true">🏟️</span><b>${esc(courtName)}</b></div>
-      <div class="court-lineup-count ${isWaitingCourt?'waiting':''}"><span class="court-lineup-dot"></span><span>${isWaitingCourt?'Waiting':'Playing'}</span><b>${ps.length}/4</b></div>
+      <div class="court-lineup-count ${isWaitingCourt?'waiting':(c.playing?'playing':'ready')}"><span class="court-lineup-dot"></span><span>${isWaitingCourt?'Waiting':(c.playing?'Playing':'Ready')}</span><b>${ps.length}/4</b></div>
     </div>
     <div class="court-lineup-divider"></div>
     <div class="court-lineup-meta">
@@ -2217,7 +2295,7 @@ function renderRegisteredSearch(){
   }).slice(0,12);
   area.innerHTML=matches.map(p=>{
     const alreadyQueued=state.queue.includes(p.id);
-    return `<button type="button" class="registered-result ${alreadyQueued?'already-queued':''}" onclick="addRegisteredToQueue(${p.id})"><span><b>${esc(displayPlayerName(p))}</b><small>${genderSvgIcon(p.gender)} ${p.gender==='Female'?'Female':'Male'} • ${p.category||'CAT'} • ${p.wins}W${p.opgId?` • OPG ${esc(p.opgId)}`:''}</small></span><strong>${alreadyQueued?'✓ QUEUED':'＋ QUEUE'}</strong></button>`;
+    return `<button type="button" class="registered-result ${alreadyQueued?'already-queued':''}" onclick="addRegisteredToQueue(${p.id})"><span><b>${highlightSearchMatch(displayPlayerName(p),q)}</b><small>${genderSvgIcon(p.gender)} ${p.gender==='Female'?'Female':'Male'} • ${p.category||'CAT'} • ${p.wins}W${p.opgId?` • OPG ${esc(p.opgId)}`:''}</small></span><strong>${alreadyQueued?'✓ QUEUED':'＋ QUEUE'}</strong></button>`;
   }).join('')||'<div class="registered-search-hint">No registered player found.</div>';
 }
 function addRegisteredToQueue(id){
@@ -2257,6 +2335,12 @@ function filterLockInPartnerOptions(playerId){
   const query=String(input.value||'').trim().toLowerCase();
   root.querySelectorAll('.queue-lock-partner-option').forEach(option=>{
     option.hidden=!option.querySelector('span')?.textContent.toLowerCase().includes(query);
+    const name=option.querySelector('.queue-lock-partner-option-name');
+    if(name){
+      const original=name.dataset.searchName||name.textContent||'';
+      name.dataset.searchName=original;
+      name.innerHTML=highlightSearchMatch(original,query);
+    }
   });
 }
 function openQueueLockPartnerList(playerId){
@@ -2285,7 +2369,7 @@ function renderLockInPartnerChoices(playerId){
   // Only show Queue List players who do not already have a locked-in partner.
   const candidates=state.queue.filter(id=>Number(id)!==Number(playerId)&&getLockedPartnerId(id)==null).map(id=>player(id)).filter(Boolean);
   const searchValue=String(lockPartnerSearchValues[Number(playerId)]||'');
-  const options=candidates.map(candidate=>`<button type="button" class="queue-lock-partner-option" title="Lock in ${esc(displayPlayerName(candidate))}" aria-label="Lock in ${esc(displayPlayerName(candidate))}" onclick="event.stopPropagation();toggleLockInPartner(${playerId},${candidate.id})"><span class="queue-lock-partner-option-ident"><span class="queue-lock-partner-option-name">${esc(displayPlayerName(candidate))}</span><span class="queue-lock-partner-option-meta"><span class="queue-lock-partner-gender ${candidate.gender==='Female'?'female':'male'}" aria-label="${candidate.gender==='Female'?'Female':'Male'}">${genderSvgIcon(candidate.gender)}</span><span class="queue-lock-partner-category ${candidate.category?'skill-'+String(candidate.category).toLowerCase():''}">${esc(candidate.category||'—')}</span></span></span><span class="queue-lock-partner-option-state" aria-hidden="true">🔓</span></button>`).join('');
+  const options=candidates.map(candidate=>`<button type="button" class="queue-lock-partner-option" title="Lock in ${esc(displayPlayerName(candidate))}" aria-label="Lock in ${esc(displayPlayerName(candidate))}" onclick="event.stopPropagation();toggleLockInPartner(${playerId},${candidate.id})"><span class="queue-lock-partner-option-ident"><span class="queue-lock-partner-option-name">${highlightSearchMatch(displayPlayerName(candidate),searchValue)}</span><span class="queue-lock-partner-option-meta"><span class="queue-lock-partner-gender ${candidate.gender==='Female'?'female':'male'}" aria-label="${candidate.gender==='Female'?'Female':'Male'}">${genderSvgIcon(candidate.gender)}</span><span class="queue-lock-partner-category ${candidate.category?'skill-'+String(candidate.category).toLowerCase():''}">${esc(candidate.category||'—')}</span></span></span><span class="queue-lock-partner-option-state" aria-hidden="true">🔓</span></button>`).join('');
   return `<div class="queue-lock-partner"><div class="queue-lock-partner-heading">Lock in partner</div><span class="queue-lock-partner-divider" aria-hidden="true"></span><div class="queue-lock-partner-search-wrap"><svg class="queue-lock-partner-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg><input class="queue-lock-partner-search" data-player-id="${Number(playerId)}" type="search" placeholder="Search players..." aria-label="Search lock in partner players" value="${esc(searchValue)}" oninput="lockPartnerSearchValues[${Number(playerId)}]=this.value;filterLockInPartnerOptions(${Number(playerId)})" onclick="event.stopPropagation()"></div><div class="queue-lock-partner-list ${candidates.length>=5?'has-scroll':''}">${options||'<small class="queue-lock-partner-empty">No other players in the Queue List.</small>'}</div></div>`;
 }
 function renderQueue(){
@@ -2325,7 +2409,7 @@ function renderQueue(){
       </div>
       <div class="queue-main-info">
         <div class="queue-name-line">
-          <span class="queue-name">${esc(displayPlayerName(p))}</span>
+          <span class="queue-name">${highlightSearchMatch(displayPlayerName(p),search)}</span>
           <span class="queue-gender-inline">
             <span class="gender-inline ${gender==='Female'?'female':'male'}" title="${gender}" aria-label="${gender}">${gender==='Female'
               ? '<svg class="gender-symbol" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="4.8" r="3.55" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.4v5.9M5.25 11.35h5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>'
@@ -2529,7 +2613,7 @@ function renderCourts(){
                 <div class="match-player"><span class="avatar orange">${initial(team1[0]?.name)}</span><div class="match-player-line"><b>${esc(team1[0]?displayPlayerName(team1[0]):'Player 1')}</b><span class="match-gender ${team1[0]?.gender==='Female'?'female':'male'}">${genderSvgIcon(team1[0]?.gender)}</span><span class="match-category ${team1[0]?.category?'skill-'+String(team1[0].category).toLowerCase():''}">${esc(team1[0]?.category||'CAT')}</span></div></div>
                 <div class="match-player second"><span class="avatar orange-light">${initial(team1[1]?.name)}</span><div class="match-player-line"><b>${esc(team1[1]?displayPlayerName(team1[1]):'Player 2')}</b><span class="match-gender ${team1[1]?.gender==='Female'?'female':'male'}">${genderSvgIcon(team1[1]?.gender)}</span><span class="match-category ${team1[1]?.category?'skill-'+String(team1[1].category).toLowerCase():''}">${esc(team1[1]?.category||'CAT')}</span></div></div>
               </div>
-              ${state.recordScores ? `<div class="score-control"><button onclick="setScore(${c.id},1,-1)">−</button><input class="score-input" data-court="${c.id}" data-team="1" type="number" min="0" step="1" value="${score1}" oninput="updateSubmitState(${c.id})"><button class="score-plus" onclick="setScore(${c.id},1,1)">+</button></div>` : `<button type="button" class="team-win-btn team-one-win-btn" onclick="recordMatchWin(${c.id},1)" aria-label="Record Team 1 win">🏆 WIN</button>`}
+              ${state.recordScores ? `<div class="score-control"><button onclick="setScore(${c.id},1,-1)">−</button><input class="score-input" data-court="${c.id}" data-team="1" type="number" min="0" step="1" value="${score1}" oninput="updateSubmitState(${c.id})"><button class="score-plus" onclick="setScore(${c.id},1,1)">+</button></div>` : `<button type="button" class="team-win-btn team-one-win-btn" onclick="recordMatchWin(${c.id},1)" aria-label="Record Team 1 win">🏆Team 1 Win</button>`}
             </div>
 
             <div class="match-vs">VS</div>
@@ -2539,7 +2623,7 @@ function renderCourts(){
                 <div class="match-player"><span class="avatar gray">${initial(team2[0]?.name)}</span><div class="match-player-line"><b>${esc(team2[0]?displayPlayerName(team2[0]):'Player 3')}</b><span class="match-gender ${team2[0]?.gender==='Female'?'female':'male'}">${genderSvgIcon(team2[0]?.gender)}</span><span class="match-category ${team2[0]?.category?'skill-'+String(team2[0].category).toLowerCase():''}">${esc(team2[0]?.category||'CAT')}</span></div></div>
                 <div class="match-player second"><span class="avatar gray-light">${initial(team2[1]?.name)}</span><div class="match-player-line"><b>${esc(team2[1]?displayPlayerName(team2[1]):'Player 4')}</b><span class="match-gender ${team2[1]?.gender==='Female'?'female':'male'}">${genderSvgIcon(team2[1]?.gender)}</span><span class="match-category ${team2[1]?.category?'skill-'+String(team2[1].category).toLowerCase():''}">${esc(team2[1]?.category||'CAT')}</span></div></div>
               </div>
-              ${state.recordScores ? `<div class="score-control"><button onclick="setScore(${c.id},2,-1)">−</button><input class="score-input" data-court="${c.id}" data-team="2" type="number" min="0" step="1" value="${score2}" oninput="updateSubmitState(${c.id})"><button class="score-plus" onclick="setScore(${c.id},2,1)">+</button></div>` : `<button type="button" class="team-win-btn team-two-win-btn" onclick="recordMatchWin(${c.id},2)" aria-label="Record Team 2 win">🏆 WIN</button>`}
+              ${state.recordScores ? `<div class="score-control"><button onclick="setScore(${c.id},2,-1)">−</button><input class="score-input" data-court="${c.id}" data-team="2" type="number" min="0" step="1" value="${score2}" oninput="updateSubmitState(${c.id})"><button class="score-plus" onclick="setScore(${c.id},2,1)">+</button></div>` : `<button type="button" class="team-win-btn team-two-win-btn" onclick="recordMatchWin(${c.id},2)" aria-label="Record Team 2 win">🏆Team 2 Win</button>`}
             </div>
           </div>
 
@@ -2570,7 +2654,7 @@ function renderCourts(){
           </div>
         </div>
       </div>
-      ${selected && ps.length<4 ? `<div class="court-picker"><div class="picker-title"><div class="picker-search-wrap"><span class="picker-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="courtPickerSearch" class="picker-search" type="search" placeholder="Search player..." autocomplete="off" oninput="filterCourtPicker()"></div><div class="picker-filter-row category-filters"><button type="button" class="picker-filter ${courtPickerFilters.category==='ALL'?'active':''}" data-filter-type="category" data-filter-value="ALL" onclick="setCourtPickerFilter('category','ALL',this)">All (${state.queue.length})</button>${['BEG','NOV','INT','ADV','EXP'].map(cat=>{const n=state.queue.filter(pid=>player(pid)?.category===cat).length;return `<button type="button" class="picker-filter skill-${cat.toLowerCase()} ${courtPickerFilters.category===cat?'active':''}" data-filter-type="category" data-filter-value="${cat}" onclick="setCourtPickerFilter('category','${cat}',this)">${cat} (${n})</button>`}).join('')}</div><div class="picker-filter-row gender-filters"><button type="button" class="picker-filter ${courtPickerFilters.gender==='ALL'?'active':''}" data-filter-type="gender" data-filter-value="ALL" onclick="setCourtPickerFilter('gender','ALL',this)">All (${state.queue.length})</button><button type="button" class="picker-filter gender-male ${courtPickerFilters.gender==='Male'?'active':''}" data-filter-type="gender" data-filter-value="Male" onclick="setCourtPickerFilter('gender','Male',this)">${genderSvgIcon('Male')} M (${state.queue.filter(pid=>player(pid)?.gender==='Male').length})</button><button type="button" class="picker-filter gender-female ${courtPickerFilters.gender==='Female'?'active':''}" data-filter-type="gender" data-filter-value="Female" onclick="setCourtPickerFilter('gender','Female',this)">${genderSvgIcon('Female')} F (${state.queue.filter(pid=>player(pid)?.gender==='Female').length})</button></div><div class="picker-filter-row wait-filters"><button type="button" class="picker-filter ${courtPickerFilters.wait===0?'active':''}" data-filter-type="wait" data-filter-value="0" onclick="setCourtPickerFilter('wait',0,this)">⏱︎ All (${state.queue.length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===5?'active':''}" data-filter-type="wait" data-filter-value="5" onclick="setCourtPickerFilter('wait',5,this)">⏱︎ 5m+ (${state.queue.filter(pid=>{const q=player(pid);return q&&(Date.now()-(q.waitingSince||q.queuedAt||Date.now()))>=300000}).length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===10?'active':''}" data-filter-type="wait" data-filter-value="10" onclick="setCourtPickerFilter('wait',10,this)">⏱︎ 10m+ (${state.queue.filter(pid=>{const q=player(pid);return q&&(Date.now()-(q.waitingSince||q.queuedAt||Date.now()))>=600000}).length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===15?'active':''}" data-filter-type="wait" data-filter-value="15" onclick="setCourtPickerFilter('wait',15,this)">⏱︎ 15m+ (${state.queue.filter(pid=>{const q=player(pid);return q&&(Date.now()-(q.waitingSince||q.queuedAt||Date.now()))>=900000}).length})</button></div></div><div class="picker-player-list">${state.queue.slice().sort((a,b)=>{const pa=player(a),pb=player(b);return (Number(pa?.waitingSince||pa?.queuedAt||Date.now())-Number(pb?.waitingSince||pb?.queuedAt||Date.now()))||(Number(a)-Number(b));}).map(pid=>{const qp=player(pid);if(!qp)return '';const wait=Math.max(0,Math.floor((Date.now()-(qp.waitingSince||qp.queuedAt||Date.now()))/60000));return `<button class="picker-player ${pickerCandidatePairedBefore(c.id,qp.id)?'paired-before-player':''}" data-player-name="${esc(`${displayPlayerName(qp)} ${qp.nickname||''}`).toLowerCase()}" data-category="${esc(qp.category||'')}" data-gender="${esc(qp.gender||'')}" data-queued-at="${Number(qp.waitingSince||qp.queuedAt||Date.now())}" data-wait="${wait}" onclick="choosePlayerForCourt(${pid},${c.id})"><span class="picker-info"><span class="picker-meta"><b>${esc(displayPlayerName(qp))}</b><span class="picker-gender ${qp.gender==='Female'?'female':'male'}">${genderSvgIcon(qp.gender)}</span><span class="picker-category ${qp.category?'skill-'+qp.category.toLowerCase():''}">${esc(qp.category||'CAT')}</span>${getLockedPartnerId(qp.id)!=null?`<span class="partner-inline-badge" title="Locked-in partner"><span class="partner-inline-lock" aria-hidden="true">🔒</span><span class="partner-inline-name">${esc(String(player(getLockedPartnerId(qp.id))?.name||'').trim().split(/\s+/)[0]||displayPlayerName(player(getLockedPartnerId(qp.id))))}</span></span>`:''}${pickerCandidatePairedBefore(c.id,qp.id)?'<span class="paired-before-label picker-paired-before">(Paired Before)</span>':''}</span></span></span><span class="picker-wait ${wait>=15?'wait-red':wait>=10?'wait-yellow':''}">⏱ ${formatWaitingDuration(wait)}</span></button>`}).join('')||'<div class="picker-empty">No players waiting in Queue.</div>'}</div></div>` : ''}
+      ${selected && ps.length<4 ? `<div class="court-picker"><div class="picker-title"><div class="picker-search-wrap"><span class="picker-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="courtPickerSearch" class="picker-search" type="search" placeholder="Search player..." autocomplete="off" oninput="filterCourtPicker()"></div><div class="picker-filter-row category-filters"><button type="button" class="picker-filter ${courtPickerFilters.category==='ALL'?'active':''}" data-filter-type="category" data-filter-value="ALL" onclick="setCourtPickerFilter('category','ALL',this)">All (${state.queue.length})</button>${['BEG','NOV','INT','ADV','EXP'].map(cat=>{const n=state.queue.filter(pid=>player(pid)?.category===cat).length;return `<button type="button" class="picker-filter skill-${cat.toLowerCase()} ${courtPickerFilters.category===cat?'active':''}" data-filter-type="category" data-filter-value="${cat}" onclick="setCourtPickerFilter('category','${cat}',this)">${cat} (${n})</button>`}).join('')}</div><div class="picker-filter-row gender-filters"><button type="button" class="picker-filter ${courtPickerFilters.gender==='ALL'?'active':''}" data-filter-type="gender" data-filter-value="ALL" onclick="setCourtPickerFilter('gender','ALL',this)">All (${state.queue.length})</button><button type="button" class="picker-filter gender-male ${courtPickerFilters.gender==='Male'?'active':''}" data-filter-type="gender" data-filter-value="Male" onclick="setCourtPickerFilter('gender','Male',this)">${genderSvgIcon('Male')} M (${state.queue.filter(pid=>player(pid)?.gender==='Male').length})</button><button type="button" class="picker-filter gender-female ${courtPickerFilters.gender==='Female'?'active':''}" data-filter-type="gender" data-filter-value="Female" onclick="setCourtPickerFilter('gender','Female',this)">${genderSvgIcon('Female')} F (${state.queue.filter(pid=>player(pid)?.gender==='Female').length})</button></div><div class="picker-filter-row wait-filters"><button type="button" class="picker-filter ${courtPickerFilters.wait===0?'active':''}" data-filter-type="wait" data-filter-value="0" onclick="setCourtPickerFilter('wait',0,this)">⏱︎ All (${state.queue.length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===5?'active':''}" data-filter-type="wait" data-filter-value="5" onclick="setCourtPickerFilter('wait',5,this)">⏱︎ 5m+ (${state.queue.filter(pid=>{const q=player(pid);return q&&(Date.now()-(q.waitingSince||q.queuedAt||Date.now()))>=300000}).length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===10?'active':''}" data-filter-type="wait" data-filter-value="10" onclick="setCourtPickerFilter('wait',10,this)">⏱︎ 10m+ (${state.queue.filter(pid=>{const q=player(pid);return q&&(Date.now()-(q.waitingSince||q.queuedAt||Date.now()))>=600000}).length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===15?'active':''}" data-filter-type="wait" data-filter-value="15" onclick="setCourtPickerFilter('wait',15,this)">⏱︎ 15m+ (${state.queue.filter(pid=>{const q=player(pid);return q&&(Date.now()-(q.waitingSince||q.queuedAt||Date.now()))>=900000}).length})</button></div></div><div class="picker-player-list">${state.queue.slice().sort((a,b)=>{const pa=player(a),pb=player(b);return (Number(pa?.waitingSince||pa?.queuedAt||Date.now())-Number(pb?.waitingSince||pb?.queuedAt||Date.now()))||(Number(a)-Number(b));}).map(pid=>{const qp=player(pid);if(!qp)return '';const wait=Math.max(0,Math.floor((Date.now()-(qp.waitingSince||qp.queuedAt||Date.now()))/60000));return `<button class="picker-player ${pickerCandidatePairedBefore(c.id,qp.id)?'paired-before-player':''}" data-player-name="${esc(`${displayPlayerName(qp)} ${qp.nickname||''}`).toLowerCase()}" data-category="${esc(qp.category||'')}" data-gender="${esc(qp.gender||'')}" data-queued-at="${Number(qp.waitingSince||qp.queuedAt||Date.now())}" data-wait="${wait}" onclick="choosePlayerForCourt(${pid},${c.id})"><span class="picker-info"><span class="picker-meta"><b>${highlightSearchMatch(displayPlayerName(qp), $('courtPickerSearch')?.value||'')}</b><span class="picker-gender ${qp.gender==='Female'?'female':'male'}">${genderSvgIcon(qp.gender)}</span><span class="picker-category ${qp.category?'skill-'+qp.category.toLowerCase():''}">${esc(qp.category||'CAT')}</span>${getLockedPartnerId(qp.id)!=null?`<span class="partner-inline-badge" title="Locked-in partner"><span class="partner-inline-lock" aria-hidden="true">🔒</span><span class="partner-inline-name">${esc(String(player(getLockedPartnerId(qp.id))?.name||'').trim().split(/\s+/)[0]||displayPlayerName(player(getLockedPartnerId(qp.id))))}</span></span>`:''}${pickerCandidatePairedBefore(c.id,qp.id)?'<span class="paired-before-label picker-paired-before">(Paired Before)</span>':''}</span></span></span><span class="picker-wait ${wait>=15?'wait-red':wait>=10?'wait-yellow':''}">⏱ ${formatWaitingDuration(wait)}</span></button>`}).join('')||'<div class="picker-empty">No players waiting in Queue.</div>'}</div></div>` : ''}
       <div class="ready-actions ready-actions-v2">
         ${selected && ps.length<4
           ? `<button class="ready-cancel active picker-cancel" onclick="cancelCourtPicker(${c.id})">CANCEL</button>
@@ -2595,7 +2679,7 @@ function renderCourts(){
         <div class="ready-match-vs">VS</div>
         <div class="ready-match-team ready-team-two ${!!team2[0] && !!team2[1] && werePairedBefore(team2[0].id,team2[1].id)?'has-paired-before':''}"><div class="ready-team-heading">TEAM 2${!!team2[0] && !!team2[1] && werePairedBefore(team2[0].id,team2[1].id)?' <span class="paired-before-label">(Paired Before)</span>':''}</div><div class="ready-team-players">${readySlot(team2[0],c.id,2)}${readySlot(team2[1],c.id,3)}</div></div>
       </div>
-      ${selected && ps.length<4 ? `<div class="court-picker"><div class="picker-title"><div class="picker-search-wrap"><span class="picker-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="courtPickerSearch" class="picker-search" type="search" placeholder="Search player..." autocomplete="off" oninput="filterCourtPicker()"></div><div class="picker-filter-row category-filters"><button type="button" class="picker-filter ${courtPickerFilters.category==='ALL'?'active':''}" data-filter-type="category" data-filter-value="ALL" onclick="setCourtPickerFilter('category','ALL',this)">All (${state.queue.length})</button>${['BEG','NOV','INT','ADV','EXP'].map(cat=>{const n=state.queue.filter(pid=>player(pid)?.category===cat).length;return `<button type="button" class="picker-filter skill-${cat.toLowerCase()} ${courtPickerFilters.category===cat?'active':''}" data-filter-type="category" data-filter-value="${cat}" onclick="setCourtPickerFilter('category','${cat}',this)">${cat} (${n})</button>`}).join('')}</div><div class="picker-filter-row gender-filters"><button type="button" class="picker-filter ${courtPickerFilters.gender==='ALL'?'active':''}" data-filter-type="gender" data-filter-value="ALL" onclick="setCourtPickerFilter('gender','ALL',this)">All (${state.queue.length})</button><button type="button" class="picker-filter gender-male ${courtPickerFilters.gender==='Male'?'active':''}" data-filter-type="gender" data-filter-value="Male" onclick="setCourtPickerFilter('gender','Male',this)">${genderSvgIcon('Male')} M (${state.queue.filter(pid=>player(pid)?.gender==='Male').length})</button><button type="button" class="picker-filter gender-female ${courtPickerFilters.gender==='Female'?'active':''}" data-filter-type="gender" data-filter-value="Female" onclick="setCourtPickerFilter('gender','Female',this)">${genderSvgIcon('Female')} F (${state.queue.filter(pid=>player(pid)?.gender==='Female').length})</button></div><div class="picker-filter-row wait-filters"><button type="button" class="picker-filter ${courtPickerFilters.wait===0?'active':''}" data-filter-type="wait" data-filter-value="0" onclick="setCourtPickerFilter('wait',0,this)">⏱︎ All (${state.queue.length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===5?'active':''}" data-filter-type="wait" data-filter-value="5" onclick="setCourtPickerFilter('wait',5,this)">5m+</button><button type="button" class="picker-filter ${courtPickerFilters.wait===10?'active':''}" data-filter-type="wait" data-filter-value="10" onclick="setCourtPickerFilter('wait',10,this)">10m+</button><button type="button" class="picker-filter ${courtPickerFilters.wait===15?'active':''}" data-filter-type="wait" data-filter-value="15" onclick="setCourtPickerFilter('wait',15,this)">15m+</button></div></div><div class="picker-player-list">${state.queue.slice().sort((a,b)=>{const pa=player(a),pb=player(b);return (Number(pa?.waitingSince||pa?.queuedAt||Date.now())-Number(pb?.waitingSince||pb?.queuedAt||Date.now()))||(Number(a)-Number(b));}).map(pid=>{const qp=player(pid);if(!qp)return '';const wait=Math.max(0,Math.floor((Date.now()-(qp.waitingSince||qp.queuedAt||Date.now()))/60000));return `<button class="picker-player ${pickerCandidatePairedBefore(c.id,qp.id)?'paired-before-player':''}" data-player-name="${esc(`${displayPlayerName(qp)} ${qp.nickname||''}`).toLowerCase()}" data-category="${esc(qp.category||'')}" data-gender="${esc(qp.gender||'')}" data-queued-at="${Number(qp.waitingSince||qp.queuedAt||Date.now())}" data-wait="${wait}" onclick="choosePlayerForCourt(${pid},${c.id})"><span class="picker-info"><span class="picker-meta"><b>${esc(displayPlayerName(qp))}</b><span class="picker-gender ${qp.gender==='Female'?'female':'male'}">${genderSvgIcon(qp.gender)}</span><span class="picker-category ${qp.category?'skill-'+qp.category.toLowerCase():''}">${esc(qp.category||'CAT')}</span>${getLockedPartnerId(qp.id)!=null?`<span class="partner-inline-badge" title="Locked-in partner"><span class="partner-inline-lock" aria-hidden="true">🔒</span><span class="partner-inline-name">${esc(String(player(getLockedPartnerId(qp.id))?.name||'').trim().split(/\s+/)[0]||displayPlayerName(player(getLockedPartnerId(qp.id))))}</span></span>`:''}${pickerCandidatePairedBefore(c.id,qp.id)?'<span class="paired-before-label picker-paired-before">(Paired Before)</span>':''}</span></span><span class="picker-wait ${wait>=15?'wait-red':wait>=10?'wait-yellow':''}">⏱ ${formatWaitingDuration(wait)}</span></button>`}).join('')||'<div class="picker-empty">No players waiting in Queue.</div>'}</div></div>` : ''}
+      ${selected && ps.length<4 ? `<div class="court-picker"><div class="picker-title"><div class="picker-search-wrap"><span class="picker-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="courtPickerSearch" class="picker-search" type="search" placeholder="Search player..." autocomplete="off" oninput="filterCourtPicker()"></div><div class="picker-filter-row category-filters"><button type="button" class="picker-filter ${courtPickerFilters.category==='ALL'?'active':''}" data-filter-type="category" data-filter-value="ALL" onclick="setCourtPickerFilter('category','ALL',this)">All (${state.queue.length})</button>${['BEG','NOV','INT','ADV','EXP'].map(cat=>{const n=state.queue.filter(pid=>player(pid)?.category===cat).length;return `<button type="button" class="picker-filter skill-${cat.toLowerCase()} ${courtPickerFilters.category===cat?'active':''}" data-filter-type="category" data-filter-value="${cat}" onclick="setCourtPickerFilter('category','${cat}',this)">${cat} (${n})</button>`}).join('')}</div><div class="picker-filter-row gender-filters"><button type="button" class="picker-filter ${courtPickerFilters.gender==='ALL'?'active':''}" data-filter-type="gender" data-filter-value="ALL" onclick="setCourtPickerFilter('gender','ALL',this)">All (${state.queue.length})</button><button type="button" class="picker-filter gender-male ${courtPickerFilters.gender==='Male'?'active':''}" data-filter-type="gender" data-filter-value="Male" onclick="setCourtPickerFilter('gender','Male',this)">${genderSvgIcon('Male')} M (${state.queue.filter(pid=>player(pid)?.gender==='Male').length})</button><button type="button" class="picker-filter gender-female ${courtPickerFilters.gender==='Female'?'active':''}" data-filter-type="gender" data-filter-value="Female" onclick="setCourtPickerFilter('gender','Female',this)">${genderSvgIcon('Female')} F (${state.queue.filter(pid=>player(pid)?.gender==='Female').length})</button></div><div class="picker-filter-row wait-filters"><button type="button" class="picker-filter ${courtPickerFilters.wait===0?'active':''}" data-filter-type="wait" data-filter-value="0" onclick="setCourtPickerFilter('wait',0,this)">⏱︎ All (${state.queue.length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===5?'active':''}" data-filter-type="wait" data-filter-value="5" onclick="setCourtPickerFilter('wait',5,this)">5m+</button><button type="button" class="picker-filter ${courtPickerFilters.wait===10?'active':''}" data-filter-type="wait" data-filter-value="10" onclick="setCourtPickerFilter('wait',10,this)">10m+</button><button type="button" class="picker-filter ${courtPickerFilters.wait===15?'active':''}" data-filter-type="wait" data-filter-value="15" onclick="setCourtPickerFilter('wait',15,this)">15m+</button></div></div><div class="picker-player-list">${state.queue.slice().sort((a,b)=>{const pa=player(a),pb=player(b);return (Number(pa?.waitingSince||pa?.queuedAt||Date.now())-Number(pb?.waitingSince||pb?.queuedAt||Date.now()))||(Number(a)-Number(b));}).map(pid=>{const qp=player(pid);if(!qp)return '';const wait=Math.max(0,Math.floor((Date.now()-(qp.waitingSince||qp.queuedAt||Date.now()))/60000));return `<button class="picker-player ${pickerCandidatePairedBefore(c.id,qp.id)?'paired-before-player':''}" data-player-name="${esc(`${displayPlayerName(qp)} ${qp.nickname||''}`).toLowerCase()}" data-category="${esc(qp.category||'')}" data-gender="${esc(qp.gender||'')}" data-queued-at="${Number(qp.waitingSince||qp.queuedAt||Date.now())}" data-wait="${wait}" onclick="choosePlayerForCourt(${pid},${c.id})"><span class="picker-info"><span class="picker-meta"><b>${highlightSearchMatch(displayPlayerName(qp), $('courtPickerSearch')?.value||'')}</b><span class="picker-gender ${qp.gender==='Female'?'female':'male'}">${genderSvgIcon(qp.gender)}</span><span class="picker-category ${qp.category?'skill-'+qp.category.toLowerCase():''}">${esc(qp.category||'CAT')}</span>${getLockedPartnerId(qp.id)!=null?`<span class="partner-inline-badge" title="Locked-in partner"><span class="partner-inline-lock" aria-hidden="true">🔒</span><span class="partner-inline-name">${esc(String(player(getLockedPartnerId(qp.id))?.name||'').trim().split(/\s+/)[0]||displayPlayerName(player(getLockedPartnerId(qp.id))))}</span></span>`:''}${pickerCandidatePairedBefore(c.id,qp.id)?'<span class="paired-before-label picker-paired-before">(Paired Before)</span>':''}</span></span><span class="picker-wait ${wait>=15?'wait-red':wait>=10?'wait-yellow':''}">⏱ ${formatWaitingDuration(wait)}</span></button>`}).join('')||'<div class="picker-empty">No players waiting in Queue.</div>'}</div></div>` : ''}
       <div class="ready-actions ready-actions-v2">${selected && ps.length<4?`<button class="ready-cancel active picker-cancel" onclick="cancelCourtPicker(${c.id})">CANCEL</button><button class="auto-match-ready" onclick="autoMatchVariety(${c.id})">AUTO-MATCH VARIETY</button><button class="start" disabled>WAITING FOR COURT</button>`:`<button class="ready-cancel ${ps.length===4?'active':''}" onclick="${ps.length===4?`cancelReadyMatch(${c.id})`:`autoMatchVariety(${c.id})`}">${ps.length===4?'CANCEL MATCH':'AUTO-MATCH VARIETY'}</button><button class="mix-live" onclick="mixCourt(${c.id})" ${ps.length!==4?'disabled':''}>⇄ MIX TEAMS</button><button class="start" disabled>${ps.length===4?'WAITING FOR COURT':'WAITING COURT'}</button>`}</div>
     </div></div>`;
   }).join('');
@@ -2787,75 +2871,102 @@ function formatTotalMatchMinutes(seconds){
 }
 
 function getRankingStats(){
-  // Keep ranking independent from the active Queue/Left Players area. A player
-  // moved to Left Players remains eligible for ranking and historical stats.
+  // Ranking includes every registered player, whether currently queued or in Left Players.
+  // Resolve match participation by ID whenever both teams have IDs. Names are a legacy
+  // fallback only; this prevents players with duplicate names from inheriting each other's stats.
   const rankingPlayers=[...new Map([...state.players,...state.left].map(p=>[String(p.id),p])).values()];
-  // Queue records are derived only from completed live match logs. Never seed
-  // wins from the player's cached `wins` field, which may be stale/imported.
   const stats=new Map(rankingPlayers.map(p=>[p.id,{matches:0,wins:0,losses:0,xp:0,totalSeconds:0}]));
-  const normName=value=>String(value||'').trim().toLowerCase();
-  state.logs.forEach(log=>{
-    const team1=Array.isArray(log.team1Ids)?log.team1Ids:[];
-    const team2=Array.isArray(log.team2Ids)?log.team2Ids:[];
-    const team1Names=Array.isArray(log.team1Names)?log.team1Names:[];
-    const team2Names=Array.isArray(log.team2Names)?log.team2Names:[];
-    const winnerNames=String(log.winner||'').split(' & ').map(normName).filter(Boolean);
-    const loserNames=String(log.loser||'').split(' & ').map(normName).filter(Boolean);
-    const score=String(log.score||'').split('-').map(v=>Number(v.trim()));
-    const hasScore=score.length===2&&Number.isFinite(score[0])&&Number.isFinite(score[1])&&score[0]!==score[1];
-    const team1Won=hasScore?score[0]>score[1]:null;
+  const statsById=new Map(rankingPlayers.map(p=>[String(p.id),stats.get(p.id)]));
+  const normName=value=>String(value||'').trim().toLowerCase().replace(/\s+/g,' ');
+  const asNames=value=>Array.isArray(value)?value.map(normName).filter(Boolean):[];
+  const asIds=value=>Array.isArray(value)?value.filter(id=>id!==null&&id!==undefined&&String(id)!=='').map(id=>String(id)):[];
+  const splitTeamNames=value=>String(value||'').split(/\s*&\s*/).map(normName).filter(Boolean);
+
+  (Array.isArray(state.logs)?state.logs:[]).forEach(log=>{
+    if(!log||typeof log!=='object')return;
+    const team1Players=Array.isArray(log.team1Players)?log.team1Players:[];
+    const team2Players=Array.isArray(log.team2Players)?log.team2Players:[];
+    const team1Ids=asIds(log.team1Ids?.length?log.team1Ids:team1Players.map(p=>p?.id));
+    const team2Ids=asIds(log.team2Ids?.length?log.team2Ids:team2Players.map(p=>p?.id));
+    const team1Names=asNames(log.team1Names?.length?log.team1Names:team1Players.map(p=>p?.name));
+    const team2Names=asNames(log.team2Names?.length?log.team2Names:team2Players.map(p=>p?.name));
+    const winnerNames=new Set(splitTeamNames(log.winner));
+    const loserNames=new Set(splitTeamNames(log.loser));
+    const team1IdSet=new Set(team1Ids),team2IdSet=new Set(team2Ids);
+    const hasReliableTeamIds=team1Ids.length>0&&team2Ids.length>0;
+    const hasTeamNames=team1Names.length>0&&team2Names.length>0;
+
+    // Prefer a valid saved score; win-only matches use the saved winning side or names.
+    const scoreMatch=String(log.score??'').trim().match(/^(\d+)\s*-\s*(\d+)$/);
+    const score1=scoreMatch?Number(scoreMatch[1]):NaN;
+    const score2=scoreMatch?Number(scoreMatch[2]):NaN;
+    const scoreWinner=scoreMatch&&Number.isFinite(score1)&&Number.isFinite(score2)&&score1!==score2?(score1>score2?1:2):null;
+    const savedWinnerTeam=Number(log.winnerTeam);
+    const winningSide=scoreWinner||(savedWinnerTeam===1||savedWinnerTeam===2?savedWinnerTeam:null);
     const durationSeconds=parseDurationSeconds(log.duration);
+
+    // Records with team IDs/names are resolved as teams. Older records that only have
+    // winner/loser labels are handled directly by those labels below.
     rankingPlayers.forEach(playerRecord=>{
       const st=stats.get(playerRecord.id);
+      const playerId=String(playerRecord.id);
       const pname=normName(playerRecord.name);
-      const inTeam1=team1.some(id=>String(id)===String(playerRecord.id))||team1Names.some(n=>normName(n)===pname);
-      const inTeam2=team2.some(id=>String(id)===String(playerRecord.id))||team2Names.some(n=>normName(n)===pname);
-      const isWinner=winnerNames.includes(pname);
-      const isLoser=loserNames.includes(pname);
-      if(!inTeam1&&!inTeam2&&!isWinner&&!isLoser)return;
+      const isWinner=winnerNames.has(pname);
+      const isLoser=loserNames.has(pname);
+      let side=0;
+      if(hasReliableTeamIds){
+        if(team1IdSet.has(playerId))side=1;
+        else if(team2IdSet.has(playerId))side=2;
+      }else if(hasTeamNames){
+        const inTeam1=team1Names.includes(pname);
+        const inTeam2=team2Names.includes(pname);
+        if(inTeam1!==inTeam2)side=inTeam1?1:2;
+      }
+
+      let result='';
+      if(side){
+        if(winningSide)result=side===winningSide?'win':'loss';
+        else if(isWinner!==isLoser)result=isWinner?'win':'loss';
+      }else if(!hasReliableTeamIds&&!hasTeamNames&&isWinner!==isLoser){
+        // Backward compatibility for old logs that stored only winner/loser names.
+        result=isWinner?'win':'loss';
+      }
+      // Do not count malformed or unresolved records as matches.
+      if(!result)return;
       st.matches++;
       st.totalSeconds+=durationSeconds;
-      if(team1Won!==null){
-        if((inTeam1&&!inTeam2&&team1Won)||(inTeam2&&!inTeam1&&!team1Won)){st.wins++;st.xp+=20;}
-        else if((inTeam1&&!inTeam2&&!team1Won)||(inTeam2&&!inTeam1&&team1Won)){st.losses++;st.xp+=8;}
-      }else if(isWinner&&!isLoser){st.wins++;st.xp+=20;}
-      else if(isLoser&&!isWinner){st.losses++;st.xp+=8;}
+      if(result==='win'){st.wins++;st.xp+=20;}
+      else {st.losses++;st.xp+=8;}
     });
   });
-  // Include the currently LIVE match in each player's accumulated play time.
-  state.courts.filter(c=>c.playing && c.start).forEach(c=>{
-    const liveSeconds=Math.max(0,Math.floor((Date.now()-new Date(c.start).getTime())/1000));
+
+  // Include currently live match time without counting an unfinished match as a result.
+  state.courts.filter(c=>c.playing&&c.start).forEach(c=>{
+    const startedAt=new Date(c.start).getTime();
+    const liveSeconds=Number.isFinite(startedAt)?Math.max(0,Math.floor((Date.now()-startedAt)/1000)):0;
     (c.players||[]).forEach(id=>{
-      const st=stats.get(id);
-      if(st) st.totalSeconds+=liveSeconds;
+      const st=statsById.get(String(id));
+      if(st)st.totalSeconds+=liveSeconds;
     });
   });
-  stats.forEach(st=>{st.losses=Math.max(0,st.matches-st.wins);st.winRate=st.matches?Math.round((st.wins/st.matches)*100):0;});
+  stats.forEach(st=>{st.winRate=st.matches?Math.round((st.wins/st.matches)*100):0;});
   return stats;
 }
 
 function isPlayerPlaying(p){
   return !!(p && p.court && state.courts.some(c=>c.id===p.court && c.playing));
 }
-function getLeaderboardScore(st){
-  const wins=Math.max(0,Number(st?.wins)||0);
-  const matches=Math.max(0,Number(st?.matches)||0);
-  const winRate=matches?wins/matches:0;
-  // Balanced ranking: winning percentage is important, but repeated wins and
-  // meaningful match volume also count so a tiny 100% sample does not always
-  // outrank a player with substantially more wins and games.
-  const winComponent=1-Math.exp(-wins/5);
-  const gameComponent=1-Math.exp(-matches/10);
-  return (winRate*0.50)+(winComponent*0.35)+(gameComponent*0.15);
-}
 function compareLeaderboardPlayers(a,b,stats){
   const sa=stats.get(a.id)||{winRate:0,wins:0,losses:0,matches:0};
   const sb=stats.get(b.id)||{winRate:0,wins:0,losses:0,matches:0};
-  return getLeaderboardScore(sb)-getLeaderboardScore(sa)
-    || sb.wins-sa.wins
-    || sb.winRate-sa.winRate
-    || sb.matches-sa.matches
-    || sa.losses-sb.losses
+  const rateA=sa.matches?sa.wins/sa.matches:0;
+  const rateB=sb.matches?sb.wins/sb.matches:0;
+  // Clear, predictable standings: most wins first; win percentage breaks ties,
+  // followed by fewer losses and then a stable alphabetical order.
+  return (Number(sb.wins)||0)-(Number(sa.wins)||0)
+    || rateB-rateA
+    || (Number(sa.losses)||0)-(Number(sb.losses)||0)
+    || (Number(sb.matches)||0)-(Number(sa.matches)||0)
     || String(a.name||'').localeCompare(String(b.name||''));
 }
 
@@ -2960,6 +3071,24 @@ function renderResults(){
   renderHistoryTable();
 }
 
+function highlightSearchMatch(value, query, className='search-match-highlight'){
+  const text=String(value??'');
+  const needle=String(query??'').trim();
+  if(!needle)return esc(text);
+  // Escape the search text before using it as a regular expression, then escape
+  // every rendered text segment so player names can never inject HTML.
+  const escapedNeedle=needle.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const matcher=new RegExp(`(${escapedNeedle})`,'ig');
+  return text.split(matcher).map(part=>
+    part.toLowerCase()===needle.toLowerCase()
+      ? `<mark class="${className}">${esc(part)}</mark>`
+      : esc(part)
+  ).join('');
+}
+function highlightHistorySearchMatch(value, query){
+  return highlightSearchMatch(value, query, 'history-search-highlight');
+}
+
 function renderHistoryTable(){
   const table=$('historyTable');
   if(!table) return;
@@ -2972,8 +3101,8 @@ function renderHistoryTable(){
       ...(Array.isArray(l.team2Names)?l.team2Names:[]),
       ...(Array.isArray(l.team1Players)?l.team1Players.map(p=>p?.name||p?.nickname||''):[]),
       ...(Array.isArray(l.team2Players)?l.team2Players.map(p=>p?.name||p?.nickname||''):[])
-    ].filter(Boolean).join(' ').toLowerCase();
-    return names.includes(query);
+    ].filter(Boolean);
+    return names.some(name=>String(name).toLowerCase().includes(query));
   }):allLogs;
 
   if(!allLogs.length){
@@ -2987,10 +3116,12 @@ function renderHistoryTable(){
   table.innerHTML=rows.map(l=>{
     const winOnly=l.recordingMode==='win-only' || !String(l.score??'').trim();
     const sc=String(l.score||'').split('-');
+    const winnerName=l.winner||'Winner';
+    const loserName=l.loser||'Loser';
     return `<div class="history-card${winOnly?' history-card-win-only':''}" onclick="openHistoryDetail(${l.id})">
-      <div class="history-index">${l.id}</div><div class="history-team winner-team"><b>${esc(l.winner||'Winner')}</b></div>
+      <div class="history-index">${l.id}</div><div class="history-team winner-team"><b>${highlightHistorySearchMatch(winnerName,query)}</b></div>
       <div class="history-score ${winOnly?'history-result-labels':''}">${winOnly?`<strong class="history-win-label">WIN</strong><span class="history-result-dash">-</span><strong class="history-loss-label">LOSS</strong>`:`<strong>${esc(sc[0]||'0')}</strong><span>-</span><strong>${esc(sc[1]||'0')}</strong>`}</div>
-      <div class="history-team loser-team"><b>${esc(l.loser||'Loser')}</b></div>
+      <div class="history-team loser-team"><b>${highlightHistorySearchMatch(loserName,query)}</b></div>
       <div class="history-time">⏱︎ ${esc(l.duration||'--')}</div><div class="history-arrow">›</div>
     </div>`;
   }).join('');
@@ -3162,12 +3293,24 @@ function saveHistoryScore(){
   l.loser=namesForTeam(newWinnerTeam===1?2:1).join(' & ');
   saveState();closeHistoryDetail();render();toast('Match score updated.');
 }
+function syncEventRuleButtonAvailability(){
+  const enabled=!!state.recordScores;
+  const race=$('eventRaceBtn'), win=$('eventWinByBtn');
+  [[race,'Change race target'],[win,'Change win-by rule']].forEach(([button,enabledTitle])=>{
+    if(!button)return;
+    button.disabled=!enabled;
+    button.setAttribute('aria-disabled',String(!enabled));
+    button.title=enabled?enabledTitle:'Enable score recording to change event rules';
+  });
+}
 function bindEventRuleButtons(){
   const race=$('eventRaceBtn'), win=$('eventWinByBtn');
+  syncEventRuleButtonAvailability();
   if(race && !race.dataset.bound){race.dataset.bound='1';race.addEventListener('click',()=>cycleEventRule('target'));}
   if(win && !win.dataset.bound){win.dataset.bound='1';win.addEventListener('click',()=>cycleEventRule('winBy'));}
 }
 function cycleEventRule(kind){
+  if(!state.recordScores)return;
   const values=kind==='target'?[11,15,21]:[1,2,3];
   const current=Number(state.eventRules[kind])||values[0];
   state.eventRules[kind]=values[(values.indexOf(current)+1)%values.length];
@@ -3187,7 +3330,7 @@ function render(){
   renderQueue(); renderCourts(); renderResults(); renderRegisteredSearch();
   updateAddWaitingCourtButton();
   const realCourts=state.courts.filter(c=>!c.waitingOnly); const waitingCourts=state.courts.filter(c=>c.waitingOnly);
-  const stats=$('topStats'); if(stats){ stats.innerHTML=`<span class="event-stat-text">${state.players.length} players</span><span class="event-stat-sep">•</span><span class="event-stat-text">${realCourts.length} courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn" title="Change race target">Race to ${state.eventRules.target}</button><span class="event-stat-sep">•</span><span class="event-stat-text">${esc(state.eventRules.type||'Doubles')}</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn" title="Change win-by rule">Win by ${state.eventRules.winBy}</button>`; bindEventRuleButtons(); }
+  const stats=$('topStats'); if(stats){ stats.innerHTML=`<span class="event-stat-text">${state.players.length} players</span><span class="event-stat-sep">•</span><span class="event-stat-text">${realCourts.length} courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn" title="Change race target" ${state.recordScores?'':'disabled aria-disabled="true"'}>Race to ${state.eventRules.target}</button><span class="event-stat-sep">•</span><span class="event-stat-text">${esc(state.eventRules.type||'Doubles')}</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn" title="Change win-by rule" ${state.recordScores?'':'disabled aria-disabled="true"'}>Win by ${state.eventRules.winBy}</button>`; bindEventRuleButtons(); }
   const title=$('eventTitle'); if(title) title.textContent=state.sessionName||'(DUPR MATCH) @PICKLE WORLD DOWNTOWN | 7PM - 11PM';
 }
 
@@ -3511,6 +3654,7 @@ function bindLiveQueueStartScreen(){
       const next=!!recordToggle.checked;
       if(state.recordScores===next)return;
       state.recordScores=next;
+      syncEventRuleButtonAvailability();
       // When switching to winner-only mode, discard any unfinished score entry.
       if(!next)state.courts.forEach(c=>{if(c.playing)c.scores=[0,0];});
       saveState();
@@ -3547,6 +3691,37 @@ function showLiveQueueStartScreen(){
   document.querySelector('.workspace')?.classList.add('live-start-hidden');
   syncLiveQueueStartScreen();
 }
+function applyPendingLiveQueueStartConfig(){
+  let raw=null;
+  try{raw=sessionStorage.getItem('picklepoint.pending-live-queue-start-config')}catch(e){}
+  if(!raw)return false;
+  let config;
+  try{config=JSON.parse(raw)}catch(e){config=null}
+  try{sessionStorage.removeItem('picklepoint.pending-live-queue-start-config')}catch(e){}
+  if(!config||typeof config!=='object')return false;
+  // The Start Screen checks the server before creating. Check again after shared
+  // state hydration so a queue started on another device is never overwritten.
+  if(hasExistingLiveQueue()){
+    showLiveQueueWorkspace();
+    return false;
+  }
+  const target=Number(config.target)||11;
+  const winBy=Number(config.winBy)||1;
+  const matchingMode=['balanced','social-mix','skill-separated','winners-losers'].includes(config.matchingMode)?config.matchingMode:'balanced';
+  state.sessionName=String(config.sessionName||getAutoLiveQueueSessionName(false)).trim()||getAutoLiveQueueSessionName(false);
+  state.sessionActive=true;
+  state.duprMatch=false;
+  state.recordScores=!!config.recordScores;
+  state.eventRules={target:[11,15,21].includes(target)?target:11,winBy:[1,2,3].includes(winBy)?winBy:1,type:config.type==='Singles'?'Singles':'Doubles'};
+  state.matchingMode=matchingMode;
+  state.winnersLosersNextGroup='winners';
+  state.selectedCourt=null;
+  saveState();
+  render();
+  publishLiveViewState();
+  showLiveQueueWorkspace();
+  return true;
+}
 function setupTopbarModalActionGuard(buttons){
   const guardedButtons=(Array.isArray(buttons)?buttons:[buttons]).filter(Boolean);
   if(!guardedButtons.length)return;
@@ -3581,6 +3756,10 @@ function bindTopbarBackButton(){
   if(!button)return;
   button.addEventListener('click',()=>{
     if(button.disabled)return;
+    if(document.body?.dataset.page==='queueing'){
+      window.location.assign('index.html');
+      return;
+    }
     showLiveQueueStartScreen();
   });
   setupTopbarModalActionGuard([
@@ -3596,33 +3775,45 @@ bindLiveQueueStartScreen();
 bindTopbarBackButton();
 initQueueNetworkStatus();
 initLiveViewThemeController();
+initLiveRankingAdminToggle();
 $('liveViewQrOpenBtn')?.addEventListener('click',openLiveViewQrModal);
 $('liveViewQrCopyBtn')?.addEventListener('click',copyLiveViewQrLink);
 $('liveViewQrOpenPageBtn')?.addEventListener('click',openLiveView);
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeLiveViewQrModal();});
 render();
 publishLiveViewState();
-initializeSharedDataSync();
+const sharedDataSyncReady = initializeSharedDataSync();
 // Keep the shared live snapshot available while an active event is running.
 // The server ignores unchanged heartbeats, so this does not repeatedly write data.
 setInterval(()=>{
   if(state.sessionActive && (location.protocol==='http:'||location.protocol==='https:')) publishLiveViewState();
 },30000);
-let savedLiveQueueView=null;
-try{
-  const storedLiveQueueView=sessionStorage.getItem('liveQueueView');
-  if(storedLiveQueueView==='start'||storedLiveQueueView==='workspace')savedLiveQueueView=storedLiveQueueView;
-}catch(e){}
-// Honor an explicitly saved screen even if local state is temporarily empty while
-// the hosted shared state is loading. This prevents refresh/sync from redirecting.
-if(savedLiveQueueView==='workspace'){
+if(document.body?.dataset.page==='queueing'){
+  // The Queueing workspace is its own page and is always the visible main view.
+  // Apply a new session's setup only after the hosted shared queue is loaded.
   showLiveQueueWorkspace();
-}else if(savedLiveQueueView==='start'){
-  showLiveQueueStartScreen();
-}else if(hasExistingLiveQueue()){
-  showLiveQueueWorkspace();
+  sharedDataSyncReady.then(()=>{
+    applyPendingLiveQueueStartConfig();
+    showLiveQueueWorkspace();
+  }).catch(()=>{
+    applyPendingLiveQueueStartConfig();
+    showLiveQueueWorkspace();
+  });
 }else{
-  showLiveQueueStartScreen();
+  let savedLiveQueueView=null;
+  try{
+    const storedLiveQueueView=sessionStorage.getItem('liveQueueView');
+    if(storedLiveQueueView==='start'||storedLiveQueueView==='workspace')savedLiveQueueView=storedLiveQueueView;
+  }catch(e){}
+  if(savedLiveQueueView==='workspace'){
+    showLiveQueueWorkspace();
+  }else if(savedLiveQueueView==='start'){
+    showLiveQueueStartScreen();
+  }else if(hasExistingLiveQueue()){
+    showLiveQueueWorkspace();
+  }else{
+    showLiveQueueStartScreen();
+  }
 }
 
 

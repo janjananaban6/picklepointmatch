@@ -18,6 +18,7 @@
   const playerName = p => p
     ? String(p.name || 'Player') + (String(p.nickname || '').trim() ? ` (${String(p.nickname).trim()})` : '')
     : 'Waiting for player';
+  const playerInitial = p => String(p?.name || '').trim().charAt(0).toUpperCase() || 'P';
   const normalizedPlayerGender = p => String(p?.gender ?? '').trim().toLowerCase();
   const playerGenderClass = p => ['female', 'f', 'woman', 'women'].includes(normalizedPlayerGender(p)) ? 'female' : 'male';
   // Use inline SVG instead of platform-dependent Unicode glyphs so gender icons
@@ -101,8 +102,8 @@
   }
 
   function renderCourtCard(c) {
-    const status = c.waitingOnly ? 'Waiting' : c.playing ? 'Playing' : 'Ready';
-    const statusClass = c.waitingOnly ? 'waiting' : c.playing ? 'playing' : 'ready';
+    const status = c.waitingOnly ? 'Up Next' : c.playing ? 'Playing' : 'Ready';
+    const statusClass = c.waitingOnly ? 'up-next' : c.playing ? 'playing' : 'ready';
     const t1 = Array.isArray(c.team1) ? c.team1 : [];
     const t2 = Array.isArray(c.team2) ? c.team2 : [];
     const team = arr => [0, 1].map(i => {
@@ -115,17 +116,84 @@
     }).join('');
     const courtName = c.waitingOnly ? 'Court #' : (c.name || 'Court');
     const matchMeta = c.playing
-      ? `<div class="match-meta"><span class="match-timer ${timerClass(c.start)}" data-start="${escapeHTML(c.start || '')}">${elapsed(c.start)}</span><span class="race-to-win">Race to ${Number(c.target) || 11} · Win by ${Number(c.winBy) || 1}</span></div>`
+      ? `<div class="match-meta"><span class="match-timer ${timerClass(c.start)}" data-start="${escapeHTML(c.start || '')}">${elapsed(c.start)}</span><span class="race-to-win">To ${Number(c.target) || 11} (win by ${Number(c.winBy) || 1})</span></div>`
       : `<div class="match-meta"><span>${c.waitingOnly ? 'Waiting for an available court' : 'Ready for matchmaking'}</span><span>${(c.players || []).filter(Boolean).length}/4 players</span></div>`;
-    return `<article class="court-card${c.playing ? ' playing' : ''}"><div class="court-top"><strong class="court-name">${escapeHTML(courtName)}</strong><span class="court-state ${statusClass}">${status}</span></div>${matchMeta}<div class="teams"><div class="team"><span class="team-label">TEAM 1</span>${team(t1)}</div><div class="versus">VS</div><div class="team"><span class="team-label">TEAM 2</span>${team(t2)}</div></div>${c.playing ? `<div class="scoreline"><div class="score-values"><b>${Number(c.scores?.[0]) || 0}</b><span class="score-separator">-</span><b>${Number(c.scores?.[1]) || 0}</b></div></div>` : ''}</article>`;
+    return `<article class="court-card${c.playing ? ' playing' : ''}"><div class="court-top"><strong class="court-name">${escapeHTML(courtName)}</strong><span class="court-state ${statusClass}">${status}</span></div>${matchMeta}<div class="teams"><div class="team"><span class="team-label">TEAM 1</span>${team(t1)}</div><div class="versus">VS</div><div class="team"><span class="team-label">TEAM 2</span>${team(t2)}</div></div>${c.playing && currentState?.recordScores === true ? `<div class="scoreline"><div class="score-values"><b>${Number(c.scores?.[0]) || 0}</b><span class="score-separator">-</span><b>${Number(c.scores?.[1]) || 0}</b></div></div>` : ''}</article>`;
+  }
+
+  function renderLiveRanking() {
+    const list = $('liveRankingList');
+    const subtitle = $('liveRankingSubtitle');
+    if (!list) return;
+    const ranking = Array.isArray(currentState?.ranking) ? currentState.ranking : [];
+    if (subtitle) {
+      const totalMatches = Number(currentState?.matchCount) || ranking.reduce((sum, p) => sum + (Number(p.matches) || 0), 0);
+      subtitle.textContent = `${ranking.length} ranked player${ranking.length === 1 ? '' : 's'} · ${totalMatches} completed match${totalMatches === 1 ? '' : 'es'} · updates automatically`;
+    }
+    if (!ranking.length) {
+      list.innerHTML = '<div class="live-ranking-empty"><span aria-hidden="true">🏆</span><strong>No ranking standings yet</strong><span>Complete a recorded match to start the live ranking.</span></div>';
+      return;
+    }
+    const medals = ['🥇', '🥈', '🥉'];
+    list.innerHTML = ranking.map((p, i) => {
+      const name = String(p.name || 'Player');
+      const nickname = String(p.nickname || '').trim();
+      const displayName = nickname && nickname.toLowerCase() !== name.trim().toLowerCase()
+        ? `${name} (${nickname})` : name;
+      const position = i < 3 ? medals[i] : `#${Number(p.position) || i + 1}`;
+      const category = String(p.category || '').trim().toUpperCase();
+      const categoryClass = ({ BEG: 'skill-beg', NOV: 'skill-nov', INT: 'skill-int', ADV: 'skill-adv', EXP: 'skill-exp' })[category] || '';
+      const winRate = Math.max(0, Math.min(100, Number(p.winRate) || 0));
+      return `<article class="live-ranking-row">
+        <div class="live-ranking-position" aria-label="Rank ${Number(p.position) || i + 1}">${position}</div>
+        <div class="live-ranking-main">
+          <div class="live-ranking-name-line"><strong>${escapeHTML(displayName)}</strong>${category ? `<span class="live-ranking-category ${categoryClass}">${escapeHTML(category)}</span>` : ''}${p.playing ? '<span class="live-ranking-playing">Playing</span>' : ''}</div>
+          <div class="live-ranking-stats"><span>${Number(p.wins) || 0}W - ${Number(p.losses) || 0}L</span><span>${Number(p.matches) || 0} match${Number(p.matches) === 1 ? '' : 'es'}</span></div>
+          <div class="live-ranking-progress" aria-label="Win rate ${winRate}%"><span style="width:${winRate}%"></span></div>
+        </div>
+        <div class="live-ranking-result"><strong>${winRate}%</strong><span>Win rate</span></div>
+      </article>`;
+    }).join('');
+  }
+
+  function syncLiveRankingAvailability() {
+    const enabled = currentState?.liveRankingEnabled !== false;
+    const toggle = $('liveRankingToggle');
+    const modal = $('liveRankingModal');
+    if (toggle) toggle.hidden = !enabled;
+    if (!enabled && modal && !modal.hidden) {
+      modal.hidden = true;
+      toggle?.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('live-ranking-open');
+    }
+    return enabled;
+  }
+
+  function setLiveRankingOpen(open) {
+    const modal = $('liveRankingModal');
+    const toggle = $('liveRankingToggle');
+    if (!modal || !toggle) return;
+    if (open && !syncLiveRankingAvailability()) return;
+    modal.hidden = !open;
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) {
+      renderLiveRanking();
+      $('liveRankingClose')?.focus();
+      document.body.classList.add('live-ranking-open');
+    } else {
+      document.body.classList.remove('live-ranking-open');
+      toggle.focus();
+    }
   }
 
   function render() {
     const s = currentState;
+    syncLiveRankingAvailability();
+    renderLiveRanking();
     const active = !!s?.active;
     $('sessionTitle').textContent = s?.sessionName || 'Pickle Point Match';
     $('inactiveNotice').hidden = active;
-    $('queueSectionCount').textContent = `${s?.queue?.length || 0} players`;
+    $('queueSectionCount').textContent = `(${s?.queue?.length || 0})`;
     $('lastUpdated').textContent = s?.updatedAt
       ? `Last updated ${new Date(s.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
       : 'Waiting for live session data…';
@@ -133,20 +201,26 @@
     const allCourts = s?.courts || [];
     const regularCourts = allCourts.filter(c => !c.waitingOnly);
     const waitingCourts = allCourts.filter(c => c.waitingOnly);
-    $('courtSectionCount').textContent = `${s?.courtCount ?? regularCourts.length} courts`;
+    $('courtSectionCount').textContent = `(${s?.courtCount ?? regularCourts.length})`;
     $('courtsList').innerHTML = regularCourts.length
       ? regularCourts.map(renderCourtCard).join('')
       : '<div class="empty-state">No courts have been set up in this session.</div>';
 
     $('waitingCourtsSection').hidden = waitingCourts.length === 0;
-    $('waitingCourtSectionCount').textContent = `${waitingCourts.length} waiting court${waitingCourts.length === 1 ? '' : 's'}`;
+    $('waitingCourtSectionCount').textContent = `(${waitingCourts.length})`;
     $('waitingCourtsList').innerHTML = waitingCourts.map(renderCourtCard).join('');
 
     const queue = s?.queue || [];
     $('queueList').innerHTML = queue.length
       ? queue.map((p, i) => {
           const waitingSince = p.waitingSince || p.queuedAt || null;
-          return `<div class="queue-item"><span class="queue-number">${i + 1}</span><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${escapeHTML(playerName(p))}</div><span class="live-player-gender ${playerGenderClass(p)}" title="${playerGenderClass(p) === 'female' ? 'Female' : 'Male'}" aria-label="${playerGenderClass(p) === 'female' ? 'Female' : 'Male'}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span></div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
+          const genderClass = playerGenderClass(p);
+          const genderLabel = genderClass === 'female' ? 'Female' : 'Male';
+          const lockedPartnerName = String(p.lockedPartnerName || '').trim();
+          const lockedPartnerIndicator = lockedPartnerName
+            ? `<span class="queue-locked-partner-inline" title="Locked in with ${escapeHTML(lockedPartnerName)}" aria-label="Locked in with partner ${escapeHTML(lockedPartnerName)}" role="img">🔒${escapeHTML(lockedPartnerName)}</span>`
+            : '';
+          return `<div class="queue-item"><div class="queue-avatar-stack" aria-label="${genderLabel} player, queue position ${i + 1}"><div class="queue-avatar ${genderClass}" aria-hidden="true">${escapeHTML(playerInitial(p))}</div><span class="queue-position-badge" aria-label="Queue position ${i + 1}">${i + 1}</span></div><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${escapeHTML(playerName(p))}</div><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span>${lockedPartnerIndicator}</div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
         }).join('')
       : '<div class="empty-state">No players are waiting in queue.</div>';
 
@@ -216,7 +290,7 @@
         // browser-cached snapshot instead of showing stale queue data.
         const emptyState = {
           sessionName: 'Pickle Point Match', active: false, updatedAt: null,
-          queue: [], courts: [], courtCount: 0, waitingCourtCount: 0
+          queue: [], courts: [], ranking: [], courtCount: 0, waitingCourtCount: 0
         };
         acceptState(emptyState);
       }
@@ -295,6 +369,15 @@
     if (event.key === THEME_STORAGE_KEY && event.newValue) {
       applyTheme(event.newValue);
     }
+  });
+
+  $('liveRankingToggle')?.addEventListener('click', () => setLiveRankingOpen(true));
+  $('liveRankingClose')?.addEventListener('click', () => setLiveRankingOpen(false));
+  $('liveRankingModal')?.querySelectorAll('[data-close-live-ranking]').forEach(el => {
+    el.addEventListener('click', () => setLiveRankingOpen(false));
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && $('liveRankingModal') && !$('liveRankingModal').hidden) setLiveRankingOpen(false);
   });
 
   applyTheme(loadTheme());

@@ -1,5 +1,9 @@
 /* Load the Live Queue setup from its own HTML fragment before starting the app. */
 (function () {
+  // Queueing and its Start Screen are intentionally unavailable on mobile phones.
+  // The separate live.html page remains accessible on every device.
+  if (window.ppMobileQueueingBlocked) return;
+
   const mount = document.getElementById('liveQueueStartMount');
   if (!mount) {
     console.error('Live Queue setup mount was not found.');
@@ -14,7 +18,7 @@
     .then(markup => {
       mount.outerHTML = markup;
       const app = document.createElement('script');
-      app.src = 'script.js?v=refresh-stability-20261017-2';
+      app.src = 'script.js?v=live-ranking-toggle-20261019-1';
       app.onerror = () => console.error('Pickle Point Match could not load script.js.');
       document.body.appendChild(app);
     })
