@@ -19652,9 +19652,9 @@ html body .live-ranking-search:focus-within {
 }
 
 
-/* iPad/tablet search typography: keep entered letters compact and regular-weight too.
-   This overrides the earlier 16px touch-input rule only for search fields;
-   it does not change input dimensions, search behavior, or surrounding layout. */
+/* iPad/tablet search zoom prevention.
+   Keep the actual typed text at 16px so iOS Safari does not auto-zoom on focus.
+   Input dimensions, padding, search behavior, and surrounding layout stay unchanged. */
 @media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
   html body input[type="search"],
   html body input[id*="Search"],
@@ -19667,7 +19667,7 @@ html body .live-ranking-search:focus-within {
   html body #historySearchInput,
   html body #cloudRecordsSearch,
   html body #leftPlayersSearch {
-    font-size: 12px !important;
+    font-size: 16px !important;
     font-weight: 400 !important;
     line-height: 1.2 !important;
     letter-spacing: 0 !important;

@@ -798,11 +798,12 @@ html body .live-ranking-search input:focus-visible {
 }
 
 
-/* iPad/tablet: reduce typed Live View search text as well as its placeholder. */
+/* iPad/tablet: retain 16px typed text to prevent Safari focus auto-zoom.
+   The search field dimensions and search behavior are unchanged. */
 @media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
   html body .live-ranking-search input,
   html body #liveRankingSearch {
-    font-size: 12px !important;
+    font-size: 16px !important;
     font-weight: 400 !important;
     line-height: 1.2 !important;
     letter-spacing: 0 !important;
