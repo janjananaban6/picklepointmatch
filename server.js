@@ -170,6 +170,22 @@ async function handle(req, res) {
         }) : [],
         courts: Array.isArray(body.courts) ? body.courts.slice(0,100).map(c=>({id:c?.id,name:String(c?.name||'Court').slice(0,100),number:Number(c?.number)||null,waitingOnly:!!c?.waitingOnly,playing:!!c?.playing,start:c?.start||null,target:Math.max(1,Number(c?.target)||11),winBy:Math.max(1,Number(c?.winBy)||1),players:Array.isArray(c?.players)?c.players.slice(0,4).map(p=>p?({id:p.id,name:String(p.name||'Player').slice(0,120),nickname:String(p.nickname||'').slice(0,80),gender:String(p.gender||'').slice(0,20),category:String(p.category||'').slice(0,10)}):null):[],team1:Array.isArray(c?.team1)?c.team1.slice(0,2).map(p=>p?({id:p.id,name:String(p.name||'Player').slice(0,120),nickname:String(p.nickname||'').slice(0,80),gender:String(p.gender||'').slice(0,20),category:String(p.category||'').slice(0,10)}):null):[],team2:Array.isArray(c?.team2)?c.team2.slice(0,2).map(p=>p?({id:p.id,name:String(p.name||'Player').slice(0,120),nickname:String(p.nickname||'').slice(0,80),gender:String(p.gender||'').slice(0,20),category:String(p.category||'').slice(0,10)}):null):[],scores:Array.isArray(c?.scores)?c.scores.slice(0,2).map(n=>Math.max(0,Number(n)||0)):[0,0]})) : [],
         activeCourtCount:Math.max(0,Number(body.activeCourtCount)||0), readyCourtCount:Math.max(0,Number(body.readyCourtCount)||0), courtCount:Math.max(0,Number(body.courtCount)||0), waitingCourtCount:Math.max(0,Number(body.waitingCourtCount)||0), matchCount:Math.max(0,Number(body.matchCount)||0),
+        // Keep the ranking in the published snapshot. Without this allowlisted
+        // field, the server silently discarded the ranking created by script.js,
+        // so Live View showed an empty ranking after deployment.
+        ranking:Array.isArray(body.ranking)?body.ranking.slice(0,500).map((p,index)=>({
+          position:Math.max(1,Number(p?.position)||index+1),
+          id:p?.id==null?null:String(p.id).slice(0,100),
+          name:String(p?.name||'Player').slice(0,120),
+          nickname:String(p?.nickname||'').slice(0,80),
+          category:String(p?.category||'').slice(0,10),
+          matches:Math.max(0,Number(p?.matches)||0),
+          wins:Math.max(0,Number(p?.wins)||0),
+          losses:Math.max(0,Number(p?.losses)||0),
+          winRate:Math.max(0,Math.min(100,Number(p?.winRate)||0)),
+          totalSeconds:Math.max(0,Number(p?.totalSeconds)||0),
+          playing:!!p?.playing
+        })) : [],
         eventRules:{target:Math.max(1,Number(body.eventRules?.target)||11),winBy:Math.max(1,Number(body.eventRules?.winBy)||1),type:String(body.eventRules?.type||'Doubles').slice(0,30)},
         recentMatches:Array.isArray(body.recentMatches)?body.recentMatches.slice(0,12).map(m=>({id:m?.id,court:String(m?.court||'Court').slice(0,100),winner:String(m?.winner||'').slice(0,300),loser:String(m?.loser||'').slice(0,300),score:String(m?.score||'').slice(0,30),endedAt:m?.endedAt||null,duration:String(m?.duration||'').slice(0,40)})):[]
       };
