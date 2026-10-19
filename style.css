@@ -19452,3 +19452,25 @@ html body .live-view-qr-close:focus-visible {
   white-space: nowrap !important;
   box-sizing: border-box !important;
 }
+
+/* MOBILE/TABLET SEARCH ZOOM FIX
+   iOS Safari zooms the page when a focused search input uses text smaller than 16px.
+   Keep each search field's existing height, width, padding, and surrounding layout intact. */
+@media (max-width: 1024px), (pointer: coarse) {
+  html body input[type="search"],
+  html body input[id*="Search"],
+  html body input[id*="search"],
+  html body input[class*="search"],
+  html body input[class*="Search"],
+  html body .search-row input,
+  html body .queue-add input,
+  html body #registeredPlayerSearch,
+  html body .registered-search > input,
+  html body .court-picker .picker-search,
+  html body #queueMainArea .queue-lock-partner-search,
+  html body #historyView .history-search-input,
+  html body #cloudRecordsModal .cloud-search-wrap input,
+  html body #leftPlayersModal .left-players-search-wrap input {
+    font-size: 16px !important;
+  }
+}

@@ -611,8 +611,8 @@ html[data-theme="light"] .live-ranking-toggle:hover{background:#d4f2ee}
 .live-ranking-search{position:relative;display:flex;align-items:center;gap:8px;min-height:31px;margin:12px 15px 0;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--muted);box-sizing:border-box}
 .live-ranking-search:focus-within{border-color:var(--teal);box-shadow:0 0 0 2px rgba(45,212,191,.12)}
 .live-ranking-search-icon{display:block;flex:0 0 14px;width:14px;height:14px}
-.live-ranking-search input{display:block;width:100%;min-width:0;height:29px;padding:0;border:0;outline:0;background:transparent;color:var(--text);font:inherit;font-size:11px;font-weight:650;box-shadow:none}
-.live-ranking-search input::placeholder{color:var(--muted);opacity:.9}
+.live-ranking-search input{display:block;width:100%;min-width:0;height:29px;padding:0;border:0;outline:0;background:transparent;color:#344457;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;font-size:12px;font-style:normal;font-weight:500;letter-spacing:0;line-height:1;box-shadow:none}
+.live-ranking-search input::placeholder{color:#9aa6b5;opacity:1;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;font-size:12px;font-style:normal;font-weight:500;letter-spacing:0;line-height:1}
 .live-ranking-search input::-webkit-search-cancel-button{cursor:pointer}
 .live-ranking-search-hit{padding:0 1px;border-radius:3px;background:#ffe16b;color:#18252a;font-weight:950;box-shadow:0 0 0 1px rgba(255,193,7,.22);-webkit-box-decoration-break:clone;box-decoration-break:clone}
 
@@ -747,4 +747,11 @@ html[data-theme="light"] body::-webkit-scrollbar-corner,
 html[data-theme="light"] body *::-webkit-scrollbar-corner {
   background: transparent !important;
   background-color: transparent !important;
+}
+
+/* Prevent tablet/mobile browser auto-zoom when focusing the Live Ranking search. */
+@media (max-width: 1024px), (pointer: coarse) {
+  html body .live-ranking-search input {
+    font-size: 16px !important;
+  }
 }
