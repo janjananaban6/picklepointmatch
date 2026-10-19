@@ -14,7 +14,7 @@
     .then(markup => {
       mount.outerHTML = markup;
       const app = document.createElement('script');
-      app.src = 'script.js?v=refresh-stability-20261017-1';
+      app.src = 'script.js?v=refresh-stability-20261017-2';
       app.onerror = () => console.error('Pickle Point Match could not load script.js.');
       document.body.appendChild(app);
     })

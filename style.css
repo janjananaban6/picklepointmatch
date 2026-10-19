@@ -13289,7 +13289,7 @@ body.podium-modal-open .topbar{
   color:#2c6a2a!important;
   transition:background .16s ease,border-color .16s ease;
 }
-#cloudRecordsModal .cloud-checkin-btn:hover{
+#cloudRecordsModal .cloud-checkin-btn:hover:not(:disabled){
   border-color:#7ed11e!important;
   background:#e3f7d5!important;
 }
@@ -13446,7 +13446,7 @@ body.podium-modal-open .topbar{
   color:#2c6a2a!important;
   transition:background-color .16s ease,border-color .16s ease,color .16s ease!important;
 }
-#leftPlayersModal .cloud-checkin-btn:hover{
+#leftPlayersModal .cloud-checkin-btn:hover:not(:disabled){
   border-color:#7ed11e!important;
   background:#e3f7d5!important;
   transform:none!important;
@@ -18304,4 +18304,302 @@ html body header.topbar div.top-actions > #endSessionBtn:hover {
     border-radius: 0 !important;
     box-shadow: none !important;
   }
+}
+
+/* FINAL — Remove decorative accent strips from every modal/pop-up card header.
+   Content, modal dimensions, colors, controls, and JavaScript behavior remain unchanged. */
+html body #cloudRecordsModal .cloud-records-modal-box::before,
+html body #leftPlayersModal .left-players-modal-box::before,
+html body #courtSettingsModal .court-settings-modal-box::before,
+html body #historyDetailModal .modal-box.history-detail-box::before,
+html body #podiumExpandModal .podium-expand-modal-box::before,
+html body #courtPlayersModal .court-players-modal-box::before,
+html body .modal [class*="modal-box"]::before,
+html body [role="dialog"] [class*="modal-box"]::before,
+html body [class*="popup-box"]::before {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
+/* Court Settings previously used a thicker green top border as an accent. */
+html body #courtSettingsModal .court-settings-modal-box {
+  border-top: 1px solid #d9e7e9 !important;
+}
+
+/* FINAL — Normalize top spacing across standard modal headers.
+   This only adjusts the dialog's top inset; other padding sides, content,
+   dimensions, colors, and JavaScript behavior remain unchanged. */
+html body .modal:not(.hidden) > .modal-box:not(.cloud-match-action-box) {
+  padding-top: 16px !important;
+}
+html body #courtSettingsModal.modal:not(.hidden) > .modal-box.court-settings-modal-box,
+html body #cloudRecordsModal.modal:not(.hidden) > .modal-box.cloud-records-modal-box,
+html body #leftPlayersModal.modal:not(.hidden) > .modal-box.left-players-modal-box,
+html body #historyDetailModal.modal:not(.hidden) > .modal-box.history-detail-box,
+html body #podiumExpandModal.modal:not(.hidden) > .modal-box.podium-expand-modal-box,
+html body #courtPlayersModal.modal:not(.hidden) > .modal-box.court-players-modal-box,
+html body #endSessionModal.modal:not(.hidden) > .modal-box.end-session-modal-box,
+html body #liveViewQrModal.modal:not(.hidden) > .modal-box.live-view-qr-modal-box,
+html body #noPlayersCourtModal.modal:not(.hidden) > .modal-box.no-players-court-box,
+html body #courtModal.modal:not(.hidden) > .modal-box,
+html body #importModal.modal:not(.hidden) > .modal-box {
+  padding-top: 16px !important;
+}
+
+/* These headers had extra top padding inside the already-padded dialog. */
+html body #cloudRecordsModal.modal:not(.hidden) > .modal-box.cloud-records-modal-box .cloud-records-head,
+html body #leftPlayersModal.modal:not(.hidden) > .modal-box.left-players-modal-box .left-players-head,
+html body #podiumExpandModal.modal:not(.hidden) > .modal-box.podium-expand-modal-box .podium-modal-head {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* FINAL TARGETED FIX — Reduce excess top gap in the two problem modals.
+   Only the top inset/header spacing is changed; modal content and behavior stay intact. */
+html body #courtPlayersModal.modal:not(.hidden) > .modal-box.court-players-modal-box {
+  padding-top: 8px !important;
+}
+html body #courtPlayersModal .court-players-modal-body {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+html body #courtPlayersModal .court-lineup-top {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+html body #historyDetailModal.modal:not(.hidden) > .modal-box.history-detail-box {
+  padding-top: 8px !important;
+}
+html body #historyDetailModal .modal-box.history-detail-box .modal-head {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* FINAL TARGETED FIX — Court Settings modal top-head spacing.
+   Keeps the Court Settings heading close to the top edge, matching the corrected
+   Court Players and History Detail modals. All other styling and behavior remain unchanged. */
+html body #courtSettingsModal.modal:not(.hidden) > .modal-box.court-settings-modal-box {
+  padding-top: 8px !important;
+}
+html body #courtSettingsModal .court-settings-modal-box .settings-head {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+
+/* READY STATUS — coordinated teal colors across the court card and Live View. */
+html body #courtsList .court-card.court-ready-card .court-box.ready-box .court-head.ready-head .status.ready {
+  background: #d9f7f3 !important;
+  color: #087e8b !important;
+  border: 1px solid #b6ebe6 !important;
+}
+html body #courtsList .court-card.court-ready-card .court-box.ready-box .court-head.ready-head .status-dot.ready {
+  background: #0d9488 !important;
+}
+
+/* STATUS COLOR SYNC — keep Ready dots coordinated and match Playing to Live View.
+   Only status badge colors and indicators are adjusted. */
+html body #courtsList .court-card.court-ready-card .court-box.ready-box .court-head.ready-head .status-dot.ready {
+  background: #0d9488 !important;
+  box-shadow: 0 0 0 2px #b6ebe6 !important;
+}
+html body #courtsList .court-card.court-live-card .court-head .status.live {
+  background: #164b43 !important;
+  color: #65e2b5 !important;
+  border: 1px solid #2b9d87 !important;
+}
+html body #courtsList .court-card.court-live-card .court-head .status.live .status-dot {
+  background: #65e2b5 !important;
+  box-shadow: 0 0 0 2px rgba(101, 226, 181, .2) !important;
+}
+
+
+/* PLAYING STATUS — match the user-provided mint pill reference on Court Box and Live View. */
+html body #courtsList .court-card.court-live-card .court-head .status.live {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  padding: 5px 8px !important;
+  border: 1px solid #b7e9d4 !important;
+  border-radius: 999px !important;
+  background: #dff6ed !important;
+  color: #08764e !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  letter-spacing: .4px !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+html body #courtsList .court-card.court-live-card .court-head .status.live .status-dot {
+  display: inline-block !important;
+  flex: 0 0 5px !important;
+  width: 5px !important;
+  height: 5px !important;
+  margin: 0 !important;
+  border-radius: 50% !important;
+  background: #08764e !important;
+  box-shadow: none !important;
+}
+
+
+/* READY STATUS — match the user-provided light-blue READY pill reference, including its dot. */
+html body #courtsList .court-card.court-ready-card .court-box.ready-box .court-head.ready-head .status.ready {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  padding: 5px 8px !important;
+  border: 1px solid #cbe5f5 !important;
+  border-radius: 999px !important;
+  background: #e3f2fb !important;
+  color: #176a9f !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  letter-spacing: .4px !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+html body #courtsList .court-card.court-ready-card .court-box.ready-box .court-head.ready-head .status.ready .status-dot.ready {
+  display: inline-block !important;
+  flex: 0 0 5px !important;
+  width: 5px !important;
+  height: 5px !important;
+  margin: 0 !important;
+  border-radius: 50% !important;
+  background: #176a9f !important;
+  box-shadow: 0 0 0 2px #d4eaf8 !important;
+}
+
+/* DOT SIZE NORMALIZATION — make oversized status/indicator dots match the compact 5px Ready/Playing dot.
+   Intentionally changes dot size only; colors, behavior, layout, and non-dot icons remain unchanged. */
+html body .status-dot,
+html body .detail-player-row .dot,
+html body .court-action-dot,
+html body .court-settings-modal-box .court-pool-chip .pool-dot,
+html body .court-modal-status-dot,
+html body .court-expand-status-dot,
+html body .court-lineup-dot,
+html body .court-lineup-meta .court-lineup-dot,
+html body .top-actions .online i,
+html body .ready-match-sheet .ready-team-heading::before,
+html body .podium-modal-kicker::before,
+html body .live-timer.timer-normal::before,
+html body .live-timer.timer-yellow::before,
+html body .live-timer.timer-red::before,
+html body #courtPlayersModal .court-lineup-time::before {
+  width: 5px !important;
+  height: 5px !important;
+  min-width: 5px !important;
+  min-height: 5px !important;
+  flex: 0 0 5px !important;
+}
+
+
+/* Ranking View: match the Court Playing status dot size and color only. */
+html body #rankingView .playing-badge::before {
+  width: 3px !important;
+  height: 3px !important;
+  min-width: 3px !important;
+  min-height: 3px !important;
+  flex: 0 0 3px !important;
+  background: #08764e !important;
+  box-shadow: none !important;
+}
+
+/* Ranking View: match the PLAYING label text color to the Court Playing badge. */
+html body #rankingView .playing-badge {
+  color: #08764e !important;
+}
+
+/* Cloud category badges: match the compact picker-category badge style. */
+#cloudRecordsModal .cloud-category-badge,
+#leftPlayersModal .cloud-category-badge {
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 auto!important;
+  white-space:nowrap!important;
+  min-width:25px!important;
+  padding:2px 5px!important;
+  border:1px solid #dfe5e9!important;
+  border-radius:6px!important;
+  font-size:7px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  letter-spacing:.1px!important;
+  background:#f8f9fa!important;
+  color:#a0aec0!important;
+  box-sizing:border-box!important;
+}
+#cloudRecordsModal .cloud-category-badge.skill-beg,
+#leftPlayersModal .cloud-category-badge.skill-beg {background:#e8f3ff!important;border:1px solid #bce0fd!important;color:#2b6cb0!important;}
+#cloudRecordsModal .cloud-category-badge.skill-nov,
+#leftPlayersModal .cloud-category-badge.skill-nov {background:#e0f8f3!important;border:1px solid #a2f0df!important;color:#227a68!important;}
+#cloudRecordsModal .cloud-category-badge.skill-int,
+#leftPlayersModal .cloud-category-badge.skill-int {background:#fff6d6!important;border:1px solid #fce38a!important;color:#9a6700!important;}
+#cloudRecordsModal .cloud-category-badge.skill-adv,
+#leftPlayersModal .cloud-category-badge.skill-adv {background:#f1eaff!important;border:1px solid #d9c9f5!important;color:#7250ad!important;}
+#cloudRecordsModal .cloud-category-badge.skill-exp,
+#leftPlayersModal .cloud-category-badge.skill-exp {background:#ffecef!important;border:1px solid #f2c8cd!important;color:#c43d4b!important;}
+
+/* FINAL TARGETED SYNC — Left Players cloud category badges match picker-category styling. */
+html body #leftPlayersModal .left-players-modal-box .cloud-category-badge {
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 auto!important;
+  white-space:nowrap!important;
+  min-width:25px!important;
+  padding:2px 5px!important;
+  border:1px solid #dfe5e9!important;
+  border-radius:6px!important;
+  font-size:7px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  letter-spacing:.1px!important;
+  background:#f8f9fa!important;
+  color:#a0aec0!important;
+  box-sizing:border-box!important;
+}
+html body #leftPlayersModal .left-players-modal-box .cloud-category-badge.skill-beg {background:#e8f3ff!important;border-color:#bce0fd!important;color:#2b6cb0!important;}
+html body #leftPlayersModal .left-players-modal-box .cloud-category-badge.skill-nov {background:#e0f8f3!important;border-color:#a2f0df!important;color:#227a68!important;}
+html body #leftPlayersModal .left-players-modal-box .cloud-category-badge.skill-int {background:#fff6d6!important;border-color:#fce38a!important;color:#9a6700!important;}
+html body #leftPlayersModal .left-players-modal-box .cloud-category-badge.skill-adv {background:#f1eaff!important;border-color:#d9c9f5!important;color:#7250ad!important;}
+html body #leftPlayersModal .left-players-modal-box .cloud-category-badge.skill-exp {background:#ffecef!important;border-color:#f2c8cd!important;color:#c43d4b!important;}
+
+/* FINAL TARGETED SYNC — cloud check-in hover matches the Left Players modal. */
+html body #leftPlayersModal .left-players-modal-box .cloud-checkin-btn:hover:not(:disabled),
+html body #leftPlayersModal .left-players-modal-box .cloud-checkin-btn:focus-visible:not(:disabled),
+html body #cloudRecordsModal .cloud-records-modal-box .cloud-checkin-btn:hover:not(:disabled),
+html body #cloudRecordsModal .cloud-records-modal-box .cloud-checkin-btn:focus-visible:not(:disabled) {
+  color:#075a58!important;
+  background:#e3f8f6!important;
+  border-color:#93c5fd!important;
+  box-shadow:none!important;
+  transform:none!important;
+}
+
+/* Match history and waiting-court count text to the Court Count teal. */
+html body .history-count,
+html body .waiting-courts-title span {
+  color: #087f80 !important;
+}
+
+/* Show the teal search treatment only when the input is focused, matching cloudRecordsSearch. */
+html body #historyView #historySearchInput:focus,
+html body #historyView #historySearchInput:focus-visible,
+html body #queueMainArea #registeredPlayerSearch:focus,
+html body #queueMainArea #registeredPlayerSearch:focus-visible {
+  border-color: #27bdb1 !important;
+  box-shadow: 0 0 0 3px rgba(39, 189, 177, .15) !important;
+  background: #fff !important;
 }

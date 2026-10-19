@@ -235,3 +235,164 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
   background-clip: padding-box !important;
 }
 
+
+
+/* READY STATUS — use the same teal badge palette as the main court cards. */
+.court-state.ready {
+  background: #d9f7f3 !important;
+  color: #087e8b !important;
+  border: 1px solid #b6ebe6 !important;
+}
+
+/* STATUS COLOR SYNC — add matching dots to Ready and Playing badges. */
+.court-state.ready,
+.court-state.playing {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+.court-state.ready::before,
+.court-state.playing::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+}
+.court-state.ready::before {
+  background: #0d9488;
+  box-shadow: 0 0 0 2px #b6ebe6;
+}
+.court-state.playing::before {
+  background: #65e2b5;
+  box-shadow: 0 0 0 2px rgba(101, 226, 181, .2);
+}
+
+
+/* PLAYING STATUS — match the user-provided mint pill reference, including its dot. */
+.court-state.playing {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  padding: 5px 8px !important;
+  border: 1px solid #b7e9d4 !important;
+  border-radius: 999px !important;
+  background: #dff6ed !important;
+  color: #08764e !important;
+  font-size: 9px !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  letter-spacing: .5px !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+.court-state.playing::before {
+  content: "" !important;
+  display: inline-block !important;
+  flex: 0 0 5px !important;
+  width: 5px !important;
+  height: 5px !important;
+  border-radius: 50% !important;
+  background: #08764e !important;
+  box-shadow: none !important;
+}
+
+
+/* READY STATUS — match the user-provided light-blue READY pill reference, including its dot. */
+.court-state.ready {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  padding: 5px 8px !important;
+  border: 1px solid #cbe5f5 !important;
+  border-radius: 999px !important;
+  background: #e3f2fb !important;
+  color: #176a9f !important;
+  font-size: 9px !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  letter-spacing: .5px !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+.court-state.ready::before {
+  content: "" !important;
+  display: inline-block !important;
+  flex: 0 0 5px !important;
+  width: 5px !important;
+  height: 5px !important;
+  border-radius: 50% !important;
+  background: #176a9f !important;
+  box-shadow: 0 0 0 2px #d4eaf8 !important;
+}
+
+/* DOT SIZE NORMALIZATION — keep larger Live View status dots at the compact 5px size. */
+html body .connection-status i {
+  width: 5px !important;
+  height: 5px !important;
+  min-width: 5px !important;
+  min-height: 5px !important;
+  flex: 0 0 5px !important;
+}
+html body .connection-status.connected i {
+  box-shadow: 0 0 4px #37d6a1 !important;
+}
+html body .live-pulse,
+html body .player-chip::before,
+html body .match-timer::before {
+  width: 5px !important;
+  height: 5px !important;
+  min-width: 5px !important;
+  min-height: 5px !important;
+  flex: 0 0 5px !important;
+}
+
+
+
+/* FINAL LIVE VIEW DOT FIX — enforce compact 5px dots and remove oversized glow/rings.
+   Applies only to Live View indicators; dot colors and all status behavior remain unchanged. */
+html body .live-header .connection-status i,
+html body .connection-status i,
+html body .event-heading .live-pulse,
+html body .live-pulse,
+html body .court-card .court-state::before,
+html body .court-state.ready::before,
+html body .court-state.playing::before,
+html body .player-chip::before,
+html body .match-timer::before {
+  box-sizing: border-box !important;
+  display: inline-block !important;
+  width: 5px !important;
+  height: 5px !important;
+  min-width: 5px !important;
+  min-height: 5px !important;
+  max-width: 5px !important;
+  max-height: 5px !important;
+  flex: 0 0 5px !important;
+  box-shadow: none !important;
+}
+
+/* PLAYER CHIP TEAM DOTS — 3px, blue for Team 1 and violet for Team 2. */
+html body .teams > .team:nth-child(1) .player-chip::before {
+  width: 3px !important;
+  height: 3px !important;
+  min-width: 3px !important;
+  min-height: 3px !important;
+  max-width: 3px !important;
+  max-height: 3px !important;
+  flex: 0 0 3px !important;
+  background: #3b82f6 !important;
+}
+html body .teams > .team:nth-child(3) .player-chip::before {
+  width: 3px !important;
+  height: 3px !important;
+  min-width: 3px !important;
+  min-height: 3px !important;
+  max-width: 3px !important;
+  max-height: 3px !important;
+  flex: 0 0 3px !important;
+  background: #8b5cf6 !important;
+}

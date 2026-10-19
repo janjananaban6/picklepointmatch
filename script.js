@@ -29,6 +29,7 @@ const CLOUD_RECORDS_SAVED_AT_KEY='pickleq_registered_cloud_records_saved_at';
 const CLOUD_RECORDS_PENDING_SYNC_KEY='pickleq_registered_cloud_records_pending_sync';
 const LIVE_VIEW_STORAGE_KEY='picklepoint_live_view_state_v1';
 const LIVE_VIEW_THEME_STORAGE_KEY='picklepoint_live_view_theme_v1';
+const RESULTS_TAB_STORAGE_KEY='picklepoint_results_tab_v1';
 let liveViewBroadcastChannel=null;
 let liveViewPublishInFlight=false;
 let liveViewPendingSnapshot=null;
@@ -134,7 +135,9 @@ function applySharedAppState(payload,force=false){
     localStorage.setItem(STORAGE_KEY,JSON.stringify(payload.state));
     stampRemoteSave(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt);
     loadState();render();
-    if(hasExistingLiveQueue())syncLiveQueueStartScreen();else showLiveQueueStartScreen();
+    // Shared-state updates refresh the start screen's summary only. They must not
+    // change the user's current screen during startup or while another device syncs.
+    syncLiveQueueStartScreen();
   }catch(e){console.warn('Could not apply shared queue state',e);}
   finally{applyingRemoteAppState=false;}
 }
@@ -3325,12 +3328,23 @@ window.addEventListener('scroll',()=>{
 },{passive:true});
 
 $('podiumExpandBtn')?.addEventListener('click',openPodiumExpandModal);
-document.querySelectorAll('.tab').forEach(tab=>tab.onclick=()=>{
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-  tab.classList.add('active');
-  $('rankingView').classList.toggle('hidden',tab.dataset.tab!=='ranking');
-  $('historyView').classList.toggle('hidden',tab.dataset.tab!=='history');
-});
+function setResultsTab(tabName,persist=true){
+  const selected=tabName==='history'?'history':'ranking';
+  document.querySelectorAll('.tab').forEach(tab=>{
+    const active=tab.dataset.tab===selected;
+    tab.classList.toggle('active',active);
+  });
+  $('rankingView')?.classList.toggle('hidden',selected!=='ranking');
+  $('historyView')?.classList.toggle('hidden',selected!=='history');
+  if(persist){try{sessionStorage.setItem(RESULTS_TAB_STORAGE_KEY,selected)}catch(e){}}
+}
+document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>setResultsTab(tab.dataset.tab)));
+let savedResultsTab='ranking';
+try{
+  const storedResultsTab=sessionStorage.getItem(RESULTS_TAB_STORAGE_KEY);
+  if(storedResultsTab==='ranking'||storedResultsTab==='history')savedResultsTab=storedResultsTab;
+}catch(e){}
+setResultsTab(savedResultsTab,false);
 
 setInterval(()=>{
   state.courts.filter(c=>c.playing).forEach(c=>{ updateCourtPlayersModalTimer(c.id); const el=$(`timer-${c.id}`); if(el){el.textContent=elapsed(c.start); el.classList.remove('timer-normal','timer-yellow','timer-red'); el.classList.add(timerToneClass(c.start));} });
@@ -3594,11 +3608,20 @@ initializeSharedDataSync();
 setInterval(()=>{
   if(state.sessionActive && (location.protocol==='http:'||location.protocol==='https:')) publishLiveViewState();
 },30000);
-let savedLiveQueueView='start';
-try{savedLiveQueueView=sessionStorage.getItem('liveQueueView')||'start'}catch(e){}
-if(hasExistingLiveQueue() && savedLiveQueueView==='workspace'){
+let savedLiveQueueView=null;
+try{
+  const storedLiveQueueView=sessionStorage.getItem('liveQueueView');
+  if(storedLiveQueueView==='start'||storedLiveQueueView==='workspace')savedLiveQueueView=storedLiveQueueView;
+}catch(e){}
+// Honor an explicitly saved screen even if local state is temporarily empty while
+// the hosted shared state is loading. This prevents refresh/sync from redirecting.
+if(savedLiveQueueView==='workspace'){
   showLiveQueueWorkspace();
-} else {
+}else if(savedLiveQueueView==='start'){
+  showLiveQueueStartScreen();
+}else if(hasExistingLiveQueue()){
+  showLiveQueueWorkspace();
+}else{
   showLiveQueueStartScreen();
 }
 
