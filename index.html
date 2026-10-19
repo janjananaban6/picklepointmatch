@@ -4,357 +4,179 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
-  <title>Pickle Point Match</title>
+  <title>Pickle Point Match — Start</title>
+  <script>
+    (function () {
+      var ua = navigator.userAgent || '';
+      var isIPad = /iPad/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1 && Math.min(screen.width || 0, screen.height || 0) >= 600);
+      var isMobilePhone = !isIPad && (
+        (navigator.userAgentData && navigator.userAgentData.mobile === true) ||
+        /iPhone|iPod|Windows Phone|IEMobile|BlackBerry|BB10|Opera Mini/i.test(ua) ||
+        (/Android/i.test(ua) && /Mobile/i.test(ua))
+      );
+      window.ppMobileQueueingBlocked = Boolean(isMobilePhone);
+      if (window.ppMobileQueueingBlocked) document.documentElement.classList.add('mobile-queueing-blocked');
+    })();
+  </script>
+  <style>
+    html.mobile-queueing-blocked,
+    html.mobile-queueing-blocked body { min-height:100%; background:#061f27; }
+    html.mobile-queueing-blocked body { margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; color:#eefafa; }
+    html.mobile-queueing-blocked body > :not(#mobileQueueingRestricted) { display:none !important; }
+    html.mobile-queueing-blocked #mobileQueueingRestricted {
+      box-sizing:border-box; position:fixed; inset:0; z-index:2147483647; display:flex !important;
+      align-items:center; justify-content:center; overflow-y:auto; padding:24px 18px;
+      background:radial-gradient(ellipse at 50% -170px,#18515b 0,transparent 65%),#061f27;
+    }
+    #mobileQueueingRestricted .mobile-restriction-card {
+      box-sizing:border-box; width:min(100%,440px); padding:30px 25px 26px; text-align:center;
+      border:1px solid #1c5059; border-radius:22px;
+      background:linear-gradient(155deg,rgba(11,48,57,.98),rgba(7,39,47,.98));
+      box-shadow:0 22px 70px rgba(0,0,0,.28);
+    }
+    #mobileQueueingRestricted .mobile-restriction-logo { width:68px; height:68px; object-fit:contain; margin:0 auto 13px; display:block; }
+    #mobileQueueingRestricted .mobile-restriction-brand { margin:0; font-size:13px; font-weight:950; letter-spacing:1px; }
+    #mobileQueueingRestricted .mobile-restriction-brand span { color:#27d3c5; }
+    #mobileQueueingRestricted .mobile-restriction-brand-sub { margin:3px 0 24px; color:#95c4c7; font-size:8px; font-weight:900; letter-spacing:4px; }
+    #mobileQueueingRestricted .mobile-restriction-icon {
+      width:54px; height:54px; margin:0 auto 16px; border:1px solid #725c31; border-radius:17px;
+      display:grid; place-items:center; background:#332f21; color:#ffcf79; font-size:25px;
+    }
+    #mobileQueueingRestricted h1 { margin:0 auto 11px; max-width:340px; font-size:clamp(23px,6vw,29px); line-height:1.16; letter-spacing:-.8px; font-weight:950; }
+    #mobileQueueingRestricted .mobile-restriction-copy { margin:0 auto; max-width:340px; color:#a8c5c9; font-size:13px; line-height:1.7; }
+    #mobileQueueingRestricted .mobile-restriction-note { margin:18px 0 22px; padding:12px 13px; border:1px solid #24575d; border-radius:12px; background:#0a2a32; color:#d7eeee; font-size:12px; line-height:1.55; }
+    #mobileQueueingRestricted .mobile-restriction-note strong { color:#27d3c5; }
+    #mobileQueueingRestricted .mobile-restriction-live-link {
+      box-sizing:border-box; display:flex; min-height:48px; align-items:center; justify-content:center; gap:9px;
+      width:100%; padding:13px 17px; border:1px solid #27d3c5; border-radius:12px;
+      color:#042b31; background:#27d3c5; font-size:14px; font-weight:950; text-decoration:none;
+      transition:filter .15s ease,transform .15s ease;
+    }
+    #mobileQueueingRestricted .mobile-restriction-live-link:active { transform:scale(.985); }
+    #mobileQueueingRestricted .mobile-restriction-footer { margin:15px 0 0; color:#729da3; font-size:10px; line-height:1.6; }
+    @media(max-height:620px) { #mobileQueueingRestricted .mobile-restriction-card { padding:20px 20px 18px; } #mobileQueueingRestricted .mobile-restriction-logo { width:48px; height:48px; margin-bottom:8px; } #mobileQueueingRestricted .mobile-restriction-brand-sub { margin-bottom:15px; } #mobileQueueingRestricted .mobile-restriction-icon { width:43px; height:43px; margin-bottom:10px; } #mobileQueueingRestricted .mobile-restriction-note { margin:12px 0 15px; } }
+  </style>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=modal-top-spacing-20261018-2">
+  <link rel="stylesheet" href="style.css?v=live-ranking-toggle-20261019-1">
 </head>
-<body>
-<!-- Live Queue setup is loaded from live-queue-start-card.html. -->
-<div id="liveQueueStartMount"></div>
-<header class="topbar">
-  <button type="button" class="topbar-back-btn" id="topbarBackToStartBtn" aria-label="Back to Live Queue start screen" title="Back to Live Queue start screen">く</button>
-  <div class="topbar-logo" role="img" aria-label="Pickleball"><img class="topbar-logo-img" src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div>
-  <div class="event-info">
-    <div class="event-title" id="eventTitle" aria-label="Event title">(DUPR MATCH) @PICKLE WORLD DOWNTOWN | 7PM - 11PM</div>
-    <div class="event-stats" id="topStats"><span class="event-stat-text">0 players</span><span class="event-stat-sep">•</span><span class="event-stat-text">0 courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn">Race to 11</button><span class="event-stat-sep">•</span><span class="event-stat-text">Doubles</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn">Win by 1</button></div>
-  </div>
-  <div class="top-actions">
-    <button type="button" id="liveViewQrOpenBtn" class="live-view-qr-open-btn" title="Show QR code and share link for the Live View">▦ QR Share</button>
-    <button type="button" id="tabletResultsOpenBtn" class="tablet-results-open-btn" aria-haspopup="dialog" aria-controls="tabletResultsModal">🏆 Results</button>
-    <span class="online offline"><i></i> Offline Queueing</span>
-    <button class="danger" id="endSessionBtn" type="button">End</button>
-  </div>
-</header>
-
-<main class="workspace">
-  <!-- QUEUE -->
-  <aside class="panel queue-panel">
-    <div class="panel-title queue-header-modern">
-      <div>
-        <h2>📚 Paddle Stack <span id="queueCountBadge" class="panel-count">(0)</span></h2>
-      </div>
-      <button class="import-btn" id="importPlayersBtn">☁ Cloud Records</button>
-    </div>
-
-    <div class="queue-mode-buttons mode-buttons-shared" id="queueModeButtons">
-      <button type="button" class="queue-mode-btn active" id="searchPlayerModeBtn">
-        <svg class="queue-mode-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg>
-        <span>Search Player</span>
-      </button>
-      <button type="button" class="queue-mode-btn walkin" id="walkInModeBtn">
-        <svg class="queue-mode-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 19c.6-3.2 2.5-5 5.5-5s4.9 1.8 5.5 5"></path><path d="M17 8v6M14 11h6"></path></svg>
-        <span>Walk-in</span>
-      </button>
-    </div>
-
-    <div id="queueMainArea">
-      <div class="queue-add">
-        <div class="registered-search" id="registeredSearchArea">
-          <span class="registered-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="registeredPlayerSearch" placeholder="Search player in queue..." autocomplete="off"><button type="button" class="registered-update-btn" id="registeredSearchUpdateBtn" title="Update queue" aria-label="Update queue"><svg class="registered-update-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8.5 8.5 0 0 0-14.9-5.5L3 8"></path><path d="M3 4v4h4"></path><path d="M4 13a8.5 8.5 0 0 0 14.9 5.5L21 16"></path><path d="M21 20v-4h-4"></path></svg><span>Update</span></button>
-          <div id="registeredPlayerResults" class="registered-player-results"></div>
-        </div>
-      </div>
-
-      <div class="selected-court-note" id="selectedCourtNote"></div>
-
-
-      <div class="queue-list" id="queueList"></div>
-      <div class="empty queue-empty-state" id="queueEmpty"><span class="queue-empty-paddle" aria-hidden="true">🏓</span><span>No players in queue. Add players to get started.</span></div>
-
-      <div class="left-section" id="leftSection">
-      <div class="left-title left-title-modern">
-        <div class="left-title-main">LEFT PLAYER <span id="leftCount">(0)</span></div>
-        <div class="left-title-actions">
-          <button class="left-expand-icon" type="button" title="Open left player list" aria-label="Open left player list" onclick="openLeftPlayersPopup()">⛶</button>
-        </div>
-      </div>
-      <div id="leftPlayersQueue"></div>
-      </div>
-    </div>
-
-    <div class="registration-area hidden" id="registrationArea">
-      <div class="registration-head">
-        <div><h3>REGISTER PLAYER</h3><small>Add a player to the Player List</small></div>
-      </div>
-
-      <!-- FullName: full-width row -->
-      <div class="registration-field registration-fullname-row">
-        <label class="registration-field-label" for="registerFullname">FULLNAME <span class="registration-required-star" aria-hidden="true">*</span></label>
-        <div class="registration-text-wrap">
-          <input id="registerFullname" type="text" placeholder="Enter your fullname" autocomplete="off">
-          <button type="button" class="registration-enye-btn" data-target="registerFullname" title="Insert Ñ" aria-label="Insert Ñ">Ñ</button>
-        </div>
-      </div>
-
-      <!-- NickName + Gender: same row -->
-      <div class="registration-inline-row registration-nickname-gender-row">
-        <div class="registration-field registration-nickname-field">
-          <label class="registration-field-label" for="registerNickname">NICKNAME <span class="registration-optional-label">(OPTIONAL)</span></label>
-          <div class="registration-text-wrap">
-            <input id="registerNickname" type="text" placeholder="Enter your nickname" autocomplete="off">
-            <button type="button" class="registration-enye-btn" data-target="registerNickname" title="Insert Ñ" aria-label="Insert Ñ">Ñ</button>
-          </div>
-        </div>
-
-        <div class="registration-inline-control registration-gender-control">
-          <label class="registration-field-label">GENDER <span class="registration-required-star" aria-hidden="true">*</span></label>
-          <div class="registration-choice-row gender-logo-row">
-            <button type="button" class="gender-choice gender-logo-male" data-gender="Male" aria-label="Male" title="Male"><svg class="gender-symbol gender-symbol-male" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.35" cy="10.65" r="3.45" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.8 8.2 14.1 1.9M9.35 1.9h4.75v4.75" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-            <button type="button" class="gender-choice gender-logo-female" data-gender="Female" aria-label="Female" title="Female"><svg class="gender-symbol gender-symbol-female" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="4.8" r="3.55" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.4v5.9M5.25 11.35h5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Skill Level + Save: same row -->
-      <div class="registration-inline-row registration-category-save-row">
-        <div class="registration-skill-control" role="group" aria-label="Skill Level">
-          <span class="registration-skill-level-label">SKILL LEVEL <span class="registration-required-star" aria-hidden="true">*</span></span>
-          <div class="registration-skill-buttons">
-            <button type="button" class="registration-skill-btn skill-beg" data-skill="BEG" aria-pressed="false">BEG</button>
-            <button type="button" class="registration-skill-btn skill-nov" data-skill="NOV" aria-pressed="false">NOV</button>
-            <button type="button" class="registration-skill-btn skill-int" data-skill="INT" aria-pressed="false">INT</button>
-            <button type="button" class="registration-skill-btn skill-adv" data-skill="ADV" aria-pressed="false">ADV</button>
-            <button type="button" class="registration-skill-btn skill-exp" data-skill="EXP" aria-pressed="false">EXP</button>
-          </div>
-          <div id="registrationDuplicateMessage" class="registration-duplicate-message" role="status" aria-live="polite" hidden></div>
-        </div>
-        <button type="button" class="register-save-btn" id="registerSaveBtn" disabled>Save &amp; Registered Players</button>
-      </div>
-    </div>
-  </aside>
-
-  <!-- COURTS -->
-  <section class="panel courts-panel">
-    <div class="panel-title">
-      <div>
-        <h2>🏟️ Courts <span id="courtCount" class="panel-count">(0)</span></h2>
-              </div>
-      <div class="court-header-actions"><button class="settings-btn" id="courtSettingsBtn" type="button" title="Court Settings" aria-label="Court Settings">⚙ Settings</button><button class="blue" id="addCourtBtn" type="button">＋ Add Waiting Court</button></div>
-    </div>
-    <div id="courtsList"></div>
+<body data-page="start">
+<main id="mobileQueueingRestricted" hidden role="main" aria-labelledby="mobileQueueingRestrictedTitle">
+  <section class="mobile-restriction-card">
+    <img class="mobile-restriction-logo" src="pickleball-p-emblem.png" alt="Pickle Point Match">
+    <p class="mobile-restriction-brand">PICKLE <span>POINT</span></p>
+    <p class="mobile-restriction-brand-sub">M A T C H</p>
+    <div class="mobile-restriction-icon" aria-hidden="true">🔒</div>
+    <h1 id="mobileQueueingRestrictedTitle">Queueing is unavailable on mobile</h1>
+    <p class="mobile-restriction-copy">The Queueing workspace and Start Screen can only be used on a desktop computer or iPad.</p>
+    <div class="mobile-restriction-note">Mobile phones are supported for <strong>Live View only</strong>. You can still watch the live courts, matches, and waiting queue.</div>
+    <a class="mobile-restriction-live-link" href="live.html"><span aria-hidden="true">↗</span> Open Live View</a>
+    <p class="mobile-restriction-footer">To create sessions or manage players and matches, please open Pickle Point Match on a desktop or iPad.</p>
   </section>
-
-  <!-- RANKING / MATCH LOG -->
-  <aside class="panel results-panel">
-    <div class="tabs">
-      <button class="tab active" data-tab="ranking">🏆 RANKING</button>
-      <button class="tab" data-tab="history">📜 MATCH LOG</button>
-    </div>
-
-    <section id="rankingView">
-      <div class="ranking-heading">
-        <h2>🏆 Open Play Podium</h2>
-        <button id="podiumExpandBtn" class="podium-expand-btn" type="button" title="Expand podium ranking" aria-label="Expand podium ranking">⛶</button>
-      </div>
-      <div id="podiumList" class="podium-list"></div>
-      <div class="leaderboard-heading"><span class="leaderboard-medal">🏅</span><h2>Leaderboard</h2></div>
-      <div id="rankingTable" class="ranking-list"></div>
-    </section>
-
-    <section id="historyView" class="hidden history-view">
-      <h2>📜 Match History <span id="historyCount" class="history-count">(0)</span></h2>
-      <div id="historySearchWrap" class="history-search-wrap">
-        <span class="history-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span>
-        <input id="historySearchInput" class="history-search-input" type="search" placeholder="Search player name..." aria-label="Search match history by player name" autocomplete="off">
-      </div>
-      <div id="historyTable" class="history-list"></div>
-    </section>
-  </aside>
 </main>
+<div id="liveQueueStartScreen" class="live-queue-start-screen">
+  <div class="live-queue-start-brand" aria-label="Pickle Point Match">
+    <img src="pickleball-p-emblem.png" alt="" aria-hidden="true">
+    <div class="live-queue-start-brand-wordmark">
+      <span>PICKLE <b>POINT</b></span>
+      <small>M A T C H</small>
+    </div>
+  </div>
 
-
-
-<!-- COURT SETTINGS MODAL -->
-<div class="modal hidden" id="courtSettingsModal">
-  <div class="modal-box court-settings-modal-box">
-    <div class="settings-head">
-      <div>
-        <h2>⚙️ Court Settings</h2>
-        <p class="modal-note">Add or remove courts from the pool. Active courts with ongoing matches cannot be removed.</p>
+  <div class="live-queue-start-card">
+    <!-- Container 1: start heading and game/session settings through Win By. -->
+    <section class="live-queue-start-panel live-queue-start-panel-settings" aria-label="Live queue settings">
+      <div class="live-queue-start-heading">
+        <h1>Live Queue</h1>
+        <p id="liveQueueStartSubtitle">Create a live queue session before entering the queueing workspace.</p>
       </div>
-      
-    </div>
 
-    <div class="settings-section-title">QUICK SETUP</div>
-    <div id="courtSettingsQuickAdd" class="court-settings-quick-add"></div>
-
-    <div class="settings-section-title">COURT NAMES</div>
-    <div class="settings-add-row">
-      <input id="courtSettingsNameInput" class="court-name-input" placeholder="Type a court name, press Enter" autocomplete="off">
-      <button class="settings-add-btn" type="button" onclick="addCourtFromSettings()">Add</button>
-    </div>
-    <p class="settings-help court-names-help">e.g. Court 2, Court 4, Court 5</p>
-
-    <div class="settings-section-title">COURT POOL <span id="courtSettingsPoolCount"></span></div>
-    <div id="courtSettingsPool" class="court-settings-pool"></div>
-
-    <div class="settings-section-title">COURT SKILL ASSIGNMENTS</div>
-    <p class="settings-help">Restrict which skill levels can be matched on each court. Leave empty to allow all.</p>
-    <div id="courtSettingsSkills" class="court-settings-skills"></div>
-
-    <div class="modal-actions settings-modal-actions">
-      <button type="button" onclick="closeCourtSettings()">Cancel</button>
-      <button class="blue" type="button" onclick="saveCourtSettings()">Save Changes</button>
-    </div>
-  </div>
-</div>
-
-<!-- EXPANDED PODIUM RANKING -->
-<div class="modal hidden podium-expand-modal-overlay" id="podiumExpandModal">
-  <div class="modal-box podium-expand-modal-box" role="dialog" aria-modal="true" aria-labelledby="podiumExpandTitle">
-    <div class="podium-modal-head">
-      <div>
-        <div class="podium-modal-kicker">LIVE RANKING</div>
-        <h2 id="podiumExpandTitle">🏆 Open Play Podium</h2>
-        <p class="modal-note">Top players ranked by win rate, wins, and match performance.</p>
+      <div id="existingLiveQueueCard" class="existing-live-queue hidden">
+        <div class="existing-live-queue-icon">▶</div>
+        <div class="existing-live-queue-copy">
+          <strong>Existing Live Queue</strong>
+          <span id="existingLiveQueueName">Live Queue</span>
+        </div>
+        <button type="button" id="continueLiveQueueBtn" class="continue-live-queue-btn">Continue</button>
       </div>
-    </div>
-    <div id="podiumExpandedContent" class="podium-expanded-content"></div>
-    <div class="podium-modal-actions"><button type="button" onclick="closePodiumExpandModal()">Close</button></div>
-  </div>
-</div>
 
-<!-- END LIVE QUEUE CONFIRMATION -->
-<div class="modal hidden" id="endSessionModal">
-  <div class="modal-box end-session-modal-box">
-    <h2><span class="end-session-live-indicator" aria-hidden="true"><img src="live-session-indicator.png" alt=""></span>End Live Queue Session?</h2>
-    <p class="modal-note">This will end the current live queue session and save its records to the Registered Player Cloud.</p>
-    <div class="end-session-summary-grid end-session-confirm-summary-grid">
-      <div class="end-session-summary-card">
-        <strong id="endSummaryCheckins">0</strong>
-        <span>Players Checked In</span>
-      </div>
-      <div class="end-session-summary-card">
-        <strong id="endSummaryRegistered">0</strong>
-        <span>New Registered Players</span>
-      </div>
-      <div class="end-session-summary-card">
-        <strong id="endSummaryMatches">0</strong>
-        <span>Total Matches</span>
-      </div>
-    </div>
-    <div class="modal-actions end-session-modal-actions">
-      <button id="endSessionCancel" type="button">Cancel</button>
-      <button class="end-session-confirm-btn" id="endSessionConfirm" type="button">End Session</button>
-    </div>
-  </div>
-</div>
-
-<!-- ADD COURT MODAL -->
-<div class="modal hidden" id="courtModal">
-  <div class="modal-box">
-    <h2>Add Court</h2>
-    <p class="modal-note">Enter a court name or number, or leave it blank to use the lowest available court number.</p>
-    <input id="courtNameInput" class="court-name-input" placeholder="Enter court name or number..." autocomplete="off">
-    <div class="next-court-preview" id="nextCourtPreview"></div>
-    <div class="modal-actions">
-      <button id="cancelCourt">Cancel</button>
-      <button class="blue" id="saveCourt">Add Court</button>
-    </div>
-  </div>
-</div>
-
-<!-- EMPTY COURT EXPAND MESSAGE -->
-<div class="modal hidden" id="noPlayersCourtModal">
-  <div class="modal-box no-players-court-box">
-    <div class="no-players-icon">🏟</div>
-    <h2>No player selected on court</h2>
-    <p class="modal-note">There are currently no players selected on <b id="noPlayersCourtTitle">this court</b>.</p>
-    <div class="modal-actions no-players-actions">
-      <button class="blue" type="button" onclick="closeNoPlayersCourtModal()">OK</button>
-    </div>
-  </div>
-</div>
-
-<!-- COURT PLAYERS MODAL -->
-<div class="modal hidden court-players-modal-overlay" id="courtPlayersModal" onclick="if(event.target===this)closeCourtPlayersModal()">
-  <div class="modal-box court-players-modal-box" role="dialog" aria-modal="true" aria-labelledby="courtPlayersModalTitle">
-    <div id="courtPlayersModalBody" class="court-players-modal-body"></div>
-  </div>
-</div>
-
-<!-- LEFT PLAYERS POPUP — styled to match Registered Player Cloud modal -->
-<div class="modal hidden" id="leftPlayersModal">
-  <div class="modal-box left-players-modal-box">
-    <div class="cloud-records-head left-players-head">
-      <div class="cloud-records-title">
-        <h2><span class="left-players-title-icon" aria-hidden="true">↩</span> LEFT PLAYERS <span id="leftPopupCount" class="history-count">(0)</span></h2>
-        <p>Players who left the active queue.</p>
-      </div>
-    </div>
-    <div class="cloud-search-summary left-players-search-summary">
-      <label class="cloud-search-wrap left-players-search-wrap"><span class="cloud-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="leftPlayersSearch" type="search" placeholder="Search left players..." autocomplete="off"></label>
-      <div class="cloud-records-summary" id="leftPlayersSearchSummary"></div>
-    </div>
-    <div id="leftPlayersPopupList" class="left-popup-list"></div>
-    <div class="cloud-records-actions left-players-actions"><button type="button" onclick="closeLeftPlayersPopup()">Close</button></div>
-  </div>
-</div>
-
-<!-- MATCH HISTORY DETAILS -->
-<div class="modal hidden" id="historyDetailModal">
-  <div class="modal-box history-detail-box">
-    <div class="modal-head"><div><h2>Match Details</h2><p class="modal-note">Tap a score to edit, then Save Score</p></div></div>
-    <div id="historyDetailBody"></div>
-    <div class="modal-actions"><button id="historyCloseBtn">Cancel</button><button class="blue" id="historySaveBtn">Save Score</button></div>
-  </div>
-</div>
-
-<!-- IMPORT PLAYERS -->
-<div class="modal hidden" id="importModal">
-  <div class="modal-box">
-    <h2>Import Players</h2>
-    <p class="modal-note">One player per line. Optional format: <b>Name,Gender</b></p>
-    <textarea id="importText" class="import-text" placeholder="Juan Dela Cruz,Male
-Maria Santos,Female"></textarea>
-    <div class="modal-actions"><button id="importCancel">Cancel</button><button class="blue" id="importSave">Import</button></div>
-  </div>
-</div>
-<div class="modal hidden" id="cloudRecordsModal"><div class="modal-box cloud-records-modal-box"><div class="cloud-records-head"><div class="cloud-records-title"><h2>☁ Registered Player Cloud <span id="cloudRecordsCount" class="history-count">(0)</span></h2><p>Saved player profiles and match records stay here when a live queue ends.</p></div><button id="cloudImportPlayersBtn" class="cloud-import-btn" type="button">＋ Import Players</button></div><div class="cloud-search-summary"><label class="cloud-search-wrap"><span class="cloud-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="cloudRecordsSearch" type="search" placeholder="Search registered players or match logs..."></label><div class="cloud-records-summary" id="cloudRecordsSummary"></div></div><div class="cloud-records-content" id="cloudRecordsContent"></div><div class="cloud-records-actions"><button type="button" id="cloudRecordsDone">Close</button></div></div></div>
-<div class="modal hidden" id="cloudMatchActionModal" onclick="if(event.target===this)closeCloudMatchModal()">
-  <div class="modal-box cloud-match-action-box" role="dialog" aria-modal="true" aria-labelledby="cloudMatchActionTitle">
-    <h2 id="cloudMatchActionTitle"></h2>
-    <div id="cloudMatchActionBody"></div>
-    <div id="cloudMatchActionActions" class="cloud-match-action-actions"></div>
-  </div>
-</div>
-<!-- PUBLIC LIVE VIEW QR / SHARE MODAL -->
-<div class="modal hidden" id="liveViewQrModal" onclick="if(event.target===this)closeLiveViewQrModal()">
-  <div class="modal-box live-view-qr-modal-box" role="dialog" aria-modal="true" aria-labelledby="liveViewQrTitle">
-    <div class="live-view-qr-heading">
-      <div><h2 id="liveViewQrTitle">Share Live View</h2><p>Players can scan this QR code to watch the live queue on their phones.</p></div>
-      <button type="button" class="live-view-qr-close" onclick="closeLiveViewQrModal()" aria-label="Close QR code">×</button>
-    </div>
-    <div class="live-view-qr-content">
-      <div class="live-view-qr-image-wrap" id="liveViewQrImageWrap"><img id="liveViewQrImage" alt="QR code for Pickle Point Match Live View"><span id="liveViewQrUnavailable" hidden>QR code will appear when opened through a web server.</span><div id="liveViewQrOfflineLoader" class="live-view-qr-offline-loader" hidden role="status" aria-label="Live View QR unavailable while offline"><img src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div></div>
-      <div class="live-view-qr-details">
-        <strong id="liveViewQrStatusTitle">Ready to share</strong>
-        <p id="liveViewQrStatusNote">Anyone with this link can watch the live queue from a phone or browser.</p>
-        <label for="liveViewQrUrl">LIVE VIEW LINK</label>
-        <input id="liveViewQrUrl" type="text" readonly spellcheck="false">
-        <div class="live-view-qr-actions">
-          <button type="button" id="liveViewThemeToggle" class="live-view-theme-toggle" aria-pressed="false" aria-label="Switch Live View to light mode" title="Switch Live View to light mode"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-sun">☀</span><span class="theme-switch-icon theme-switch-moon">☾</span><span class="theme-switch-thumb"></span></span><span class="live-view-theme-label">Night</span></button>
-          <button type="button" id="liveViewQrCopyBtn" class="blue">Copy Link</button>
-          <button type="button" id="liveViewQrOpenPageBtn">Open Live View</button>
+      <div id="existingLiveQueueStats" class="existing-live-queue-stats hidden" aria-label="Existing live queue statistics">
+        <div class="existing-live-queue-stat">
+          <span class="existing-live-queue-stat-label">Players on Queue</span>
+          <strong id="existingLiveQueuePlayersCount">0</strong>
+        </div>
+        <div class="existing-live-queue-stat">
+          <span class="existing-live-queue-stat-label">Court Session</span>
+          <strong id="existingLiveQueueCourtsCount">0</strong>
+        </div>
+        <div class="existing-live-queue-stat">
+          <span class="existing-live-queue-stat-label">Matches Total</span>
+          <strong id="existingLiveQueueMatchesCount">0</strong>
         </div>
       </div>
-    </div>
-    <p class="live-view-qr-footer">Share the QR code or copy the link for players to watch the live queue. Use <strong>Open Live View</strong> to preview it, or switch <strong>Night / Light</strong> to change its appearance. For access outside your local network, host Pickle Point Match on a public HTTPS address.</p>
+
+      <div class="live-queue-form-section">
+        <label class="live-queue-field-label">SESSION NAME</label>
+        <input id="liveQueueSessionName" class="live-queue-input" type="text" value="(NON DUPR MATCH) Open Play" autocomplete="off" aria-label="Session name. Match type prefix is automatic and cannot be removed.">
+
+        <label class="live-queue-field-label">MATCH TYPE</label>
+        <div class="live-queue-choice-row two" id="liveQueueMatchType">
+          <button type="button" class="live-queue-choice active" data-value="Doubles">👥 <span>Doubles</span></button>
+          <button type="button" class="live-queue-choice" data-value="Singles" disabled aria-disabled="true">👤 <span>Singles</span></button>
+        </div>
+
+        <label class="live-queue-field-label">GAME MODE</label>
+        <div class="live-queue-game-list" id="liveQueueGameMode">
+          <button type="button" class="live-queue-game active" data-target="11"><b>Race to 11</b><span>Standard open play</span></button>
+          <button type="button" class="live-queue-game" data-target="15"><b>Race to 15</b><span>Extended play</span></button>
+          <button type="button" class="live-queue-game" data-target="21" disabled aria-disabled="true"><b>Rally to 21</b><span>MLP/PPA format</span></button>
+        </div>
+
+        <label class="live-queue-field-label">WIN BY</label>
+        <div class="live-queue-choice-row three" id="liveQueueWinBy">
+          <button type="button" class="live-queue-choice active" data-value="1">Win by 1</button>
+          <button type="button" class="live-queue-choice" data-value="2">Win by 2</button>
+          <button type="button" class="live-queue-choice" data-value="3">Win by 3</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Container 2: matching mode options. -->
+    <section class="live-queue-start-panel live-queue-start-panel-matching" aria-label="Matching mode">
+      <label class="live-queue-field-label">MATCHING MODE</label>
+      <div class="live-queue-matching-list" id="liveQueueMatchingMode" role="group" aria-label="Choose player matching mode">
+        <button type="button" class="live-queue-matching-option active" data-mode="balanced" aria-pressed="true">
+          <span class="live-queue-matching-copy"><span class="live-queue-matching-title">Balanced <span class="live-queue-mode-badge recommended">RECOMMENDED</span></span><span class="live-queue-matching-description">Balances teams by skill and rating. Avoids repeat matchups when possible.</span></span>
+        </button>
+        <button type="button" class="live-queue-matching-option" data-mode="social-mix" aria-pressed="false">
+          <span class="live-queue-matching-copy"><span class="live-queue-matching-title">Social Mix <span class="live-queue-mode-badge improved">IMPROVED</span></span><span class="live-queue-matching-description">Rotates partners before repeating, then spreads opponents fairly. Ratings aren’t used.</span></span>
+        </button>
+        <button type="button" class="live-queue-matching-option" data-mode="skill-separated" aria-pressed="false">
+          <span class="live-queue-matching-copy"><span class="live-queue-matching-title">Skill Separated</span><span class="live-queue-matching-description">Keeps similar skill levels together. May leave a court waiting.</span></span>
+        </button>
+        <button type="button" class="live-queue-matching-option" data-mode="winners-losers" aria-pressed="false">
+          <span class="live-queue-matching-copy"><span class="live-queue-matching-title">Winners / Losers</span><span class="live-queue-matching-description">Winners play winners and losers play losers. PickleQ rotates between both groups.</span></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Container 3: result toggles and the final create action. -->
+    <section class="live-queue-start-panel live-queue-start-panel-actions" aria-label="Recording options and queue creation">
+      <label class="live-queue-toggle-row record-results-toggle-row" title="Choose whether to record numeric game scores">
+        <span class="live-queue-toggle-copy"><strong>Recording results</strong><small>Record game scores</small><small>Save the final score of each game.</small></span>
+        <input id="liveQueueRecordResults" type="checkbox" aria-label="Record game scores">
+        <span class="live-queue-toggle" aria-hidden="true"></span>
+      </label>
+
+      <label class="live-queue-toggle-row">
+        <span class="live-queue-toggle-copy"><strong>DUPR Match</strong><small>Results will be uploaded to DUPR.com</small></span>
+        <input id="liveQueueDupr" type="checkbox" disabled aria-disabled="true">
+        <span class="live-queue-toggle" aria-hidden="true"></span>
+      </label>
+
+      <button type="button" id="createLiveQueueBtn" class="create-live-queue-btn">Create Live Queue</button>
+    </section>
   </div>
 </div>
-<div class="toast" id="toast"></div>
-<script src="live-queue-start-loader.js?v=refresh-stability-20261017-2" defer></script>
-
-
-
-
-<div id="tabletResultsModal" class="tablet-results-modal" role="dialog" aria-modal="true" aria-labelledby="tabletResultsModalTitle" aria-hidden="true">
-  <div class="tablet-results-backdrop" data-close-tablet-results></div>
-  <div class="tablet-results-dialog">
-    <div class="tablet-results-modal-header"><strong id="tabletResultsModalTitle">🏆 Results</strong><button type="button" id="tabletResultsCloseBtn" aria-label="Close results dialog">Close</button></div>
-    <div id="tabletResultsModalBody"></div>
-  </div>
-</div>
-
+<script src="start-page.js?v=separate-start-page-20261019-1"></script>
 </body>
 </html>

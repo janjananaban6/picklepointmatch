@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="live-view.css?v=refresh-stability-20261017-1">
+  <link rel="stylesheet" href="live-view.css?v=live-ranking-toggle-20261019-1">
 </head>
 <body>
   <header class="live-header">
@@ -15,9 +15,26 @@
       <span class="brand-words"><b>PICKLE <strong>POINT</strong></b><small>M A T C H</small></span>
     </a>
     <div class="header-right">
+      <button id="liveRankingToggle" class="live-ranking-toggle" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="liveRankingModal"><span aria-hidden="true">🏆</span><span class="live-ranking-toggle-label">Live Ranking</span></button>
       <span id="connectionStatus" class="connection-status"><i></i><span>Connecting</span></span>
     </div>
   </header>
+
+  <div id="liveRankingModal" class="live-ranking-modal" hidden>
+    <button class="live-ranking-backdrop" type="button" data-close-live-ranking aria-label="Close live ranking"></button>
+    <section class="live-ranking-dialog" role="dialog" aria-modal="true" aria-labelledby="liveRankingTitle" tabindex="-1">
+      <div class="live-ranking-dialog-header">
+        <div>
+          <div class="live-ranking-eyebrow">PLAYER STANDINGS</div>
+          <h2 id="liveRankingTitle">🏆 Live Ranking</h2>
+          <p id="liveRankingSubtitle">Standings update automatically after recorded matches.</p>
+        </div>
+        <button id="liveRankingClose" class="live-ranking-close" type="button" aria-label="Close live ranking">×</button>
+      </div>
+      <div id="liveRankingList" class="live-ranking-list"><div class="live-ranking-empty">Complete a match to start the ranking.</div></div>
+    </section>
+  </div>
+
   <main class="page-shell">
     <section class="event-heading">
       <div class="eyebrow"><span class="live-pulse"></span> PUBLIC LIVE VIEW</div>
@@ -37,24 +54,24 @@
 
     <div class="content-grid">
       <section class="section-card court-section">
-        <div class="section-heading"><div><h2>Courts</h2></div><span id="courtSectionCount" class="count-chip">0 courts</span></div>
+        <div class="section-heading"><div><h2>🏟️ Court <span id="courtSectionCount" class="panel-count">(0)</span></h2></div></div>
         <div id="courtsList" class="courts-grid"><div class="empty-state">Waiting for court information…</div></div>
       </section>
     </div>
 
     <div class="support-grid">
       <aside class="section-card queue-section">
-        <div class="section-heading"><div><h2>Waiting Queue</h2></div><span id="queueSectionCount" class="count-chip">0 players</span></div>
+        <div class="section-heading"><div><h2>📋 Waiting Queue <span id="queueSectionCount" class="panel-count">(0)</span></h2></div></div>
         <div id="queueList" class="queue-list"><div class="empty-state">No players in the queue.</div></div>
       </aside>
 
       <section id="waitingCourtsSection" class="section-card waiting-courts-section" hidden>
-        <div class="section-heading"><div><h2>Waiting Court</h2></div><span id="waitingCourtSectionCount" class="count-chip">0 waiting courts</span></div>
+        <div class="section-heading"><div><h2>🏟️ Waiting Court <span id="waitingCourtSectionCount" class="panel-count">(0)</span></h2></div></div>
         <div id="waitingCourtsList" class="courts-grid"></div>
       </section>
     </div>
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span><span>Public view · Updates automatically</span></footer>
   </main>
-  <script src="live-view.js?v=refresh-stability-20261017-1" defer></script>
+  <script src="live-view.js?v=live-ranking-toggle-20261019-1" defer></script>
 </body>
 </html>
