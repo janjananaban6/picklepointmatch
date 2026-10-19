@@ -19474,3 +19474,202 @@ html body .live-view-qr-close:focus-visible {
     font-size: 16px !important;
   }
 }
+
+
+/* V33 — synchronize History, Cloud, and Left Players search fields with Registered Player Search.
+   Keep layout and search behavior untouched. Hover/focus use the same border treatment;
+   all search-bar shadows stay disabled per the earlier request. */
+html body #queueMainArea #registeredPlayerSearch,
+html body #historyView #historySearchInput,
+html body #cloudRecordsModal #cloudRecordsSearch,
+html body #leftPlayersModal #leftPlayersSearch {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  font-style: normal !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+  color: #344457 !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  transition: border-color .16s ease, background-color .16s ease !important;
+}
+html body #queueMainArea #registeredPlayerSearch::placeholder,
+html body #historyView #historySearchInput::placeholder,
+html body #cloudRecordsModal #cloudRecordsSearch::placeholder,
+html body #leftPlayersModal #leftPlayersSearch::placeholder {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  font-style: normal !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+  color: #9aa6b5 !important;
+  opacity: 1 !important;
+}
+
+/* Search wrappers for icon-led inputs use the same calm border and white background. */
+html body #cloudRecordsModal .cloud-search-wrap,
+html body #leftPlayersModal .left-players-search-wrap {
+  border: 1px solid #ccd8df !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  transition: border-color .16s ease, background-color .16s ease !important;
+}
+
+/* Hover: subtle border only. No shadow, movement, or layout change. */
+html body #queueMainArea #registeredPlayerSearch:hover:not(:focus),
+html body #historyView #historySearchInput:hover:not(:focus),
+html body #cloudRecordsModal .cloud-search-wrap:hover:not(:focus-within),
+html body #leftPlayersModal .left-players-search-wrap:hover:not(:focus-within) {
+  border-color: #b7c9d6 !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+/* Click/focus: match the Registered Player Search teal border and white field. */
+html body #queueMainArea #registeredPlayerSearch:focus,
+html body #queueMainArea #registeredPlayerSearch:focus-visible,
+html body #historyView #historySearchInput:focus,
+html body #historyView #historySearchInput:focus-visible {
+  border-color: #27bdb1 !important;
+  background: #fff !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+html body #cloudRecordsModal .cloud-search-wrap:focus-within,
+html body #leftPlayersModal .left-players-search-wrap:focus-within {
+  border-color: #27bdb1 !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+html body #cloudRecordsModal #cloudRecordsSearch,
+html body #leftPlayersModal #leftPlayersSearch {
+  background: transparent !important;
+  outline: none !important;
+}
+
+/* Keep iPad/iPhone input text at 16px to prevent Safari auto-zoom.
+   Placeholder typography is normalized separately below. */
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  html body #queueMainArea #registeredPlayerSearch,
+  html body #historyView #historySearchInput,
+  html body #cloudRecordsModal #cloudRecordsSearch,
+  html body #leftPlayersModal #leftPlayersSearch {
+    font-size: 16px !important;
+  }
+}
+
+/* No shadows on any search input/wrapper, in any interaction state. */
+html body input[type="search"],
+html body input[id*="Search"],
+html body input[id*="search"],
+html body input[class*="search"],
+html body input[class*="Search"],
+html body .registered-search,
+html body .registered-search > input,
+html body .history-search-wrap,
+html body .history-search-input,
+html body .cloud-search-wrap,
+html body .cloud-search-wrap input,
+html body .left-players-search-wrap,
+html body .left-players-search-wrap input,
+html body .picker-search-wrap,
+html body .picker-search,
+html body .queue-lock-partner-search-wrap,
+html body .queue-lock-partner-search,
+html body .live-ranking-search,
+html body .live-ranking-search input,
+html body input[type="search"]:hover,
+html body input[type="search"]:focus,
+html body input[type="search"]:focus-visible,
+html body .registered-search:focus-within,
+html body .history-search-wrap:focus-within,
+html body .cloud-search-wrap:hover,
+html body .cloud-search-wrap:focus-within,
+html body .left-players-search-wrap:hover,
+html body .left-players-search-wrap:focus-within,
+html body .picker-search-wrap:focus-within,
+html body .queue-lock-partner-search-wrap:focus-within,
+html body .live-ranking-search:hover,
+html body .live-ranking-search:focus-within {
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+
+/* iPad/tablet search placeholders — keep placeholders compact and regular-weight
+   while retaining 16px entered text for Safari's no-auto-zoom behavior.
+   Covers static and dynamically rendered search bars without changing layout. */
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  html body #queueMainArea #registeredPlayerSearch::placeholder,
+  html body #queueMainArea #registeredPlayerSearch::-webkit-input-placeholder,
+  html body #queueMainArea #registeredPlayerSearch::-moz-placeholder,
+  html body #historyView #historySearchInput::placeholder,
+  html body #historyView #historySearchInput::-webkit-input-placeholder,
+  html body #historyView #historySearchInput::-moz-placeholder,
+  html body #cloudRecordsModal #cloudRecordsSearch::placeholder,
+  html body #cloudRecordsModal #cloudRecordsSearch::-webkit-input-placeholder,
+  html body #cloudRecordsModal #cloudRecordsSearch::-moz-placeholder,
+  html body #leftPlayersModal #leftPlayersSearch::placeholder,
+  html body #leftPlayersModal #leftPlayersSearch::-webkit-input-placeholder,
+  html body #leftPlayersModal #leftPlayersSearch::-moz-placeholder,
+  html body #courtPickerSearch::placeholder,
+  html body #courtPickerSearch::-webkit-input-placeholder,
+  html body #courtPickerSearch::-moz-placeholder,
+  html body #queueMainArea .queue-lock-partner-search::placeholder,
+  html body #queueMainArea .queue-lock-partner-search::-webkit-input-placeholder,
+  html body #queueMainArea .queue-lock-partner-search::-moz-placeholder,
+  html body #liveRankingSearch::placeholder,
+  html body #liveRankingSearch::-webkit-input-placeholder,
+  html body #liveRankingSearch::-moz-placeholder,
+  html body input[type="search"]::placeholder,
+  html body input[type="search"]::-webkit-input-placeholder,
+  html body input[type="search"]::-moz-placeholder,
+  html body input[id*="Search"]::placeholder,
+  html body input[id*="Search"]::-webkit-input-placeholder,
+  html body input[id*="Search"]::-moz-placeholder,
+  html body input[id*="search"]::placeholder,
+  html body input[id*="search"]::-webkit-input-placeholder,
+  html body input[id*="search"]::-moz-placeholder,
+  html body input[class*="search"]::placeholder,
+  html body input[class*="search"]::-webkit-input-placeholder,
+  html body input[class*="search"]::-moz-placeholder,
+  html body input[class*="Search"]::placeholder,
+  html body input[class*="Search"]::-webkit-input-placeholder,
+  html body input[class*="Search"]::-moz-placeholder {
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+    font-size: 12px !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    letter-spacing: 0 !important;
+    line-height: 1.2 !important;
+  }
+}
+
+
+/* iPad/tablet search typography: keep entered letters compact and regular-weight too.
+   This overrides the earlier 16px touch-input rule only for search fields;
+   it does not change input dimensions, search behavior, or surrounding layout. */
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  html body input[type="search"],
+  html body input[id*="Search"],
+  html body input[id*="search"],
+  html body input[class*="search"],
+  html body input[class*="Search"],
+  html body #queueMainArea .queue-lock-partner-search,
+  html body #courtPickerSearch,
+  html body #registeredPlayerSearch,
+  html body #historySearchInput,
+  html body #cloudRecordsSearch,
+  html body #leftPlayersSearch {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    line-height: 1.2 !important;
+    letter-spacing: 0 !important;
+  }
+}

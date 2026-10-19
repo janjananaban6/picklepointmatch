@@ -755,3 +755,56 @@ html[data-theme="light"] body *::-webkit-scrollbar-corner {
     font-size: 16px !important;
   }
 }
+
+/* Night-mode readability fix: the input text must contrast with the dark teal search surface. */
+html:not([data-theme="light"]) .live-ranking-search input {
+  color: var(--text) !important;
+}
+html:not([data-theme="light"]) .live-ranking-search input::placeholder {
+  color: var(--muted) !important;
+  opacity: 1 !important;
+}
+
+
+/* V33 — retain the site-wide no-search-shadow rule on Live View as well. */
+html body .live-ranking-search,
+html body .live-ranking-search:hover,
+html body .live-ranking-search:focus-within,
+html body .live-ranking-search input,
+html body .live-ranking-search input:hover,
+html body .live-ranking-search input:focus,
+html body .live-ranking-search input:focus-visible {
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+
+/* iPad/tablet: reduce search placeholder size and weight without changing
+   the 16px actual input text used to prevent Safari focus zoom. */
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  html body #liveRankingSearch::placeholder,
+  html body #liveRankingSearch::-webkit-input-placeholder,
+  html body #liveRankingSearch::-moz-placeholder,
+  html body .live-ranking-search input::placeholder,
+  html body .live-ranking-search input::-webkit-input-placeholder,
+  html body .live-ranking-search input::-moz-placeholder {
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+    font-size: 12px !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+    letter-spacing: 0 !important;
+    line-height: 1.2 !important;
+  }
+}
+
+
+/* iPad/tablet: reduce typed Live View search text as well as its placeholder. */
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  html body .live-ranking-search input,
+  html body #liveRankingSearch {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    line-height: 1.2 !important;
+    letter-spacing: 0 !important;
+  }
+}

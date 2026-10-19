@@ -1,0 +1,151 @@
+/* Search field device override (2026-10-19)
+   This file is loaded after the app styles so iPad/Safari and other browsers
+   use the same placeholder typography and border-only hover/focus feedback.
+   Intentionally does not alter search logic, layout dimensions, or other UI. */
+
+:root {
+  --pp-search-font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* Match Registered Player Search typography. Reset iOS's native search control
+   appearance, which can otherwise ignore some browser-specific input styling. */
+html body #queueMainArea #registeredPlayerSearch,
+html body #historySearchInput,
+html body #cloudRecordsSearch,
+html body #leftPlayersSearch,
+html body #liveRankingSearch {
+  font-family: var(--pp-search-font) !important;
+  font-size: 11px !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html body #queueMainArea #registeredPlayerSearch::placeholder,
+html body #historySearchInput::placeholder,
+html body #cloudRecordsSearch::placeholder,
+html body #leftPlayersSearch::placeholder,
+html body #liveRankingSearch::placeholder,
+html body #queueMainArea #registeredPlayerSearch::-webkit-input-placeholder,
+html body #historySearchInput::-webkit-input-placeholder,
+html body #cloudRecordsSearch::-webkit-input-placeholder,
+html body #leftPlayersSearch::-webkit-input-placeholder,
+html body #liveRankingSearch::-webkit-input-placeholder {
+  font-family: var(--pp-search-font) !important;
+  font-size: 11px !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+/* Keep each control's own layout. Only normalize the visible border/background
+   states. The cloud and left-player border belongs to their wrapping label. */
+html body #queueMainArea #registeredPlayerSearch,
+html body #historySearchInput {
+  border-color: #ccd8df !important;
+  background-color: #fff !important;
+  transition: border-color .16s ease, background-color .16s ease, color .16s ease !important;
+}
+
+html body #cloudRecordsModal .cloud-search-wrap,
+html body #leftPlayersModal .left-players-search-wrap {
+  border-color: #ccd8df !important;
+  background-color: #fff !important;
+  transition: border-color .16s ease, background-color .16s ease, color .16s ease !important;
+}
+
+/* Hover state for mouse/trackpad devices; no shadow is used. */
+html body #queueMainArea #registeredPlayerSearch:hover:not(:focus),
+html body #historySearchInput:hover:not(:focus),
+html body #cloudRecordsModal .cloud-search-wrap:hover:not(:focus-within),
+html body #leftPlayersModal .left-players-search-wrap:hover:not(:focus-within),
+html body .live-ranking-search:hover:not(:focus-within) {
+  border-color: #b7c9d6 !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+/* Click/focus state works on touch devices where :hover is unavailable. */
+html body #queueMainArea #registeredPlayerSearch:focus,
+html body #queueMainArea #registeredPlayerSearch:focus-visible,
+html body #historySearchInput:focus,
+html body #historySearchInput:focus-visible,
+html body #cloudRecordsModal .cloud-search-wrap:focus-within,
+html body #leftPlayersModal .left-players-search-wrap:focus-within,
+html body .live-ranking-search:focus-within {
+  border-color: #27bdb1 !important;
+  background-color: #fff !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+html body #queueMainArea #registeredPlayerSearch:active,
+html body #historySearchInput:active,
+html body #cloudRecordsModal .cloud-search-wrap:active,
+html body #leftPlayersModal .left-players-search-wrap:active,
+html body .live-ranking-search:active {
+  border-color: #27bdb1 !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+/* Keep inner inputs borderless inside their existing bordered wrappers. */
+html body #cloudRecordsModal #cloudRecordsSearch,
+html body #leftPlayersModal #leftPlayersSearch {
+  background-color: transparent !important;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+html body #cloudRecordsModal #cloudRecordsSearch::placeholder,
+html body #leftPlayersModal #leftPlayersSearch::placeholder,
+html body #cloudRecordsModal #cloudRecordsSearch::-webkit-input-placeholder,
+html body #leftPlayersModal #leftPlayersSearch::-webkit-input-placeholder {
+  color: #9aa6b5 !important;
+}
+
+/* Preserve Live View's light/dark text colors; only normalize placeholder weight. */
+html:not([data-theme="light"]) body #liveRankingSearch::placeholder,
+html:not([data-theme="light"]) body #liveRankingSearch::-webkit-input-placeholder {
+  color: var(--muted) !important;
+}
+
+/* Keep entered text and placeholder typography compact on tablets/touch devices. */
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  html body #queueMainArea #registeredPlayerSearch,
+  html body #historySearchInput,
+  html body #cloudRecordsSearch,
+  html body #leftPlayersSearch,
+  html body #liveRankingSearch {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+  }
+
+  html body #queueMainArea #registeredPlayerSearch::placeholder,
+  html body #historySearchInput::placeholder,
+  html body #cloudRecordsSearch::placeholder,
+  html body #leftPlayersSearch::placeholder,
+  html body #liveRankingSearch::placeholder,
+  html body #queueMainArea #registeredPlayerSearch::-webkit-input-placeholder,
+  html body #historySearchInput::-webkit-input-placeholder,
+  html body #cloudRecordsSearch::-webkit-input-placeholder,
+  html body #leftPlayersSearch::-webkit-input-placeholder,
+  html body #liveRankingSearch::-webkit-input-placeholder {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    letter-spacing: 0 !important;
+  }
+}
