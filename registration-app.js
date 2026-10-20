@@ -9,6 +9,44 @@
   let serviceReady = false;
   let submitting = false;
   let cloudEvents = null;
+  let eyebrowThemeEvents = null;
+
+  const LIVE_THEME_STORAGE_KEY = 'picklepoint_live_view_theme_v1';
+
+  function applyRegistrationEyebrowTheme(theme) {
+    const eyebrow = document.querySelector('.registration-page-intro .eyebrow');
+    if (!eyebrow || !['light', 'night'].includes(theme)) return;
+    eyebrow.dataset.liveTheme = theme;
+  }
+
+  async function syncRegistrationEyebrowTheme() {
+    try {
+      applyRegistrationEyebrowTheme(localStorage.getItem(LIVE_THEME_STORAGE_KEY));
+    } catch (_) {}
+
+    try {
+      const response = await fetch(`/api/live-theme?_=${Date.now()}`, {cache: 'no-store'});
+      if (response.ok) {
+        const data = await response.json();
+        applyRegistrationEyebrowTheme(data?.theme);
+      }
+    } catch (_) {}
+
+    if (!eyebrowThemeEvents && typeof EventSource !== 'undefined' && ['http:', 'https:'].includes(location.protocol)) {
+      try {
+        eyebrowThemeEvents = new EventSource('/api/live-events');
+        eyebrowThemeEvents.addEventListener('live-theme', event => {
+          applyRegistrationEyebrowTheme(String(event.data || '').trim());
+        });
+      } catch (_) { eyebrowThemeEvents = null; }
+    }
+  }
+
+  window.addEventListener('storage', event => {
+    if (event.key === LIVE_THEME_STORAGE_KEY) {
+      applyRegistrationEyebrowTheme(event.newValue);
+    }
+  });
 
   function normalizedName(value) {
     return String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
@@ -275,5 +313,6 @@
   $('registerSaveBtn').addEventListener('click', submitRegistration);
   $('registerFullname').addEventListener('keydown', event => { if (event.key === 'Enter') submitRegistration(); });
   bindNameHelpers();
+  syncRegistrationEyebrowTheme();
   loadCloudRecords();
 })();
