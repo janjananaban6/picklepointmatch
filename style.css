@@ -14117,6 +14117,7 @@ body.podium-modal-open .topbar{
 .live-view-qr-image-wrap{min-height:250px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #dbe7e9;border-radius:15px;padding:12px;box-sizing:border-box;}
 .live-view-qr-image-wrap img{display:block;width:100%;max-width:230px;height:auto;aspect-ratio:1;object-fit:contain;}
 .live-view-qr-image-wrap #liveViewQrUnavailable{font-size:12px;text-align:center;color:#687f85;line-height:1.5;}
+.live-view-qr-image-wrap #registrationQrUnavailable{font-size:12px;text-align:center;color:#687f85;line-height:1.5;}
 .live-view-qr-details>strong{display:block;color:#075e63;font-size:15px;margin-bottom:6px;}
 .live-view-qr-details>p{color:#526d73;font-size:12px;line-height:1.55;margin:0 0 16px;}
 .live-view-qr-details label{display:block;font-size:10px;letter-spacing:.09em;font-weight:800;color:#58767d;margin-bottom:6px;}
@@ -19453,9 +19454,9 @@ html body .live-view-qr-close:focus-visible {
   box-sizing: border-box !important;
 }
 
-/* MOBILE/TABLET SEARCH ZOOM FIX
-   iOS Safari zooms the page when a focused search input uses text smaller than 16px.
-   Keep each search field's existing height, width, padding, and surrounding layout intact. */
+/* MOBILE/TABLET SEARCH TYPOGRAPHY FIX
+   Keep entered text compact and consistent with each search placeholder.
+   Preserve each search field's existing height, width, padding, and surrounding layout. */
 @media (max-width: 1024px), (pointer: coarse) {
   html body input[type="search"],
   html body input[id*="Search"],
@@ -19471,7 +19472,7 @@ html body .live-view-qr-close:focus-visible {
   html body #historyView .history-search-input,
   html body #cloudRecordsModal .cloud-search-wrap input,
   html body #leftPlayersModal .left-players-search-wrap input {
-    font-size: 16px !important;
+    font-size: 12px !important;
   }
 }
 
@@ -19553,14 +19554,13 @@ html body #leftPlayersModal #leftPlayersSearch {
   outline: none !important;
 }
 
-/* Keep iPad/iPhone input text at 16px to prevent Safari auto-zoom.
-   Placeholder typography is normalized separately below. */
+/* Keep iPad/tablet entered text compact to match the normalized placeholders. */
 @media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
   html body #queueMainArea #registeredPlayerSearch,
   html body #historyView #historySearchInput,
   html body #cloudRecordsModal #cloudRecordsSearch,
   html body #leftPlayersModal #leftPlayersSearch {
-    font-size: 16px !important;
+    font-size: 12px !important;
   }
 }
 
@@ -19652,9 +19652,8 @@ html body .live-ranking-search:focus-within {
 }
 
 
-/* iPad/tablet search zoom prevention.
-   Keep the actual typed text at 16px so iOS Safari does not auto-zoom on focus.
-   Input dimensions, padding, search behavior, and surrounding layout stay unchanged. */
+/* iPad/tablet search typography normalization.
+   Keep typed text and placeholders at a compact, consistent size without changing layout. */
 @media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
   html body input[type="search"],
   html body input[id*="Search"],
@@ -19667,9 +19666,532 @@ html body .live-ranking-search:focus-within {
   html body #historySearchInput,
   html body #cloudRecordsSearch,
   html body #leftPlayersSearch {
-    font-size: 16px !important;
+    font-size: 12px !important;
     font-weight: 400 !important;
     line-height: 1.2 !important;
     letter-spacing: 0 !important;
   }
+}
+
+/* Compact the collapsed Left Player section without affecting its popup or list behavior. */
+#queueMainArea .left-section.collapsed {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  flex: 0 0 40px !important;
+  box-sizing: border-box !important;
+  padding: 4px 10px !important;
+  overflow: hidden !important;
+}
+#queueMainArea .left-section.collapsed .left-title-modern {
+  margin: 0 !important;
+  padding: 3px 1px !important;
+}
+
+/* Compact both popup footer/action bars without changing modal content or behavior. */
+html body #cloudRecordsModal .cloud-records-actions,
+html body #leftPlayersModal .cloud-records-actions.left-players-actions,
+html body #leftPlayersModal .left-players-actions {
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 5px 0 0 !important;
+  margin: 5px 0 0 !important;
+}
+html body #cloudRecordsModal .cloud-records-actions button,
+html body #leftPlayersModal .cloud-records-actions.left-players-actions button,
+html body #leftPlayersModal .left-players-actions button {
+  box-sizing: border-box !important;
+  min-height: 26px !important;
+  height: 26px !important;
+  padding: 4px 10px !important;
+  line-height: 1.1 !important;
+}
+
+
+/* Match win-only and recorded-results live footer outer edges and spacing.
+   Keep their footer width, horizontal inset, vertical padding, and auto margins identical. */
+#courtsList .court-card.court-live-card .live-footer.win-only-footer,
+#courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) {
+  width: calc(100% - 12px) !important;
+  min-width: 0 !important;
+  max-width: calc(100% - 12px) !important;
+  margin: 6px auto !important;
+  padding: 3px 8px 6px !important;
+  box-sizing: border-box !important;
+}
+
+/* On tablet/mobile, keep the win-only action row aligned to the same inner edges. */
+@media (max-width: 1100px) {
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 8px 0 4px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* FINAL CROSS-DEVICE LIVE FOOTER ALIGNMENT — 2026-10-20 */
+/* Keep the Win Only and Recorded Results footer edges consistent at every size. */
+#courtsList .court-card.court-live-card .live-footer,
+#courtsList .court-card.court-live-card .live-footer.win-only-footer {
+  width: calc(100% - 12px) !important;
+  min-width: 0 !important;
+  max-width: calc(100% - 12px) !important;
+  margin: 6px auto !important;
+  padding: 3px 8px 6px !important;
+  box-sizing: border-box !important;
+}
+
+#courtsList .court-card.court-live-card .live-footer > button,
+#courtsList .court-card.court-live-card .live-footer .live-actions-win-only,
+#courtsList .court-card.court-live-card .live-footer .live-actions-win-only > *,
+#courtsList .court-card.court-live-card .live-footer .live-actions-win-only button {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Match the compact button heights used by the Recorded Results row. */
+#courtsList .court-card.court-live-card .live-footer.win-only-footer > .cancel-match,
+#courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only .mix-action-wrap > .mix-live {
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  box-sizing: border-box !important;
+}
+
+/* Tablet: retain the stacked Win Only controls but remove expanded row margins. */
+@media (min-width: 621px) and (max-width: 1100px) {
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 8px 0 4px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Phone: equal insets for both footer modes and slightly tighter inner spacing. */
+@media (max-width: 620px) {
+  #courtsList .court-card.court-live-card .live-footer,
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer {
+    padding: 3px 6px 6px !important;
+    margin: 5px auto !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) {
+    column-gap: 5px !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) > button {
+    font-size: 9px !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer > .cancel-match,
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only .mix-action-wrap > .mix-live {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    font-size: 9px !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 7px 0 3px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Extra-narrow phones: leave a little more room for the three recorded-result labels. */
+@media (max-width: 380px) {
+  #courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) {
+    column-gap: 4px !important;
+  }
+  #courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) > button {
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    font-size: 9px !important;
+  }
+}
+
+/* FINAL FIX — match the unrecorded Win Only footer's top spacing to Recorded Results.
+   The action wrapper previously added 7–8px of top padding inside the footer,
+   making its first visible button sit lower than the recorded-results buttons.
+   Keep the outer footer margin/padding shared and remove only that extra inset. */
+#courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only {
+  padding-top: 0 !important;
+}
+
+
+/* FINAL IPAD ORIENTATION FIX — Win Only footer.
+   Keep the outer margin/padding identical to Recorded Score; remove the
+   inner action wrapper's extra inset and change the button layout by orientation. */
+#courtsList .court-card.court-live-card .live-footer.win-only-footer {
+  width: calc(100% - 12px) !important;
+  min-width: 0 !important;
+  max-width: calc(100% - 12px) !important;
+  margin: 6px auto !important;
+  padding: 3px 8px 6px !important;
+  box-sizing: border-box !important;
+  align-items: stretch !important;
+}
+
+#courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Landscape tablet/iPad: Delete Match and Mix Teams share one row. */
+@media (min-width: 621px) and (orientation: landscape) {
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer:not(.delete-confirming),
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer.delete-confirming {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) !important;
+    column-gap: 7px !important;
+    row-gap: 7px !important;
+    align-items: stretch !important;
+    margin: 6px auto !important;
+    padding: 3px 8px 6px !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only {
+    display: contents !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer > .cancel-match {
+    order: 0 !important;
+    justify-self: stretch !important;
+    align-self: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only .mix-action-wrap {
+    order: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only .mix-action-wrap > .mix-live {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer.delete-confirming .delete-match-note {
+    grid-column: 1 / -1 !important;
+    order: 2 !important;
+    width: 100% !important;
+  }
+}
+
+/* Portrait tablet/iPad: the same controls stack one full-width button per row. */
+@media (min-width: 621px) and (orientation: portrait) {
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer:not(.delete-confirming),
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer.delete-confirming {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    row-gap: 7px !important;
+    column-gap: 0 !important;
+    align-items: stretch !important;
+    margin: 6px auto !important;
+    padding: 3px 8px 6px !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 7px !important;
+    order: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer > .cancel-match {
+    order: 1 !important;
+    justify-self: stretch !important;
+    align-self: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only .mix-action-wrap {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only .mix-action-wrap > .mix-live {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer.delete-confirming .delete-match-note {
+    grid-column: 1 / -1 !important;
+    order: 2 !important;
+    width: 100% !important;
+  }
+}
+
+
+/* FINAL PORTRAIT TABLET FIX — 2026-10-20.
+   Keep portrait iPad controls side by side too, as requested. Landscape rules remain unchanged.
+   Use a viewport-shape fallback for iPad browsers with nonstandard orientation reporting. */
+@media (min-width: 621px) and (max-width: 1100px) and (max-aspect-ratio: 1/1),
+       (min-width: 621px) and (max-width: 1100px) and (min-height: 900px) {
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer:not(.delete-confirming),
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer.delete-confirming {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    gap: 7px !important;
+    row-gap: 7px !important;
+    column-gap: 7px !important;
+    width: calc(100% - 12px) !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 12px) !important;
+    margin: 6px auto !important;
+    padding: 3px 8px 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Expose Mix Teams into the footer grid so it can sit next to Delete Match. */
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only {
+    display: contents !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer > .cancel-match {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    order: 0 !important;
+    justify-self: stretch !important;
+    align-self: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    margin: 0 !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    box-sizing: border-box !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only .mix-action-wrap {
+    display: flex !important;
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    order: 1 !important;
+    justify-self: stretch !important;
+    align-self: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only .mix-action-wrap > .mix-live {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    margin: 0 !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    box-sizing: border-box !important;
+  }
+
+  #courtsList .court-card.court-live-card .live-footer.win-only-footer.delete-confirming .delete-match-note {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    order: 2 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* QUEUEING PAGE — equalize Queue and Courts header heights with the tabs row.
+   Keep all existing header labels, buttons, colors, and behavior unchanged. */
+.workspace > .queue-panel > .queue-header-modern,
+.workspace > .courts-panel > .panel-title {
+  box-sizing: border-box !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  padding: 3px 12px !important;
+  gap: 8px !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+}
+
+.workspace > .queue-panel > .queue-header-modern > div,
+.workspace > .courts-panel > .panel-title > div:first-child {
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.workspace > .queue-panel > .queue-header-modern .import-btn,
+.workspace > .courts-panel > .panel-title .court-header-actions #addCourtBtn,
+.workspace > .courts-panel > .panel-title .court-header-actions #courtSettingsBtn {
+  flex: 0 0 auto !important;
+}
+
+
+/* QUEUEING PAGE — compact header actions for a cleaner, balanced toolbar.
+   Only button sizing/spacing is adjusted; labels, colors, and behavior stay the same. */
+.workspace > .queue-panel > .queue-header-modern .import-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 27px !important;
+  min-height: 27px !important;
+  max-height: 27px !important;
+  padding: 0 7px !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  border-radius: 10px !important;
+}
+
+.workspace > .courts-panel > .panel-title .court-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+.workspace > .courts-panel > .panel-title .court-header-actions #addCourtBtn,
+.workspace > .courts-panel > .panel-title .court-header-actions #courtSettingsBtn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 27px !important;
+  min-height: 27px !important;
+  max-height: 27px !important;
+  padding: 0 7px !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  border-radius: 10px !important;
+}
+
+.workspace > .courts-panel > .panel-title .court-header-actions #courtSettingsBtn {
+  flex: 0 0 auto !important;
+}
+
+/* Match Register QR to the existing QR Share button design only.
+   Keep its label, event handlers, and all other controls unchanged. */
+html body header.topbar div.top-actions > button#liveViewRegisterBtn,
+html body header.topbar div.top-actions > button#liveViewRegisterBtn:hover,
+html body header.topbar div.top-actions > button#liveViewRegisterBtn:active,
+html body header.topbar div.top-actions > button#liveViewRegisterBtn:focus,
+html body header.topbar div.top-actions > button#liveViewRegisterBtn:focus-visible {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 30px !important;
+  padding: 5px 10px !important;
+  border: 1px solid #2a8d88 !important;
+  border-radius: 10px !important;
+  background: linear-gradient(180deg, #103941 0%, #0b3038 100%) !important;
+  background-color: #0b3038 !important;
+  color: #72e4d9 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 2px 7px rgba(0,0,0,.14) !important;
+  outline: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  transition: background .16s ease, border-color .16s ease, box-shadow .16s ease !important;
+}
+html body header.topbar div.top-actions > button#liveViewRegisterBtn:hover {
+  border-color: #49c9be !important;
+  background: linear-gradient(180deg, #164850 0%, #0e383f 100%) !important;
+  box-shadow: 0 3px 9px rgba(39,211,197,.12) !important;
+}
+html body header.topbar div.top-actions > button#liveViewRegisterBtn::before,
+html body header.topbar div.top-actions > button#liveViewRegisterBtn::after,
+html body header.topbar div.top-actions > button#liveViewRegisterBtn:hover::before,
+html body header.topbar div.top-actions > button#liveViewRegisterBtn:hover::after,
+html body header.topbar div.top-actions > button#liveViewRegisterBtn:active::before,
+html body header.topbar div.top-actions > button#liveViewRegisterBtn:active::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
 }

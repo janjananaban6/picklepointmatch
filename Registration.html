@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html id="scrollbar-theme-override" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#072f38">
+  <title>Player Registration | Pickle Point Match</title>
+  <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
+  <link rel="stylesheet" href="live-view.css?v=registration-footer-alignment-20261020-4">
+  <link rel="stylesheet" href="style.css?v=registration-area-shared-20261020-1">
+  <link rel="stylesheet" href="registration-page.css?v=registration-duplicate-message-fix-20261020-8">
+</head>
+<body class="registration-page-body">
+  <header class="live-header">
+    <a class="brand" href="live.html" aria-label="Pickle Point Match Live View">
+      <img src="pickleball-p-emblem.png" alt="Pickle Point Match logo">
+      <span class="brand-words"><b>PICKLE <strong>POINT</strong></b><small>M A T C H</small></span>
+    </a>
+    <div class="header-right">
+      <span id="registrationConnectionStatus" class="connection-status"><i></i><span>Connecting</span></span>
+    </div>
+  </header>
+
+  <main class="page-shell registration-page-shell">
+    <section class="event-heading registration-page-intro">
+      <div class="eyebrow"><span class="live-pulse"></span> PICKLE POINT MATCH</div>
+      <h1>Register as a Player</h1>
+      <p>Fill in your player details to register and join the live waiting queue. Your profile is saved to Registered Player Cloud automatically.</p>
+    </section>
+
+    <section class="registration-page-panel" aria-labelledby="registrationPageTitle">
+      <div class="registration-page-panel-heading">
+        <div class="registration-page-panel-icon" aria-hidden="true">🏓</div>
+        <div><h2 id="registrationPageTitle">Player details</h2><p>Fields marked with <span aria-hidden="true">*</span> are required.</p></div>
+      </div>
+      <div id="registrationPageStatus" class="registration-page-status is-loading" role="status" aria-live="polite">Connecting to Registered Player Cloud…</div>
+
+      <div class="registration-area registration-page-form" id="registrationArea">
+        <div class="registration-head">
+          <div><h3>REGISTER PLAYER</h3><small>New registrations are added to the queue automatically</small></div>
+        </div>
+
+        <div class="registration-field registration-fullname-row">
+          <label class="registration-field-label" for="registerFullname">FULLNAME <span class="registration-required-star" aria-hidden="true">*</span></label>
+          <div class="registration-text-wrap">
+            <input id="registerFullname" type="text" maxlength="120" placeholder="Enter your fullname" autocomplete="name" autocapitalize="words" required>
+            <button type="button" class="registration-enye-btn" data-target="registerFullname" title="Insert Ñ" aria-label="Insert Ñ">Ñ</button>
+          </div>
+          <div id="registrationDuplicateMessage" class="registration-duplicate-message" role="status" aria-live="polite" hidden></div>
+        </div>
+
+        <div class="registration-inline-row registration-nickname-gender-row">
+          <div class="registration-field registration-nickname-field">
+            <label class="registration-field-label" for="registerNickname">NICKNAME <span class="registration-optional-label">(OPTIONAL)</span></label>
+            <div class="registration-text-wrap">
+              <input id="registerNickname" type="text" maxlength="80" placeholder="Enter your nickname" autocomplete="nickname" autocapitalize="words">
+              <button type="button" class="registration-enye-btn" data-target="registerNickname" title="Insert Ñ" aria-label="Insert Ñ">Ñ</button>
+            </div>
+          </div>
+
+          <div class="registration-inline-control registration-gender-control">
+            <label class="registration-field-label">GENDER <span class="registration-required-star" aria-hidden="true">*</span></label>
+            <div class="registration-choice-row gender-logo-row">
+              <button type="button" class="gender-choice gender-logo-male" data-gender="Male" aria-label="Male" title="Male"><svg class="gender-symbol gender-symbol-male" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.35" cy="10.65" r="3.45" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.8 8.2 14.1 1.9M9.35 1.9h4.75v4.75" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <button type="button" class="gender-choice gender-logo-female" data-gender="Female" aria-label="Female" title="Female"><svg class="gender-symbol gender-symbol-female" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="4.8" r="3.55" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.4v5.9M5.25 11.35h5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="registration-inline-row registration-category-save-row">
+          <div class="registration-skill-control" role="group" aria-label="Skill Level">
+            <span class="registration-skill-level-label">SKILL LEVEL <span class="registration-required-star" aria-hidden="true">*</span></span>
+            <div class="registration-skill-buttons">
+              <button type="button" class="registration-skill-btn skill-beg" data-skill="BEG" aria-pressed="false">BEG</button>
+              <button type="button" class="registration-skill-btn skill-nov" data-skill="NOV" aria-pressed="false">NOV</button>
+              <button type="button" class="registration-skill-btn skill-int" data-skill="INT" aria-pressed="false">INT</button>
+              <button type="button" class="registration-skill-btn skill-adv" data-skill="ADV" aria-pressed="false">ADV</button>
+              <button type="button" class="registration-skill-btn skill-exp" data-skill="EXP" aria-pressed="false">EXP</button>
+            </div>
+          </div>
+          <button type="button" class="register-save-btn" id="registerSaveBtn" disabled>Register &amp; Add to Queue</button>
+        </div>
+      </div>
+
+      <div id="registrationPageResult" class="registration-page-result" role="status" aria-live="polite" hidden></div>
+      <div class="registration-page-footnote"><span aria-hidden="true">☁</span> Registered profiles and waiting queue sync automatically with the organizer’s Pickle Point Match screen.</div>
+    </section>
+    <footer class="page-footer"><span>● PICKLE POINT MATCH</span><span>Public view · Updates automatically</span></footer>
+  </main>
+  <script src="registration-app.js?v=registration-duplicate-message-fix-20261020-3" defer></script>
+</body>
+</html>

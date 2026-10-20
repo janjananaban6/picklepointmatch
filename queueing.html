@@ -57,7 +57,7 @@
     @media(max-height:620px) { #mobileQueueingRestricted .mobile-restriction-card { padding:20px 20px 18px; } #mobileQueueingRestricted .mobile-restriction-logo { width:48px; height:48px; margin-bottom:8px; } #mobileQueueingRestricted .mobile-restriction-brand-sub { margin-bottom:15px; } #mobileQueueingRestricted .mobile-restriction-icon { width:43px; height:43px; margin-bottom:10px; } #mobileQueueingRestricted .mobile-restriction-note { margin:12px 0 15px; } }
   </style>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=ipad-search-no-autozoom-20261019-1">
+  <link rel="stylesheet" href="style.css?v=live-footer-portrait-side-by-side-20261020-6">
 </head>
 <body data-page="queueing">
 <main id="mobileQueueingRestricted" hidden role="main" aria-labelledby="mobileQueueingRestrictedTitle">
@@ -82,6 +82,7 @@
   </div>
   <div class="top-actions">
     <button type="button" id="liveViewQrOpenBtn" class="live-view-qr-open-btn" title="Show QR code and share link for the Live View">▦ QR Share</button>
+    <button type="button" id="liveViewRegisterBtn" class="live-view-qr-open-btn live-view-register-open-btn" title="Show a QR code for phone player registration">📱 Register QR</button>
     <button type="button" id="tabletResultsOpenBtn" class="tablet-results-open-btn" aria-haspopup="dialog" aria-controls="tabletResultsModal">🏆 Results</button>
     <span class="online offline"><i></i> Offline Queueing</span>
     <button class="danger" id="endSessionBtn" type="button">End</button>
@@ -191,7 +192,7 @@
       <div>
         <h2>🏟️ Courts <span id="courtCount" class="panel-count">(0)</span></h2>
               </div>
-      <div class="court-header-actions"><button class="settings-btn" id="courtSettingsBtn" type="button" title="Court Settings" aria-label="Court Settings">⚙ Settings</button><button class="blue" id="addCourtBtn" type="button">＋ Add Waiting Court</button></div>
+      <div class="court-header-actions"><button class="settings-btn" id="courtSettingsBtn" type="button" title="Court Settings" aria-label="Court Settings">⚙ Settings</button><button class="blue" id="addCourtBtn" type="button">＋ Add Court</button></div>
     </div>
     <div id="courtsList"></div>
   </section>
@@ -405,6 +406,31 @@ Maria Santos,Female"></textarea>
     <p class="live-view-qr-footer">Share the QR code or copy the link for players to watch the live queue. Use <strong>Open Live View</strong> to preview it, or switch <strong>Night / Light</strong> to change its appearance. For access outside your local network, host Pickle Point Match on a public HTTPS address.</p>
   </div>
 </div>
+
+<!-- PHONE PLAYER REGISTRATION QR / SHARE MODAL -->
+<div class="modal hidden" id="registrationQrModal" onclick="if(event.target===this)closeRegistrationQrModal()">
+  <div class="modal-box live-view-qr-modal-box registration-qr-modal-box" role="dialog" aria-modal="true" aria-labelledby="registrationQrTitle">
+    <div class="live-view-qr-heading">
+      <div><h2 id="registrationQrTitle">Register Players by Phone</h2><p>Scan this QR code to open the registration form on a phone.</p></div>
+      <button type="button" class="live-view-qr-close" onclick="closeRegistrationQrModal()" aria-label="Close registration QR code">Close</button>
+    </div>
+    <div class="live-view-qr-content">
+      <div class="live-view-qr-image-wrap" id="registrationQrImageWrap"><img id="registrationQrImage" alt="QR code for player registration"><span id="registrationQrUnavailable" hidden>QR code will appear when opened through a web server.</span><div id="registrationQrLoader" class="live-view-qr-offline-loader" hidden role="status" aria-label="Registration QR unavailable while offline"><img src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div></div>
+      <div class="live-view-qr-details">
+        <strong id="registrationQrStatusTitle">Ready to register</strong>
+        <p id="registrationQrStatusNote">Players can complete their details, then they are saved to Registered Player Cloud and added to the queue automatically.</p>
+        <label for="registrationQrUrl">PLAYER REGISTRATION LINK</label>
+        <input id="registrationQrUrl" type="text" readonly spellcheck="false">
+        <div class="live-view-qr-actions">
+          <button type="button" id="registrationQrCopyBtn" class="blue">Copy Registration Link</button>
+          <button type="button" id="registrationQrOpenPageBtn">Open Registration Page</button>
+        </div>
+      </div>
+    </div>
+    <p class="live-view-qr-footer">For phone registration, open this link on the phone or scan the QR code. The phone must be able to reach this same hosted server or local network address.</p>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <script src="queueing-app-loader.js?v=separate-queue-page-20261019-1" defer></script>
 

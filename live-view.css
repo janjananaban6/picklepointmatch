@@ -1,5 +1,5 @@
 *{box-sizing:border-box} :root{color-scheme:dark;--bg:#061f27;--panel:#0b3039;--panel2:#0e3a43;--line:#1c5059;--teal:#27d3c5;--muted:#9dbfc3;--text:#eefafa;--orange:#ffb04e;--green:#37d6a1;--red:#ff7078}
-html{min-height:100%;background:var(--bg)}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(ellipse at 50% -220px,#18515b 0,transparent 62%),var(--bg);min-height:100vh}button,a{-webkit-tap-highlight-color:transparent}.live-header{height:58px;padding:0 clamp(16px,4vw,54px);display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #24535a;background:rgba(4,30,37,.92);position:sticky;top:0;z-index:5;backdrop-filter:blur(14px)}.brand{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;min-width:0}.brand img{width:39px;height:39px;object-fit:contain}.brand-words{display:flex;flex-direction:column;gap:1px;letter-spacing:.7px;white-space:nowrap}.brand-words b{font-size:14px;font-weight:950}.brand-words strong{color:var(--teal)}.brand-words small{font-size:8px;letter-spacing:4px;font-weight:900;color:#95c4c7}.header-right{display:flex;align-items:center;gap:12px}.connection-status{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #2d6569;border-radius:999px;color:#b9d4d6;font-size:11px;font-weight:800;white-space:nowrap}.connection-status i{width:7px;height:7px;border-radius:50%;background:#a6b8bc}.connection-status.connected i{background:var(--green);box-shadow:0 0 9px #37d6a1}.connection-status.local i{background:var(--orange)}.page-shell{width:min(1380px,100%);margin:auto;padding:34px clamp(14px,4vw,54px) 22px}.event-heading{margin-bottom:25px}.eyebrow{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:2.2px;color:var(--teal);font-weight:950}.live-pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green)}.event-heading h1{font-size:clamp(24px,3.2vw,39px);letter-spacing:-1px;line-height:1.13;margin:11px 0 8px;font-weight:950;overflow-wrap:anywhere}.event-subtitle{margin:0;color:var(--muted);font-size:14px}.updated-line{display:flex;align-items:center;gap:13px;flex-wrap:wrap;color:#85aeb3;font-size:11px;margin-top:16px}.content-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(270px,1fr);gap:18px;align-items:start}.section-card{background:linear-gradient(155deg,#0b3039,#092831);border:1px solid var(--line);border-radius:17px;padding:20px;min-width:0;box-shadow:0 12px 32px #0000000a}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:17px}.section-kicker{color:var(--teal);font-size:9px;font-weight:950;letter-spacing:1.75px}.section-heading h2{font-size:21px;letter-spacing:-.45px;margin:4px 0 0;font-weight:900}.count-chip{display:inline-flex;padding:6px 9px;border-radius:8px;border:1px solid #265b61;background:#103b43;color:#bad4d6;font-size:10px;font-weight:850;white-space:nowrap}.courts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.court-card{border:1px solid #25545b;border-radius:13px;padding:14px;background:linear-gradient(160deg,#113a43,#0b3038);min-width:0}.court-card.playing{border-color:#2b9d87;box-shadow:inset 0 0 0 1px #2b9d8724}.court-top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-bottom:11px;border-bottom:1px solid #24515a}.court-name{font-size:14px;font-weight:950;overflow-wrap:anywhere}.court-state{font-size:9px;text-transform:uppercase;letter-spacing:.5px;border-radius:999px;padding:5px 7px;font-weight:950;white-space:nowrap;color:#b7d0d2;background:#24494f}.court-state.playing{background:#164b43;color:#65e2b5}.court-state.ready{background:#1d4d61;color:#8bd2ed}.court-state.waiting{background:#59492a;color:#ffd58c}.match-meta{display:flex;justify-content:space-between;gap:7px;color:#9ebfc2;font-size:10px;margin:10px 0}.match-timer{color:var(--teal);font-weight:950;font-variant-numeric:tabular-nums}.teams{display:grid;grid-template-columns:1fr 18px 1fr;align-items:center;gap:5px}.team{display:flex;flex-direction:column;gap:6px;min-width:0}.team-label{color:#89b1b5;font-size:8px;font-weight:950;letter-spacing:1px}.player-chip{display:flex;align-items:center;gap:4px;padding:8px 7px;min-height:35px;border:1px solid #28555c;border-radius:8px;background:#0c2a32;font-size:10px;font-weight:800;overflow-wrap:anywhere;min-width:0}.player-chip:before{content:"";display:block;flex:0 0 6px;width:6px;height:6px;border-radius:50%;background:#eca257}.team:nth-child(3) .player-chip:before{background:#8bd4d6}.player-chip.empty{color:#63868b;font-weight:600;font-style:italic}.versus{text-align:center;font-size:9px;color:#76a2a6;font-weight:950}.scoreline{margin-top:11px;display:flex;align-items:center;justify-content:center;gap:9px;color:#dffafa;font-size:12px;font-weight:950}.scoreline b{color:var(--teal);font-size:17px}.queue-list{display:flex;flex-direction:column;gap:8px}.queue-item{display:flex;align-items:center;gap:11px;padding:10px 11px;background:#0b2931;border:1px solid #1d4851;border-radius:10px;min-width:0}.queue-number{flex:0 0 27px;width:27px;height:27px;border-radius:8px;background:#1b4f57;color:var(--teal);display:grid;place-items:center;font-weight:950;font-size:11px}.queue-player{font-size:12px;font-weight:850;overflow-wrap:anywhere}.queue-label{display:block;color:#7fa9ad;font-size:9px;margin-top:3px}.empty-state{padding:24px 12px;text-align:center;color:#83a8ac;border:1px dashed #2a555b;border-radius:10px;font-size:12px;line-height:1.5}.notice-card{display:flex;gap:14px;align-items:center;margin-bottom:18px;padding:16px 18px;border:1px solid #725c31;background:#332f21;border-radius:13px}.notice-icon{font-size:24px}.notice-card strong{font-size:13px}.notice-card p{color:#d7c9a6;margin:4px 0 0;font-size:11px}.sync-notice{display:flex;gap:8px;flex-direction:column;padding:12px 14px;border:1px solid #876532;background:#302c20;color:#e7d3a5;border-radius:11px;margin-bottom:16px;font-size:11px;line-height:1.5}.sync-notice strong{font-size:11px;color:#ffdc88}.page-footer{margin-top:25px;padding-top:15px;border-top:1px solid #19414a;display:flex;justify-content:space-between;gap:10px;color:#648c91;font-size:9px;letter-spacing:.75px;font-weight:850}[hidden]{display:none!important}
+html{min-height:100%;background:var(--bg)}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(ellipse at 50% -220px,#18515b 0,transparent 62%),var(--bg);min-height:100vh}button,a{-webkit-tap-highlight-color:transparent}.live-header{height:58px;padding:0 clamp(16px,4vw,54px);display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #24535a;background:rgba(4,30,37,.92);position:sticky;top:0;z-index:5;backdrop-filter:blur(14px)}.brand{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;min-width:0}.brand img{width:39px;height:39px;object-fit:contain}.brand-words{display:flex;flex-direction:column;gap:1px;letter-spacing:.7px;white-space:nowrap}.brand-words b{font-size:14px;font-weight:950}.brand-words strong{color:var(--teal)}.brand-words small{font-size:8px;letter-spacing:4px;font-weight:900;color:#95c4c7}.header-right{display:flex;align-items:center;gap:12px}.connection-status{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #2d6569;border-radius:999px;color:#b9d4d6;font-size:11px;font-weight:800;white-space:nowrap}.connection-status i{width:7px;height:7px;border-radius:50%;background:#a6b8bc}.connection-status.connected i{background:var(--green);box-shadow:0 0 9px #37d6a1}.connection-status.local i{background:var(--orange)}.page-shell{width:min(1380px,100%);margin:auto;padding:34px clamp(14px,4vw,54px) 22px}.event-heading{margin-bottom:25px}.eyebrow{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:2.2px;color:var(--teal);font-weight:950}.live-pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green)}.event-heading h1{font-size:clamp(24px,3.2vw,39px);letter-spacing:-1px;line-height:1.13;margin:11px 0 8px;font-weight:950;overflow-wrap:anywhere}.event-subtitle{margin:0;color:var(--muted);font-size:14px}.updated-line{display:flex;align-items:center;gap:13px;flex-wrap:wrap;color:#85aeb3;font-size:11px;margin-top:16px}.content-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(270px,1fr);gap:18px;align-items:start}.section-card{background:linear-gradient(155deg,#0b3039,#092831);border:1px solid var(--line);border-radius:17px;padding:20px;min-width:0;box-shadow:0 12px 32px #0000000a}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:17px}.section-kicker{color:var(--teal);font-size:9px;font-weight:950;letter-spacing:1.75px}.section-heading h2{font-size:21px;letter-spacing:-.45px;margin:4px 0 0;font-weight:900}.count-chip{display:inline-flex;padding:6px 9px;border-radius:8px;border:1px solid #265b61;background:#103b43;color:#bad4d6;font-size:10px;font-weight:850;white-space:nowrap}.courts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.court-card{border:1px solid #25545b;border-radius:13px;padding:14px;background:linear-gradient(160deg,#113a43,#0b3038);min-width:0}.court-card.playing{border-color:#2b9d87;box-shadow:inset 0 0 0 1px #2b9d8724}.court-top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-bottom:11px;border-bottom:1px solid #24515a}.court-name{font-size:14px;font-weight:950;overflow-wrap:anywhere}.court-state{font-size:9px;text-transform:uppercase;letter-spacing:.5px;border-radius:999px;padding:5px 7px;font-weight:950;white-space:nowrap;color:#b7d0d2;background:#24494f}.court-state.playing{background:#164b43;color:#65e2b5}.court-state.ready{background:#1d4d61;color:#8bd2ed}.court-state.waiting{background:#59492a;color:#ffd58c}.match-meta{display:flex;justify-content:space-between;gap:7px;color:#9ebfc2;font-size:10px;margin:10px 0}.match-timer{color:var(--teal);font-weight:950;font-variant-numeric:tabular-nums}.teams{display:grid;grid-template-columns:1fr 18px 1fr;align-items:center;gap:5px}.team{display:flex;flex-direction:column;gap:6px;min-width:0}.team-label{color:#89b1b5;font-size:8px;font-weight:950;letter-spacing:1px}.player-chip{display:flex;align-items:center;gap:4px;padding:8px 7px;min-height:35px;border:1px solid #28555c;border-radius:8px;background:#0c2a32;font-size:10px;font-weight:800;overflow-wrap:anywhere;min-width:0}.player-chip:before{content:"";display:block;flex:0 0 6px;width:6px;height:6px;border-radius:50%;background:#eca257}.team:nth-child(3) .player-chip:before{background:#8bd4d6}.player-chip.empty{color:#63868b;font-weight:600;font-style:italic}.versus{text-align:center;font-size:9px;color:#76a2a6;font-weight:950}.scoreline{margin-top:11px;display:flex;align-items:center;justify-content:center;gap:9px;color:#dffafa;font-size:12px;font-weight:950}.scoreline b{color:var(--teal);font-size:17px}.queue-list{display:flex;flex-direction:column;gap:8px}.queue-item{display:flex;align-items:center;gap:11px;padding:10px 11px;background:#0b2931;border:1px solid #1d4851;border-radius:10px;min-width:0}.queue-number{flex:0 0 27px;width:27px;height:27px;border-radius:8px;background:#1b4f57;color:var(--teal);display:grid;place-items:center;font-weight:950;font-size:11px}.queue-player{font-size:12px;font-weight:850;overflow-wrap:anywhere}.queue-label{display:block;color:#7fa9ad;font-size:9px;margin-top:3px}.empty-state{padding:24px 12px;text-align:center;color:#83a8ac;border:1px dashed #2a555b;border-radius:10px;font-size:12px;line-height:1.5}.notice-card{display:flex;gap:14px;align-items:center;margin-bottom:18px;padding:16px 18px;border:1px solid #725c31;background:#332f21;border-radius:13px}.notice-icon{font-size:24px}.notice-card strong{font-size:13px}.notice-card p{color:#d7c9a6;margin:4px 0 0;font-size:11px}.sync-notice{display:flex;gap:8px;flex-direction:column;padding:12px 14px;border:1px solid #876532;background:#302c20;color:#e7d3a5;border-radius:11px;margin-bottom:16px;font-size:11px;line-height:1.5}.sync-notice strong{font-size:11px;color:#ffdc88}.page-footer{margin-top:25px;padding-top:0;border-top:0;display:flex;justify-content:space-between;gap:10px;color:#648c91;font-size:9px;letter-spacing:.75px;font-weight:850}[hidden]{display:none!important}
 @media(max-width:900px){.content-grid{grid-template-columns:1fr}.queue-section{order:2}.court-section{order:1}.queue-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.live-header{height:58px;padding:0 13px}.brand img{width:32px;height:32px}.brand-words b{font-size:11px}.brand-words small{font-size:7px;letter-spacing:3px}.header-right{gap:7px}.connection-status{font-size:9px;padding:6px 7px}.page-shell{padding:24px 12px 18px}.event-heading h1{font-size:26px}.section-card{padding:13px;border-radius:13px}.section-heading h2{font-size:19px}.courts-grid{grid-template-columns:1fr}.queue-list{grid-template-columns:1fr}.page-footer{font-size:8px;flex-direction:column}.court-card{padding:12px}}
 
@@ -749,10 +749,10 @@ html[data-theme="light"] body *::-webkit-scrollbar-corner {
   background-color: transparent !important;
 }
 
-/* Prevent tablet/mobile browser auto-zoom when focusing the Live Ranking search. */
+/* Keep Live Ranking entered text compact and consistent with its placeholder on tablets and phones. */
 @media (max-width: 1024px), (pointer: coarse) {
   html body .live-ranking-search input {
-    font-size: 16px !important;
+    font-size: 12px !important;
   }
 }
 
@@ -779,8 +779,7 @@ html body .live-ranking-search input:focus-visible {
 }
 
 
-/* iPad/tablet: reduce search placeholder size and weight without changing
-   the 16px actual input text used to prevent Safari focus zoom. */
+/* iPad/tablet: use compact, regular-weight placeholder typography consistent with entered text. */
 @media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
   html body #liveRankingSearch::placeholder,
   html body #liveRankingSearch::-webkit-input-placeholder,
@@ -798,14 +797,68 @@ html body .live-ranking-search input:focus-visible {
 }
 
 
-/* iPad/tablet: retain 16px typed text to prevent Safari focus auto-zoom.
+/* iPad/tablet: keep typed text at the same compact size as the placeholder.
    The search field dimensions and search behavior are unchanged. */
 @media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
   html body .live-ranking-search input,
   html body #liveRankingSearch {
-    font-size: 16px !important;
+    font-size: 12px !important;
     font-weight: 400 !important;
     line-height: 1.2 !important;
     letter-spacing: 0 !important;
   }
+}
+
+
+/* Footer cleanup: keep the live footer borderless even under theme overrides. */
+html body .page-footer {
+  border: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+html body .page-footer::before,
+html body .page-footer::after {
+  content: none !important;
+  display: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Match the Live View footer layout to Registration: centered, stacked, and borderless. */
+html body .page-footer {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+  margin: 24px auto 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  text-align: center !important;
+  line-height: 1.5 !important;
+}
+html body .page-footer > span {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  text-align: center !important;
+  overflow-wrap: anywhere;
+}
+html body .page-footer > span:first-child {
+  color: #456c72 !important;
+  font-weight: 950 !important;
+}
+html body .page-footer > span:last-child {
+  color: #82969a !important;
+  font-weight: 750 !important;
+  letter-spacing: .2px !important;
 }

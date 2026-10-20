@@ -1,0 +1,488 @@
+/* Registration page layout. Shared live-view components keep the same geometry as live.html. */
+.registration-page-body{min-height:100vh;background:#f1f5f7;color:#172c35;}
+.registration-page-shell{width:min(1380px,100%);margin:0 auto;padding:34px clamp(14px,4vw,54px) 22px;box-sizing:border-box;}
+.registration-page-intro{margin:0 0 25px;padding:0;}
+.registration-page-intro .eyebrow{margin-bottom:0;}
+.registration-page-intro h1{margin:11px 0 8px;color:#092f38;font-size:clamp(24px,3.2vw,39px);line-height:1.13;letter-spacing:-1px;font-weight:950;overflow-wrap:anywhere;}
+.registration-page-intro p{max-width:570px;margin:0;color:#687d84;font-size:14px;line-height:1.65;}
+.registration-page-panel{width:min(760px,100%);box-sizing:border-box;overflow:hidden;border:1px solid #dce6e9;border-radius:20px;background:#fff;box-shadow:0 14px 45px rgba(12,44,52,.08);}
+.registration-page-panel-heading{display:flex;align-items:center;gap:13px;padding:21px 23px;border-bottom:1px solid #edf2f3;background:linear-gradient(125deg,#fff,#f8fcfc);}
+.registration-page-panel-icon{display:grid;place-items:center;width:45px;height:45px;flex:0 0 auto;border:1px solid #cbe8e7;border-radius:14px;background:#e8f8f7;font-size:22px;}
+.registration-page-panel-heading h2{margin:0;color:#123b43;font-size:16px;font-weight:900;}
+.registration-page-panel-heading p{margin:5px 0 0;color:#84969b;font-size:11px;}
+.registration-page-panel-heading p span{color:#de5151;font-weight:900;}
+.registration-page-status{display:block;width:auto;min-width:0;box-sizing:border-box;margin:18px 22px 0;padding:11px 13px;border:1px solid #d7e9e8;border-radius:10px;background:#f2fbfa;color:#376b6b;font-size:12px;line-height:1.5;overflow-wrap:anywhere;}
+.registration-page-status.is-loading{background:#f6f9fa;border-color:#e2e9eb;color:#71838a;}
+.registration-page-status.is-error{border-color:#f2d2d2;background:#fff5f5;color:#bd3737;}
+.registration-page-status.is-success{border-color:#cfe8d7;background:#f1fbf4;color:#247447;}
+.registration-page-form.registration-area{display:block;width:100%;max-width:none;margin:0;padding:20px 23px 24px;overflow:visible;border:0;border-radius:0;background:#fff;box-shadow:none;box-sizing:border-box;}
+.registration-page-form .registration-head{margin-bottom:17px;padding-bottom:13px;}
+.registration-page-form .registration-head h3{font-size:12px;letter-spacing:.8px;}
+.registration-page-form .registration-head small{font-size:10px;}
+.registration-page-form .registration-fullname-row{margin-bottom:16px;}
+.registration-page-form .registration-text-wrap{display:flex;align-items:center;min-width:0;width:100%;height:43px;min-height:43px;box-sizing:border-box;}
+.registration-page-form.registration-area .registration-fullname-row .registration-text-wrap>input,
+.registration-page-form.registration-area .registration-nickname-field .registration-text-wrap>input{height:100%!important;min-height:0!important;padding:0 7px 0 12px!important;font-size:14px!important;line-height:normal!important;align-self:stretch;box-sizing:border-box;}
+.registration-page-form .registration-text-wrap>input::placeholder{line-height:normal;vertical-align:middle;opacity:1;}
+.registration-page-form .registration-text-wrap .registration-enye-btn{align-self:stretch;display:flex;align-items:center;justify-content:center;height:auto;min-height:0;box-sizing:border-box;}
+.registration-page-form .registration-nickname-gender-row{align-items:start;margin-bottom:18px;}
+.registration-page-form .registration-category-save-row{align-items:stretch!important;gap:10px!important;}
+.registration-page-form .registration-skill-control{width:100%;min-width:0;box-sizing:border-box;}
+.registration-page-form .registration-skill-level-label{display:block;margin:0 0 5px;line-height:1.3;}
+.registration-page-form .registration-skill-buttons{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;gap:5px!important;width:100%;min-width:0;box-sizing:border-box;}
+.registration-page-form.registration-area .registration-category-save-row .registration-skill-btn{width:100%!important;height:39px!important;min-height:39px!important;min-width:0!important;padding:0 4px!important;font-size:11px!important;line-height:1.2!important;box-sizing:border-box;}
+.registration-page-form.registration-area .registration-category-save-row .register-save-btn{display:block!important;width:100%!important;height:auto!important;min-height:46px!important;min-width:0!important;margin:0!important;padding:12px 14px!important;font-size:12px!important;font-weight:700!important;line-height:1.35!important;white-space:normal;position:relative;top:0!important;box-sizing:border-box;}
+.registration-page-form.registration-area .registration-gender-control .gender-choice{height:40px!important;min-height:40px!important;}
+.registration-page-form .registration-duplicate-message{margin-top:8px;font-size:11px;font-weight:700!important;line-height:1.45;overflow-wrap:anywhere;}
+.registration-page-form .registration-duplicate-message[hidden]{display:none!important;}
+.registration-page-form .register-save-btn:disabled{filter:none;}
+.registration-page-result{margin:0 23px 18px;padding:15px 16px;border:1px solid #cde7d6;border-radius:12px;background:#effbf3;color:#226c40;font-size:13px;line-height:1.6;overflow-wrap:anywhere;}
+.registration-page-result.is-error{border-color:#f0cccc;background:#fff4f4;color:#b52f36;}
+.registration-page-result strong{display:block;margin-bottom:3px;font-size:14px;}
+.registration-page-footnote{display:flex;align-items:flex-start;gap:8px;margin:0 23px 22px;padding-top:15px;border-top:1px solid #edf2f3;color:#829297;font-size:10px;line-height:1.6;}
+.registration-page-footnote span{color:#109e95;font-size:15px;line-height:1;flex:0 0 auto;}
+@media(max-width:600px){
+  .registration-page-shell{padding-bottom:18px;}
+  .registration-page-intro{margin-bottom:17px;}
+  .registration-page-intro p{font-size:12px;line-height:1.6;}
+  .registration-page-panel{border-radius:16px;}
+  .registration-page-panel-heading{padding:17px 15px;}
+  .registration-page-status{margin:14px 14px 0;padding:10px 12px;}
+  .registration-page-form.registration-area{padding:18px 14px 20px;}
+  .registration-page-form .registration-nickname-gender-row{grid-template-columns:minmax(0,1fr) 112px;column-gap:10px;}
+  .registration-page-form .registration-category-save-row{display:flex;flex-direction:column;align-items:stretch;gap:12px!important;}
+  .registration-page-form .registration-skill-buttons{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px!important;}
+  .registration-page-form.registration-area .registration-category-save-row .registration-skill-btn{width:100%!important;height:41px!important;min-height:41px!important;padding:0 3px!important;font-size:11px!important;}
+  .registration-page-form.registration-area .registration-category-save-row .register-save-btn{width:100%!important;min-height:48px!important;font-size:12px!important;padding:13px 14px!important;}
+  .registration-page-result{margin:0 14px 15px;}
+  .registration-page-footnote{margin:0 14px 18px;}
+}
+@media(max-width:560px){
+  .registration-page-shell{padding:24px 12px 18px;}
+  .registration-page-intro h1{font-size:26px;}
+}
+@media(max-width:365px){
+  .registration-page-form .registration-nickname-gender-row{grid-template-columns:minmax(0,1fr) 98px;column-gap:7px;}
+  .registration-page-form .registration-nickname-field .registration-text-wrap>input{padding-left:8px!important;padding-right:25px!important;font-size:12px!important;}
+  .registration-page-form.registration-area .registration-category-save-row .registration-skill-btn{font-size:10px!important;}
+}
+
+/* Registration responsive + fixed live header + centered public footer (all devices). */
+html {
+  scroll-padding-top: 68px;
+}
+.registration-page-body {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+.registration-page-body > .live-header {
+  position: fixed !important;
+  inset: 0 0 auto 0;
+  width: 100%;
+  height: 58px;
+  min-height: 58px;
+  box-sizing: border-box;
+  z-index: 1000;
+}
+.registration-page-body .header-right {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.registration-page-shell {
+  /* Keep the registration content centered and intentionally narrower on desktop. */
+  width: min(820px, 100%);
+  min-width: 0;
+  margin-inline: auto;
+  padding: 92px clamp(20px, 3vw, 32px) 22px;
+  box-sizing: border-box;
+}
+.registration-page-intro,
+.registration-page-panel,
+.registration-page-form,
+.registration-page-status,
+.registration-page-result,
+.registration-page-footnote {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.registration-page-panel {
+  margin-inline: 0;
+}
+.registration-page-form .registration-head > div {
+  min-width: 0;
+}
+.registration-page-form .registration-head small {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.registration-page-form .registration-inline-row,
+.registration-page-form .registration-category-save-row,
+.registration-page-form .registration-nickname-gender-row,
+.registration-page-form .registration-skill-control {
+  min-width: 0;
+  max-width: 100%;
+}
+.registration-page-form .registration-skill-buttons {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.registration-page-body .page-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin: 24px auto 0;
+  padding: 0;
+  border: 0 !important;
+  border-top: 0 !important;
+  text-align: center;
+  line-height: 1.5;
+  letter-spacing: .75px;
+  overflow-wrap: anywhere;
+}
+.registration-page-body .page-footer span {
+  display: block;
+  max-width: 100%;
+  text-align: center;
+}
+.registration-page-body .page-footer span:first-child {
+  color: #456c72;
+  font-weight: 950;
+}
+.registration-page-body .page-footer span:last-child {
+  color: #82969a;
+  font-weight: 750;
+  letter-spacing: .2px;
+}
+
+@media (max-width: 760px) {
+  .registration-page-shell {
+    padding: 82px 16px 22px;
+  }
+  .registration-page-intro {
+    margin-bottom: 18px;
+  }
+  .registration-page-intro .eyebrow {
+    font-size: 10px;
+    line-height: 1.4;
+  }
+  .registration-page-intro h1 {
+    font-size: clamp(25px, 5vw, 34px);
+    letter-spacing: -.7px;
+  }
+  .registration-page-intro p {
+    max-width: 100%;
+    font-size: 13px;
+  }
+  .registration-page-panel {
+    width: 100%;
+  }
+  .registration-page-form.registration-area {
+    width: 100%;
+  }
+  .registration-page-status {
+    margin-top: 14px;
+  }
+  .registration-page-body .page-footer {
+    margin-top: 22px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 560px) {
+  .registration-page-body > .live-header {
+    padding: 0 13px;
+    gap: 8px;
+  }
+  .registration-page-body .header-right {
+    gap: 6px;
+  }
+  .registration-page-body .connection-status {
+    max-width: 112px;
+    padding: 6px 8px;
+    font-size: 9px;
+  }
+  .registration-page-shell {
+    padding: 82px 12px 18px;
+  }
+  .registration-page-intro {
+    margin-bottom: 17px;
+  }
+  .registration-page-intro .eyebrow {
+    margin-bottom: 0;
+    letter-spacing: 2.2px;
+  }
+  .registration-page-intro h1 {
+    font-size: 26px;
+    line-height: 1.15;
+  }
+  .registration-page-intro p {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .registration-page-panel-heading {
+    gap: 10px;
+    padding: 16px 14px;
+  }
+  .registration-page-panel-heading > div:last-child {
+    min-width: 0;
+  }
+  .registration-page-status {
+    margin: 13px 14px 0;
+    padding: 10px 11px;
+    font-size: 11px;
+  }
+  .registration-page-form.registration-area {
+    padding: 17px 14px 19px;
+  }
+  .registration-page-form .registration-nickname-gender-row {
+    grid-template-columns: minmax(0, 1fr) 104px;
+    column-gap: 9px;
+  }
+  .registration-page-form .registration-category-save-row {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px !important;
+  }
+  .registration-page-form .registration-skill-control,
+  .registration-page-form .registration-skill-buttons,
+  .registration-page-form .register-save-btn {
+    width: 100%;
+  }
+  .registration-page-form .registration-skill-buttons {
+    gap: 4px !important;
+  }
+  .registration-page-form.registration-area .registration-category-save-row .registration-skill-btn {
+    min-width: 0 !important;
+    padding-inline: 2px !important;
+    font-size: 10px !important;
+  }
+  .registration-page-result {
+    margin: 0 14px 15px;
+    padding: 12px;
+  }
+  .registration-page-footnote {
+    margin: 0 14px 18px;
+  }
+  .registration-page-body .page-footer {
+    margin-top: 20px;
+    font-size: 8px;
+    gap: 5px;
+  }
+}
+
+@media (max-width: 380px) {
+  .registration-page-body .live-header .brand {
+    gap: 7px;
+  }
+  .registration-page-body .live-header .brand img {
+    width: 29px;
+    height: 29px;
+  }
+  .registration-page-body .live-header .brand-words b {
+    font-size: 10px;
+  }
+  .registration-page-body .live-header .brand-words small {
+    font-size: 6px;
+    letter-spacing: 2.6px;
+  }
+  .registration-page-body .connection-status {
+    padding: 5px 6px;
+    font-size: 8px;
+  }
+  .registration-page-shell {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+  .registration-page-panel-heading {
+    padding-inline: 12px;
+  }
+  .registration-page-panel-icon {
+    width: 39px;
+    height: 39px;
+    border-radius: 11px;
+    font-size: 19px;
+  }
+  .registration-page-form.registration-area {
+    padding-right: 11px;
+    padding-left: 11px;
+  }
+  .registration-page-form .registration-nickname-gender-row {
+    grid-template-columns: minmax(0, 1fr) 88px;
+    column-gap: 7px;
+  }
+  .registration-page-form .registration-nickname-field .registration-text-wrap > input {
+    padding-left: 8px !important;
+    padding-right: 25px !important;
+    font-size: 12px !important;
+  }
+  .registration-page-form .registration-skill-buttons {
+    gap: 3px !important;
+  }
+  .registration-page-form.registration-area .registration-category-save-row .registration-skill-btn {
+    font-size: 9px !important;
+  }
+  .registration-page-status {
+    margin-right: 11px;
+    margin-left: 11px;
+  }
+  .registration-page-result,
+  .registration-page-footnote {
+    margin-right: 11px;
+    margin-left: 11px;
+  }
+}
+
+@media (max-width: 320px) {
+  .registration-page-body .live-header {
+    padding-inline: 9px;
+    gap: 5px;
+  }
+  .registration-page-body .live-header .brand-words b {
+    font-size: 9px;
+  }
+  .registration-page-body .live-header .brand-words small {
+    letter-spacing: 2px;
+  }
+  .registration-page-body .connection-status {
+    gap: 4px;
+    font-size: 7px;
+    padding-inline: 5px;
+  }
+  .registration-page-intro h1 {
+    font-size: 24px;
+  }
+  .registration-page-panel-heading h2 {
+    font-size: 15px;
+  }
+  .registration-page-form .registration-fullname-row .registration-text-wrap > input {
+    padding-left: 8px !important;
+    padding-right: 25px !important;
+    font-size: 12px !important;
+  }
+  .registration-page-form .registration-skill-level-label {
+    font-size: 8px;
+  }
+}
+
+
+/* Desktop polish: a stable, slim scrollbar without horizontal page overflow. */
+@media (min-width: 761px) {
+  html {
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #a9bdc1 #edf3f4;
+  }
+  html::-webkit-scrollbar {
+    width: 10px;
+  }
+  html::-webkit-scrollbar-track {
+    background: #edf3f4;
+  }
+  html::-webkit-scrollbar-thumb {
+    background: #a9bdc1;
+    border: 2px solid #edf3f4;
+    border-radius: 999px;
+  }
+  html::-webkit-scrollbar-thumb:hover {
+    background: #829da3;
+  }
+}
+
+
+/* Registration-only scroll fix. The shared Live View stylesheet intentionally locks
+   the organizer body to the viewport on desktop; override that behavior here. */
+html#scrollbar-theme-override {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: scroll !important;
+  scrollbar-gutter: stable !important;
+  scrollbar-width: thin;
+  scrollbar-color: #91adb4 #e7eff1;
+}
+html#scrollbar-theme-override::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+html#scrollbar-theme-override::-webkit-scrollbar-track {
+  background: #e7eff1;
+  border-radius: 999px;
+}
+html#scrollbar-theme-override::-webkit-scrollbar-thumb {
+  background: #91adb4;
+  border: 2px solid #e7eff1;
+  border-radius: 999px;
+}
+html#scrollbar-theme-override::-webkit-scrollbar-thumb:hover {
+  background: #6f919a;
+}
+body.registration-page-body {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+.registration-page-shell {
+  min-height: calc(100dvh - 58px);
+}
+@media (max-width: 760px) {
+  html#scrollbar-theme-override {
+    scrollbar-gutter: auto !important;
+    scrollbar-width: thin;
+  }
+  body.registration-page-body {
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+  }
+}
+
+
+/* Registration header/footer cleanup. These rules are page-scoped so the Live View
+   standing button and its modal remain unchanged on live.html. */
+.registration-page-body .live-ranking-toggle,
+.registration-page-body .registration-header-label {
+  display: none !important;
+}
+.registration-page-body .page-footer {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px;
+  width: 100%;
+  margin: 24px auto 0;
+  padding: 0 !important;
+  border: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  text-align: center;
+  line-height: 1.5;
+}
+.registration-page-body .page-footer::before,
+.registration-page-body .page-footer::after {
+  content: none !important;
+  display: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.registration-page-body .page-footer span {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  text-align: center !important;
+  overflow-wrap: anywhere;
+}

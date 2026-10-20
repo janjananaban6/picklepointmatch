@@ -93,6 +93,7 @@ function applySharedCloudRecords(payload,force=false){
   stampRemoteSave(CLOUD_RECORDS_SAVED_AT_KEY,CLOUD_RECORDS_PENDING_SYNC_KEY,payload.updatedAt);
   cloudSyncPending=null;
   if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
+  if($('registerFullname'))updateRegistrationSaveButton();
 }
 function getSharedAppStateSnapshot(){return {schemaVersion:11,players:state.players,left:state.left,queue:state.queue,lockedPartners:state.lockedPartners,courts:state.courts,logs:state.logs,nextPlayer:state.nextPlayer,nextCourt:state.nextCourt,nextWaitingCourt:state.nextWaitingCourt,nextLog:state.nextLog,sessionMetrics:state.sessionMetrics,sessionActive:state.sessionActive,sessionName:state.sessionName,duprMatch:state.duprMatch,recordScores:state.recordScores,eventRules:state.eventRules,matchingMode:state.matchingMode,winnersLosersNextGroup:state.winnersLosersNextGroup};}
 function queueSharedAppStateSync(snapshot){if(applyingRemoteAppState)return;appSyncPending=cloneSharedData(snapshot);flushSharedAppStateSync();}
@@ -135,9 +136,9 @@ function applySharedAppState(payload,force=false){
   try{
     localStorage.setItem(STORAGE_KEY,JSON.stringify(payload.state));
     stampRemoteSave(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt);
-    loadState();render();
-    // Shared-state updates refresh the start screen's summary only. They must not
-    // change the user's current screen during startup or while another device syncs.
+    loadState();render();publishLiveViewState();
+    // Shared-state updates refresh the queue and public live snapshot without
+    // changing the user's current screen during startup or while another device syncs.
     syncLiveQueueStartScreen();
   }catch(e){console.warn('Could not apply shared queue state',e);}
   finally{applyingRemoteAppState=false;}
@@ -672,6 +673,37 @@ async function copyLiveViewQrLink(){
   try{await navigator.clipboard.writeText(field.value);toast('Live View link copied.');}
   catch(e){field.focus();field.select();let copied=false;try{copied=document.execCommand('copy');}catch(err){}toast(copied?'Live View link copied.':'Select and copy the Live View link.');}
 }
+function getRegistrationPageUrl(){return new URL('Registration.html',window.location.href);}
+function syncRegistrationQrNetworkState(){
+  const modal=$('registrationQrModal'),wrap=$('registrationQrImageWrap'),image=$('registrationQrImage'),unavailable=$('registrationQrUnavailable'),loader=$('registrationQrLoader'),title=$('registrationQrStatusTitle'),note=$('registrationQrStatusNote');
+  if(!modal||!wrap||!image||!unavailable||!loader)return;
+  const url=getRegistrationPageUrl();
+  const online=navigator.onLine!==false;
+  wrap.classList.toggle('is-offline',!online);
+  if(!online){image.hidden=true;image.removeAttribute('src');delete image.dataset.qrTarget;image.dataset.qrFallbackAttempted='false';loader.hidden=false;unavailable.hidden=true;if(title)title.textContent='Offline mode';if(note)note.textContent='Reconnect to generate the registration QR code.';return;}
+  loader.hidden=true;
+  if(!['http:','https:'].includes(url.protocol)){image.hidden=true;image.removeAttribute('src');delete image.dataset.qrTarget;unavailable.textContent='Open Pickle Point Match through a web server to generate a QR code for phones.';unavailable.hidden=false;if(title)title.textContent='Web server required';if(note)note.textContent='The phone needs an HTTP or HTTPS registration link.';return;}
+  const target=url.href;
+  image.hidden=false;unavailable.hidden=true;
+  if(image.dataset.qrTarget!==target){image.dataset.qrTarget=target;image.dataset.qrFallbackAttempted='false';image.onerror=()=>{if(image.dataset.qrFallbackAttempted!=='true'){image.dataset.qrFallbackAttempted='true';image.src='https://quickchart.io/qr?size=280&margin=8&text='+encodeURIComponent(target);return;}image.hidden=true;delete image.dataset.qrTarget;unavailable.textContent='QR preview could not load. Use the registration link below instead.';unavailable.hidden=false;};image.src='https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data='+encodeURIComponent(target);}
+  const host=url.hostname;const localHost=host==='localhost'||host==='127.0.0.1'||host==='0.0.0.0'||host==='::1'||/^10\./.test(host)||/^192\.168\./.test(host)||/^172\.(1[6-9]|2[0-9]|3[01])\./.test(host);
+  if(title)title.textContent= url.protocol==='https:'&&!localHost?'Registration link ready':'Local / private link';
+  if(note)note.textContent=localHost?'Scan from a phone connected to the same Wi-Fi network, and use the computer’s reachable LAN address if this link contains localhost.':'Players can complete their details, then they are saved to Registered Player Cloud and added to the queue automatically.';
+}
+function openRegistrationQrModal(){
+  const modal=$('registrationQrModal'),field=$('registrationQrUrl');if(!modal||!field)return;
+  field.value=getRegistrationPageUrl().href;modal.classList.remove('hidden');syncRegistrationQrNetworkState();
+}
+function closeRegistrationQrModal(){$('registrationQrModal')?.classList.add('hidden');}
+async function copyRegistrationQrLink(){
+  const field=$('registrationQrUrl');if(!field)return;
+  try{await navigator.clipboard.writeText(field.value);toast('Registration link copied.');}
+  catch(e){field.focus();field.select();let copied=false;try{copied=document.execCommand('copy');}catch(err){}toast(copied?'Registration link copied.':'Select and copy the registration link.');}
+}
+function openRegistrationPage(){window.open(getRegistrationPageUrl().href,'_blank','noopener');}
+window.addEventListener('online',()=>{if($('registrationQrModal')&&!$('registrationQrModal').classList.contains('hidden'))syncRegistrationQrNetworkState();});
+window.addEventListener('offline',()=>{if($('registrationQrModal')&&!$('registrationQrModal').classList.contains('hidden'))syncRegistrationQrNetworkState();});
+
 function saveState(){
   const snapshot=getSharedAppStateSnapshot();
   const savedAt=Date.now();
@@ -2238,16 +2270,19 @@ function updateRegistrationDuplicateMessage(){
   const fullname=String(input.value||'').trim();
   if(!fullname){message.textContent='';message.hidden=true;return;}
   loadCloudRecords();
-  const normalized=fullname.toLocaleLowerCase();
-  const match=cloudRecords.players.find(p=>String(p.name||'').trim().toLocaleLowerCase()===normalized);
-  if(match){message.textContent=`player "${match.name}" is registered already`;message.hidden=false;}
+  const normalized=fullname.replace(/\s+/g,' ').toLocaleLowerCase();
+  const match=cloudRecords.players.find(p=>String(p.name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase()===normalized);
+  if(match){message.textContent=`This user is already registered: ${match.name}`;message.hidden=false;}
   else{message.textContent='';message.hidden=true;}
 }
 
 function updateRegistrationSaveButton(){
   const fullname=String($('registerFullname')?.value||'').trim();
+  loadCloudRecords();
+  const normalized=fullname.replace(/\s+/g,' ').toLocaleLowerCase();
+  const duplicate=!!fullname&&cloudRecords.players.some(p=>String(p.name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase()===normalized);
   const saveBtn=$('registerSaveBtn');
-  if(saveBtn) saveBtn.disabled=!(fullname && registrationGender && registrationSkillLevel);
+  if(saveBtn) saveBtn.disabled=!(fullname && registrationGender && registrationSkillLevel) || duplicate;
   updateRegistrationDuplicateMessage();
 }
 
@@ -2277,6 +2312,10 @@ function saveRegisteredPlayer(){
   if(!fullname){toast('Enter the full name.');return;}
   if(!registrationGender){toast('Select Male or Female.');return;}
   if(!registrationSkillLevel){toast('Select a skill level.');return;}
+  loadCloudRecords();
+  const normalizedFullname=fullname.replace(/\s+/g,' ').toLocaleLowerCase();
+  const cloudDuplicate=cloudRecords.players.find(p=>String(p.name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase()===normalizedFullname);
+  if(cloudDuplicate){updateRegistrationSaveButton();toast(`This user is already registered: ${cloudDuplicate.name}`);return;}
   const existing=state.players.find(p=>p.name.toLowerCase()===fullname.toLowerCase());
   if(existing){
     existing.nickname=nickname; existing.gender=registrationGender;
@@ -3794,7 +3833,8 @@ function bindTopbarBackButton(){
   setupTopbarModalActionGuard([
     button,
     $('endSessionBtn'),
-    $('liveViewQrOpenBtn')
+    $('liveViewQrOpenBtn'),
+    $('liveViewRegisterBtn')
   ]);
 }
 
@@ -3808,7 +3848,10 @@ initLiveRankingAdminToggle();
 $('liveViewQrOpenBtn')?.addEventListener('click',openLiveViewQrModal);
 $('liveViewQrCopyBtn')?.addEventListener('click',copyLiveViewQrLink);
 $('liveViewQrOpenPageBtn')?.addEventListener('click',openLiveView);
-document.addEventListener('keydown',event=>{if(event.key==='Escape')closeLiveViewQrModal();});
+$('liveViewRegisterBtn')?.addEventListener('click',openRegistrationQrModal);
+$('registrationQrCopyBtn')?.addEventListener('click',copyRegistrationQrLink);
+$('registrationQrOpenPageBtn')?.addEventListener('click',openRegistrationPage);
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeLiveViewQrModal();closeRegistrationQrModal();}});
 render();
 publishLiveViewState();
 const sharedDataSyncReady = initializeSharedDataSync();

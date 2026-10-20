@@ -12,7 +12,7 @@ const CLOUD_RECORDS_FILE = path.join(DATA_DIR, 'registered-player-cloud.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
-const allowedFiles = new Set(['index.html','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','live-queue-start-card.html','live-queue-start-loader.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js']);
+const allowedFiles = new Set(['index.html','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','live-queue-start-card.html','live-queue-start-loader.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css']);
 let latestState = null;
 let sharedAppState = null;
 let sharedAppRevision = 0;
@@ -29,6 +29,12 @@ const sharedSubscribers = new Set();
 function sendJson(res, status, data) {
   res.writeHead(status, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
   res.end(JSON.stringify(data));
+}
+function normalizePlayerName(value) {
+  return String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+function createDefaultSharedAppState() {
+  return {schemaVersion:11,players:[],left:[],queue:[],lockedPartners:[],courts:[],logs:[],nextPlayer:1,nextCourt:1,nextWaitingCourt:1,nextLog:1,sessionMetrics:{cloudCheckins:0,newRegistered:0},sessionActive:false,sessionName:'Open Play',duprMatch:false,recordScores:false,eventRules:{target:11,winBy:1,type:'Doubles'},matchingMode:'balanced',winnersLosersNextGroup:'winners'};
 }
 function normalizeTimestamp(value) {
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
@@ -58,6 +64,55 @@ async function persistState(snapshot) {
   await fs.promises.mkdir(DATA_DIR, {recursive:true});
   await fs.promises.writeFile(DATA_FILE, JSON.stringify(snapshot), 'utf8');
   broadcast();
+}
+
+// Project the authoritative shared queue into the public Live View snapshot.
+// This means phone registrations appear immediately even when the organizer tab
+// is temporarily asleep or the live queue client has not yet consumed its event.
+function buildLiveQueueSnapshot(appState, updatedAt = new Date().toISOString()) {
+  const players = Array.isArray(appState?.players) ? appState.players : [];
+  const left = Array.isArray(appState?.left) ? appState.left : [];
+  const roster = [...players, ...left];
+  const byId = new Map(roster.filter(p => p && p.id != null).map(p => [String(p.id), p]));
+  const lockedPartners = Array.isArray(appState?.lockedPartners) ? appState.lockedPartners : [];
+  const queue = (Array.isArray(appState?.queue) ? appState.queue : []).map(id => {
+    const player = byId.get(String(id));
+    if (!player) return null;
+    const pair = lockedPartners.find(item => Array.isArray(item) && item.map(String).includes(String(id)));
+    const partnerId = pair?.find(value => String(value) !== String(id));
+    const partner = partnerId != null ? byId.get(String(partnerId)) : null;
+    return {
+      id: player.id,
+      name: String(player.name || 'Player').slice(0, 120),
+      nickname: String(player.nickname || '').slice(0, 80),
+      gender: String(player.gender || '').slice(0, 20),
+      category: String(player.category || '').slice(0, 10),
+      queuedAt: normalizeTimestamp(player.queuedAt),
+      waitingSince: normalizeTimestamp(player.waitingSince) || normalizeTimestamp(player.queuedAt),
+      ...(partner ? {lockedPartnerName: String(partner.name || '').trim().split(/\s+/)[0] || ''} : {})
+    };
+  }).filter(Boolean);
+
+  const previous = latestState && typeof latestState === 'object' ? latestState : {};
+  return {
+    ...previous,
+    sessionName: String(appState?.sessionName || previous.sessionName || 'Open Play'),
+    active: !!appState?.sessionActive,
+    recordScores: appState?.recordScores === true,
+    liveRankingEnabled: previous.liveRankingEnabled !== false,
+    updatedAt,
+    playerCount: roster.length,
+    queue,
+    courts: Array.isArray(previous.courts) ? previous.courts : [],
+    activeCourtCount: Number(previous.activeCourtCount) || 0,
+    readyCourtCount: Number(previous.readyCourtCount) || 0,
+    courtCount: Number(previous.courtCount) || 0,
+    waitingCourtCount: Number(previous.waitingCourtCount) || 0,
+    matchCount: Array.isArray(appState?.logs) ? appState.logs.length : Number(previous.matchCount) || 0,
+    ranking: Array.isArray(previous.ranking) ? previous.ranking : [],
+    eventRules: previous.eventRules || appState?.eventRules || {target:11,winBy:1,type:'Doubles'},
+    recentMatches: Array.isArray(previous.recentMatches) ? previous.recentMatches : []
+  };
 }
 async function readBody(req, limit = 2 * 1024 * 1024) {
   let size = 0; const chunks = [];
@@ -138,6 +193,89 @@ async function handle(req, res) {
       return sendJson(res, 200, {ok:true,accepted:true,revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,unchanged:JSON.stringify(sharedCloudRecords)===JSON.stringify(records)});
     } catch (err) { return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to save Registered Player Cloud records'}); }
   }
+  // Register a player and update both shared data stores as one operation.
+  // The server-side duplicate check protects against submissions from multiple phones.
+  if (url.pathname === '/api/register-player' && req.method === 'POST') {
+    try {
+      const body = await readBody(req, 16 * 1024);
+      const name = String(body?.name || '').normalize('NFC').trim().replace(/\s+/g, ' ');
+      const nickname = String(body?.nickname || '').normalize('NFC').trim().replace(/\s+/g, ' ').slice(0, 80);
+      const gender = String(body?.gender || '');
+      const category = String(body?.category || '').toUpperCase();
+      if (!name || name.length > 120) return sendJson(res, 400, {ok:false,error:'Please enter a name (maximum 120 characters).'});
+      if (!['Male','Female'].includes(gender)) return sendJson(res, 400, {ok:false,error:'Please select Male or Female.'});
+      if (!['BEG','NOV','INT','ADV','EXP'].includes(category)) return sendJson(res, 400, {ok:false,error:'Please select a skill level.'});
+
+      const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
+      const duplicate = (Array.isArray(currentRecords.players) ? currentRecords.players : []).find(p => normalizePlayerName(p?.name) === normalizePlayerName(name));
+      if (duplicate) return sendJson(res, 409, {ok:false,duplicate:true,error:'This user is already registered',player:{name:duplicate.name}});
+
+      const records = JSON.parse(JSON.stringify(currentRecords));
+      records.players = Array.isArray(records.players) ? records.players : [];
+      records.logs = Array.isArray(records.logs) ? records.logs : [];
+      records.sessions = Array.isArray(records.sessions) ? records.sessions : [];
+      const appState = JSON.parse(JSON.stringify(sharedAppState || createDefaultSharedAppState()));
+      appState.players = Array.isArray(appState.players) ? appState.players : [];
+      appState.left = Array.isArray(appState.left) ? appState.left : [];
+      appState.queue = Array.isArray(appState.queue) ? appState.queue : [];
+      appState.courts = Array.isArray(appState.courts) ? appState.courts : [];
+      appState.logs = Array.isArray(appState.logs) ? appState.logs : [];
+      appState.sessionMetrics = appState.sessionMetrics && typeof appState.sessionMetrics === 'object' ? appState.sessionMetrics : {cloudCheckins:0,newRegistered:0};
+      appState.nextPlayer = Math.max(Number(appState.nextPlayer) || 1, appState.players.reduce((max,p)=>Math.max(max,Number(p?.id)||0),0)+1);
+
+      let player = appState.players.find(p => normalizePlayerName(p?.name) === normalizePlayerName(name));
+      const isNewQueuePlayer = !player;
+      const now = Date.now();
+      if (player) {
+        if (player.id == null) player.id = appState.nextPlayer++;
+        player.name = name;
+        player.nickname = nickname;
+        player.gender = gender;
+        player.category = category;
+        player.court = player.court ?? null;
+      } else {
+        player = {id:appState.nextPlayer++,name,nickname,wins:0,court:null,gender,category,queuedAt:now,waitingSince:now};
+        appState.players.push(player);
+      }
+      const playingOnCourt = !!player.court || appState.courts.some(c => Array.isArray(c?.players) && c.players.includes(player.id));
+      if (!playingOnCourt && !appState.queue.includes(player.id)) {
+        player.queuedAt = now;
+        player.waitingSince = now;
+        appState.queue.push(player.id);
+      }
+      if (isNewQueuePlayer) appState.sessionMetrics.newRegistered = (Number(appState.sessionMetrics.newRegistered) || 0) + 1;
+
+      const cloudId = Date.now() + Math.floor(Math.random() * 100000);
+      const cloudPlayer = {cloudId,name,nickname,gender,category,opgId:'',matches:0,wins:0,losses:0};
+      records.players.push(cloudPlayer);
+
+      const updatedAt = new Date().toISOString();
+      sharedAppState = appState;
+      sharedAppRevision += 1;
+      sharedAppUpdatedAt = updatedAt;
+      sharedAppClientId = 'registration-page';
+      sharedCloudRecords = records;
+      sharedCloudRevision += 1;
+      sharedCloudUpdatedAt = updatedAt;
+      sharedCloudClientId = 'registration-page';
+
+      const liveSnapshot = buildLiveQueueSnapshot(sharedAppState, updatedAt);
+      await fs.promises.mkdir(DATA_DIR, {recursive:true});
+      await Promise.all([
+        fs.promises.writeFile(APP_STATE_FILE, JSON.stringify({revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState}), 'utf8'),
+        fs.promises.writeFile(CLOUD_RECORDS_FILE, JSON.stringify({revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords}), 'utf8'),
+        fs.promises.writeFile(DATA_FILE, JSON.stringify(liveSnapshot), 'utf8')
+      ]);
+      latestState = liveSnapshot;
+      broadcast();
+      broadcastNamedEvent('app-state', {revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState});
+      broadcastNamedEvent('cloud-records', {revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
+      return sendJson(res, 200, {ok:true,player:cloudPlayer,queued:!playingOnCourt,queueCount:sharedAppState.queue.length,cloudCount:sharedCloudRecords.players.length,appRevision:sharedAppRevision,cloudRevision:sharedCloudRevision,liveViewUpdated:true});
+    } catch (err) {
+      return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to register player'});
+    }
+  }
+
   if (url.pathname === '/api/live-theme' && req.method === 'POST') {
     try {
       const body = await readBody(req, 4096);
