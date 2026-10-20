@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="live-view.css?v=live-scrollbar-alignment-20261020-13">
+  <link rel="stylesheet" href="live-view.css?v=session-title-toggle-20261020-14">
 </head>
 <body>
   <header class="live-header">
@@ -22,8 +22,8 @@
   <div class="live-page-layout">
     <div class="live-page-pinned">
       <section class="event-heading">
-        <div class="eyebrow"><span class="live-pulse"></span> PUBLIC LIVE VIEW</div>
-        <h1 id="sessionTitle">Pickle Point Match</h1>
+        <div class="eyebrow"><span class="live-pulse"></span> PUBLIC LIVE VIEW<button id="sessionTitleToggle" class="session-title-toggle" type="button" aria-controls="sessionTitle" aria-expanded="true" aria-label="Hide session title" title="Hide session title">❯</button></div>
+        <div id="sessionTitleSlide" class="session-title-slide"><h1 id="sessionTitle">Pickle Point Match</h1></div>
       </section>
       <nav class="live-tabs" role="tablist" aria-label="Live view sections">
         <button id="queueTab" class="live-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="liveQueuePanel" data-live-tab="queue">Queue</button>
@@ -88,6 +88,6 @@
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span><span>Public view · Updates automatically</span></footer>
     </main>
   </div>
-  <script src="live-view.js?v=court-number-header-20261020-10" defer></script>
+  <script src="live-view.js?v=session-title-toggle-20261020-11" defer></script>
 </body>
 </html>

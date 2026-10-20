@@ -495,6 +495,17 @@
       applyTheme(event.newValue);
     }
   });
+  const sessionTitleToggle = $('sessionTitleToggle');
+  const sessionTitleSlide = $('sessionTitleSlide');
+  if (sessionTitleToggle && sessionTitleSlide) {
+    sessionTitleToggle.addEventListener('click', () => {
+      const collapsed = sessionTitleSlide.classList.toggle('is-collapsed');
+      sessionTitleToggle.setAttribute('aria-expanded', String(!collapsed));
+      sessionTitleToggle.setAttribute('aria-label', collapsed ? 'Show session title' : 'Hide session title');
+      sessionTitleToggle.title = collapsed ? 'Show session title' : 'Hide session title';
+    });
+  }
+
   $('pageRankingSearch')?.addEventListener('input', () => renderLiveRanking('pageRankingList', 'pageRankingSearch'));
   $('pageMatchesSearch')?.addEventListener('input', renderRecentMatches);
   document.querySelectorAll('[data-live-tab]').forEach(button => {
