@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="live-view.css?v=live-footer-centered-20261020-4">
+  <link rel="stylesheet" href="live-view.css?v=live-match-outcome-uniform-20261020-11">
 </head>
 <body>
   <header class="live-header">
@@ -15,70 +15,79 @@
       <span class="brand-words"><b>PICKLE <strong>POINT</strong></b><small>M A T C H</small></span>
     </a>
     <div class="header-right">
-      <button id="liveRankingToggle" class="live-ranking-toggle" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="liveRankingModal"><span aria-hidden="true">🏆</span><span class="live-ranking-toggle-label">Live Standing</span></button>
       <span id="connectionStatus" class="connection-status"><i></i><span>Connecting</span></span>
     </div>
   </header>
 
-  <div id="liveRankingModal" class="live-ranking-modal" hidden>
-    <button class="live-ranking-backdrop" type="button" data-close-live-ranking aria-label="Close live standing"></button>
-    <section class="live-ranking-dialog" role="dialog" aria-modal="true" aria-labelledby="liveRankingTitle" tabindex="-1">
-      <div class="live-ranking-dialog-header">
-        <div>
-          <div class="live-ranking-eyebrow">PLAYER STANDINGS</div>
-          <h2 id="liveRankingTitle">🏆 Live Standing</h2>
-          <details id="liveRankingSubtitle" class="live-ranking-subtitle">
-            <summary class="live-ranking-subtitle-toggle">How ranking is calculated</summary>
-            <p class="live-ranking-explanation">Most wins rank first. Ties are broken by higher win rate (wins ÷ recorded matches), then fewer losses, more recorded matches, and alphabetical order. Only players with at least one valid recorded result are ranked; unfinished matches do not count. The displayed win rate is rounded, but ranking uses the exact win-rate ratio.</p>
-          </details>
-        </div>
-        <button id="liveRankingClose" class="live-ranking-close" type="button" aria-label="Close live standing">Close</button>
+  <div class="live-page-layout">
+    <div class="live-page-pinned">
+      <section class="event-heading">
+        <div class="eyebrow"><span class="live-pulse"></span> PUBLIC LIVE VIEW</div>
+        <h1 id="sessionTitle">Pickle Point Match</h1>
+      </section>
+      <nav class="live-tabs" role="tablist" aria-label="Live view sections">
+        <button id="queueTab" class="live-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="liveQueuePanel" data-live-tab="queue">Queue</button>
+        <button id="rankingsTab" class="live-tab" type="button" role="tab" aria-selected="false" aria-controls="liveRankingsPanel" data-live-tab="rankings">Rankings</button>
+        <button id="matchesTab" class="live-tab" type="button" role="tab" aria-selected="false" aria-controls="liveMatchesPanel" data-live-tab="matches">Matches</button>
+      </nav>
+    </div>
+
+    <main class="page-shell live-content-scroll">
+    <section id="liveQueuePanel" class="live-tab-panel" role="tabpanel" aria-labelledby="queueTab" data-live-panel="queue">
+      <section id="inactiveNotice" class="notice-card" hidden>
+        <div class="notice-icon">🏓</div>
+        <div><strong>No active queue right now</strong><p>There is currently no active live queue. Live courts and waiting players will appear here when the organizer starts a session.</p></div>
+      </section>
+      <section id="syncNotice" class="sync-notice" hidden>
+        <strong>Local preview mode</strong>
+        <span>This page can update in this browser. To share live updates with other phones, start the included Node server and open this app through its network URL.</span>
+      </section>
+
+      <div class="content-grid">
+        <section class="section-card court-section">
+          <div class="section-heading"><div><h2>🏟️ Court <span id="courtSectionCount" class="panel-count">(0)</span></h2></div></div>
+          <div id="courtsList" class="courts-grid"><div class="empty-state">Waiting for court information…</div></div>
+        </section>
       </div>
-      <label class="live-ranking-search" for="liveRankingSearch">
-        <svg class="live-ranking-search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
-        <input id="liveRankingSearch" type="search" placeholder="Search player name..." aria-label="Search player name" autocomplete="off" spellcheck="false">
-      </label>
-      <div id="liveRankingList" class="live-ranking-list" aria-live="polite"><div class="live-ranking-empty">Complete a match to start the ranking.</div></div>
-    </section>
-  </div>
 
-  <main class="page-shell">
-    <section class="event-heading">
-      <div class="eyebrow"><span class="live-pulse"></span> PUBLIC LIVE VIEW</div>
-      <h1 id="sessionTitle">Pickle Point Match</h1>
-      <p class="event-subtitle">Live courts and waiting queue.</p>
-      <div class="updated-line"><span id="lastUpdated">Waiting for live session data…</span></div>
+      <div class="support-grid">
+        <aside class="section-card queue-section">
+          <div class="section-heading"><div><h2>📋 Waiting Queue <span id="queueSectionCount" class="panel-count">(0)</span></h2></div></div>
+          <div id="queueList" class="queue-list"><div class="empty-state">No players in the queue.</div></div>
+        </aside>
+
+        <section id="waitingCourtsSection" class="section-card waiting-courts-section" hidden>
+          <div class="section-heading"><div><h2>🏟️ Waiting Court <span id="waitingCourtSectionCount" class="panel-count">(0)</span></h2></div></div>
+          <div id="waitingCourtsList" class="courts-grid"></div>
+        </section>
+      </div>
     </section>
 
-    <section id="inactiveNotice" class="notice-card" hidden>
-      <div class="notice-icon">🏓</div>
-      <div><strong>No active queue right now</strong><p>There is currently no active live queue. Live courts and waiting players will appear here when the organizer starts a session.</p></div>
-    </section>
-    <section id="syncNotice" class="sync-notice" hidden>
-      <strong>Local preview mode</strong>
-      <span>This page can update in this browser. To share live updates with other phones, start the included Node server and open this app through its network URL.</span>
-    </section>
-
-    <div class="content-grid">
-      <section class="section-card court-section">
-        <div class="section-heading"><div><h2>🏟️ Court <span id="courtSectionCount" class="panel-count">(0)</span></h2></div></div>
-        <div id="courtsList" class="courts-grid"><div class="empty-state">Waiting for court information…</div></div>
+    <section id="liveRankingsPanel" class="live-tab-panel" role="tabpanel" aria-labelledby="rankingsTab" data-live-panel="rankings" hidden>
+      <section class="section-card live-tab-card">
+        <div class="section-heading live-tab-section-heading"><div><h2>🏆 Rankings</h2><p>Player standings from recorded matches.</p></div></div>
+        <label class="live-tab-search" for="pageRankingSearch">
+          <svg class="live-tab-search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+          <input id="pageRankingSearch" type="search" placeholder="Search player name..." aria-label="Search player rankings" autocomplete="off" spellcheck="false">
+        </label>
+        <div id="pageRankingList" class="live-ranking-list live-ranking-page-list" aria-live="polite"><div class="live-ranking-empty">Complete a match to start the ranking.</div></div>
       </section>
-    </div>
+    </section>
 
-    <div class="support-grid">
-      <aside class="section-card queue-section">
-        <div class="section-heading"><div><h2>📋 Waiting Queue <span id="queueSectionCount" class="panel-count">(0)</span></h2></div></div>
-        <div id="queueList" class="queue-list"><div class="empty-state">No players in the queue.</div></div>
-      </aside>
-
-      <section id="waitingCourtsSection" class="section-card waiting-courts-section" hidden>
-        <div class="section-heading"><div><h2>🏟️ Waiting Court <span id="waitingCourtSectionCount" class="panel-count">(0)</span></h2></div></div>
-        <div id="waitingCourtsList" class="courts-grid"></div>
+    <section id="liveMatchesPanel" class="live-tab-panel" role="tabpanel" aria-labelledby="matchesTab" data-live-panel="matches" hidden>
+      <section class="section-card live-tab-card">
+        <div class="section-heading live-tab-section-heading"><div><h2>🏓 Matches <span id="matchesSectionCount" class="panel-count">(0)</span></h2><p>Most recent match results.</p></div></div>
+        <label class="live-tab-search" for="pageMatchesSearch">
+          <svg class="live-tab-search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+          <input id="pageMatchesSearch" type="search" placeholder="Search players, court, or score..." aria-label="Search match results" autocomplete="off" spellcheck="false">
+        </label>
+        <div id="matchesList" class="live-matches-list" aria-live="polite"><div class="empty-state">No recorded matches yet.</div></div>
       </section>
-    </div>
+    </section>
+
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span><span>Public view · Updates automatically</span></footer>
-  </main>
-  <script src="live-view.js?v=live-ranking-search-20261019-2" defer></script>
+    </main>
+  </div>
+  <script src="live-view.js?v=court-number-header-20261020-10" defer></script>
 </body>
 </html>
