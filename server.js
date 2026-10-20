@@ -12,7 +12,7 @@ const CLOUD_RECORDS_FILE = path.join(DATA_DIR, 'registered-player-cloud.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
-const allowedFiles = new Set(['index.html','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','live-queue-start-card.html','live-queue-start-loader.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css']);
+const allowedFiles = new Set(['index.html','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','live-queue-start-card.html','live-queue-start-loader.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png']);
 let latestState = null;
 let sharedAppState = null;
 let sharedAppRevision = 0;
@@ -100,6 +100,7 @@ function buildLiveQueueSnapshot(appState, updatedAt = new Date().toISOString()) 
     active: !!appState?.sessionActive,
     recordScores: appState?.recordScores === true,
     liveRankingEnabled: previous.liveRankingEnabled !== false,
+    liveMatchesEnabled: previous.liveMatchesEnabled !== false,
     updatedAt,
     playerCount: roster.length,
     queue,
@@ -297,6 +298,7 @@ async function handle(req, res) {
         sessionName: String(body.sessionName).slice(0,200), active: !!body.active,
         recordScores: body.recordScores === true,
         liveRankingEnabled: body.liveRankingEnabled !== false,
+        liveMatchesEnabled: body.liveMatchesEnabled !== false,
         updatedAt: typeof body.updatedAt === 'string' ? body.updatedAt : new Date().toISOString(),
         playerCount: Math.max(0,Number(body.playerCount)||0),
         // Keep the queue timestamps in the shared state. Live View uses these

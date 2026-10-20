@@ -30,6 +30,7 @@ const CLOUD_RECORDS_PENDING_SYNC_KEY='pickleq_registered_cloud_records_pending_s
 const LIVE_VIEW_STORAGE_KEY='picklepoint_live_view_state_v1';
 const LIVE_VIEW_THEME_STORAGE_KEY='picklepoint_live_view_theme_v1';
 const LIVE_RANKING_ENABLED_KEY='picklepoint_live_ranking_enabled_v1';
+const LIVE_MATCHES_ENABLED_KEY='picklepoint_live_matches_enabled_v1';
 const RESULTS_TAB_STORAGE_KEY='picklepoint_results_tab_v1';
 let liveViewBroadcastChannel=null;
 let liveViewPublishInFlight=false;
@@ -382,6 +383,39 @@ function initLiveRankingAdminToggle(){
     }
   });
 }
+function isLiveMatchesEnabled(){
+  try{return localStorage.getItem(LIVE_MATCHES_ENABLED_KEY)!=='false';}catch(e){return true;}
+}
+function syncLiveMatchesAdminToggle(enabled=isLiveMatchesEnabled()){
+  const button=$('liveMatchesAdminToggle');
+  if(!button)return;
+  const isEnabled=enabled!==false;
+  button.classList.toggle('is-enabled',isEnabled);
+  button.classList.toggle('is-disabled',!isEnabled);
+  button.setAttribute('aria-pressed',String(isEnabled));
+  button.setAttribute('aria-label',isEnabled?'Turn Live Matches off':'Turn Live Matches on');
+  button.title=isEnabled?'Turn Live Matches off':'Turn Live Matches on';
+  const label=button.querySelector('.live-ranking-admin-label');
+  if(label)label.textContent=`Live Matches: ${isEnabled?'On':'Off'}`;
+}
+function initLiveMatchesAdminToggle(){
+  const button=$('liveMatchesAdminToggle');
+  if(!button)return;
+  syncLiveMatchesAdminToggle();
+  button.addEventListener('click',()=>{
+    const enabled=!isLiveMatchesEnabled();
+    try{localStorage.setItem(LIVE_MATCHES_ENABLED_KEY,String(enabled));}catch(e){}
+    syncLiveMatchesAdminToggle(enabled);
+    publishLiveViewState();
+    if(typeof toast==='function')toast(`Live Matches ${enabled?'enabled':'disabled'} on Live View.`);
+  });
+  window.addEventListener('storage',event=>{
+    if(event.key===LIVE_MATCHES_ENABLED_KEY){
+      syncLiveMatchesAdminToggle(event.newValue!=='false');
+      publishLiveViewState();
+    }
+  });
+}
 
 function buildLiveViewSnapshot(){
   const roster=[...(Array.isArray(state.players)?state.players:[]),...(Array.isArray(state.left)?state.left:[])];
@@ -452,6 +486,7 @@ function buildLiveViewSnapshot(){
     active:!!state.sessionActive,
     recordScores:!!state.recordScores,
     liveRankingEnabled:isLiveRankingEnabled(),
+    liveMatchesEnabled:isLiveMatchesEnabled(),
     updatedAt:new Date().toISOString(),
     playerCount:roster.length,
     queue:(Array.isArray(state.queue)?state.queue:[]).map(id=>{
@@ -3845,6 +3880,7 @@ bindTopbarBackButton();
 initQueueNetworkStatus();
 initLiveViewThemeController();
 initLiveRankingAdminToggle();
+initLiveMatchesAdminToggle();
 $('liveViewQrOpenBtn')?.addEventListener('click',openLiveViewQrModal);
 $('liveViewQrCopyBtn')?.addEventListener('click',copyLiveViewQrLink);
 $('liveViewQrOpenPageBtn')?.addEventListener('click',openLiveView);

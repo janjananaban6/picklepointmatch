@@ -186,7 +186,7 @@
     if (!list) return;
     const ranking = Array.isArray(currentState?.ranking) ? currentState.ranking : [];
     if (!currentState?.active || currentState?.liveRankingEnabled === false) {
-      list.innerHTML = '<div class="live-ranking-empty"><span aria-hidden="true">🏆</span><strong>Rankings unavailable</strong><span>Live rankings are currently disabled for this session.</span></div>';
+      list.innerHTML = '<div class="live-ranking-empty"><span aria-hidden="true">🏆</span><strong>Rankings unavailable</strong><span>Live rankings are currently disabled for this session.</span><span>Request on QM to enable the live ranking.</span></div>';
       return;
     }
     if (!ranking.length) {
@@ -240,6 +240,11 @@
     if (!list) return;
     const matches = Array.isArray(currentState?.recentMatches) ? currentState.recentMatches : [];
     const count = $('matchesSectionCount');
+    if (!currentState?.active || currentState?.liveMatchesEnabled === false) {
+      if (count) count.textContent = '(0)';
+      list.innerHTML = '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>Matches unavailable</strong><span>Live matches are currently disabled for this session.</span><span>Request on QM to enable live matches.</span></div>';
+      return;
+    }
     const rawSearchTerm = String($('pageMatchesSearch')?.value || '').trim();
     const searchTerm = rawSearchTerm.toLocaleLowerCase();
     const filteredMatches = matches.filter(match => {

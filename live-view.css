@@ -611,7 +611,7 @@ html body .player-chip .live-player-gender svg.gender-symbol {
 .live-ranking-progress span{display:block;height:100%;border-radius:inherit;background:var(--teal)}
 .live-ranking-result{display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:0}
 .live-ranking-result strong{font-size:17px;font-weight:950;line-height:1;font-variant-numeric:tabular-nums}.live-ranking-result span{color:var(--muted);font-size:8px;white-space:nowrap}
-.live-ranking-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:30px 12px;color:var(--muted);text-align:center;font-size:11px}.live-ranking-empty>span:first-child{font-size:28px}.live-ranking-empty strong{color:var(--text);font-size:13px}
+.live-ranking-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;min-height:190px;margin:0;padding:30px 12px;box-sizing:border-box;color:var(--muted);text-align:center;font-size:11px;line-height:1.45}.live-ranking-empty>span:first-child{font-size:28px}.live-ranking-empty strong{color:var(--text);font-size:13px}
 html[data-theme="light"] .live-ranking-playing{background:#e0f8ee;color:#087e59}
 @media(max-width:560px){.live-header{gap:7px}.header-right{gap:5px}.connection-status{height:25px;gap:5px}.live-ranking-list{padding:10px;max-height:548px}.live-ranking-row{grid-template-columns:29px minmax(0,1fr) 51px;gap:7px;padding:9px 8px}.live-ranking-position{font-size:9px}.live-ranking-row.rank-1 .live-ranking-position,.live-ranking-row.rank-2 .live-ranking-position,.live-ranking-row.rank-3 .live-ranking-position{font-size:17px}.live-ranking-name-line strong{font-size:10px}.live-ranking-stats{gap:6px;font-size:8px}.live-ranking-result strong{font-size:14px}.live-ranking-result span{font-size:7px}}
 
@@ -1186,7 +1186,7 @@ html[data-theme="light"] body #waitingCourtsList .court-visual-score span { colo
   padding: 2px 0 0;
   overflow: visible !important;
 }
-.live-matches-list { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.live-matches-list { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 100px; padding: 2px 0 0; overflow: visible; }
 .live-match-row {
   min-width: 0;
   padding: 14px;
@@ -1393,5 +1393,34 @@ html body .live-page-pinned .event-heading .eyebrow {
     line-height: 1.25 !important;
     letter-spacing: 0 !important;
     opacity: .8;
+  }
+}
+
+/* Desktop-only scrollbar alignment: let the scroll viewport span the full page,
+   while keeping Live View content aligned to the same centered 1380px frame. */
+@media (min-width: 901px) {
+  .page-shell.live-content-scroll {
+    width: 100%;
+    max-width: none;
+    padding: 0 0 22px;
+  }
+
+  .live-content-scroll > .live-tab-panel,
+  .live-content-scroll > .page-footer {
+    box-sizing: border-box;
+    width: min(
+      1272px,
+      calc(
+        100vw
+        - clamp(14px, 4vw, 54px)
+        - clamp(14px, 4vw, 54px)
+        - max(0px, (100vw - 1380px))
+      )
+    );
+    margin-left: calc(
+      clamp(14px, 4vw, 54px)
+      + max(0px, (100vw - 1380px) / 2)
+    );
+    margin-right: 0;
   }
 }
