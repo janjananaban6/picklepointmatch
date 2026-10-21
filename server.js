@@ -127,15 +127,30 @@ async function readBody(req, limit = 2 * 1024 * 1024) {
 }
 async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  // Let search engines crawl public pages. Keep API endpoints out of search crawling.
-  if (url.pathname === '/robots.txt' && (req.method === 'GET' || req.method === 'HEAD')) {
-    const robots = 'User-agent: *\nAllow: /\nDisallow: /api/\n';
-    res.writeHead(200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'no-cache, must-revalidate',
-      'X-Content-Type-Options': 'nosniff'
-    });
-    return res.end(req.method === 'HEAD' ? undefined : robots);
+
+  // SEO endpoints: generate absolute URLs from the public host that requested them,
+  // so the same build works on Render's onrender.com address or a custom domain.
+  if ((req.method === 'GET' || req.method === 'HEAD') && (url.pathname === '/robots.txt' || url.pathname === '/sitemap.xml')) {
+    const rawHost = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+    if (!/^[a-z0-9.-]+(?::\d{1,5})?$/i.test(rawHost)) return sendJson(res, 400, {ok:false,error:'Invalid host'});
+    const isLocal = /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(rawHost);
+    const origin = `${isLocal ? 'http' : 'https'}://${rawHost}`;
+    let body;
+    let contentType;
+    if (url.pathname === '/robots.txt') {
+      body = `User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${origin}/sitemap.xml\n`;
+      contentType = 'text/plain; charset=utf-8';
+    } else {
+      const pages = ['/', '/live.html', '/Registration.html'];
+      const xmlEscape = value => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+      body = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+        `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+        pages.map(page => `  <url><loc>${xmlEscape(origin + page)}</loc></url>`).join('\n') +
+        `\n</urlset>\n`;
+      contentType = 'application/xml; charset=utf-8';
+    }
+    res.writeHead(200, {'Content-Type':contentType,'Content-Length':Buffer.byteLength(body),'Cache-Control':'public, max-age=300','X-Content-Type-Options':'nosniff'});
+    return req.method === 'HEAD' ? res.end() : res.end(body);
   }
   if (url.pathname === '/api/health' && req.method === 'GET') return sendJson(res, 200, {ok:true, service:'Pickle Point Match Live View'});
   if (url.pathname === '/api/live-theme' && req.method === 'GET') return sendJson(res, 200, {ok:true,theme:liveTheme});
