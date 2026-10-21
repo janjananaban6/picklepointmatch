@@ -127,6 +127,16 @@ async function readBody(req, limit = 2 * 1024 * 1024) {
 }
 async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  // Let search engines crawl public pages. Keep API endpoints out of search crawling.
+  if (url.pathname === '/robots.txt' && (req.method === 'GET' || req.method === 'HEAD')) {
+    const robots = 'User-agent: *\nAllow: /\nDisallow: /api/\n';
+    res.writeHead(200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-cache, must-revalidate',
+      'X-Content-Type-Options': 'nosniff'
+    });
+    return res.end(req.method === 'HEAD' ? undefined : robots);
+  }
   if (url.pathname === '/api/health' && req.method === 'GET') return sendJson(res, 200, {ok:true, service:'Pickle Point Match Live View'});
   if (url.pathname === '/api/live-theme' && req.method === 'GET') return sendJson(res, 200, {ok:true,theme:liveTheme});
 
