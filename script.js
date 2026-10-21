@@ -17,9 +17,12 @@ const state={
   winnersLosersNextGroup:'winners',
   sessionMetrics:{cloudCheckins:0,newRegistered:0},
   sessionActive:false,
+  sessionEndedAt:null,
   sessionName:'Open Play — Oct 6, 2026',
   duprMatch:false,
-  recordScores:false
+  recordScores:false,
+  liveRankingEnabled:true,
+  liveMatchesEnabled:true
 };
 
 const STORAGE_KEY='pickleq_v11_state';
@@ -32,6 +35,7 @@ const LIVE_VIEW_THEME_STORAGE_KEY='picklepoint_live_view_theme_v1';
 const LIVE_RANKING_ENABLED_KEY='picklepoint_live_ranking_enabled_v1';
 const LIVE_MATCHES_ENABLED_KEY='picklepoint_live_matches_enabled_v1';
 const RESULTS_TAB_STORAGE_KEY='picklepoint_results_tab_v1';
+try{state.liveRankingEnabled=localStorage.getItem(LIVE_RANKING_ENABLED_KEY)!=='false';state.liveMatchesEnabled=localStorage.getItem(LIVE_MATCHES_ENABLED_KEY)!=='false';}catch(e){}
 let liveViewBroadcastChannel=null;
 let liveViewPublishInFlight=false;
 let liveViewPendingSnapshot=null;
@@ -44,7 +48,8 @@ const CLOUD_RECORDS_KEY='pickleq_registered_cloud_records_v1';
 let cloudRecords={players:[],logs:[],sessions:[]};let pendingCloudDeleteId=null;let pendingCloudMatchDeleteId=null;let pendingCloudMatchPlayerId=null;let pendingCloudMatchEditId=null;let pendingCloudMatchEditPlayerId=null;
 const sharedClientId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():`pp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let sharedSyncReady=false,sharedSyncAvailable=false,sharedSyncInitializing=false,sharedSyncRetryTimer=null;
-let sharedAppRevision=0,sharedCloudRevision=0,appSyncInFlight=false,appSyncPending=null,cloudSyncInFlight=false,cloudSyncPending=null,applyingRemoteAppState=false,sharedEvents=null;
+let sharedAppRevision=0,sharedCloudRevision=0,appSyncInFlight=false,appSyncPending=null,cloudSyncInFlight=false,cloudSyncPending=null,applyingRemoteAppState=false,sharedEvents=null,sharedSyncStartedAt=0;
+let remoteSessionEndRedirectInProgress=false;
 function isHttpApp(){return location.protocol==='http:'||location.protocol==='https:';}
 function cloneSharedData(value){try{return JSON.parse(JSON.stringify(value));}catch(e){return value;}}
 function readLocalTimestamp(key){try{return Number(localStorage.getItem(key))||0;}catch(e){return 0;}}
@@ -80,7 +85,7 @@ function applySharedCloudRecords(payload,force=false){
   if(!force&&revision<=sharedCloudRevision)return;
   sharedCloudRevision=Math.max(sharedCloudRevision,revision);
   // Keep a more recent, locally saved edit when its upload has not reached the server yet.
-  if(hasFreshLocalPending(CLOUD_RECORDS_SAVED_AT_KEY,CLOUD_RECORDS_PENDING_SYNC_KEY,payload.updatedAt)){
+  if(hasFreshLocalPending(CLOUD_RECORDS_SAVED_AT_KEY,CLOUD_RECORDS_PENDING_SYNC_KEY,payload.updatedAt)&&(!force||readLocalTimestamp(CLOUD_RECORDS_SAVED_AT_KEY)>sharedSyncStartedAt)){
     cloudSyncPending=cloneSharedData(cloudRecords);
     if(sharedSyncAvailable)flushCloudRecordsSync();
     return;
@@ -96,7 +101,7 @@ function applySharedCloudRecords(payload,force=false){
   if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
   if($('registerFullname'))updateRegistrationSaveButton();
 }
-function getSharedAppStateSnapshot(){return {schemaVersion:11,players:state.players,left:state.left,queue:state.queue,lockedPartners:state.lockedPartners,courts:state.courts,logs:state.logs,nextPlayer:state.nextPlayer,nextCourt:state.nextCourt,nextWaitingCourt:state.nextWaitingCourt,nextLog:state.nextLog,sessionMetrics:state.sessionMetrics,sessionActive:state.sessionActive,sessionName:state.sessionName,duprMatch:state.duprMatch,recordScores:state.recordScores,eventRules:state.eventRules,matchingMode:state.matchingMode,winnersLosersNextGroup:state.winnersLosersNextGroup};}
+function getSharedAppStateSnapshot(){return {schemaVersion:12,players:state.players,left:state.left,queue:state.queue,lockedPartners:state.lockedPartners,courts:state.courts,logs:state.logs,nextPlayer:state.nextPlayer,nextCourt:state.nextCourt,nextWaitingCourt:state.nextWaitingCourt,nextLog:state.nextLog,sessionMetrics:state.sessionMetrics,sessionActive:state.sessionActive,sessionEndedAt:state.sessionEndedAt||null,sessionName:state.sessionName,duprMatch:state.duprMatch,recordScores:state.recordScores,liveRankingEnabled:state.liveRankingEnabled!==false,liveMatchesEnabled:state.liveMatchesEnabled!==false,eventRules:state.eventRules,matchingMode:state.matchingMode,winnersLosersNextGroup:state.winnersLosersNextGroup};}
 function queueSharedAppStateSync(snapshot){if(applyingRemoteAppState)return;appSyncPending=cloneSharedData(snapshot);flushSharedAppStateSync();}
 function flushSharedAppStateSync(){
   if(!sharedSyncAvailable||!sharedSyncReady||appSyncInFlight||!appSyncPending||!isHttpApp())return;
@@ -107,7 +112,8 @@ function flushSharedAppStateSync(){
     .then(async response=>{
       const data=await response.json();
       if(response.status===409&&data.conflict){
-        if(hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,data.updatedAt))sharedAppRevision=Math.max(sharedAppRevision,Number(data.revision)||0);
+        if(isExplicitSessionEndState(data.state))applySharedAppState({revision:data.revision,updatedAt:data.updatedAt,clientId:null,state:data.state},true);
+        else if(hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,data.updatedAt))sharedAppRevision=Math.max(sharedAppRevision,Number(data.revision)||0);
         else applySharedAppState({revision:data.revision,updatedAt:data.updatedAt,clientId:null,state:data.state});
       }
       if(!response.ok)throw new Error(`Application state sync failed (${response.status})`);
@@ -117,13 +123,20 @@ function flushSharedAppStateSync(){
     .catch(()=>{failed=true;appSyncPending=getSharedAppStateSnapshot();scheduleSharedSyncRetry();})
     .finally(()=>{appSyncInFlight=false;if(appSyncPending&&!failed)flushSharedAppStateSync();});
 }
+function isExplicitSessionEndState(incomingState){
+  return !!(incomingState&&incomingState.sessionEndedAt&&incomingState.sessionActive===false&&
+    ['players','left','queue','courts','logs'].every(key=>Array.isArray(incomingState[key])&&incomingState[key].length===0));
+}
 function applySharedAppState(payload,force=false){
   if(!payload||!payload.state||typeof payload.state!=='object')return;
   const revision=Number(payload.revision)||0;
   if(!force&&revision<=sharedAppRevision)return;
   sharedAppRevision=Math.max(sharedAppRevision,revision);
-  // Avoid discarding state entered just before or during refresh when it is still unsynced.
-  if(hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt)){
+  const incomingState=payload.state;
+  const isExplicitSessionEnd=isExplicitSessionEndState(incomingState);
+  // A confirmed remote End Session must beat stale, locally pending queue data.
+  // Otherwise a second device could re-upload its old queue and keep the session alive.
+  if(!isExplicitSessionEnd&&hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt)&&(!force||readLocalTimestamp(LOCAL_STATE_SAVED_AT_KEY)>sharedSyncStartedAt)){
     appSyncPending=getSharedAppStateSnapshot();
     if(sharedSyncAvailable)flushSharedAppStateSync();
     return;
@@ -137,15 +150,28 @@ function applySharedAppState(payload,force=false){
   try{
     localStorage.setItem(STORAGE_KEY,JSON.stringify(payload.state));
     stampRemoteSave(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt);
-    loadState();render();publishLiveViewState();
-    // Shared-state updates refresh the queue and public live snapshot without
-    // changing the user's current screen during startup or while another device syncs.
+    loadState();
+    syncLiveRankingAdminToggle(state.liveRankingEnabled!==false);
+    syncLiveMatchesAdminToggle(state.liveMatchesEnabled!==false);
+    render();publishLiveViewState();
     syncLiveQueueStartScreen();
+    if(isExplicitSessionEnd){
+      const hasPendingCreateConfig=(()=>{try{return new URLSearchParams(location.search).get('create')==='1'&&!!sessionStorage.getItem('picklepoint.pending-live-queue-start-config');}catch(e){return false;}})();
+      if(!hasPendingCreateConfig){
+        if(document.body?.dataset.page==='queueing'){
+          remoteSessionEndRedirectInProgress=true;
+          try{sessionStorage.setItem('liveQueueView','start');}catch(e){}
+          window.location.replace('index.html');
+        }else{
+          showLiveQueueStartScreen();
+        }
+      }
+    }
   }catch(e){console.warn('Could not apply shared queue state',e);}
   finally{applyingRemoteAppState=false;}
 }
 function scheduleSharedSyncRetry(){if(sharedSyncRetryTimer!==null||!isHttpApp())return;sharedSyncRetryTimer=setTimeout(()=>{sharedSyncRetryTimer=null;if(!sharedSyncAvailable){initializeSharedDataSync();return;}flushSharedAppStateSync();flushCloudRecordsSync();},5000);}
-async function initializeSharedDataSync(){if(!isHttpApp()){sharedSyncReady=true;return;}if(sharedSyncInitializing||sharedSyncAvailable)return;sharedSyncInitializing=true;try{const responses=await Promise.all([fetch(`/api/app-state?_=${Date.now()}`,{cache:'no-store'}),fetch(`/api/cloud-records?_=${Date.now()}`,{cache:'no-store'})]);if(responses.some(response=>!response.ok))throw new Error('Shared data API is not available');const [remoteApp,remoteCloud]=await Promise.all(responses.map(response=>response.json()));
+async function initializeSharedDataSync(){if(!isHttpApp()){sharedSyncReady=true;return;}if(sharedSyncInitializing||sharedSyncAvailable)return;sharedSyncInitializing=true;if(!sharedSyncStartedAt)sharedSyncStartedAt=Date.now();try{const responses=await Promise.all([fetch(`/api/app-state?_=${Date.now()}`,{cache:'no-store'}),fetch(`/api/cloud-records?_=${Date.now()}`,{cache:'no-store'})]);if(responses.some(response=>!response.ok))throw new Error('Shared data API is not available');const [remoteApp,remoteCloud]=await Promise.all(responses.map(response=>response.json()));
   if(remoteApp.state&&typeof remoteApp.state==='object'){applySharedAppState({revision:remoteApp.revision,updatedAt:remoteApp.updatedAt,clientId:null,state:remoteApp.state},true);}else{const response=await fetch('/api/app-state',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({state:getSharedAppStateSnapshot(),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize shared queue state');const seeded=await response.json();sharedAppRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.state)applySharedAppState({revision:seeded.revision,updatedAt:seeded.updatedAt,clientId:null,state:seeded.state},true);}
   if(remoteCloud.records&&typeof remoteCloud.records==='object'){applySharedCloudRecords({revision:remoteCloud.revision,updatedAt:remoteCloud.updatedAt,clientId:null,records:remoteCloud.records},true);}else{const response=await fetch('/api/cloud-records',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({records:cloneSharedData(cloudRecords),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize Registered Player Cloud');const seeded=await response.json();sharedCloudRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.records)applySharedCloudRecords({revision:seeded.revision,updatedAt:seeded.updatedAt,clientId:null,records:seeded.records},true);}
   sharedSyncAvailable=true;sharedSyncReady=true;sharedEvents=new EventSource('/api/shared-events');sharedEvents.addEventListener('app-state',event=>{try{applySharedAppState(JSON.parse(event.data));}catch(e){}});sharedEvents.addEventListener('cloud-records',event=>{try{applySharedCloudRecords(JSON.parse(event.data));}catch(e){}});publishLiveViewState();flushSharedAppStateSync();flushCloudRecordsSync();
@@ -320,6 +346,7 @@ function endSession(){
   state.eventRules={target:11,winBy:1,type:'Doubles'};
   state.sessionMetrics={cloudCheckins:0,newRegistered:0};
   state.sessionActive=false;
+  state.sessionEndedAt=new Date().toISOString();
   state.sessionName='Open Play — Oct 6, 2026';
   state.duprMatch=false;
   state.recordScores=false;
@@ -351,6 +378,7 @@ function liveViewPlayerLabel(p){
   return name+(nickname&&nickname.toLowerCase()!==name.toLowerCase()?` (${nickname})`:'');
 }
 function isLiveRankingEnabled(){
+  if(typeof state.liveRankingEnabled==='boolean')return state.liveRankingEnabled;
   try{return localStorage.getItem(LIVE_RANKING_ENABLED_KEY)!=='false';}catch(e){return true;}
 }
 function syncLiveRankingAdminToggle(enabled=isLiveRankingEnabled()){
@@ -371,19 +399,22 @@ function initLiveRankingAdminToggle(){
   syncLiveRankingAdminToggle();
   button.addEventListener('click',()=>{
     const enabled=!isLiveRankingEnabled();
+    state.liveRankingEnabled=enabled;
     try{localStorage.setItem(LIVE_RANKING_ENABLED_KEY,String(enabled));}catch(e){}
     syncLiveRankingAdminToggle(enabled);
-    publishLiveViewState();
+    saveState();
     if(typeof toast==='function')toast(`Live Standing ${enabled?'enabled':'disabled'} on Live View.`);
   });
   window.addEventListener('storage',event=>{
     if(event.key===LIVE_RANKING_ENABLED_KEY){
-      syncLiveRankingAdminToggle(event.newValue!=='false');
+      state.liveRankingEnabled=event.newValue!=='false';
+      syncLiveRankingAdminToggle(state.liveRankingEnabled);
       publishLiveViewState();
     }
   });
 }
 function isLiveMatchesEnabled(){
+  if(typeof state.liveMatchesEnabled==='boolean')return state.liveMatchesEnabled;
   try{return localStorage.getItem(LIVE_MATCHES_ENABLED_KEY)!=='false';}catch(e){return true;}
 }
 function syncLiveMatchesAdminToggle(enabled=isLiveMatchesEnabled()){
@@ -404,14 +435,16 @@ function initLiveMatchesAdminToggle(){
   syncLiveMatchesAdminToggle();
   button.addEventListener('click',()=>{
     const enabled=!isLiveMatchesEnabled();
+    state.liveMatchesEnabled=enabled;
     try{localStorage.setItem(LIVE_MATCHES_ENABLED_KEY,String(enabled));}catch(e){}
     syncLiveMatchesAdminToggle(enabled);
-    publishLiveViewState();
+    saveState();
     if(typeof toast==='function')toast(`Live Matches ${enabled?'enabled':'disabled'} on Live View.`);
   });
   window.addEventListener('storage',event=>{
     if(event.key===LIVE_MATCHES_ENABLED_KEY){
-      syncLiveMatchesAdminToggle(event.newValue!=='false');
+      state.liveMatchesEnabled=event.newValue!=='false';
+      syncLiveMatchesAdminToggle(state.liveMatchesEnabled);
       publishLiveViewState();
     }
   });
@@ -485,8 +518,8 @@ function buildLiveViewSnapshot(){
     sessionName:String(state.sessionName||'Pickle Point Match'),
     active:!!state.sessionActive,
     recordScores:!!state.recordScores,
-    liveRankingEnabled:isLiveRankingEnabled(),
-    liveMatchesEnabled:isLiveMatchesEnabled(),
+    liveRankingEnabled:state.liveRankingEnabled!==false,
+    liveMatchesEnabled:state.liveMatchesEnabled!==false,
     updatedAt:new Date().toISOString(),
     playerCount:roster.length,
     queue:(Array.isArray(state.queue)?state.queue:[]).map(id=>{
@@ -779,9 +812,13 @@ function loadState(){
     state.logs=Array.isArray(data.logs)?data.logs:[];
     state.sessionMetrics={cloudCheckins:Number(data.sessionMetrics?.cloudCheckins)||0,newRegistered:Number(data.sessionMetrics?.newRegistered)||0};
     state.sessionActive=typeof data.sessionActive==='boolean'?data.sessionActive:(state.players.length>0||state.left.length>0||state.queue.length>0||state.courts.length>0||state.logs.length>0);
+    state.sessionEndedAt=typeof data.sessionEndedAt==='string'&&data.sessionEndedAt?data.sessionEndedAt:null;
     state.sessionName=String(data.sessionName||'Open Play — Oct 6, 2026');
     state.duprMatch=!!data.duprMatch;
     state.recordScores=typeof data.recordScores==='boolean'?data.recordScores:false;
+    state.liveRankingEnabled=typeof data.liveRankingEnabled==='boolean'?data.liveRankingEnabled:isLiveRankingEnabled();
+    state.liveMatchesEnabled=typeof data.liveMatchesEnabled==='boolean'?data.liveMatchesEnabled:isLiveMatchesEnabled();
+    try{localStorage.setItem(LIVE_RANKING_ENABLED_KEY,String(state.liveRankingEnabled));localStorage.setItem(LIVE_MATCHES_ENABLED_KEY,String(state.liveMatchesEnabled));}catch(e){}
     state.matchingMode=['balanced','social-mix','skill-separated','winners-losers'].includes(data.matchingMode)?data.matchingMode:'balanced';
     state.winnersLosersNextGroup=data.winnersLosersNextGroup==='losers'?'losers':'winners';
     state.nextPlayer=Number(data.nextPlayer)||((state.players.reduce((m,p)=>Math.max(m,Number(p.id)||0),0))+1);
@@ -3720,6 +3757,7 @@ function enterLiveQueueFromStart(){
   enforceLiveQueueSessionPrefix();
   state.sessionName=sessionInput?.value?.trim()||name;
   state.sessionActive=true;
+  state.sessionEndedAt=null;
   state.duprMatch=!!$('liveQueueDupr')?.checked;
   state.recordScores=!!$('liveQueueRecordResults')?.checked;
   state.eventRules={target,winBy,type};
@@ -3813,6 +3851,7 @@ function applyPendingLiveQueueStartConfig(){
   const matchingMode=['balanced','social-mix','skill-separated','winners-losers'].includes(config.matchingMode)?config.matchingMode:'balanced';
   state.sessionName=String(config.sessionName||getAutoLiveQueueSessionName(false)).trim()||getAutoLiveQueueSessionName(false);
   state.sessionActive=true;
+  state.sessionEndedAt=null;
   state.duprMatch=false;
   state.recordScores=!!config.recordScores;
   state.eventRules={target:[11,15,21].includes(target)?target:11,winBy:[1,2,3].includes(winBy)?winBy:1,type:config.type==='Singles'?'Singles':'Doubles'};
@@ -3901,11 +3940,13 @@ if(document.body?.dataset.page==='queueing'){
   // Apply a new session's setup only after the hosted shared queue is loaded.
   showLiveQueueWorkspace();
   sharedDataSyncReady.then(()=>{
+    if(remoteSessionEndRedirectInProgress)return;
     applyPendingLiveQueueStartConfig();
-    showLiveQueueWorkspace();
+    if(!remoteSessionEndRedirectInProgress)showLiveQueueWorkspace();
   }).catch(()=>{
+    if(remoteSessionEndRedirectInProgress)return;
     applyPendingLiveQueueStartConfig();
-    showLiveQueueWorkspace();
+    if(!remoteSessionEndRedirectInProgress)showLiveQueueWorkspace();
   });
 }else{
   let savedLiveQueueView=null;

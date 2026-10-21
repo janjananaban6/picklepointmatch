@@ -34,7 +34,7 @@ function normalizePlayerName(value) {
   return String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
 function createDefaultSharedAppState() {
-  return {schemaVersion:11,players:[],left:[],queue:[],lockedPartners:[],courts:[],logs:[],nextPlayer:1,nextCourt:1,nextWaitingCourt:1,nextLog:1,sessionMetrics:{cloudCheckins:0,newRegistered:0},sessionActive:false,sessionName:'Open Play',duprMatch:false,recordScores:false,eventRules:{target:11,winBy:1,type:'Doubles'},matchingMode:'balanced',winnersLosersNextGroup:'winners'};
+  return {schemaVersion:12,players:[],left:[],queue:[],lockedPartners:[],courts:[],logs:[],nextPlayer:1,nextCourt:1,nextWaitingCourt:1,nextLog:1,sessionMetrics:{cloudCheckins:0,newRegistered:0},sessionActive:false,sessionEndedAt:null,sessionName:'Open Play',duprMatch:false,recordScores:false,liveRankingEnabled:true,liveMatchesEnabled:true,eventRules:{target:11,winBy:1,type:'Doubles'},matchingMode:'balanced',winnersLosersNextGroup:'winners'};
 }
 function normalizeTimestamp(value) {
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
@@ -99,8 +99,8 @@ function buildLiveQueueSnapshot(appState, updatedAt = new Date().toISOString()) 
     sessionName: String(appState?.sessionName || previous.sessionName || 'Open Play'),
     active: !!appState?.sessionActive,
     recordScores: appState?.recordScores === true,
-    liveRankingEnabled: previous.liveRankingEnabled !== false,
-    liveMatchesEnabled: previous.liveMatchesEnabled !== false,
+    liveRankingEnabled: typeof appState?.liveRankingEnabled === 'boolean' ? appState.liveRankingEnabled : previous.liveRankingEnabled !== false,
+    liveMatchesEnabled: typeof appState?.liveMatchesEnabled === 'boolean' ? appState.liveMatchesEnabled : previous.liveMatchesEnabled !== false,
     updatedAt,
     playerCount: roster.length,
     queue,
@@ -430,7 +430,7 @@ async function handle(req, res) {
 (async()=>{
   try { const saved=await fs.promises.readFile(DATA_FILE,'utf8'); const parsed=JSON.parse(saved); if(parsed&&typeof parsed==='object')latestState=parsed; } catch (_) {}
   try { const savedTheme=JSON.parse(await fs.promises.readFile(THEME_FILE,'utf8')); if(savedTheme&& (savedTheme.theme==='light'||savedTheme.theme==='night'))liveTheme=savedTheme.theme; } catch (_) {}
-  try { const saved=JSON.parse(await fs.promises.readFile(APP_STATE_FILE,'utf8')); if(saved&&saved.state&&typeof saved.state==='object'){sharedAppState=saved.state;sharedAppRevision=Math.max(0,Number(saved.revision)||1);sharedAppUpdatedAt=saved.updatedAt||null;sharedAppClientId=saved.clientId||null;} } catch (_) {}
+  try { const saved=JSON.parse(await fs.promises.readFile(APP_STATE_FILE,'utf8')); if(saved&&saved.state&&typeof saved.state==='object'){sharedAppState=saved.state;if(typeof sharedAppState.liveRankingEnabled!=='boolean')sharedAppState.liveRankingEnabled=latestState?.liveRankingEnabled!==false;if(typeof sharedAppState.liveMatchesEnabled!=='boolean')sharedAppState.liveMatchesEnabled=latestState?.liveMatchesEnabled!==false;sharedAppRevision=Math.max(0,Number(saved.revision)||1);sharedAppUpdatedAt=saved.updatedAt||null;sharedAppClientId=saved.clientId||null;} } catch (_) {}
   try { const saved=JSON.parse(await fs.promises.readFile(CLOUD_RECORDS_FILE,'utf8')); if(saved&&saved.records&&typeof saved.records==='object'){sharedCloudRecords=saved.records;sharedCloudRevision=Math.max(0,Number(saved.revision)||1);sharedCloudUpdatedAt=saved.updatedAt||null;sharedCloudClientId=saved.clientId||null;} } catch (_) {}
   const server=http.createServer((req,res)=>{handle(req,res).catch(err=>{console.error('Request error:',err);if(!res.headersSent)sendJson(res,500,{ok:false,error:'Internal server error'});else res.end();});});
   server.listen(PORT,HOST,()=>console.log(`Pickle Point Match running at http://localhost:${PORT}\nLive View: http://localhost:${PORT}/live.html\nFor another device on the same Wi-Fi, use this computer's local IP address.`));
