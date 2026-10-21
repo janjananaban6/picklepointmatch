@@ -2572,7 +2572,8 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card:firs
   html body #courtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-name,
   html body #waitingCourtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-name {
     display: block !important;
-    flex: 1 1 auto !important;
+    flex: 0 1 auto !important;
+    width: auto !important;
     min-width: 0 !important;
     max-width: 100% !important;
     height: 13px !important;
@@ -2785,3 +2786,66 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-the
   background: transparent !important;
   border: 0 !important;
 }
+
+/* STABLE MOBILE COURT TIMER — keep the name/timer group anchored identically
+   in vertical-grid and horizontal-swipe mode, with a fixed timer footprint. */
+@media (max-width: 560px) {
+  html body #courtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-heading,
+  html body #waitingCourtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-heading {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html body #courtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-name,
+  html body #waitingCourtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-name {
+    flex: 0 0 auto !important;
+    width: max-content !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    align-self: center !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html body #courtsList > .court-card.court-visual-card .court-mini-timer,
+  html body #waitingCourtsList > .court-card.court-visual-card .court-mini-timer {
+    display: inline-flex !important;
+    flex: 0 0 54px !important;
+    width: 54px !important;
+    min-width: 54px !important;
+    max-width: 54px !important;
+    height: 20px !important;
+    min-height: 20px !important;
+    max-height: 20px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 4px 5px !important;
+    font-size: 11px !important;
+    line-height: 12px !important;
+    font-variant-numeric: tabular-nums lining-nums !important;
+    white-space: nowrap !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
