@@ -11,6 +11,16 @@
   let reconnectTimer = null;
   let reconnectDelay = 3000;
   let remoteRefreshInFlight = false;
+  let queueCollapsed = false;
+  let queueAnimationToken = 0;
+  let queueAnimationTimer = null;
+  let queueTransitionHandler = null;
+  // Keep a consistent phase for the subtle status-dot animation across Live View refreshes.
+  const COURT_STATUS_PULSE_DURATION_MS = 2800;
+
+  function animationPhaseDelay(durationMs) {
+    return `-${((performance.now() % durationMs) / 1000).toFixed(3)}s`;
+  }
 
   const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -118,13 +128,16 @@
     catch (error) { return null; }
   }
 
-  function renderCourtCard(c) {
+  function renderCourtCard(c, listName = 'regular', index = 0) {
     // Mirror the Queueing page: regular courts are READY until playing;
     // waiting-court slots are labeled Up Next.
     const status = c.waitingOnly ? 'Up Next' : (c.playing ? 'PLAYING' : 'READY');
     const statusClass = c.waitingOnly ? 'is-up-next' : (c.playing ? 'is-playing' : 'is-ready');
     const t1 = Array.isArray(c.team1) ? c.team1 : [];
     const t2 = Array.isArray(c.team2) ? c.team2 : [];
+    const hasPlayers = [...t1, ...t2].some(Boolean);
+    // Empty courts show a simple message instead of an empty diagram or guide line.
+    const statusAnimationDelay = animationPhaseDelay(COURT_STATUS_PULSE_DURATION_MS);
     const shortPlayerName = player => {
       if (!player) return '';
       const nickname = String(player.nickname || '').trim();
@@ -157,21 +170,24 @@
       ? `<div class="court-visual-score" aria-label="Score ${Number(c.scores?.[0]) || 0} to ${Number(c.scores?.[1]) || 0}"><b>${Number(c.scores?.[0]) || 0}</b><span>–</span><b>${Number(c.scores?.[1]) || 0}</b></div>`
       : '';
     const diagramLabel = `${courtName}: ${teamLabel(t1)} versus ${teamLabel(t2)}`;
-    return `<article class="court-card court-visual-card${c.playing ? ' playing' : ''}${c.waitingOnly ? ' waiting-only' : ''}">
+    const diagramContent = hasPlayers
+      ? `<div class="court-diagram" role="img" aria-label="${escapeHTML(diagramLabel)}">
+          <span class="court-diagram-line court-diagram-horizontal" aria-hidden="true"></span>
+          <span class="court-diagram-line court-diagram-vertical court-diagram-third" aria-hidden="true"></span>
+          <span class="court-diagram-line court-diagram-vertical court-diagram-two-thirds" aria-hidden="true"></span>
+          <span class="court-diagram-center-line" aria-hidden="true"></span>
+          ${marker(t1[0], 'marker-top-left')}
+          ${marker(t1[1], 'marker-bottom-left')}
+          ${marker(t2[0], 'marker-top-right')}
+          ${marker(t2[1], 'marker-bottom-right')}
+        </div>`
+      : '<div class="court-diagram-empty-message" role="status">No players assigned yet</div>';
+    return `<article class="court-card court-visual-card${c.playing ? ' playing' : ''}${c.waitingOnly ? ' waiting-only' : ''}${hasPlayers ? '' : ' is-empty-court'}">
       <div class="court-visual-header">
         <div class="court-visual-heading"><strong class="court-visual-name">${escapeHTML(courtName)}</strong>${timer}</div>
-        <span class="court-visual-status ${statusClass}"><i aria-hidden="true"></i>${status}</span>
+        <span class="court-visual-status ${statusClass}" style="--status-animation-delay:${statusAnimationDelay}"><i aria-hidden="true"></i>${status}</span>
       </div>
-      <div class="court-diagram" role="img" aria-label="${escapeHTML(diagramLabel)}">
-        <span class="court-diagram-line court-diagram-horizontal" aria-hidden="true"></span>
-        <span class="court-diagram-line court-diagram-vertical court-diagram-third" aria-hidden="true"></span>
-        <span class="court-diagram-line court-diagram-vertical court-diagram-two-thirds" aria-hidden="true"></span>
-        <span class="court-diagram-center-line" aria-hidden="true"></span>
-        ${marker(t1[0], 'marker-top-left')}
-        ${marker(t1[1], 'marker-bottom-left')}
-        ${marker(t2[0], 'marker-top-right')}
-        ${marker(t2[1], 'marker-bottom-right')}
-      </div>
+      ${diagramContent}
       <div class="court-team-footer">
         <span class="court-team-label court-team-left">${escapeHTML(teamLabel(t1))}</span>
         <span class="court-team-versus">VS</span>
@@ -320,20 +336,56 @@
     const active = !!s?.active;
     // Never show a stale dated session title when there is no active session.
     $('sessionTitle').textContent = active ? (s?.sessionName || 'Open Play') : 'Open Play';
+    const sessionMatchType = $('sessionMatchType');
+    if (sessionMatchType) sessionMatchType.textContent = String(s?.eventRules?.type || 'Doubles');
+    const sessionPlayerCount = $('sessionPlayerCount');
+    if (sessionPlayerCount) {
+      const reportedPlayerCount = Number(s?.playerCount);
+      const fallbackPlayerIds = new Set();
+      (Array.isArray(s?.queue) ? s.queue : []).forEach(player => {
+        const key = player?.id != null ? String(player.id) : String(player?.name || '');
+        if (key) fallbackPlayerIds.add(key);
+      });
+      (Array.isArray(s?.courts) ? s.courts : []).forEach(court => {
+        (Array.isArray(court?.players) ? court.players : [...(court?.team1 || []), ...(court?.team2 || [])]).forEach(player => {
+          if (!player) return;
+          const key = player?.id != null ? String(player.id) : String(player?.name || '');
+          if (key) fallbackPlayerIds.add(key);
+        });
+      });
+      const playerCount = Number.isFinite(reportedPlayerCount) && reportedPlayerCount >= 0
+        ? reportedPlayerCount
+        : fallbackPlayerIds.size;
+      sessionPlayerCount.textContent = `${playerCount} player${playerCount === 1 ? '' : 's'}`;
+    }
     $('inactiveNotice').hidden = active;
-    $('queueSectionCount').textContent = `(${s?.queue?.length || 0})`;
+    $('queueSectionCount').textContent = `${s?.queue?.length || 0} WAITING`;
 
-    const allCourts = s?.courts || [];
-    const regularCourts = allCourts.filter(c => !c.waitingOnly);
-    const waitingCourts = allCourts.filter(c => c.waitingOnly);
-    $('courtSectionCount').textContent = `(${s?.courtCount ?? regularCourts.length})`;
+    const allCourts = Array.isArray(s?.courts) ? s.courts : [];
+    const regularCourts = allCourts.filter(c => c && !c.waitingOnly);
+    const waitingCourts = allCourts.filter(c => c && c.waitingOnly);
+    const sessionCourtCount = $('sessionCourtCount');
+    if (sessionCourtCount) {
+      const courtCount = regularCourts.length;
+      sessionCourtCount.textContent = `${courtCount} court${courtCount === 1 ? '' : 's'}`;
+    }
+
+    // Derive the heading count from the same court records used to render the
+    // cards. The published activeCourtCount can be stale (for example, after
+    // the server merges a registration update), so it must never override the
+    // actual playing flags on the current court list.
+    const liveCourtCount = regularCourts.filter(c => Boolean(c.playing)).length;
+    const courtCountLabel = $('courtSectionCount');
+    if (courtCountLabel) courtCountLabel.textContent = `${liveCourtCount} live`;
     $('courtsList').innerHTML = regularCourts.length
-      ? regularCourts.map(renderCourtCard).join('')
+      ? regularCourts.map((court, index) => renderCourtCard(court, 'regular', index)).join('')
       : '<div class="empty-state">No courts have been set up in this session.</div>';
 
     $('waitingCourtsSection').hidden = waitingCourts.length === 0;
-    $('waitingCourtSectionCount').textContent = `(${waitingCourts.length})`;
-    $('waitingCourtsList').innerHTML = waitingCourts.map(renderCourtCard).join('');
+    $('waitingCourtSectionCount').textContent = `${waitingCourts.length} planned`;
+    $('waitingCourtsList').innerHTML = waitingCourts.map((court, index) => renderCourtCard(court, 'waiting', index)).join('');
+    courtLayoutController?.syncCardCount();
+    waitingCourtLayoutController?.syncCardCount();
 
     const queue = s?.queue || [];
     $('queueList').innerHTML = queue.length
@@ -348,6 +400,15 @@
           return `<div class="queue-item"><div class="queue-avatar-stack" aria-label="${genderLabel} player, queue position ${i + 1}"><div class="queue-avatar ${genderClass}" aria-hidden="true">${escapeHTML(playerInitial(p))}</div><span class="queue-position-badge" aria-label="Queue position ${i + 1}">${i + 1}</span></div><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${escapeHTML(playerName(p))}</div><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span>${lockedPartnerIndicator}</div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
         }).join('')
       : '<div class="empty-state">No players are waiting in queue.</div>';
+
+    const queueViewport = $('queueListViewport');
+    if (queueViewport) {
+      // Keep accessibility state in sync during live refreshes, but let the
+      // dedicated toggle handler own height/opacity animation styles.
+      queueViewport.setAttribute('aria-hidden', String(queueCollapsed));
+      if (queueCollapsed) queueViewport.setAttribute('inert', '');
+      else queueViewport.removeAttribute('inert');
+    }
 
     const usingHttpServer = location.protocol === 'http:' || location.protocol === 'https:';
     $('syncNotice').hidden = serverConnected || (usingHttpServer && !serverTried);
@@ -495,6 +556,260 @@
       applyTheme(event.newValue);
     }
   });
+  const courtLayoutMediaQuery = typeof window.matchMedia === 'function'
+    ? window.matchMedia('(max-width: 560px)')
+    : { matches: false };
+  const courtLayoutReducedMotion = typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : null;
+
+  function createCourtLayoutController(toggle, list, labelPrefix) {
+    if (!toggle || !list) return null;
+    let horizontalMode = false;
+    let transitionToken = 0;
+    let animations = [];
+
+    function cancelAnimations() {
+      animations.forEach(animation => {
+        try { animation.cancel(); } catch (error) {}
+      });
+      animations = [];
+      list.classList.remove('is-court-layout-transitioning');
+    }
+
+    function updateToggle() {
+      const nextModeLabel = horizontalMode
+        ? `Switch ${labelPrefix} to vertical layout`
+        : `Switch ${labelPrefix} to horizontal scrolling`;
+      toggle.setAttribute('aria-pressed', String(horizontalMode));
+      toggle.setAttribute('aria-label', nextModeLabel);
+      toggle.title = nextModeLabel;
+    }
+
+    async function setMode(horizontal, animate = true) {
+      const token = ++transitionToken;
+      const isMobile = Boolean(courtLayoutMediaQuery.matches);
+      horizontalMode = isMobile && Boolean(horizontal);
+      updateToggle();
+      cancelAnimations();
+
+      // Both controls are phone-only. Always restore the normal grid outside
+      // the mobile breakpoint, without carrying horizontal state to desktop.
+      if (!isMobile) {
+        list.classList.remove('is-horizontal-scroll');
+        list.scrollLeft = 0;
+        return;
+      }
+
+      const reduceMotion = Boolean(courtLayoutReducedMotion && courtLayoutReducedMotion.matches);
+      const cards = Array.from(list.querySelectorAll('.court-card'));
+      const canAnimate = animate && !reduceMotion && cards.length > 0
+        && typeof list.animate === 'function';
+
+      if (!canAnimate) {
+        list.classList.toggle('is-horizontal-scroll', horizontalMode);
+        if (!horizontalMode) list.scrollLeft = 0;
+        return;
+      }
+
+      const beforeHeight = list.getBoundingClientRect().height;
+      // Do not independently animate court labels/headings. They keep their
+      // normal in-card positioning; only the card visibility and list height
+      // are animated during the layout switch.
+      const fadeOutAnimations = cards.map(card => card.animate([
+        { opacity: 1 },
+        { opacity: 0 }
+      ], {
+        duration: 120,
+        easing: 'cubic-bezier(.4, 0, 1, 1)',
+        fill: 'both'
+      }));
+      animations = fadeOutAnimations;
+
+      // Finish fading before changing display dimensions. This prevents the
+      // court cards from overlapping while the list switches between layouts.
+      await Promise.all(fadeOutAnimations.map(animation => animation.finished.catch(() => null)));
+      if (token !== transitionToken) return;
+
+      fadeOutAnimations.forEach(animation => {
+        try { animation.cancel(); } catch (error) {}
+      });
+      animations = [];
+
+      const currentCards = Array.from(list.querySelectorAll('.court-card'));
+      list.classList.toggle('is-horizontal-scroll', horizontalMode);
+      if (!horizontalMode) list.scrollLeft = 0;
+      const afterHeight = list.getBoundingClientRect().height;
+      const nextAnimations = [];
+
+      if (Math.abs(beforeHeight - afterHeight) > 1) {
+        nextAnimations.push(list.animate([
+          { height: `${beforeHeight}px` },
+          { height: `${afterHeight}px` }
+        ], {
+          duration: 360,
+          easing: 'cubic-bezier(.22, .72, .25, 1)'
+        }));
+      }
+
+      currentCards.forEach((card, index) => {
+        nextAnimations.push(card.animate([
+          { opacity: 0 },
+          { opacity: 1 }
+        ], {
+          duration: 300,
+          delay: Math.min(index * 28, 112),
+          easing: 'cubic-bezier(.22, .72, .25, 1)'
+        }));
+      });
+
+      if (!nextAnimations.length) return;
+      animations = nextAnimations;
+      list.classList.add('is-court-layout-transitioning');
+      await Promise.all(nextAnimations.map(animation => animation.finished.catch(() => null)));
+      if (token !== transitionToken) return;
+
+      animations = [];
+      list.classList.remove('is-court-layout-transitioning');
+    }
+
+    function syncCardCount() {
+      const cardCount = list.querySelectorAll(':scope > .court-card').length;
+      toggle.hidden = cardCount <= 1;
+      // If live updates leave only one card, there is no layout choice to make.
+      // Return that list to the default grid and hide its toggle.
+      if (cardCount <= 1 && horizontalMode) setMode(false, false);
+    }
+
+    function resetForViewport() {
+      // Entering or leaving the phone breakpoint starts from the stable grid.
+      setMode(false, false);
+    }
+
+    updateToggle();
+    setMode(false, false);
+    toggle.addEventListener('click', () => {
+      if (!courtLayoutMediaQuery.matches) return;
+      setMode(!horizontalMode);
+    });
+    return { resetForViewport, syncCardCount };
+  }
+
+  const courtLayoutController = createCourtLayoutController(
+    $('courtLayoutToggle'), $('courtsList'), 'courts'
+  );
+  const waitingCourtLayoutController = createCourtLayoutController(
+    $('waitingCourtLayoutToggle'), $('waitingCourtsList'), 'waiting courts'
+  );
+  function resetCourtLayoutsForViewport() {
+    courtLayoutController?.resetForViewport();
+    waitingCourtLayoutController?.resetForViewport();
+  }
+  if (typeof courtLayoutMediaQuery.addEventListener === 'function') {
+    courtLayoutMediaQuery.addEventListener('change', resetCourtLayoutsForViewport);
+  } else if (typeof courtLayoutMediaQuery.addListener === 'function') {
+    courtLayoutMediaQuery.addListener(resetCourtLayoutsForViewport);
+  }
+
+  const queueCollapseToggle = $('queueCollapseToggle');
+  const queueListViewport = $('queueListViewport');
+
+  function setQueueCollapsed(collapsed) {
+    queueCollapsed = Boolean(collapsed);
+    if (!queueCollapseToggle || !queueListViewport) return;
+
+    const viewport = queueListViewport;
+    const token = ++queueAnimationToken;
+
+    queueCollapseToggle.textContent = queueCollapsed ? '+' : '−';
+    queueCollapseToggle.setAttribute('aria-expanded', String(!queueCollapsed));
+    queueCollapseToggle.setAttribute('aria-label', queueCollapsed ? 'Show waiting queue' : 'Hide waiting queue');
+    queueCollapseToggle.title = queueCollapsed ? 'Show waiting queue' : 'Hide waiting queue';
+    viewport.setAttribute('aria-hidden', String(queueCollapsed));
+    if (queueCollapsed) viewport.setAttribute('inert', '');
+    else viewport.removeAttribute('inert');
+
+    if (queueAnimationTimer !== null) {
+      clearTimeout(queueAnimationTimer);
+      queueAnimationTimer = null;
+    }
+    if (queueTransitionHandler) {
+      viewport.removeEventListener('transitionend', queueTransitionHandler);
+      queueTransitionHandler = null;
+    }
+
+    const finishTransition = () => {
+      if (token !== queueAnimationToken) return;
+      if (queueAnimationTimer !== null) {
+        clearTimeout(queueAnimationTimer);
+        queueAnimationTimer = null;
+      }
+      if (queueTransitionHandler) {
+        viewport.removeEventListener('transitionend', queueTransitionHandler);
+        queueTransitionHandler = null;
+      }
+
+      if (queueCollapsed) {
+        viewport.hidden = true;
+        viewport.style.height = '0px';
+        viewport.style.opacity = '0';
+      } else {
+        viewport.hidden = false;
+        viewport.style.height = 'auto';
+        viewport.style.opacity = '1';
+      }
+    };
+
+    // If already in the requested stable state, only synchronize its visibility.
+    const isHidden = viewport.hidden;
+    if ((queueCollapsed && isHidden) || (!queueCollapsed && !isHidden && viewport.style.height === 'auto')) {
+      viewport.hidden = queueCollapsed;
+      viewport.style.height = queueCollapsed ? '0px' : 'auto';
+      viewport.style.opacity = queueCollapsed ? '0' : '1';
+      return;
+    }
+
+    viewport.style.overflow = 'hidden';
+    if (queueCollapsed) {
+      // Start from the currently rendered height so rapid toggles remain smooth.
+      viewport.hidden = false;
+      viewport.style.height = `${viewport.getBoundingClientRect().height}px`;
+      viewport.style.opacity = '1';
+      void viewport.offsetHeight;
+      queueTransitionHandler = event => {
+        if (event.target === viewport && event.propertyName === 'height') finishTransition();
+      };
+      viewport.addEventListener('transitionend', queueTransitionHandler);
+      requestAnimationFrame(() => {
+        if (token !== queueAnimationToken) return;
+        viewport.style.height = '0px';
+        viewport.style.opacity = '0';
+      });
+    } else {
+      // Unhide at zero height, then animate to the measured content height.
+      viewport.hidden = false;
+      viewport.style.height = '0px';
+      viewport.style.opacity = '0';
+      void viewport.offsetHeight;
+      queueTransitionHandler = event => {
+        if (event.target === viewport && event.propertyName === 'height') finishTransition();
+      };
+      viewport.addEventListener('transitionend', queueTransitionHandler);
+      requestAnimationFrame(() => {
+        if (token !== queueAnimationToken) return;
+        viewport.style.height = `${viewport.scrollHeight}px`;
+        viewport.style.opacity = '1';
+      });
+    }
+
+    // A fallback covers browsers that skip transitionend (e.g. when styles change mid-transition).
+    queueAnimationTimer = setTimeout(finishTransition, 500);
+  }
+
+  if (queueCollapseToggle && queueListViewport) {
+    queueCollapseToggle.addEventListener('click', () => setQueueCollapsed(!queueCollapsed));
+  }
+
   const sessionTitleToggle = $('sessionTitleToggle');
   const sessionTitleSlide = $('sessionTitleSlide');
   if (sessionTitleToggle && sessionTitleSlide) {

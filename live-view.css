@@ -660,14 +660,18 @@ html body .page-footer::after {
   box-shadow: none !important;
 }
 
-/* Match the Live View footer layout to Registration: centered, stacked, and borderless. */
-html body .page-footer {
+/* Keep the footer in the normal document flow inside the Live Page scroll area.
+   It must move with page scrolling and follow the queue's expanded/collapsed height. */
+html body .live-content-scroll > .page-footer {
+  position: static !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 6px !important;
+  box-sizing: border-box !important;
   width: 100% !important;
+  max-width: 100% !important;
   margin: 24px auto 0 !important;
   padding: 0 !important;
   border: 0 !important;
@@ -1405,8 +1409,7 @@ html body .live-page-pinned .event-heading .eyebrow {
     padding: 0 0 22px;
   }
 
-  .live-content-scroll > .live-tab-panel,
-  .live-content-scroll > .page-footer {
+  .live-content-scroll > .live-tab-panel {
     box-sizing: border-box;
     width: min(
       1272px,
@@ -1499,4 +1502,988 @@ html body .live-page-pinned .event-heading .session-title-slide.is-collapsed #se
   html body .live-page-pinned .event-heading #sessionTitle {
     transition: none;
   }
+}
+
+
+/* Court section heading: compact ON COURT label with a live-match count. */
+html body .section-card.court-section .section-heading.court-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 12px;
+  margin: 0 0 16px;
+}
+html body .section-card.court-section .section-heading.court-section-heading h2 {
+  display: block;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  color: #8a9b98;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 12px;
+  letter-spacing: 1.55px;
+  white-space: nowrap;
+}
+html body .section-card.court-section .section-heading.court-section-heading .court-live-count {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #9aa9a7;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 12px;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+html[data-theme="light"] body .section-card.court-section .section-heading.court-section-heading h2 {
+  color: #6f7f7b;
+}
+html[data-theme="light"] body .section-card.court-section .section-heading.court-section-heading .court-live-count {
+  color: #778783;
+}
+
+/* Empty court placeholder: compact message only, with no diagram or guide line. */
+.court-diagram-empty-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: none;
+  min-height: 36px;
+  aspect-ratio: auto;
+  flex: 0 0 auto;
+  align-self: center;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  color: #87968e;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.4;
+  letter-spacing: .2px;
+  text-align: center;
+}
+html[data-theme="light"] body #courtsList .court-diagram-empty-message,
+html[data-theme="light"] body #waitingCourtsList .court-diagram-empty-message {
+  color: #82948f;
+}
+
+/* Slow, visible pulse and a soft expanding ring for every Live View status dot. */
+.court-visual-status.is-playing i,
+.court-visual-status.is-ready i,
+.court-visual-status.is-up-next i {
+  position: relative;
+  transform-origin: center;
+  will-change: transform, opacity;
+  animation: courtStatusDotPulse 2.25s ease-in-out infinite !important;
+}
+.court-visual-status.is-playing i::after,
+.court-visual-status.is-ready i::after,
+.court-visual-status.is-up-next i::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(.55);
+  transform-origin: center;
+  animation: courtStatusDotRing 2.25s cubic-bezier(.16, .55, .35, 1) infinite !important;
+  pointer-events: none;
+}
+@keyframes courtStatusDotPulse {
+  0%, 100% { transform: scale(1); opacity: .92; filter: brightness(1); }
+  50% { transform: scale(1.28); opacity: 1; filter: brightness(1.18); }
+}
+@keyframes courtStatusDotRing {
+  0% { transform: scale(.55); opacity: .48; }
+  72%, 100% { transform: scale(1.75); opacity: 0; }
+}
+
+/* Waiting Court heading follows the compact court-section heading style. */
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 12px;
+  margin: 0 0 16px;
+}
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 12px;
+  margin: 0;
+  padding: 0;
+  color: #8a9b98;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 12px;
+  letter-spacing: 1.55px;
+  white-space: nowrap;
+}
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-live-count {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #9aa9a7;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 12px;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.waiting-courts-heading-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 11px;
+  width: 11px;
+  height: 11px;
+  border: 1px solid #98b72b;
+  border-radius: 50%;
+}
+.waiting-courts-heading-icon svg {
+  display: block;
+  width: 7px;
+  height: 7px;
+  color: #98b72b;
+}
+.waiting-courts-heading-icon svg path {
+  stroke: currentColor;
+}
+html[data-theme="light"] body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading h2 {
+  color: #6f7f7b;
+}
+html[data-theme="light"] body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-live-count {
+  color: #778783;
+}
+html[data-theme="light"] .waiting-courts-heading-icon {
+  border-color: #6f8918;
+}
+html[data-theme="light"] .waiting-courts-heading-icon svg {
+  color: #6f8918;
+}
+@media (max-width: 560px) {
+  html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading {
+    gap: 8px;
+    margin-bottom: 13px;
+  }
+  html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading h2 {
+    font-size: 9px;
+    letter-spacing: 1.35px;
+  }
+  html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-live-count {
+    font-size: 8px;
+  }
+}
+/* These Live View status/court animations remain active because they are explicitly requested. */
+
+
+/* FINAL STATUS PULSE OVERRIDE — keep each 5px Live View dot visibly animated. */
+html body #courtsList .court-visual-status.is-playing i,
+html body #courtsList .court-visual-status.is-ready i,
+html body #courtsList .court-visual-status.is-up-next i,
+html body #waitingCourtsList .court-visual-status.is-playing i,
+html body #waitingCourtsList .court-visual-status.is-ready i,
+html body #waitingCourtsList .court-visual-status.is-up-next i {
+  animation: courtStatusDotPulse 2.25s ease-in-out infinite !important;
+}
+html body #courtsList .court-visual-status.is-playing i::after,
+html body #courtsList .court-visual-status.is-ready i::after,
+html body #courtsList .court-visual-status.is-up-next i::after,
+html body #waitingCourtsList .court-visual-status.is-playing i::after,
+html body #waitingCourtsList .court-visual-status.is-ready i::after,
+html body #waitingCourtsList .court-visual-status.is-up-next i::after {
+  animation: courtStatusDotRing 2.25s cubic-bezier(.16, .55, .35, 1) infinite !important;
+}
+/* Status-dot animation only; court diagrams remain static. */
+html body #courtsList .court-visual-status i,
+html body #waitingCourtsList .court-visual-status i {
+  display: inline-block !important;
+  position: relative !important;
+  flex: 0 0 7px !important;
+  width: 7px !important;
+  height: 7px !important;
+  min-width: 7px !important;
+  min-height: 7px !important;
+  border-radius: 50% !important;
+  transform-origin: center !important;
+  will-change: transform, opacity, filter;
+  animation: courtStatusDotPulse 2.8s ease-in-out infinite !important;
+  animation-delay: var(--status-animation-delay, 0s) !important;
+}
+html body #courtsList .court-visual-status i::after,
+html body #waitingCourtsList .court-visual-status i::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -2px !important;
+  display: block !important;
+  border: 1px solid currentColor !important;
+  border-radius: 50% !important;
+  opacity: 0;
+  transform: scale(.55);
+  transform-origin: center;
+  pointer-events: none;
+  animation: courtStatusDotRing 2.8s cubic-bezier(.16, .55, .35, 1) infinite !important;
+  animation-delay: var(--status-animation-delay, 0s) !important;
+}
+@keyframes courtStatusDotPulse {
+  0%, 100% { transform: translateY(0) scale(1); opacity: .9; filter: brightness(1); }
+  45% { transform: translateY(-1px) scale(1.1); opacity: 1; filter: brightness(1.06); }
+  62% { transform: translateY(0) scale(1.02); opacity: .96; filter: brightness(1.02); }
+}
+@keyframes courtStatusDotRing {
+  0% { transform: scale(.7); opacity: .28; }
+  70%, 100% { transform: scale(1.32); opacity: 0; }
+}
+
+
+/* Compact empty-state spacing: remove excess vertical space around the message only. */
+html body .court-card.court-visual-card.is-empty-court .court-visual-header {
+  margin-bottom: 9px;
+}
+html body .court-card.court-visual-card.is-empty-court .court-diagram-empty-message {
+  min-height: 34px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+html body .court-card.court-visual-card.is-empty-court .court-team-footer {
+  margin-top: 8px;
+}
+
+/* Queue heading follows the supplied compact QUEUE · N WAITING reference. */
+html body .section-card.queue-section .section-heading.queue-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 12px;
+  margin: 0 0 13px;
+}
+html body .section-card.queue-section .section-heading.queue-section-heading h2 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 5px;
+  min-width: 0;
+  min-height: 12px;
+  margin: 0;
+  padding: 0;
+  color: #8a9b98;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 12px;
+  letter-spacing: 1.45px;
+  white-space: nowrap;
+}
+.queue-heading-label,
+.queue-heading-separator,
+.queue-waiting-count {
+  display: inline-block;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  white-space: nowrap;
+}
+.queue-heading-separator { color: #6f817d; }
+.queue-waiting-count { color: #9aa9a7; font-size: 8px; font-weight: 750; letter-spacing: .75px; }
+.queue-heading-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  gap: 8px;
+  margin-left: auto;
+  color: #8c9995;
+}
+.queue-waiting-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 12px;
+  color: #899691;
+  opacity: .9;
+}
+.queue-waiting-icon svg { display: block; width: 10px; height: 12px; }
+.queue-collapse-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: #9aa7a2;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 10px;
+  text-align: center;
+  cursor: pointer;
+}
+.queue-collapse-toggle:hover { color: #d8e2dd; }
+.queue-collapse-toggle:focus-visible { outline: 1px solid #98b72b; outline-offset: 2px; }
+.queue-list-viewport {
+  height: auto;
+  opacity: 1;
+  overflow: hidden;
+  transition: height 300ms cubic-bezier(.2, .7, .2, 1), opacity 220ms ease;
+  will-change: height, opacity;
+}
+.queue-list-viewport > .queue-list { min-height: 0; }
+html[data-theme="light"] body .section-card.queue-section .section-heading.queue-section-heading h2 { color: #6f7f7b; }
+html[data-theme="light"] .queue-waiting-count { color: #778783; }
+html[data-theme="light"] .queue-heading-separator { color: #9aa7a2; }
+html[data-theme="light"] .queue-heading-actions,
+html[data-theme="light"] .queue-collapse-toggle,
+html[data-theme="light"] .queue-waiting-icon { color: #778783; }
+@media (max-width: 560px) {
+  html body .section-card.queue-section .section-heading.queue-section-heading { gap: 7px; margin-bottom: 11px; }
+  html body .section-card.queue-section .section-heading.queue-section-heading h2 { gap: 4px; font-size: 9px; letter-spacing: 1.15px; }
+  .queue-waiting-count { font-size: 8px; letter-spacing: .45px; }
+  .queue-heading-actions { gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .queue-list-viewport { transition: none; }
+}
+
+
+/* FINAL INTERACTION + RESPONSIVE FIXES (Live View v6). */
+/* Use an actual inline SVG arrow inside the outlined circle, across all browsers. */
+html body .waiting-courts-heading-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  box-sizing: border-box !important;
+  border: 1.4px solid #98b72b !important;
+  border-radius: 50% !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+html body .waiting-courts-heading-icon svg {
+  display: block !important;
+  width: 9px !important;
+  height: 9px !important;
+  flex: 0 0 9px !important;
+  overflow: visible !important;
+  color: #98b72b !important;
+}
+html body .waiting-courts-heading-icon svg path { stroke: currentColor !important; }
+html[data-theme="light"] body .waiting-courts-heading-icon { border-color: #6f8918 !important; }
+html[data-theme="light"] body .waiting-courts-heading-icon svg { color: #6f8918 !important; }
+
+/* The empty-court message is intentionally light-weight and compact. */
+html body #courtsList .court-diagram-empty-message,
+html body #waitingCourtsList .court-diagram-empty-message {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 5px 8px !important;
+  font-size: clamp(11px, 1.15vw, 12px) !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* Height is set by JS to the measured target; keep a real CSS transition and
+   use a shorter (not disabled) motion duration for reduced-motion devices. */
+html body #queueListViewport.queue-list-viewport {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: auto;
+  max-height: none !important;
+  overflow: hidden !important;
+  opacity: 1;
+  transition: height 360ms cubic-bezier(.22, .72, .25, 1), opacity 250ms ease !important;
+  will-change: height, opacity;
+  contain: layout style;
+}
+html body #queueListViewport.queue-list-viewport > #queueList {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+html body .section-card.queue-section,
+html body .section-card.waiting-courts-section,
+html body .section-card.court-section,
+html body .support-grid,
+html body .courts-grid,
+html body .queue-item,
+html body .queue-player-wrap,
+html body .queue-player-line {
+  min-width: 0;
+  max-width: 100%;
+}
+html body .section-card.queue-section .section-heading.queue-section-heading h2 {
+  min-width: 0;
+  max-width: calc(100% - 32px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html body .queue-heading-actions { flex-shrink: 0; }
+html body .queue-collapse-toggle {
+  position: relative;
+  z-index: 1;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+@media (max-width: 900px) {
+  html body .support-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  html body .support-grid:has(.waiting-courts-section[hidden]) { grid-template-columns: minmax(0, 1fr); }
+  html body .section-card { min-width: 0; }
+}
+@media (max-width: 560px) {
+  html body .live-page-pinned { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+  html body .page-shell.live-content-scroll { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+  html body .section-card.queue-section { padding: 12px; }
+  html body .section-card.queue-section .section-heading.queue-section-heading { gap: 6px; }
+  html body .section-card.queue-section .section-heading.queue-section-heading h2 {
+    max-width: calc(100% - 28px);
+    gap: 4px;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  html body .queue-heading-actions { gap: 5px; }
+  html body #queueListViewport.queue-list-viewport {
+    transition-duration: 320ms, 230ms !important;
+  }
+  html body .queue-item { gap: 7px; padding: 9px 8px; }
+  html body .queue-waiting-time { flex-shrink: 0; font-size: 9px; }
+  html body .court-card.court-visual-card { min-width: 0; }
+}
+@media (max-width: 380px) {
+  html body .brand { gap: 6px; }
+  html body .brand img { width: 29px; height: 29px; }
+  html body .brand-words b { font-size: 10px; }
+  html body .brand-words small { letter-spacing: 2.2px; }
+  html body .section-card.queue-section .section-heading.queue-section-heading h2 {
+    gap: 3px;
+    font-size: 8px;
+    letter-spacing: .7px;
+  }
+  html body .queue-waiting-count { font-size: 7.5px; letter-spacing: .25px; }
+  html body .queue-collapse-toggle { flex-basis: 14px; width: 14px; min-width: 14px; min-height: 18px; }
+  html body .queue-waiting-icon { width: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body #queueListViewport.queue-list-viewport {
+    transition-duration: 180ms, 140ms !important;
+  }
+}
+
+/* QUEUE COLLAPSE + LIVE FOOTER ALIGNMENT FIX (2026-10-21). */
+/* Keep the collapsed queue card snug around its heading rather than leaving
+   an unnecessary gap where the player list used to be. */
+html body .section-card.queue-section:has(#queueListViewport[hidden]) .section-heading.queue-section-heading {
+  margin-bottom: 0 !important;
+}
+
+/* Prevent browser scroll anchoring from fighting the intentional height
+   transition when the queue opens/closes and making the footer appear to jump. */
+html body .page-shell.live-content-scroll,
+html body .section-card.queue-section,
+html body #queueListViewport.queue-list-viewport {
+  overflow-anchor: none;
+}
+
+/* Let the footer use the same scroll viewport and alignment frame as the tab content. */
+@media (min-width: 901px) {
+  html body .live-content-scroll > .page-footer {
+    box-sizing: border-box !important;
+    width: min(
+      1272px,
+      calc(
+        100vw
+        - clamp(14px, 4vw, 54px)
+        - clamp(14px, 4vw, 54px)
+        - max(0px, (100vw - 1380px))
+      )
+    ) !important;
+    max-width: none !important;
+    margin: 24px 0 0 calc(
+      clamp(14px, 4vw, 54px)
+      + max(0px, (100vw - 1380px) / 2)
+    ) !important;
+  }
+}
+@media (max-width: 900px) {
+  html body .live-content-scroll > .page-footer {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    margin: 22px 0 0 !important;
+  }
+}
+
+/* Keep the queue collapse control steady and honor native hidden state. */
+html body .section-card.queue-section .queue-collapse-toggle {
+  flex: 0 0 16px !important;
+  width: 16px !important;
+  min-width: 16px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  line-height: 16px !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+html body #queueListViewport.queue-list-viewport[hidden] {
+  display: none !important;
+}
+
+
+/* SESSION HEADING BADGE — compact green LIVE pill with animated status dot,
+   followed by the current match type. This only restyles the session toggle. */
+html body .live-page-pinned .event-heading #sessionTitleToggle.session-title-toggle-row {
+  gap: 8px;
+  letter-spacing: normal;
+}
+html body .live-page-pinned .event-heading #sessionTitleToggle .session-live-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 20px;
+  padding: 3px 9px 3px 8px;
+  border: 1px solid rgba(127, 190, 68, .52);
+  border-radius: 999px;
+  background: rgba(82, 132, 46, .18);
+  color: #b5e873;
+  white-space: nowrap;
+}
+html body .live-page-pinned .event-heading #sessionTitleToggle .live-pulse {
+  position: relative;
+  display: inline-block;
+  width: 5px !important;
+  height: 5px !important;
+  min-width: 5px !important;
+  min-height: 5px !important;
+  max-width: 5px !important;
+  max-height: 5px !important;
+  flex: 0 0 5px !important;
+  border-radius: 50%;
+  background: #8bd34f;
+  box-shadow: none !important;
+  animation: sessionLiveDotBlink 1.35s ease-in-out infinite !important;
+  animation-play-state: running !important;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+html body .live-page-pinned .event-heading #sessionTitleToggle .live-pulse::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border: 1px solid rgba(139, 211, 79, .8);
+  border-radius: 50%;
+  animation: sessionLiveDotRing 1.35s ease-out infinite !important;
+  animation-play-state: running !important;
+  transform-origin: center;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+html body .live-page-pinned .event-heading #sessionTitleToggle .session-title-toggle-label {
+  color: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1.25px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+html body .live-page-pinned .event-heading #sessionTitleToggle .session-match-type {
+  display: inline-block;
+  color: #c4d4d6;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+html body .live-page-pinned .event-heading #sessionTitleToggle .session-heading-separator {
+  display: inline-block;
+  flex: 0 0 auto;
+  color: #70979b;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+html body .live-page-pinned .event-heading #sessionTitleToggle .event-stat-text {
+  display: inline-block;
+  flex: 0 0 auto;
+  color: #8eafb2;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+html[data-theme="light"] body .live-page-pinned .event-heading #sessionTitleToggle .session-heading-separator {
+  color: #7e999e;
+}
+html[data-theme="light"] body .live-page-pinned .event-heading #sessionTitleToggle .event-stat-text {
+  color: #58777c;
+}
+html body .live-page-pinned .event-heading #sessionTitleToggle:hover .session-live-badge {
+  border-color: rgba(139, 211, 79, .75);
+  background: rgba(82, 132, 46, .25);
+}
+@keyframes sessionLiveDotBlink {
+  0%, 100% { opacity: 1; transform: scale(1); filter: brightness(1); }
+  50% { opacity: .62; transform: scale(1.4); filter: brightness(1.25); }
+}
+@keyframes sessionLiveDotRing {
+  0% { opacity: .72; transform: scale(.45); }
+  78%, 100% { opacity: 0; transform: scale(2.15); }
+}
+/* The user-facing Live status dot is intentionally animated even when the
+   operating system requests reduced motion. Keep this small, localized pulse
+   visible while all unrelated motion preferences remain unchanged. */
+
+/* COURT STATUS DOTS — match the session LIVE badge dot exactly.
+   Keep each status color and court behavior unchanged; only normalize size and motion. */
+html body #courtsList .court-visual-status i,
+html body #waitingCourtsList .court-visual-status i {
+  display: inline-block !important;
+  position: relative !important;
+  flex: 0 0 5px !important;
+  width: 5px !important;
+  height: 5px !important;
+  min-width: 5px !important;
+  min-height: 5px !important;
+  max-width: 5px !important;
+  max-height: 5px !important;
+  border-radius: 50% !important;
+  transform-origin: center !important;
+  will-change: transform, opacity, filter;
+  animation: sessionLiveDotBlink 1.35s ease-in-out infinite !important;
+  animation-delay: 0s !important;
+  animation-play-state: running !important;
+}
+html body #courtsList .court-visual-status i::after,
+html body #waitingCourtsList .court-visual-status i::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -3px !important;
+  display: block !important;
+  border: 1px solid currentColor !important;
+  border-radius: 50% !important;
+  opacity: 0;
+  transform: scale(.45);
+  transform-origin: center;
+  will-change: transform, opacity;
+  pointer-events: none;
+  animation: sessionLiveDotRing 1.35s ease-out infinite !important;
+  animation-delay: 0s !important;
+  animation-play-state: running !important;
+}
+
+/* FINAL RESPONSIVE DOT ALIGNMENT — keep status dots geometrically centered in every badge.
+   This is layout-only: dot size, colors, pulse timing, and status behavior remain unchanged. */
+html body .live-page-pinned .event-heading #sessionTitleToggle .session-live-badge,
+html body #courtsList .court-visual-status,
+html body #waitingCourtsList .court-visual-status,
+html body .court-card .court-state.ready,
+html body .court-card .court-state.playing,
+html body .court-card .court-state.up-next {
+  align-items: center !important;
+  align-content: center !important;
+  vertical-align: middle !important;
+}
+html body #courtsList .court-visual-status,
+html body #waitingCourtsList .court-visual-status {
+  display: inline-flex !important;
+  line-height: 1 !important;
+}
+html body .live-page-pinned .event-heading #sessionTitleToggle .live-pulse,
+html body #courtsList .court-visual-status i,
+html body #waitingCourtsList .court-visual-status i {
+  align-self: center !important;
+  margin-block: 0 !important;
+  padding: 0 !important;
+  top: 0 !important;
+  vertical-align: middle !important;
+  transform-origin: 50% 50% !important;
+  transform-box: border-box !important;
+}
+html body #courtsList .court-visual-status i::after,
+html body #waitingCourtsList .court-visual-status i::after,
+html body .live-page-pinned .event-heading #sessionTitleToggle .live-pulse::after {
+  transform-origin: 50% 50% !important;
+  box-sizing: border-box !important;
+}
+
+
+/* Mobile-only side-scroll layout toggles for ON COURT and NEXT UP. */
+html body .section-card.court-section .section-heading.court-section-heading .court-section-heading-main,
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .waiting-court-section-heading-main {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle,
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle {
+  display: none !important;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 25px;
+  width: 25px;
+  min-width: 25px;
+  height: 23px;
+  min-height: 23px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #28545b;
+  border-radius: 6px;
+  background: transparent;
+  color: #8ca9a9;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .16s ease, border-color .16s ease, background-color .16s ease;
+}
+html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle:hover,
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle:hover {
+  color: var(--teal);
+  border-color: #34747a;
+  background: rgba(39, 211, 197, .06);
+}
+html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle:focus-visible,
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+html body .section-card.court-section .section-heading.court-section-heading .court-layout-icon,
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-icon {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(1);
+  transition: opacity .18s ease, transform .24s cubic-bezier(.22, .72, .25, 1);
+}
+/* Image 1 is side-slide; image 2 is vertical. */
+html body .section-card.court-section .section-heading.court-section-heading .court-layout-icon-horizontal,
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-icon-horizontal {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.82) rotate(12deg);
+}
+html body .section-card.court-section .section-heading.court-section-heading .court-layout-icon-vertical,
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-icon-vertical {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1) rotate(0deg);
+}
+html body #courtsList.courts-grid.is-horizontal-scroll,
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll {
+  display: flex !important;
+  flex-flow: row nowrap !important;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  scroll-snap-type: x mandatory;
+  /* Keep the first court's top-left edge fixed between grid and swipe mode. */
+  scroll-padding-inline: 0;
+  padding: 0 !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  scrollbar-color: transparent transparent !important;
+}
+html body #courtsList.courts-grid.is-horizontal-scroll::-webkit-scrollbar,
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+html body #courtsList.courts-grid.is-horizontal-scroll > .court-card,
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card {
+  flex: 0 0 88%;
+  width: 88%;
+  min-width: 0;
+  max-width: none;
+  scroll-snap-align: start;
+}
+html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle[aria-pressed="true"] .court-layout-icon-horizontal,
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle[aria-pressed="true"] .court-layout-icon-horizontal {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1) rotate(0deg);
+}
+html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle[aria-pressed="true"] .court-layout-icon-vertical,
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle[aria-pressed="true"] .court-layout-icon-vertical {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.82) rotate(-12deg);
+}
+html body #courtsList.courts-grid.is-horizontal-scroll > .empty-state,
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .empty-state {
+  flex: 0 0 100%;
+  width: 100%;
+}
+html[data-theme="light"] body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle,
+html[data-theme="light"] body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle {
+  border-color: #d5e3e5;
+  color: #6e8585;
+}
+html[data-theme="light"] body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle:hover,
+html[data-theme="light"] body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle:hover {
+  border-color: #80c7c3;
+  color: #087f80;
+  background: rgba(8, 127, 128, .06);
+}
+@media (max-width: 560px) {
+  html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle:not([hidden]),
+  html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle:not([hidden]) {
+    display: inline-flex !important;
+  }
+  html body #courtsList.courts-grid.is-horizontal-scroll > .court-card,
+  html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card {
+    flex-basis: 88%;
+    width: 88%;
+    max-width: none;
+  }
+}
+/* Both lists remain transparent; each court card keeps its geometry but no edge/shadow color. */
+html body #courtsList.courts-grid,
+html body #courtsList.courts-grid.is-horizontal-scroll,
+html body #waitingCourtsList.courts-grid,
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll {
+  border: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  outline: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  filter: none !important;
+}
+html body #courtsList.courts-grid::before,
+html body #courtsList.courts-grid::after,
+html body #waitingCourtsList.courts-grid::before,
+html body #waitingCourtsList.courts-grid::after {
+  content: none !important;
+  display: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html body #courtsList > .court-card.court-visual-card,
+html body #courtsList > .court-card.court-visual-card.playing,
+html body #waitingCourtsList > .court-card.court-visual-card,
+html body #waitingCourtsList > .court-card.court-visual-card.playing {
+  border: 1px solid transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+html[data-theme="light"] body #courtsList > .court-card.court-visual-card,
+html[data-theme="light"] body #courtsList > .court-card.court-visual-card.playing,
+html[data-theme="light"] body #waitingCourtsList > .court-card.court-visual-card,
+html[data-theme="light"] body #waitingCourtsList > .court-card.court-visual-card.playing {
+  border: 1px solid transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+html body #courtsList.courts-grid.is-court-layout-transitioning,
+html body #waitingCourtsList.courts-grid.is-court-layout-transitioning {
+  will-change: height;
+}
+html body #courtsList.courts-grid.is-court-layout-transitioning > .court-card,
+html body #waitingCourtsList.courts-grid.is-court-layout-transitioning > .court-card {
+  will-change: opacity;
+  transform: none !important;
+}
+/* Court internals stay in their own default in-card positions during grid changes. */
+html body #courtsList.courts-grid.is-court-layout-transitioning > .court-card .court-visual-heading,
+html body #courtsList.courts-grid.is-court-layout-transitioning > .court-card .court-visual-name,
+html body #courtsList.courts-grid.is-court-layout-transitioning > .court-card .court-team-label,
+html body #courtsList.courts-grid.is-court-layout-transitioning > .court-card .court-team-left,
+html body #waitingCourtsList.courts-grid.is-court-layout-transitioning > .court-card .court-visual-heading,
+html body #waitingCourtsList.courts-grid.is-court-layout-transitioning > .court-card .court-visual-name,
+html body #waitingCourtsList.courts-grid.is-court-layout-transitioning > .court-card .court-team-label,
+html body #waitingCourtsList.courts-grid.is-court-layout-transitioning > .court-card .court-team-left {
+  will-change: auto !important;
+  animation: none !important;
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle,
+  html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle {
+    transition-duration: .12s !important;
+  }
+  html body .section-card.court-section .section-heading.court-section-heading .court-layout-icon,
+  html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-icon {
+    transition-duration: .14s !important;
+  }
+}
+
+/* The layout toggles belong only beside the section headings, never inside a court card. */
+html body #courtsList .court-layout-toggle,
+html body #waitingCourtsList .court-layout-toggle,
+html body #courtsList .court-card .court-layout-toggle,
+html body #waitingCourtsList .court-card .court-layout-toggle {
+  display: none !important;
+}
+html body .section-card.court-section > .section-heading.court-section-heading > .court-section-heading-main > #courtLayoutToggle,
+html body .section-card.waiting-courts-section > .section-heading.waiting-court-section-heading > .waiting-court-section-heading-main > #waitingCourtLayoutToggle {
+  display: none !important;
+}
+@media (max-width: 560px) {
+  html body .section-card.court-section > .section-heading.court-section-heading > .court-section-heading-main > #courtLayoutToggle:not([hidden]),
+  html body .section-card.waiting-courts-section > .section-heading.waiting-court-section-heading > .waiting-court-section-heading-main > #waitingCourtLayoutToggle:not([hidden]) {
+    display: inline-flex !important;
+  }
+}
+html body #courtLayoutToggle[hidden],
+html body #waitingCourtLayoutToggle[hidden] {
+  display: none !important;
+}
+
+/* Keep the first card anchored at the same origin in both layouts. */
+html body #courtsList.courts-grid.is-horizontal-scroll > .court-card:first-child,
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card:first-child {
+  margin-inline-start: 0 !important;
+  scroll-margin-inline-start: 0 !important;
 }

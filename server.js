@@ -105,10 +105,12 @@ function buildLiveQueueSnapshot(appState, updatedAt = new Date().toISOString()) 
     playerCount: roster.length,
     queue,
     courts: Array.isArray(previous.courts) ? previous.courts : [],
-    activeCourtCount: Number(previous.activeCourtCount) || 0,
-    readyCourtCount: Number(previous.readyCourtCount) || 0,
-    courtCount: Number(previous.courtCount) || 0,
-    waitingCourtCount: Number(previous.waitingCourtCount) || 0,
+    // Always compute counters from the court list. Cached counters can lag
+    // behind when this snapshot is refreshed by the registration endpoint.
+    activeCourtCount: (Array.isArray(previous.courts) ? previous.courts : []).filter(c => c && !c.waitingOnly && !!c.playing).length,
+    readyCourtCount: (Array.isArray(previous.courts) ? previous.courts : []).filter(c => c && !c.waitingOnly && !c.playing).length,
+    courtCount: (Array.isArray(previous.courts) ? previous.courts : []).filter(c => c && !c.waitingOnly).length,
+    waitingCourtCount: (Array.isArray(previous.courts) ? previous.courts : []).filter(c => c && c.waitingOnly).length,
     matchCount: Array.isArray(appState?.logs) ? appState.logs.length : Number(previous.matchCount) || 0,
     ranking: Array.isArray(previous.ranking) ? previous.ranking : [],
     eventRules: previous.eventRules || appState?.eventRules || {target:11,winBy:1,type:'Doubles'},
@@ -355,6 +357,14 @@ async function handle(req, res) {
         eventRules:{target:Math.max(1,Number(body.eventRules?.target)||11),winBy:Math.max(1,Number(body.eventRules?.winBy)||1),type:String(body.eventRules?.type||'Doubles').slice(0,30)},
         recentMatches:Array.isArray(body.recentMatches)?body.recentMatches.slice(0,12).map(m=>({id:m?.id,court:String(m?.court||'Court').slice(0,100),winner:String(m?.winner||'').slice(0,300),loser:String(m?.loser||'').slice(0,300),score:String(m?.score||'').slice(0,30),endedAt:m?.endedAt||null,duration:String(m?.duration||'').slice(0,40)})):[]
       };
+      // Treat the normalized court list as the source of truth for court counters;
+      // never trust a separately published count that may be stale.
+      const regularCourts = snapshot.courts.filter(c => !c.waitingOnly);
+      snapshot.activeCourtCount = regularCourts.filter(c => c.playing).length;
+      snapshot.readyCourtCount = regularCourts.filter(c => !c.playing).length;
+      snapshot.courtCount = regularCourts.length;
+      snapshot.waitingCourtCount = snapshot.courts.filter(c => c.waitingOnly).length;
+
       // A lightweight publisher heartbeat keeps hosted free-tier services awake.
       // Avoid disk writes and viewer broadcasts when only updatedAt has changed.
       if (latestState) {

@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="live-view.css?v=session-title-eyebrow-click-20261021-2">
+  <link rel="stylesheet" href="live-view.css?v=court-layout-mobile-safe-20261021-25">
 </head>
 <body>
   <header class="live-header">
@@ -23,7 +23,7 @@
   <div class="live-page-layout">
     <div class="live-page-pinned">
       <section class="event-heading">
-        <button id="sessionTitleToggle" class="eyebrow session-title-toggle-row" type="button" aria-controls="sessionTitle" aria-expanded="true" aria-label="Hide session title" title="Hide session title"><span class="live-pulse" aria-hidden="true"></span><span class="session-title-toggle-label">PUBLIC LIVE VIEW</span></button>
+        <button id="sessionTitleToggle" class="eyebrow session-title-toggle-row" type="button" aria-controls="sessionTitle" aria-expanded="true" aria-label="Hide session title" title="Hide session title"><span class="session-live-badge"><span class="live-pulse" aria-hidden="true"></span><span class="session-title-toggle-label">Live</span></span><span class="session-heading-separator" aria-hidden="true">·</span><span id="sessionMatchType" class="session-match-type">Doubles</span><span class="session-heading-separator" aria-hidden="true">·</span><span id="sessionPlayerCount" class="event-stat-text">0 players</span><span class="session-heading-separator" aria-hidden="true">·</span><span id="sessionCourtCount" class="event-stat-text">0 courts</span></button>
         <div id="sessionTitleSlide" class="session-title-slide"><h1 id="sessionTitle">Pickle Point Match</h1></div>
       </section>
       <nav class="live-tabs" role="tablist" aria-label="Live view sections">
@@ -46,19 +46,47 @@
 
       <div class="content-grid">
         <section class="section-card court-section">
-          <div class="section-heading"><div><h2>🏟️ Court <span id="courtSectionCount" class="panel-count">(0)</span></h2></div></div>
+          <div class="section-heading court-section-heading">
+            <div class="court-section-heading-main">
+              <h2>ON COURT</h2>
+              <button id="courtLayoutToggle" class="court-layout-toggle" type="button" hidden aria-controls="courtsList" aria-pressed="false" aria-label="Switch courts to horizontal scrolling" title="Switch courts to horizontal scrolling">
+                <svg class="court-layout-icon court-layout-icon-horizontal" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.5" y="4" width="13" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 7.2h9M5.5 10h9M5.5 12.8h9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <svg class="court-layout-icon court-layout-icon-vertical" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.6" y="5" width="5.4" height="10" rx="1.1" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="11" y="5" width="5.4" height="10" rx="1.1" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+              </button>
+            </div>
+            <span id="courtSectionCount" class="court-live-count">0 live</span>
+          </div>
           <div id="courtsList" class="courts-grid"><div class="empty-state">Waiting for court information…</div></div>
         </section>
       </div>
 
       <div class="support-grid">
         <aside class="section-card queue-section">
-          <div class="section-heading"><div><h2>📋 Waiting Queue <span id="queueSectionCount" class="panel-count">(0)</span></h2></div></div>
-          <div id="queueList" class="queue-list"><div class="empty-state">No players in the queue.</div></div>
+          <div class="section-heading queue-section-heading">
+            <h2><span class="queue-heading-label">QUEUE</span><span class="queue-heading-separator" aria-hidden="true">·</span><span id="queueSectionCount" class="queue-waiting-count">0 WAITING</span></h2>
+            <div class="queue-heading-actions">
+              <span class="queue-waiting-icon" aria-hidden="true">
+                <svg viewBox="0 0 12 12" focusable="false"><path d="M3.25 1.5h5.5M3.25 10.5h5.5M4 2.1c0 1.5 2 1.6 2 3.9s-2 2.4-2 3.9M8 2.1c0 1.5-2 1.6-2 3.9s2 2.4 2 3.9" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+              </span>
+              <button id="queueCollapseToggle" class="queue-collapse-toggle" type="button" aria-controls="queueListViewport" aria-expanded="true" aria-label="Hide waiting queue" title="Hide waiting queue">−</button>
+            </div>
+          </div>
+          <div id="queueListViewport" class="queue-list-viewport" aria-hidden="false">
+            <div id="queueList" class="queue-list"><div class="empty-state">No players in the queue.</div></div>
+          </div>
         </aside>
 
         <section id="waitingCourtsSection" class="section-card waiting-courts-section" hidden>
-          <div class="section-heading"><div><h2>🏟️ Waiting Court <span id="waitingCourtSectionCount" class="panel-count">(0)</span></h2></div></div>
+          <div class="section-heading court-section-heading waiting-court-section-heading">
+            <div class="court-section-heading-main waiting-court-section-heading-main">
+              <h2><span class="waiting-courts-heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 18V6M6.5 12.5 12 6l5.5 6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>NEXT UP</h2>
+              <button id="waitingCourtLayoutToggle" class="court-layout-toggle" type="button" hidden aria-controls="waitingCourtsList" aria-pressed="false" aria-label="Switch waiting courts to horizontal scrolling" title="Switch waiting courts to horizontal scrolling">
+                <svg class="court-layout-icon court-layout-icon-horizontal" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.5" y="4" width="13" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 7.2h9M5.5 10h9M5.5 12.8h9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <svg class="court-layout-icon court-layout-icon-vertical" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.6" y="5" width="5.4" height="10" rx="1.1" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="11" y="5" width="5.4" height="10" rx="1.1" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+              </button>
+            </div>
+            <span id="waitingCourtSectionCount" class="court-live-count">0 planned</span>
+          </div>
           <div id="waitingCourtsList" class="courts-grid"></div>
         </section>
       </div>
@@ -85,10 +113,9 @@
         <div id="matchesList" class="live-matches-list" aria-live="polite"><div class="empty-state">No recorded matches yet.</div></div>
       </section>
     </section>
-
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span><span>Public view · Updates automatically</span></footer>
     </main>
   </div>
-  <script src="live-view.js?v=session-title-eyebrow-click-20261021-1" defer></script>
+  <script src="live-view.js?v=court-layout-mobile-safe-20261021-25" defer></script>
 </body>
 </html>
