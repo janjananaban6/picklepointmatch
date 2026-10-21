@@ -1759,6 +1759,45 @@ html body .court-card.court-visual-card.is-empty-court .court-team-footer {
   margin-top: 8px;
 }
 
+/* Mobile alignment parity: an empty Up Next slot uses the exact same compact
+   header, message and footer spacing as a regular empty court. */
+@media (max-width: 560px) {
+  html body #courtsList > .court-card.court-visual-card.is-empty-court .court-visual-header,
+  html body #waitingCourtsList > .court-card.court-visual-card.waiting-only.is-empty-court .court-visual-header {
+    min-height: 16px !important;
+    margin-bottom: 9px !important;
+    align-items: center !important;
+  }
+  html body #courtsList > .court-card.court-visual-card.is-empty-court .court-diagram-empty-message,
+  html body #waitingCourtsList > .court-card.court-visual-card.waiting-only.is-empty-court .court-diagram-empty-message {
+    width: 100% !important;
+    min-height: 34px !important;
+    margin: 0 !important;
+    padding: 4px 8px !important;
+    box-sizing: border-box !important;
+  }
+  html body #courtsList > .court-card.court-visual-card.is-empty-court .court-team-footer,
+  html body #waitingCourtsList > .court-card.court-visual-card.waiting-only.is-empty-court .court-team-footer {
+    margin-top: 8px !important;
+    align-items: center !important;
+  }
+
+  /* Keep a newly-rendered score visible and centered in horizontal mode. */
+  html body #courtsList.courts-grid.is-horizontal-scroll > .court-card .court-visual-score,
+  html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card .court-visual-score {
+    position: relative !important;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 15px !important;
+    margin: 12px 0 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    line-height: 1 !important;
+    visibility: visible !important;
+  }
+}
+
 /* Queue heading follows the supplied compact QUEUE · N WAITING reference. */
 html body .section-card.queue-section .section-heading.queue-section-heading {
   display: flex;
@@ -2336,13 +2375,24 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll::-webkit-scrollbar
   height: 0 !important;
   background: transparent !important;
 }
-html body #courtsList.courts-grid.is-horizontal-scroll > .court-card,
-html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card {
-  flex: 0 0 88%;
-  width: 88%;
-  min-width: 0;
-  max-width: none;
-  scroll-snap-align: start;
+@media (max-width: 560px) {
+  /* Only mobile cards narrow enough to reveal the next court on the right. */
+  html body #courtsList.courts-grid.is-horizontal-scroll > .court-card,
+  html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card {
+    flex: 0 0 88%;
+    width: 88%;
+    min-width: 0;
+    max-width: none;
+    scroll-snap-align: start;
+    height: var(--court-layout-fixed-height, auto) !important;
+    min-height: 0 !important;
+  }
+  /* Keep the original court-diagram height so bottom labels do not jump up. */
+  html body #courtsList.courts-grid.is-horizontal-scroll > .court-card .court-diagram,
+  html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card .court-diagram {
+    height: var(--court-layout-diagram-height, auto) !important;
+    aspect-ratio: auto !important;
+  }
 }
 html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle[aria-pressed="true"] .court-layout-icon-horizontal,
 html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle[aria-pressed="true"] .court-layout-icon-horizontal {
@@ -2414,7 +2464,7 @@ html body #waitingCourtsList > .court-card.court-visual-card.playing {
   box-shadow: none !important;
   -webkit-box-shadow: none !important;
   outline: none !important;
-  transform: none !important;
+  transform: none;
   transition: none !important;
 }
 html[data-theme="light"] body #courtsList > .court-card.court-visual-card,
@@ -2432,10 +2482,10 @@ html body #waitingCourtsList.courts-grid.is-court-layout-transitioning {
 }
 html body #courtsList.courts-grid.is-court-layout-transitioning > .court-card,
 html body #waitingCourtsList.courts-grid.is-court-layout-transitioning > .court-card {
-  will-change: opacity;
-  transform: none !important;
+  will-change: transform;
+  transform: none;
 }
-/* Court internals stay in their own default in-card positions during grid changes. */
+/* Keep all text and court internals at their normal font sizes while cards slide. */
 html body #courtsList.courts-grid.is-court-layout-transitioning > .court-card .court-visual-heading,
 html body #courtsList.courts-grid.is-court-layout-transitioning > .court-card .court-visual-name,
 html body #courtsList.courts-grid.is-court-layout-transitioning > .court-card .court-team-label,
@@ -2486,4 +2536,252 @@ html body #courtsList.courts-grid.is-horizontal-scroll > .court-card:first-child
 html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card:first-child {
   margin-inline-start: 0 !important;
   scroll-margin-inline-start: 0 !important;
+}
+
+/* MOBILE COURT LABEL STABILITY — keep header/team text anchored while the
+   court cards switch between the vertical grid and horizontal swipe layout. */
+@media (max-width: 560px) {
+  html body #courtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-header,
+  html body #waitingCourtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+    align-items: center !important;
+    gap: 8px !important;
+    height: 20px !important;
+    min-height: 20px !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #courtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-heading,
+  html body #waitingCourtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-heading {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 20px !important;
+    min-height: 20px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html body #courtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-name,
+  html body #waitingCourtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-name {
+    display: block !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 13px !important;
+    line-height: 13px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html body #courtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-status,
+  html body #waitingCourtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-status {
+    justify-self: end !important;
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+  }
+
+  html body #courtsList > .court-card.court-visual-card .court-team-footer,
+  html body #waitingCourtsList > .court-card.court-visual-card .court-team-footer {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    min-height: 17px !important;
+    height: 17px !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #courtsList > .court-card.court-visual-card .court-team-label,
+  html body #waitingCourtsList > .court-card.court-visual-card .court-team-label,
+  html body #courtsList > .court-card.court-visual-card .court-team-label.court-team-left,
+  html body #waitingCourtsList > .court-card.court-visual-card .court-team-label.court-team-left {
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    line-height: 14px !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    align-self: center !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html body #courtsList > .court-card.court-visual-card .court-team-label.court-team-left,
+  html body #waitingCourtsList > .court-card.court-visual-card .court-team-label.court-team-left {
+    text-align: left !important;
+  }
+}
+
+/* WAITING COURT MOBILE FIX — include empty waiting slots, too.
+   The earlier stability rules excluded .is-empty-court, which meant the
+   court name could use its natural/flex height and shift during layout toggles. */
+@media (max-width: 560px) {
+  html body #waitingCourtsList > .court-card.court-visual-card.is-empty-court .court-visual-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+    align-items: center !important;
+    gap: 8px !important;
+    height: 16px !important;
+    min-height: 16px !important;
+    margin-bottom: 9px !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #waitingCourtsList > .court-card.court-visual-card.is-empty-court .court-visual-heading {
+    display: flex !important;
+    align-items: center !important;
+    flex: 1 1 auto !important;
+    gap: 6px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 16px !important;
+    min-height: 16px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html body #waitingCourtsList > .court-card.court-visual-card.is-empty-court .court-visual-name {
+    display: block !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 13px !important;
+    min-height: 13px !important;
+    line-height: 13px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html body #waitingCourtsList > .court-card.court-visual-card.is-empty-court .court-visual-status {
+    justify-self: end !important;
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+  }
+}
+
+
+/* WAITING COURT NAME — lock mobile typography/alignment for every waiting card.
+   Keep the same text box while the list switches between grid and swipe mode. */
+@media (max-width: 560px) {
+  html body #waitingCourtsList > .court-card.court-visual-card .court-visual-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+    align-items: center !important;
+    column-gap: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #waitingCourtsList > .court-card.court-visual-card:not(.is-empty-court) .court-visual-header {
+    height: 20px !important;
+    min-height: 20px !important;
+  }
+
+  html body #waitingCourtsList > .court-card.court-visual-card.is-empty-court .court-visual-header {
+    height: 16px !important;
+    min-height: 16px !important;
+    margin-bottom: 9px !important;
+  }
+
+  html body #waitingCourtsList > .court-card.court-visual-card .court-visual-heading {
+    display: flex !important;
+    flex: 0 1 auto !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html body #waitingCourtsList > .court-card.court-visual-card .court-visual-name {
+    display: block !important;
+    flex: 0 1 auto !important;
+    align-self: center !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 13px !important;
+    min-height: 13px !important;
+    max-height: 13px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+    line-height: 13px !important;
+    letter-spacing: 1.2px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+    box-sizing: border-box !important;
+  }
+}
+
+@media (max-width: 360px) {
+  html body #waitingCourtsList > .court-card.court-visual-card .court-visual-name {
+    font-size: 10px !important;
+    line-height: 13px !important;
+    letter-spacing: .9px !important;
+  }
+}
+
+/* MOBILE COURT SWIPE: hide only the horizontal scrollbar, not scrolling itself.
+   The extra selector specificity keeps the global scrollbar theme from showing it. */
+html body #courtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override),
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override) {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  scrollbar-color: transparent transparent !important;
+}
+html body #courtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar,
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+html body #courtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb,
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb,
+html body #courtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-track,
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-track {
+  background: transparent !important;
+  border: 0 !important;
 }

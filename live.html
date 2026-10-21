@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="live-view.css?v=court-layout-mobile-safe-20261021-25">
+  <link rel="stylesheet" href="live-view.css?v=court-diagram-refresh-20261021-32">
 </head>
 <body>
   <header class="live-header">
@@ -51,7 +51,7 @@
               <h2>ON COURT</h2>
               <button id="courtLayoutToggle" class="court-layout-toggle" type="button" hidden aria-controls="courtsList" aria-pressed="false" aria-label="Switch courts to horizontal scrolling" title="Switch courts to horizontal scrolling">
                 <svg class="court-layout-icon court-layout-icon-horizontal" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.5" y="4" width="13" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 7.2h9M5.5 10h9M5.5 12.8h9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                <svg class="court-layout-icon court-layout-icon-vertical" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.6" y="5" width="5.4" height="10" rx="1.1" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="11" y="5" width="5.4" height="10" rx="1.1" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                <svg class="court-layout-icon court-layout-icon-vertical" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.4" y="6.3" width="2.1" height="7.4" rx="0.35" fill="currentColor"/><rect x="7" y="4.1" width="6" height="11.8" rx="0.7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.7 6.4h2.6M8.7 13.5h2.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x="14.5" y="6.3" width="2.1" height="7.4" rx="0.35" fill="currentColor"/></svg>
               </button>
             </div>
             <span id="courtSectionCount" class="court-live-count">0 live</span>
@@ -82,7 +82,7 @@
               <h2><span class="waiting-courts-heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 18V6M6.5 12.5 12 6l5.5 6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>NEXT UP</h2>
               <button id="waitingCourtLayoutToggle" class="court-layout-toggle" type="button" hidden aria-controls="waitingCourtsList" aria-pressed="false" aria-label="Switch waiting courts to horizontal scrolling" title="Switch waiting courts to horizontal scrolling">
                 <svg class="court-layout-icon court-layout-icon-horizontal" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.5" y="4" width="13" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 7.2h9M5.5 10h9M5.5 12.8h9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                <svg class="court-layout-icon court-layout-icon-vertical" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.6" y="5" width="5.4" height="10" rx="1.1" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="11" y="5" width="5.4" height="10" rx="1.1" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                <svg class="court-layout-icon court-layout-icon-vertical" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.4" y="6.3" width="2.1" height="7.4" rx="0.35" fill="currentColor"/><rect x="7" y="4.1" width="6" height="11.8" rx="0.7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.7 6.4h2.6M8.7 13.5h2.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x="14.5" y="6.3" width="2.1" height="7.4" rx="0.35" fill="currentColor"/></svg>
               </button>
             </div>
             <span id="waitingCourtSectionCount" class="court-live-count">0 planned</span>
@@ -116,6 +116,6 @@
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span><span>Public view · Updates automatically</span></footer>
     </main>
   </div>
-  <script src="live-view.js?v=court-layout-mobile-safe-20261021-25" defer></script>
+  <script src="live-view.js?v=queue-collapse-toggle-fix-20261021-33" defer></script>
 </body>
 </html>

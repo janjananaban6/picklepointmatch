@@ -568,12 +568,85 @@
     let horizontalMode = false;
     let transitionToken = 0;
     let animations = [];
+    let transitionStacking = new Map();
+    // Keep the vertical card geometry across live re-renders. render() replaces
+    // each card's DOM node when the server publishes an update, so inline
+    // geometry on the old nodes must be restored onto the new ones.
+    let lockedGeometry = [];
+
+    function geometrySignature(card) {
+      return ['waiting-only', 'playing', 'is-empty-court']
+        .filter(className => card.classList.contains(className))
+        .join('|');
+    }
+
+    function applyLockedGeometry() {
+      if (!horizontalMode || !courtLayoutMediaQuery.matches) return;
+      const cards = Array.from(list.querySelectorAll(':scope > .court-card'));
+      cards.forEach((card, index) => {
+        const signature = geometrySignature(card);
+        const geometry = lockedGeometry[index]
+          || lockedGeometry.find(item => item.signature === signature)
+          || lockedGeometry[0];
+        const diagram = card.querySelector('.court-diagram');
+
+        // Keep the original court diagram height across live re-renders.
+        if (diagram && geometry && Number.isFinite(geometry.diagramHeight) && geometry.diagramHeight > 0) {
+          diagram.style.setProperty('--court-layout-diagram-height', `${geometry.diagramHeight}px`);
+        } else if (diagram) {
+          diagram.style.removeProperty('--court-layout-diagram-height');
+        }
+
+        if (geometry && Number.isFinite(geometry.height) && geometry.height > 0) {
+          // A score can be enabled or updated after the list has entered
+          // horizontal mode. Measure the card at its natural content height
+          // so the score row is not clipped by the saved card height. Cards
+          // without a score keep their exact original height.
+          if (card.querySelector('.court-visual-score')) {
+            card.style.removeProperty('--court-layout-fixed-height');
+            const contentHeight = card.getBoundingClientRect().height;
+            const height = Math.max(geometry.height, contentHeight);
+            card.style.setProperty('--court-layout-fixed-height', `${height}px`);
+          } else {
+            card.style.setProperty('--court-layout-fixed-height', `${geometry.height}px`);
+          }
+        } else {
+          card.style.removeProperty('--court-layout-fixed-height');
+        }
+      });
+    }
+
+    function restoreTransitionStacking() {
+      transitionStacking.forEach((previous, card) => {
+        if (previous.value) {
+          card.style.setProperty('z-index', previous.value, previous.priority);
+        } else {
+          card.style.removeProperty('z-index');
+        }
+      });
+      transitionStacking.clear();
+    }
+
+    function applyTransitionStacking(cards) {
+      restoreTransitionStacking();
+      // During grid-to-row FLIP, later cards travel from below the first card
+      // to its right. Keep the first card above them so they slide out from
+      // behind it instead of briefly covering it and appearing on the left.
+      cards.forEach((card, index) => {
+        transitionStacking.set(card, {
+          value: card.style.getPropertyValue('z-index'),
+          priority: card.style.getPropertyPriority('z-index')
+        });
+        card.style.setProperty('z-index', String(cards.length - index), 'important');
+      });
+    }
 
     function cancelAnimations() {
       animations.forEach(animation => {
         try { animation.cancel(); } catch (error) {}
       });
       animations = [];
+      restoreTransitionStacking();
       list.classList.remove('is-court-layout-transitioning');
     }
 
@@ -588,6 +661,7 @@
 
     async function setMode(horizontal, animate = true) {
       const token = ++transitionToken;
+      const wasHorizontalMode = horizontalMode;
       const isMobile = Boolean(courtLayoutMediaQuery.matches);
       horizontalMode = isMobile && Boolean(horizontal);
       updateToggle();
@@ -598,47 +672,64 @@
       if (!isMobile) {
         list.classList.remove('is-horizontal-scroll');
         list.scrollLeft = 0;
+        lockedGeometry = [];
+        list.querySelectorAll('.court-card').forEach(card => {
+          card.style.removeProperty('--court-layout-fixed-height');
+          card.style.removeProperty('--court-layout-diagram-height');
+        });
         return;
       }
 
       const reduceMotion = Boolean(courtLayoutReducedMotion && courtLayoutReducedMotion.matches);
       const cards = Array.from(list.querySelectorAll('.court-card'));
+      const beforeRects = new Map(cards.map(card => [card, card.getBoundingClientRect()]));
+      const beforeHeight = list.getBoundingClientRect().height;
+
+      // Mobile horizontal mode narrows the card only to reveal the next court
+      // on the right. Preserve the default outer card height and the court
+      // diagram height so the bottom labels do not jump upward or look smaller.
+      if (horizontalMode) {
+        lockedGeometry = cards.map((card, index) => {
+          const rect = beforeRects.get(card) || card.getBoundingClientRect();
+          const diagram = card.querySelector('.court-diagram');
+          return {
+            index,
+            signature: geometrySignature(card),
+            height: rect.height,
+            diagramHeight: diagram ? diagram.getBoundingClientRect().height : null
+          };
+        });
+        applyLockedGeometry();
+      } else {
+        lockedGeometry = [];
+        cards.forEach(card => {
+          card.style.removeProperty('--court-layout-fixed-height');
+          card.style.removeProperty('--court-layout-diagram-height');
+        });
+      }
+
       const canAnimate = animate && !reduceMotion && cards.length > 0
-        && typeof list.animate === 'function';
+        && typeof list.animate === 'function'
+        && cards.every(card => typeof card.animate === 'function');
 
       if (!canAnimate) {
         list.classList.toggle('is-horizontal-scroll', horizontalMode);
-        if (!horizontalMode) list.scrollLeft = 0;
+        // Always start at court one when switching into horizontal mode, so
+        // the preview of the next court stays on the right (not the left).
+        if (!horizontalMode || !wasHorizontalMode) list.scrollLeft = 0;
+        applyLockedGeometry();
         return;
       }
 
-      const beforeHeight = list.getBoundingClientRect().height;
-      // Do not independently animate court labels/headings. They keep their
-      // normal in-card positioning; only the card visibility and list height
-      // are animated during the layout switch.
-      const fadeOutAnimations = cards.map(card => card.animate([
-        { opacity: 1 },
-        { opacity: 0 }
-      ], {
-        duration: 120,
-        easing: 'cubic-bezier(.4, 0, 1, 1)',
-        fill: 'both'
-      }));
-      animations = fadeOutAnimations;
-
-      // Finish fading before changing display dimensions. This prevents the
-      // court cards from overlapping while the list switches between layouts.
-      await Promise.all(fadeOutAnimations.map(animation => animation.finished.catch(() => null)));
-      if (token !== transitionToken) return;
-
-      fadeOutAnimations.forEach(animation => {
-        try { animation.cancel(); } catch (error) {}
-      });
-      animations = [];
-
-      const currentCards = Array.from(list.querySelectorAll('.court-card'));
+      // FLIP transition: animate card positions only. The card's previous
+      // height is retained in horizontal mode, preventing the layout from
+      // making court cards look shorter while showing the next card on the right.
       list.classList.toggle('is-horizontal-scroll', horizontalMode);
-      if (!horizontalMode) list.scrollLeft = 0;
+      // Reset only on entry; do not interrupt a user's later manual swipe.
+      if (!horizontalMode || !wasHorizontalMode) list.scrollLeft = 0;
+      applyLockedGeometry();
+      list.classList.add('is-court-layout-transitioning');
+
       const afterHeight = list.getBoundingClientRect().height;
       const nextAnimations = [];
 
@@ -647,35 +738,106 @@
           { height: `${beforeHeight}px` },
           { height: `${afterHeight}px` }
         ], {
-          duration: 360,
-          easing: 'cubic-bezier(.22, .72, .25, 1)'
+          duration: 380,
+          easing: 'cubic-bezier(.22, .72, .25, 1)',
+          fill: 'both'
         }));
       }
 
-      currentCards.forEach((card, index) => {
+      const currentCards = Array.from(list.querySelectorAll('.court-card'));
+      if (horizontalMode) applyTransitionStacking(currentCards);
+      currentCards.forEach(card => {
+        const before = beforeRects.get(card);
+        if (!before) return;
+        const after = card.getBoundingClientRect();
+        const deltaX = before.left - after.left;
+        const deltaY = before.top - after.top;
+        if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) return;
+
         nextAnimations.push(card.animate([
-          { opacity: 0 },
-          { opacity: 1 }
+          { transform: `translate(${deltaX}px, ${deltaY}px)` },
+          { transform: 'translate(0px, 0px)' }
         ], {
-          duration: 300,
-          delay: Math.min(index * 28, 112),
-          easing: 'cubic-bezier(.22, .72, .25, 1)'
+          duration: 380,
+          easing: 'cubic-bezier(.22, .72, .25, 1)',
+          fill: 'both'
         }));
       });
 
-      if (!nextAnimations.length) return;
+      if (!nextAnimations.length) {
+        restoreTransitionStacking();
+        list.classList.remove('is-court-layout-transitioning');
+        return;
+      }
+
       animations = nextAnimations;
-      list.classList.add('is-court-layout-transitioning');
       await Promise.all(nextAnimations.map(animation => animation.finished.catch(() => null)));
       if (token !== transitionToken) return;
 
+      // Remove the finished WAAPI effects so their final zero-translation
+      // state returns to the card's normal CSS state without a visual jump.
+      nextAnimations.forEach(animation => {
+        try { animation.cancel(); } catch (error) {}
+      });
       animations = [];
+      restoreTransitionStacking();
       list.classList.remove('is-court-layout-transitioning');
+    }
+
+    function refreshLockedGeometryFromCurrentCards() {
+      if (!horizontalMode || !courtLayoutMediaQuery.matches) return;
+
+      // render() replaces every court card when new live state arrives. If a
+      // court changes from empty to assigned (or gets cleared), its new diagram
+      // must be measured from the current content instead of reusing the old
+      // empty/filled card's height. Measure in the normal full-width grid, then
+      // restore horizontal mode synchronously before the browser paints.
+      const wasHorizontal = list.classList.contains('is-horizontal-scroll');
+      const previousScrollLeft = list.scrollLeft;
+      const cards = Array.from(list.querySelectorAll(':scope > .court-card'));
+
+      cards.forEach(card => {
+        card.style.removeProperty('--court-layout-fixed-height');
+        card.style.removeProperty('--court-layout-diagram-height');
+      });
+      if (wasHorizontal) list.classList.remove('is-horizontal-scroll');
+
+      // Force current, natural vertical geometry for the newly-rendered cards.
+      lockedGeometry = cards.map((card, index) => {
+        const rect = card.getBoundingClientRect();
+        const diagram = card.querySelector('.court-diagram');
+        const diagramHeight = diagram ? diagram.getBoundingClientRect().height : null;
+        return {
+          index,
+          signature: geometrySignature(card),
+          height: rect.height,
+          diagramHeight: Number.isFinite(diagramHeight) && diagramHeight > 0 ? diagramHeight : null
+        };
+      });
+
+      if (wasHorizontal) {
+        list.classList.add('is-horizontal-scroll');
+        list.scrollLeft = previousScrollLeft;
+        applyLockedGeometry();
+      }
     }
 
     function syncCardCount() {
       const cardCount = list.querySelectorAll(':scope > .court-card').length;
       toggle.hidden = cardCount <= 1;
+
+      // Cards are re-rendered from live state. Invalidate any animation tied to
+      // detached card nodes, then remeasure current content so showing/canceling
+      // a diagram works immediately in either layout without a second toggle.
+      if (horizontalMode && courtLayoutMediaQuery.matches) {
+        if (animations.length || list.classList.contains('is-court-layout-transitioning')) {
+          transitionToken += 1;
+          cancelAnimations();
+        }
+        list.classList.add('is-horizontal-scroll');
+        refreshLockedGeometryFromCurrentCards();
+      }
+
       // If live updates leave only one card, there is no layout choice to make.
       // Return that list to the default grid and hide its toggle.
       if (cardCount <= 1 && horizontalMode) setMode(false, false);
@@ -714,7 +876,7 @@
   const queueCollapseToggle = $('queueCollapseToggle');
   const queueListViewport = $('queueListViewport');
 
-  function setQueueCollapsed(collapsed) {
+  function setQueueCollapsed(collapsed, animate = true) {
     queueCollapsed = Boolean(collapsed);
     if (!queueCollapseToggle || !queueListViewport) return;
 
@@ -728,6 +890,14 @@
     viewport.setAttribute('aria-hidden', String(queueCollapsed));
     if (queueCollapsed) viewport.setAttribute('inert', '');
     else viewport.removeAttribute('inert');
+
+    // Read the currently rendered values before cancelling a previous transition.
+    // This lets a quick second tap reverse the animation from its current position.
+    const wasHidden = viewport.hidden;
+    const currentHeight = wasHidden ? 0 : viewport.getBoundingClientRect().height;
+    const currentOpacity = wasHidden
+      ? 0
+      : (Number.parseFloat(window.getComputedStyle(viewport).opacity) || 0);
 
     if (queueAnimationTimer !== null) {
       clearTimeout(queueAnimationTimer);
@@ -749,65 +919,49 @@
         queueTransitionHandler = null;
       }
 
-      if (queueCollapsed) {
-        viewport.hidden = true;
-        viewport.style.height = '0px';
-        viewport.style.opacity = '0';
-      } else {
-        viewport.hidden = false;
-        viewport.style.height = 'auto';
-        viewport.style.opacity = '1';
-      }
-    };
-
-    // If already in the requested stable state, only synchronize its visibility.
-    const isHidden = viewport.hidden;
-    if ((queueCollapsed && isHidden) || (!queueCollapsed && !isHidden && viewport.style.height === 'auto')) {
       viewport.hidden = queueCollapsed;
       viewport.style.height = queueCollapsed ? '0px' : 'auto';
       viewport.style.opacity = queueCollapsed ? '0' : '1';
+      viewport.style.overflow = 'hidden';
+    };
+
+    // Immediate, deterministic state for initialization and reduced-motion users.
+    const reduceMotion = typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!animate || reduceMotion) {
+      finishTransition();
       return;
     }
 
+    // Keep the element measurable while animating; apply `hidden` only after
+    // collapsing has finished so it can be expanded again reliably.
+    viewport.hidden = false;
+    const startHeight = Number.isFinite(currentHeight) ? Math.max(0, currentHeight) : 0;
+    const naturalHeight = viewport.scrollHeight;
     viewport.style.overflow = 'hidden';
-    if (queueCollapsed) {
-      // Start from the currently rendered height so rapid toggles remain smooth.
-      viewport.hidden = false;
-      viewport.style.height = `${viewport.getBoundingClientRect().height}px`;
-      viewport.style.opacity = '1';
-      void viewport.offsetHeight;
-      queueTransitionHandler = event => {
-        if (event.target === viewport && event.propertyName === 'height') finishTransition();
-      };
-      viewport.addEventListener('transitionend', queueTransitionHandler);
-      requestAnimationFrame(() => {
-        if (token !== queueAnimationToken) return;
-        viewport.style.height = '0px';
-        viewport.style.opacity = '0';
-      });
-    } else {
-      // Unhide at zero height, then animate to the measured content height.
-      viewport.hidden = false;
-      viewport.style.height = '0px';
-      viewport.style.opacity = '0';
-      void viewport.offsetHeight;
-      queueTransitionHandler = event => {
-        if (event.target === viewport && event.propertyName === 'height') finishTransition();
-      };
-      viewport.addEventListener('transitionend', queueTransitionHandler);
-      requestAnimationFrame(() => {
-        if (token !== queueAnimationToken) return;
-        viewport.style.height = `${viewport.scrollHeight}px`;
-        viewport.style.opacity = '1';
-      });
-    }
+    viewport.style.height = `${startHeight}px`;
+    viewport.style.opacity = String(Math.max(0, Math.min(1, currentOpacity)));
+    void viewport.offsetHeight;
 
-    // A fallback covers browsers that skip transitionend (e.g. when styles change mid-transition).
+    queueTransitionHandler = event => {
+      if (event.target === viewport && event.propertyName === 'height') finishTransition();
+    };
+    viewport.addEventListener('transitionend', queueTransitionHandler);
+
+    requestAnimationFrame(() => {
+      if (token !== queueAnimationToken) return;
+      viewport.style.height = queueCollapsed ? '0px' : `${naturalHeight}px`;
+      viewport.style.opacity = queueCollapsed ? '0' : '1';
+    });
+
+    // Fallback for browsers that skip transitionend or when a resize interrupts it.
     queueAnimationTimer = setTimeout(finishTransition, 500);
   }
 
   if (queueCollapseToggle && queueListViewport) {
     queueCollapseToggle.addEventListener('click', () => setQueueCollapsed(!queueCollapsed));
+    // Normalize the initial button label, accessibility attributes, and viewport state.
+    setQueueCollapsed(false, false);
   }
 
   const sessionTitleToggle = $('sessionTitleToggle');
