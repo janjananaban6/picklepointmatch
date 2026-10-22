@@ -20713,3 +20713,149 @@ img, svg, video, canvas { max-width: 100%; }
 #liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .theme-switch-thumb {
   transform: translateX(22px) !important;
 }
+
+/* QUEUEING PAGE — match the Live page's color-shift status-dot animation and centered sizing.
+   Targets only the Ready, Up Next, Playing, and normal live-timer dots; all other styling stays unchanged. */
+@keyframes queueingLiveDotColorShiftFix20261022 {
+  0%, 100% {
+    opacity: .82;
+    filter: hue-rotate(0deg) brightness(.82) saturate(1.15);
+  }
+  35% {
+    opacity: 1;
+    filter: hue-rotate(24deg) brightness(1.18) saturate(1.8);
+  }
+  65% {
+    opacity: .96;
+    filter: hue-rotate(12deg) brightness(1.08) saturate(1.55);
+  }
+}
+
+/* Keep the status text and its dot on one centered baseline. */
+html body[data-page="queueing"] #courtsList .court-head-right .status {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+
+/* One consistent compact dot size, matching the Live page (6px), without a layout shift or halo. */
+html body[data-page="queueing"] #courtsList .court-head-right .status .status-dot,
+html body[data-page="queueing"] .live-timer.timer-normal::before {
+  box-sizing: border-box !important;
+  display: inline-block !important;
+  width: 6px !important;
+  height: 6px !important;
+  min-width: 6px !important;
+  min-height: 6px !important;
+  max-width: 6px !important;
+  max-height: 6px !important;
+  flex: 0 0 6px !important;
+  border-radius: 50% !important;
+  align-self: center !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+  animation: queueingLiveDotColorShiftFix20261022 1.55s ease-in-out infinite !important;
+  animation-name: queueingLiveDotColorShiftFix20261022 !important;
+  animation-duration: 1.55s !important;
+  animation-timing-function: ease-in-out !important;
+  animation-iteration-count: infinite !important;
+  animation-direction: normal !important;
+  animation-fill-mode: both !important;
+  animation-delay: 0s !important;
+  animation-play-state: running !important;
+  will-change: opacity, filter !important;
+}
+
+/* Preserve the normal timer's spacing while centering its indicator beside the time. */
+html body[data-page="queueing"] .live-timer.timer-normal::before {
+  content: "" !important;
+  margin-right: 5px !important;
+  vertical-align: middle !important;
+}
+
+
+/* QUEUEING PAGE — remove the lingering READY dot ring only.
+   This intentionally outranks the older READY badge box-shadow rule while keeping its color-shift animation. */
+html body[data-page="queueing"] #courtsList .court-card.court-ready-card .court-box.ready-box .court-head.ready-head .status.ready .status-dot.ready {
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Queueing page only — set the shared mode toggle to a compact 32px height. */
+body[data-page="queueing"] #queueModeButtons.queue-mode-buttons.mode-buttons-shared {
+  height:32px!important;
+  min-height:32px!important;
+  max-height:32px!important;
+  flex:0 0 32px!important;
+  box-sizing:border-box!important;
+}
+body[data-page="queueing"] #queueModeButtons.queue-mode-buttons.mode-buttons-shared > .queue-mode-btn {
+  height:32px!important;
+  min-height:32px!important;
+  max-height:32px!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  align-self:stretch!important;
+}
+
+
+/* Queueing page only — match Registered Player Search line to the 32px mode buttons. */
+html body[data-page="queueing"] #queueMainArea .registered-search {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  align-items: stretch !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #queueMainArea .registered-search > input,
+html body[data-page="queueing"] #queueMainArea .registered-search > .registered-update-btn {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #queueMainArea .registered-search .registered-search-icon {
+  top: 16px !important;
+}
+
+
+/* Queueing page only — match the court player-picker search to the 32px queue controls. */
+html body[data-page="queueing"] .court-picker .picker-search-wrap {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] .court-picker .picker-search {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  box-sizing: border-box !important;
+  line-height: 1 !important;
+}
+html body[data-page="queueing"] .court-picker .picker-search-icon {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+
+/* Queueing page: amber dashed border and light background ONLY for an empty waiting court.
+   No glow/shadow. Ready courts keep their default border/color. Once a player is attached,
+   the empty-court-box class is removed and the waiting court returns to its normal styling. */
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box.empty-court-box {
+  border: 2px dashed #ffc247 !important;
+  background: linear-gradient(135deg, #fffaf0 0%, #fffefb 52%, #fff2d2 100%) !important;
+  box-shadow: none !important;
+  transition: border-color .2s ease, background .2s ease !important;
+}
+

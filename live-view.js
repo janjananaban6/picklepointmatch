@@ -142,6 +142,42 @@
     if (element && element.textContent !== String(value)) element.textContent = String(value);
   }
 
+  // Keep the Live page session title readable on every device. Normal-length
+  // titles keep the existing CSS size; only shrink titles that would occupy
+  // more than two lines, with a readable minimum size for phones and desktops.
+  function fitSessionTitle() {
+    const title = $('sessionTitle');
+    const slide = $('sessionTitleSlide');
+    if (!title || !slide || slide.classList.contains('is-collapsed')) return;
+    if (!title.textContent.trim() || title.clientWidth <= 0) return;
+
+    // Clear the previous fit before measuring the current responsive base size.
+    title.style.removeProperty('font-size');
+    const computedBase = parseFloat(getComputedStyle(title).fontSize);
+    if (!Number.isFinite(computedBase) || computedBase <= 0) return;
+
+    const isPhoneWidth = window.matchMedia('(max-width: 560px)').matches;
+    const minimumSize = Math.min(computedBase, isPhoneWidth ? 16 : 18);
+    let size = computedBase;
+    title.style.fontSize = `${size}px`;
+
+    const fitsTwoLines = () => {
+      const style = getComputedStyle(title);
+      const lineHeight = parseFloat(style.lineHeight) || (parseFloat(style.fontSize) * 1.13);
+      return title.scrollHeight <= (lineHeight * 2) + 2;
+    };
+
+    // Re-measure after each 1px adjustment. At the minimum, allow natural
+    // wrapping rather than clipping unusually long titles.
+    while (size > minimumSize && !fitsTwoLines()) {
+      size = Math.max(minimumSize, size - 1);
+      title.style.fontSize = `${size}px`;
+    }
+
+    // Leave the stylesheet in charge whenever shrinking was not necessary.
+    if (size >= computedBase) title.style.removeProperty('font-size');
+  }
+
   function replaceListContent(list, markup, preserveScroll = true) {
     if (!list) return;
     const scrollTop = preserveScroll ? list.scrollTop : 0;
@@ -375,7 +411,11 @@
       renderedMatchesSignature = matchesSignature;
     }
     // Never show a stale dated session title when there is no active session.
-    setTextIfChanged($('sessionTitle'), active ? (s?.sessionName || 'Open Play') : 'Open Play');
+    const sessionTitleElement = $('sessionTitle');
+    const nextSessionTitle = active ? (s?.sessionName || 'Open Play') : 'Open Play';
+    const sessionTitleChanged = !!sessionTitleElement && sessionTitleElement.textContent !== String(nextSessionTitle);
+    setTextIfChanged(sessionTitleElement, nextSessionTitle);
+    if (sessionTitleChanged) requestAnimationFrame(fitSessionTitle);
     const sessionMatchType = $('sessionMatchType');
     setTextIfChanged(sessionMatchType, String(s?.eventRules?.type || 'Doubles'));
     const sessionPlayerCount = $('sessionPlayerCount');
@@ -1084,8 +1124,11 @@
       sessionTitleToggle.setAttribute('aria-expanded', String(!collapsed));
       sessionTitleToggle.setAttribute('aria-label', collapsed ? 'Show session title' : 'Hide session title');
       sessionTitleToggle.title = collapsed ? 'Show session title' : 'Hide session title';
+      if (!collapsed) requestAnimationFrame(fitSessionTitle);
     });
   }
+  window.addEventListener('resize', fitSessionTitle, { passive: true });
+  if (document.fonts?.ready) document.fonts.ready.then(fitSessionTitle);
 
   $('pageRankingSearch')?.addEventListener('input', () => renderLiveRanking('pageRankingList', 'pageRankingSearch', false));
   $('pageMatchesSearch')?.addEventListener('input', () => renderRecentMatches(false));

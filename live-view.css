@@ -3653,3 +3653,15 @@ html[data-theme="light"] body.live-view-page .panel-count {
   border: 0 !important;
   box-shadow: none !important;
 }
+
+
+/* Responsive Live session title sizing; JS shrinks only titles exceeding two lines. */
+html body.live-view-page .live-page-pinned .event-heading .session-title-slide #sessionTitle {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
