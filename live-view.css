@@ -3260,3 +3260,37 @@ html[data-theme="night"] body #waitingCourtsList > .court-card.court-visual-card
   box-shadow: 0 5px 14px rgba(0, 0, 0, .12) !important;
 }
 
+
+
+/* LIVE PAGE STABILITY PATCH — isolate viewport sizing from other pages that share this stylesheet.
+   Use the small viewport unit on mobile so browser chrome expanding/collapsing does not
+   resize the app shell on every scroll. The main content remains the only vertical scroller. */
+body.live-view-page {
+  height: 100vh;
+  height: 100svh;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+body.live-view-page .live-page-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+body.live-view-page .live-page-pinned {
+  flex: 0 0 auto;
+}
+body.live-view-page .page-shell.live-content-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overscroll-behavior-y: contain;
+  overflow-anchor: auto;
+}
+body.live-view-page #queueListViewport.queue-list-viewport {
+  overflow-anchor: none;
+}
+@supports not (height: 100svh) {
+  body.live-view-page { height: 100vh; }
+}

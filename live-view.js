@@ -4,6 +4,13 @@
   const THEME_STORAGE_KEY = 'picklepoint_live_view_theme_v1';
   const $ = id => document.getElementById(id);
   let currentState = null;
+  let currentStateSignature = null;
+  let acceptedStateSequence = 0;
+  let renderedRankingSignature = null;
+  let renderedMatchesSignature = null;
+  let renderedRegularCourtsSignature = null;
+  let renderedWaitingCourtsSignature = null;
+  let renderedQueueSignature = null;
   let serverConnected = false;
   let serverTried = false;
   let channel = null;
@@ -48,14 +55,20 @@
     : '<svg class="gender-symbol" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.35" cy="10.65" r="3.45" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.8 8.2 14.1 1.9M9.35 1.9h4.75v4.75" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const playerCategory = p => String(p?.category || 'CAT').trim().toUpperCase();
   const playerCategoryClass = p => ({ BEG: 'skill-beg', NOV: 'skill-nov', INT: 'skill-int', ADV: 'skill-adv', EXP: 'skill-exp' })[playerCategory(p)] || '';
-  const formatTime = value => {
-    if (!value) return '';
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const timestampMilliseconds = value => {
+    if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? value : NaN;
+    const text = String(value ?? '').trim();
+    if (!text) return NaN;
+    // Numeric timestamps are already milliseconds in the published live state.
+    if (/^\d+(?:\.\d+)?$/.test(text)) {
+      const numeric = Number(text);
+      return Number.isFinite(numeric) && numeric > 0 ? numeric : NaN;
+    }
+    const parsed = Date.parse(text);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : NaN;
   };
   const elapsedSeconds = start => {
-    if (!start) return 0;
-    const startMs = new Date(start).getTime();
+    const startMs = timestampMilliseconds(start);
     return Number.isFinite(startMs) ? Math.max(0, Math.floor((Date.now() - startMs) / 1000)) : 0;
   };
   const elapsed = start => {
@@ -63,8 +76,9 @@
     return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, '0')}`;
   };
   const waitingDuration = start => {
-    if (!start) return '0m waiting';
-    const totalSeconds = Math.max(0, Math.floor((Date.now() - Number(start)) / 1000));
+    const startMs = timestampMilliseconds(start);
+    if (!Number.isFinite(startMs)) return '0m waiting';
+    const totalSeconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
     if (totalSeconds < 60) return '0m waiting';
     const minutes = Math.floor(totalSeconds / 60);
     if (minutes < 60) return `${minutes}m waiting`;
@@ -72,7 +86,8 @@
     return `${hours}h ${minutes % 60}m waiting`;
   };
   const waitingTimeClass = start => {
-    const totalSeconds = start ? Math.max(0, Math.floor((Date.now() - Number(start)) / 1000)) : 0;
+    const startMs = timestampMilliseconds(start);
+    const totalSeconds = Number.isFinite(startMs) ? Math.max(0, Math.floor((Date.now() - startMs) / 1000)) : 0;
     if (totalSeconds >= 15 * 60) return 'waiting-red';
     if (totalSeconds >= 10 * 60) return 'waiting-amber';
     return '';
@@ -123,7 +138,27 @@
     catch (error) { return null; }
   }
 
-  function renderCourtCard(c, listName = 'regular', index = 0) {
+  function setTextIfChanged(element, value) {
+    if (element && element.textContent !== String(value)) element.textContent = String(value);
+  }
+
+  function replaceListContent(list, markup, preserveScroll = true) {
+    if (!list) return;
+    const scrollTop = preserveScroll ? list.scrollTop : 0;
+    list.innerHTML = markup;
+    list.scrollTop = scrollTop;
+  }
+
+  function stateContentSignature(state) {
+    if (!state || typeof state !== 'object') return '';
+    const comparable = { ...state };
+    // Publisher heartbeats update only this timestamp. Do not rebuild the page
+    // for heartbeat-only updates; full DOM replacement caused mobile scroll jumps.
+    delete comparable.updatedAt;
+    try { return JSON.stringify(comparable); } catch (error) { return ''; }
+  }
+
+  function renderCourtCard(c) {
     // Mirror the Queueing page: regular courts are READY until playing;
     // waiting-court slots are labeled Up Next.
     const status = c.waitingOnly ? 'Up Next' : (c.playing ? 'PLAYING' : 'READY');
@@ -191,16 +226,16 @@
     </article>`;
   }
 
-  function renderLiveRanking(listId = 'pageRankingList', searchInputId = 'pageRankingSearch') {
+  function renderLiveRanking(listId = 'pageRankingList', searchInputId = 'pageRankingSearch', preserveScroll = true) {
     const list = $(listId);
     if (!list) return;
     const ranking = Array.isArray(currentState?.ranking) ? currentState.ranking : [];
     if (!currentState?.active || currentState?.liveRankingEnabled === false) {
-      list.innerHTML = '<div class="live-ranking-empty"><span aria-hidden="true">🏆</span><strong>Rankings unavailable</strong><span>Live rankings are currently disabled for this session.</span><span>Request on QM to enable the live ranking.</span></div>';
+      replaceListContent(list, '<div class="live-ranking-empty"><span aria-hidden="true">🏆</span><strong>Rankings unavailable</strong><span>Live rankings are currently disabled for this session.</span><span>Request on QM to enable the live ranking.</span></div>', preserveScroll);
       return;
     }
     if (!ranking.length) {
-      list.innerHTML = '<div class="live-ranking-empty"><span aria-hidden="true">🏆</span><strong>No ranking standings yet</strong><span>Complete a recorded match to start the live ranking.</span></div>';
+      replaceListContent(list, '<div class="live-ranking-empty"><span aria-hidden="true">🏆</span><strong>No ranking standings yet</strong><span>Complete a recorded match to start the live ranking.</span></div>', preserveScroll);
       return;
     }
 
@@ -216,12 +251,12 @@
       });
 
     if (!filteredRanking.length) {
-      list.innerHTML = `<div class="live-ranking-empty"><span aria-hidden="true">🔎</span><strong>No players found</strong><span>No players match “${escapeHTML(String($(searchInputId)?.value || '').trim())}”. Try another name.</span></div>`;
+      replaceListContent(list, `<div class="live-ranking-empty"><span aria-hidden="true">🔎</span><strong>No players found</strong><span>No players match “${escapeHTML(String($(searchInputId)?.value || '').trim())}”. Try another name.</span></div>`, preserveScroll);
       return;
     }
 
     const medals = ['🥇', '🥈', '🥉'];
-    list.innerHTML = filteredRanking.map(({ player: p, rank }) => {
+    replaceListContent(list, filteredRanking.map(({ player: p, rank }) => {
       const name = String(p.name || 'Player');
       const nickname = String(p.nickname || '').trim();
       const displayName = nickname && nickname.toLowerCase() !== name.trim().toLowerCase()
@@ -242,17 +277,17 @@
         </div>
         <div class="live-ranking-result"><strong>${winRate}%</strong><span>Win rate</span></div>
       </article>`;
-    }).join('');
+    }).join(''), preserveScroll);
   }
 
-  function renderRecentMatches() {
+  function renderRecentMatches(preserveScroll = true) {
     const list = $('matchesList');
     if (!list) return;
     const matches = Array.isArray(currentState?.recentMatches) ? currentState.recentMatches : [];
     const count = $('matchesSectionCount');
     if (!currentState?.active || currentState?.liveMatchesEnabled === false) {
-      if (count) count.textContent = '(0)';
-      list.innerHTML = '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>Matches unavailable</strong><span>Live matches are currently disabled for this session.</span><span>Request on QM to enable live matches.</span></div>';
+      setTextIfChanged(count, '(0)');
+      replaceListContent(list, '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>Matches unavailable</strong><span>Live matches are currently disabled for this session.</span><span>Request on QM to enable live matches.</span></div>', preserveScroll);
       return;
     }
     const rawSearchTerm = String($('pageMatchesSearch')?.value || '').trim();
@@ -276,19 +311,19 @@
     });
 
     // Keep the section count in sync with the same filtered results shown below.
-    if (count) count.textContent = `(${filteredMatches.length})`;
+    setTextIfChanged(count, `(${filteredMatches.length})`);
 
     if (!matches.length) {
-      list.innerHTML = '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>No recorded matches yet</strong><span>Finished matches will appear here after they are recorded.</span></div>';
+      replaceListContent(list, '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>No recorded matches yet</strong><span>Finished matches will appear here after they are recorded.</span></div>', preserveScroll);
       return;
     }
 
     if (!filteredMatches.length) {
-      list.innerHTML = `<div class="live-ranking-empty"><span aria-hidden="true">🔎</span><strong>No matches found</strong><span>No match results match “${escapeHTML(rawSearchTerm)}”. Try another search.</span></div>`;
+      replaceListContent(list, `<div class="live-ranking-empty"><span aria-hidden="true">🔎</span><strong>No matches found</strong><span>No match results match “${escapeHTML(rawSearchTerm)}”. Try another search.</span></div>`, preserveScroll);
       return;
     }
 
-    list.innerHTML = filteredMatches.map(match => {
+    replaceListContent(list, filteredMatches.map(match => {
       const court = String(match.court || 'Court');
       const winner = String(match.winner || 'Winner not recorded');
       const loser = String(match.loser || 'Opponent not recorded');
@@ -304,7 +339,7 @@
         <div class="live-match-result"><div class="live-match-winner"><span class="live-match-outcome">WINNER</span><strong>${highlightSearchMatch(winner, rawSearchTerm)}</strong></div><span class="live-match-vs">VS</span><div class="live-match-loser"><span class="live-match-outcome">OPPONENT</span><strong>${highlightSearchMatch(loser, rawSearchTerm)}</strong></div></div>
         ${score ? `<div class="live-match-score">${highlightSearchMatch(score, rawSearchTerm)}</div>` : ''}
       </article>`;
-    }).join('');
+    }).join(''), preserveScroll);
   }
 
   function setLiveTab(tabName) {
@@ -328,6 +363,7 @@
     // Preserve the user's visible court on both horizontal lists while live data
     // replaces card DOM nodes. An innerHTML rebuild can reset scrollLeft on iOS,
     // Safari, and some Chromium layouts even when the court count is unchanged.
+    const changedCourtLists = new Set();
     const courtScrollSnapshots = ['courtsList', 'waitingCourtsList'].map(id => {
       const list = $(id);
       return list ? {
@@ -337,13 +373,21 @@
         horizontal: list.classList.contains('is-horizontal-scroll')
       } : null;
     });
-    renderLiveRanking('pageRankingList', 'pageRankingSearch');
-    renderRecentMatches();
     const active = !!s?.active;
+    const rankingSignature = JSON.stringify([active, s?.liveRankingEnabled, Array.isArray(s?.ranking) ? s.ranking : []]);
+    if (rankingSignature !== renderedRankingSignature) {
+      renderLiveRanking('pageRankingList', 'pageRankingSearch');
+      renderedRankingSignature = rankingSignature;
+    }
+    const matchesSignature = JSON.stringify([active, s?.liveMatchesEnabled, Array.isArray(s?.recentMatches) ? s.recentMatches : []]);
+    if (matchesSignature !== renderedMatchesSignature) {
+      renderRecentMatches();
+      renderedMatchesSignature = matchesSignature;
+    }
     // Never show a stale dated session title when there is no active session.
-    $('sessionTitle').textContent = active ? (s?.sessionName || 'Open Play') : 'Open Play';
+    setTextIfChanged($('sessionTitle'), active ? (s?.sessionName || 'Open Play') : 'Open Play');
     const sessionMatchType = $('sessionMatchType');
-    if (sessionMatchType) sessionMatchType.textContent = String(s?.eventRules?.type || 'Doubles');
+    setTextIfChanged(sessionMatchType, String(s?.eventRules?.type || 'Doubles'));
     const sessionPlayerCount = $('sessionPlayerCount');
     if (sessionPlayerCount) {
       const reportedPlayerCount = Number(s?.playerCount);
@@ -362,10 +406,11 @@
       const playerCount = Number.isFinite(reportedPlayerCount) && reportedPlayerCount >= 0
         ? reportedPlayerCount
         : fallbackPlayerIds.size;
-      sessionPlayerCount.textContent = `${playerCount} player${playerCount === 1 ? '' : 's'}`;
+      setTextIfChanged(sessionPlayerCount, `${playerCount} player${playerCount === 1 ? '' : 's'}`);
     }
     $('inactiveNotice').hidden = active;
-    $('queueSectionCount').textContent = `${s?.queue?.length || 0} WAITING`;
+    const queue = Array.isArray(s?.queue) ? s.queue : [];
+    setTextIfChanged($('queueSectionCount'), `${queue.length} WAITING`);
 
     const allCourts = Array.isArray(s?.courts) ? s.courts : [];
     const regularCourts = allCourts.filter(c => c && !c.waitingOnly);
@@ -373,7 +418,7 @@
     const sessionCourtCount = $('sessionCourtCount');
     if (sessionCourtCount) {
       const courtCount = regularCourts.length;
-      sessionCourtCount.textContent = `${courtCount} court${courtCount === 1 ? '' : 's'}`;
+      setTextIfChanged(sessionCourtCount, `${courtCount} court${courtCount === 1 ? '' : 's'}`);
     }
 
     // Derive the heading count from the same court records used to render the
@@ -381,28 +426,40 @@
     // the server merges a registration update), so it must never override the
     // actual playing flags on the current court list.
     const liveCourtCount = regularCourts.filter(c => Boolean(c.playing)).length;
-    const courtCountLabel = $('courtSectionCount');
-    if (courtCountLabel) courtCountLabel.textContent = `${liveCourtCount} live`;
-    $('courtsList').innerHTML = regularCourts.length
-      ? regularCourts.map((court, index) => renderCourtCard(court, 'regular', index)).join('')
-      : '<div class="empty-state">No courts have been set up in this session.</div>';
+    setTextIfChanged($('courtSectionCount'), `${liveCourtCount} live`);
+
+    // Only replace the lists whose actual data changed. Rebuilding every court
+    // and queue card on unrelated updates was causing scroll jumps on phones.
+    const regularCourtsSignature = JSON.stringify([s?.recordScores === true, regularCourts]);
+    if (regularCourtsSignature !== renderedRegularCourtsSignature) {
+      changedCourtLists.add('courtsList');
+      $('courtsList').innerHTML = regularCourts.length
+        ? regularCourts.map(court => renderCourtCard(court)).join('')
+        : '<div class="empty-state">No courts have been set up in this session.</div>';
+      renderedRegularCourtsSignature = regularCourtsSignature;
+      courtLayoutController?.syncCardCount();
+    }
 
     $('waitingCourtsSection').hidden = waitingCourts.length === 0;
-    $('waitingCourtSectionCount').textContent = `${waitingCourts.length} planned`;
-    $('waitingCourtsList').innerHTML = waitingCourts.map((court, index) => renderCourtCard(court, 'waiting', index)).join('');
-    // Reapply scroll offsets before geometry is measured by the layout
-    // controllers. This keeps Court 2/3/etc visible during ordinary live updates,
-    // including empty court cards; only an explicit layout toggle resets to Court 1.
+    setTextIfChanged($('waitingCourtSectionCount'), `${waitingCourts.length} planned`);
+    const waitingCourtsSignature = JSON.stringify([s?.recordScores === true, waitingCourts]);
+    if (waitingCourtsSignature !== renderedWaitingCourtsSignature) {
+      changedCourtLists.add('waitingCourtsList');
+      $('waitingCourtsList').innerHTML = waitingCourts.map(court => renderCourtCard(court)).join('');
+      renderedWaitingCourtsSignature = waitingCourtsSignature;
+      waitingCourtLayoutController?.syncCardCount();
+    }
+
+    // Restore swipe position only after a court list has actually changed.
     courtScrollSnapshots.forEach(snapshot => {
-      if (!snapshot || !snapshot.horizontal || !snapshot.list.classList.contains('is-horizontal-scroll')) return;
+      if (!snapshot || !changedCourtLists.has(snapshot.list.id) || !snapshot.horizontal || !snapshot.list.classList.contains('is-horizontal-scroll')) return;
       snapshot.list.scrollLeft = snapshot.left;
       snapshot.list.scrollTop = snapshot.top;
     });
-    courtLayoutController?.syncCardCount();
-    waitingCourtLayoutController?.syncCardCount();
 
-    const queue = s?.queue || [];
-    $('queueList').innerHTML = queue.length
+    const queueSignature = JSON.stringify(queue);
+    if (queueSignature !== renderedQueueSignature) {
+      $('queueList').innerHTML = queue.length
       ? queue.map((p, i) => {
           const waitingSince = p.waitingSince || p.queuedAt || null;
           const genderClass = playerGenderClass(p);
@@ -414,6 +471,8 @@
           return `<div class="queue-item"><div class="queue-avatar-stack" aria-label="${genderLabel} player, queue position ${i + 1}"><div class="queue-avatar ${genderClass}" aria-hidden="true">${escapeHTML(playerInitial(p))}</div><span class="queue-position-badge" aria-label="Queue position ${i + 1}">${i + 1}</span></div><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${escapeHTML(playerName(p))}</div><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span>${lockedPartnerIndicator}</div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
         }).join('')
       : '<div class="empty-state">No players are waiting in queue.</div>';
+      renderedQueueSignature = queueSignature;
+    }
 
     const queueViewport = $('queueListViewport');
     if (queueViewport) {
@@ -432,10 +491,16 @@
   }
 
   function acceptState(value) {
-    if (!value || typeof value !== 'object') return;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return;
+    const signature = stateContentSignature(value);
+    const contentChanged = signature !== currentStateSignature;
     currentState = value;
-    try { localStorage.setItem(LIVE_VIEW_STORAGE_KEY, JSON.stringify(value)); } catch (error) {}
-    render();
+    acceptedStateSequence += 1;
+    if (contentChanged) {
+      currentStateSignature = signature;
+      try { localStorage.setItem(LIVE_VIEW_STORAGE_KEY, JSON.stringify(value)); } catch (error) {}
+      render();
+    }
   }
 
   function isHttpPage() {
@@ -474,6 +539,7 @@
   async function refreshRemoteState() {
     if (!isHttpPage() || remoteRefreshInFlight) return false;
     remoteRefreshInFlight = true;
+    const stateSequenceAtStart = acceptedStateSequence;
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 10000);
     try {
@@ -483,16 +549,19 @@
       });
       if (!response.ok) throw new Error(`Live API returned ${response.status}`);
       const data = await response.json();
-      if (data && data.state && typeof data.state === 'object') {
-        acceptState(data.state);
-      } else {
-        // The server is reachable but has no published session. Clear any old
-        // browser-cached snapshot instead of showing stale queue data.
-        const emptyState = {
-          sessionName: 'Pickle Point Match', active: false, updatedAt: null,
-          queue: [], courts: [], ranking: [], courtCount: 0, waitingCourtCount: 0
-        };
-        acceptState(emptyState);
+      // Do not let a slower HTTP response overwrite a newer SSE or storage update.
+      if (stateSequenceAtStart === acceptedStateSequence) {
+        if (data && data.state && typeof data.state === 'object') {
+          acceptState(data.state);
+        } else {
+          // The server is reachable but has no published session. Clear any old
+          // browser-cached snapshot instead of showing stale queue data.
+          const emptyState = {
+            sessionName: 'Pickle Point Match', active: false, updatedAt: null,
+            queue: [], courts: [], ranking: [], courtCount: 0, waitingCourtCount: 0
+          };
+          acceptState(emptyState);
+        }
       }
       markServerConnected();
       return true;
@@ -1028,8 +1097,8 @@
     });
   }
 
-  $('pageRankingSearch')?.addEventListener('input', () => renderLiveRanking('pageRankingList', 'pageRankingSearch'));
-  $('pageMatchesSearch')?.addEventListener('input', renderRecentMatches);
+  $('pageRankingSearch')?.addEventListener('input', () => renderLiveRanking('pageRankingList', 'pageRankingSearch', false));
+  $('pageMatchesSearch')?.addEventListener('input', () => renderRecentMatches(false));
   document.querySelectorAll('[data-live-tab]').forEach(button => {
     button.addEventListener('click', () => setLiveTab(button.dataset.liveTab));
     button.addEventListener('keydown', event => {
@@ -1050,6 +1119,7 @@
   const boot = localSnapshot();
   if (boot) {
     currentState = boot;
+    currentStateSignature = stateContentSignature(boot);
     render();
   } else {
     // Render the inactive-queue notice immediately while the first shared-state
@@ -1058,6 +1128,7 @@
       sessionName: 'Pickle Point Match', active: false, updatedAt: null,
       queue: [], courts: [], ranking: [], courtCount: 0, waitingCourtCount: 0
     };
+    currentStateSignature = stateContentSignature(currentState);
     render();
   }
   connectServer();
@@ -1067,7 +1138,7 @@
   if (isHttpPage()) {
     window.setInterval(async () => {
       const connected = await refreshRemoteState();
-      if (connected && (!eventSource || eventSource.readyState === EventSource.CLOSED)) {
+      if (connected && (!eventSource || (typeof EventSource !== 'undefined' && eventSource.readyState === EventSource.CLOSED))) {
         eventSource = null;
         startEventStream();
       } else if (!connected) {
