@@ -15,13 +15,6 @@
   let queueAnimationToken = 0;
   let queueAnimationTimer = null;
   let queueTransitionHandler = null;
-  // Keep a consistent phase for the subtle status-dot animation across Live View refreshes.
-  const COURT_STATUS_PULSE_DURATION_MS = 2800;
-
-  function animationPhaseDelay(durationMs) {
-    return `-${((performance.now() % durationMs) / 1000).toFixed(3)}s`;
-  }
-
   const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[ch]));
@@ -101,6 +94,8 @@
   function applyTheme(theme) {
     const normalized = theme === 'light' ? 'light' : 'night';
     document.documentElement.dataset.theme = normalized;
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeColorMeta) themeColorMeta.content = normalized === 'light' ? '#f1f7f8' : '#072f38';
     try { localStorage.setItem(THEME_STORAGE_KEY, normalized); } catch (error) {}
   }
 
@@ -137,7 +132,6 @@
     const t2 = Array.isArray(c.team2) ? c.team2 : [];
     const hasPlayers = [...t1, ...t2].some(Boolean);
     // Empty courts show a simple message instead of an empty diagram or guide line.
-    const statusAnimationDelay = animationPhaseDelay(COURT_STATUS_PULSE_DURATION_MS);
     const shortPlayerName = player => {
       if (!player) return '';
       const nickname = String(player.nickname || '').trim();
@@ -185,7 +179,7 @@
     return `<article class="court-card court-visual-card${c.playing ? ' playing' : ''}${c.waitingOnly ? ' waiting-only' : ''}${hasPlayers ? '' : ' is-empty-court'}">
       <div class="court-visual-header">
         <div class="court-visual-heading"><strong class="court-visual-name">${escapeHTML(courtName)}</strong>${timer}</div>
-        <span class="court-visual-status ${statusClass}" style="--status-animation-delay:${statusAnimationDelay}"><i aria-hidden="true"></i>${status}</span>
+        <span class="court-visual-status ${statusClass}"><i aria-hidden="true"></i>${status}</span>
       </div>
       ${diagramContent}
       <div class="court-team-footer">
