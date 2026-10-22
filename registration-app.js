@@ -152,8 +152,10 @@
       return;
     }
 
+    // Keep the toast compact by showing only the player's first name.
+    const firstName = String(nextName).trim().split(/\s+/)[0] || String(nextName).trim();
     addedPlayerToastActive = true;
-    name.textContent = nextName;
+    name.textContent = firstName;
     toast.hidden = false;
     toast.classList.remove('is-visible');
     window.requestAnimationFrame(() => toast.classList.add('is-visible'));
