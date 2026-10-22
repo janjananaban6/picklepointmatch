@@ -811,7 +811,7 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
   display: flex;
   align-items: center;
   gap: 12px;
-  width: min(360px, calc(100vw - 32px));
+  width: min(300px, calc(100vw - 32px));
   min-height: 64px;
   margin: 0;
   padding: 9px 14px;
@@ -878,7 +878,7 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
   .registration-page-body .registration-queue-toast {
     top: 66px;
     gap: 10px;
-    width: min(260px, calc(100vw - 32px));
+    width: min(220px, calc(100vw - 32px));
     min-height: 60px;
     padding: 8px 12px;
     border-radius: 16px;
@@ -905,7 +905,7 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
 }
 @media (max-width: 360px) {
   .registration-page-body .registration-queue-toast {
-    width: min(248px, calc(100vw - 28px));
+    width: min(208px, calc(100vw - 28px));
     min-height: 58px;
     padding: 7px 10px;
     gap: 9px;
