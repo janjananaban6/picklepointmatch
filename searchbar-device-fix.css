@@ -13,7 +13,7 @@ html body #queueMainArea #registeredPlayerSearch,
 html body #historySearchInput,
 html body #cloudRecordsSearch,
 html body #leftPlayersSearch,
-html body #liveRankingSearch {
+html body #pageRankingSearch {
   font-family: var(--pp-search-font) !important;
   font-size: 11px !important;
   font-style: normal !important;
@@ -32,12 +32,12 @@ html body #queueMainArea #registeredPlayerSearch::placeholder,
 html body #historySearchInput::placeholder,
 html body #cloudRecordsSearch::placeholder,
 html body #leftPlayersSearch::placeholder,
-html body #liveRankingSearch::placeholder,
+html body #pageRankingSearch::placeholder,
 html body #queueMainArea #registeredPlayerSearch::-webkit-input-placeholder,
 html body #historySearchInput::-webkit-input-placeholder,
 html body #cloudRecordsSearch::-webkit-input-placeholder,
 html body #leftPlayersSearch::-webkit-input-placeholder,
-html body #liveRankingSearch::-webkit-input-placeholder {
+html body #pageRankingSearch::-webkit-input-placeholder {
   font-family: var(--pp-search-font) !important;
   font-size: 11px !important;
   font-style: normal !important;
@@ -118,8 +118,8 @@ html body #leftPlayersModal #leftPlayersSearch::-webkit-input-placeholder {
 }
 
 /* Preserve Live View's light/dark text colors; only normalize placeholder weight. */
-html:not([data-theme="light"]) body #liveRankingSearch::placeholder,
-html:not([data-theme="light"]) body #liveRankingSearch::-webkit-input-placeholder {
+html:not([data-theme="light"]) body #pageRankingSearch::placeholder,
+html:not([data-theme="light"]) body #pageRankingSearch::-webkit-input-placeholder {
   color: var(--muted) !important;
 }
 
@@ -129,7 +129,7 @@ html:not([data-theme="light"]) body #liveRankingSearch::-webkit-input-placeholde
   html body #historySearchInput,
   html body #cloudRecordsSearch,
   html body #leftPlayersSearch,
-  html body #liveRankingSearch {
+  html body #pageRankingSearch {
     font-size: 12px !important;
     font-weight: 400 !important;
   }
@@ -138,12 +138,12 @@ html:not([data-theme="light"]) body #liveRankingSearch::-webkit-input-placeholde
   html body #historySearchInput::placeholder,
   html body #cloudRecordsSearch::placeholder,
   html body #leftPlayersSearch::placeholder,
-  html body #liveRankingSearch::placeholder,
+  html body #pageRankingSearch::placeholder,
   html body #queueMainArea #registeredPlayerSearch::-webkit-input-placeholder,
   html body #historySearchInput::-webkit-input-placeholder,
   html body #cloudRecordsSearch::-webkit-input-placeholder,
   html body #leftPlayersSearch::-webkit-input-placeholder,
-  html body #liveRankingSearch::-webkit-input-placeholder {
+  html body #pageRankingSearch::-webkit-input-placeholder {
     font-size: 12px !important;
     font-weight: 400 !important;
     letter-spacing: 0 !important;

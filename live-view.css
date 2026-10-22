@@ -2757,26 +2757,33 @@ html[data-theme="light"] body {
   color: #18383e !important;
   background: #f1f7f8 !important;
 }
+/* The Live header is intentionally independent from the page theme: keep it dark teal in light mode. */
 html[data-theme="light"] body .live-header {
-  color: #18383e !important;
-  background: rgba(255, 255, 255, .97) !important;
-  border-bottom-color: #d7e4e6 !important;
-  box-shadow: 0 2px 12px rgba(26, 61, 66, .055) !important;
+  color: #eefafa !important;
+  background: rgba(4, 30, 37, .92) !important;
+  border-bottom-color: #24535a !important;
+  box-shadow: none !important;
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
-html[data-theme="light"] body .brand,
-html[data-theme="light"] body .brand-words b { color: #18383e !important; }
-html[data-theme="light"] body .brand-words strong { color: #087f80 !important; }
-html[data-theme="light"] body .brand-words small { color: #59747a !important; }
-html[data-theme="light"] body .connection-status {
-  color: #49656a !important;
-  background: #f8fcfc !important;
-  border-color: #d1e0e2 !important;
+html[data-theme="light"] body .live-header .brand,
+html[data-theme="light"] body .live-header .brand-words b { color: #eefafa !important; }
+html[data-theme="light"] body .live-header .brand-words strong { color: #27d3c5 !important; }
+html[data-theme="light"] body .live-header .brand-words small { color: #95c4c7 !important; }
+html[data-theme="light"] body .live-header .connection-status {
+  color: #b9d4d6 !important;
+  background: transparent !important;
+  border-color: #2d6569 !important;
 }
-html[data-theme="light"] body .connection-status i { box-shadow: none !important; }
-html[data-theme="light"] body .connection-status.connected i { background: #0c966a !important; }
-html[data-theme="light"] body .connection-status.local i { background: #a95c0b !important; }
+html[data-theme="light"] body .live-header .connection-status i { box-shadow: none !important; }
+html[data-theme="light"] body .live-header .connection-status.connected i {
+  background: #37d6a1 !important;
+  box-shadow: 0 0 9px #37d6a1 !important;
+}
+html[data-theme="light"] body .live-header .connection-status.local i {
+  background: #ffb04e !important;
+  box-shadow: none !important;
+}
 html[data-theme="light"] body .live-page-pinned { background: #f1f7f8 !important; }
 html[data-theme="light"] body .live-page-pinned .event-heading { border-bottom-color: #d6e3e5 !important; }
 html[data-theme="light"] body .event-heading h1 { color: #18383e !important; }
@@ -2982,17 +2989,9 @@ html body #waitingCourtsList .court-visual-status i::after {
   animation: none !important;
   border: 0 !important;
   box-shadow: none !important;
-  transform: none !important;
+  transform: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  html body .live-header .connection-status i,
-  html body .live-page-pinned .event-heading #sessionTitleToggle .live-pulse,
-  html body #courtsList .court-visual-status i,
-  html body #waitingCourtsList .court-visual-status i,
-  html body .court-card .court-state::before,
-  html body .player-chip::before,
-  html body .match-timer::before { animation: none !important; }
-}
+/* Live-dot animation is intentionally preserved; see the final ping rules below. */
 
 
 /* Focused light-mode polish: Live match rows and connection status only. */
@@ -3293,4 +3292,357 @@ body.live-view-page #queueListViewport.queue-list-viewport {
 }
 @supports not (height: 100svh) {
   body.live-view-page { height: 100vh; }
+}
+
+
+/* LIVE PAGE STATUS DOT POLISH — keep READY and UP NEXT dots centered on the same baseline. */
+html body #courtsList .court-visual-status.is-ready,
+html body #waitingCourtsList .court-visual-status.is-ready,
+html body #courtsList .court-visual-status.is-up-next,
+html body #waitingCourtsList .court-visual-status.is-up-next {
+  display: inline-flex !important;
+  align-items: center !important;
+  align-content: center !important;
+  justify-content: flex-end !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+html body #courtsList .court-visual-status.is-ready i,
+html body #waitingCourtsList .court-visual-status.is-ready i,
+html body #courtsList .court-visual-status.is-up-next i,
+html body #waitingCourtsList .court-visual-status.is-up-next i {
+  position: static !important;
+  inset: auto !important;
+  display: block !important;
+  flex: 0 0 5px !important;
+  width: 5px !important;
+  min-width: 5px !important;
+  max-width: 5px !important;
+  height: 5px !important;
+  min-height: 5px !important;
+  max-height: 5px !important;
+  align-self: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+  vertical-align: middle !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Updated shared animation: a soft brightness/opacity pulse with no scaling or layout shift. */
+@keyframes liveViewDotPulse {
+  0%, 100% {
+    opacity: .76;
+    filter: brightness(.94) saturate(.96);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.18) saturate(1.08);
+  }
+}
+html body .live-header .connection-status i,
+html body .connection-status i,
+html body .live-page-pinned .event-heading #sessionTitleToggle .live-pulse,
+html body .live-pulse,
+html body #courtsList .court-visual-status i,
+html body #waitingCourtsList .court-visual-status i,
+html body .court-card .court-state::before,
+html body .court-state.ready::before,
+html body .court-state.playing::before,
+html body .court-state.up-next::before,
+html body .player-chip::before,
+html body .match-timer::before {
+  animation: liveViewDotPulse 1.65s ease-in-out infinite !important;
+  animation-delay: 0s !important;
+  animation-play-state: running !important;
+  transform: none !important;
+  box-shadow: none !important;
+  will-change: opacity, filter !important;
+}
+/* Live-dot animation is intentionally preserved; see the final ping rules below. */
+
+
+/* RESTORED LIVE VIEW DOT PING — expanding ripple without moving the dot or changing layout. */
+@keyframes liveViewDotPing {
+  0% { opacity: .68; transform: scale(.58); }
+  78%, 100% { opacity: 0; transform: scale(2.15); }
+}
+@keyframes liveViewGeneratedDotPing {
+  0% { outline-color: transparent; outline-width: 0; outline-offset: 0; }
+  16% { outline-color: currentColor; outline-width: 1px; outline-offset: 0; }
+  100% { outline-color: transparent; outline-width: 1px; outline-offset: 4px; }
+}
+
+/* Real dot elements: keep the dot fixed and animate a separate ripple ring. */
+html body .live-header .connection-status i,
+html body .connection-status i,
+html body .live-page-pinned .event-heading #sessionTitleToggle .live-pulse,
+html body .live-pulse,
+html body #courtsList .court-visual-status i,
+html body #waitingCourtsList .court-visual-status i {
+  position: relative !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+html body .live-header .connection-status i::after,
+html body .connection-status i::after,
+html body .live-page-pinned .event-heading #sessionTitleToggle .live-pulse::after,
+html body .live-pulse::after,
+html body #courtsList .court-visual-status i::after,
+html body #waitingCourtsList .court-visual-status i::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: -1px !important;
+  box-sizing: border-box !important;
+  border: 1px solid currentColor !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  opacity: .68;
+  pointer-events: none !important;
+  transform-origin: 50% 50% !important;
+  animation: liveViewDotPing 1.8s ease-out infinite !important;
+}
+
+/* Generated indicator dots use an expanding outline ripple. */
+html body .court-card .court-state::before,
+html body .court-state.ready::before,
+html body .court-state.playing::before,
+html body .court-state.up-next::before,
+html body .player-chip::before,
+html body .match-timer::before {
+  animation: liveViewDotPulse 1.65s ease-in-out infinite, liveViewGeneratedDotPing 1.8s ease-out infinite !important;
+  outline-style: solid;
+  outline-color: transparent;
+  outline-width: 0;
+  outline-offset: 0;
+}
+
+/* Live-dot animation is intentionally preserved; see the final ping rules below. */
+
+
+/* FINAL LIVE DOT PING FIX — anchor each ripple to its actual dot.
+   READY/UP NEXT centering previously forced position:static at higher specificity,
+   which detached the ripple. This restores a visible, contained ripple without moving the dot. */
+@keyframes liveViewDotPingVisible {
+  0% {
+    opacity: .85;
+    transform: scale(.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.8);
+  }
+}
+html body #courtsList .court-visual-status i,
+html body #waitingCourtsList .court-visual-status i,
+html body #courtsList .court-visual-status.is-ready i,
+html body #waitingCourtsList .court-visual-status.is-ready i,
+html body #courtsList .court-visual-status.is-playing i,
+html body #waitingCourtsList .court-visual-status.is-playing i,
+html body #courtsList .court-visual-status.is-up-next i,
+html body #waitingCourtsList .court-visual-status.is-up-next i {
+  position: relative !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+html body #courtsList .court-visual-status i::after,
+html body #waitingCourtsList .court-visual-status i::after,
+html body #courtsList .court-visual-status.is-ready i::after,
+html body #waitingCourtsList .court-visual-status.is-ready i::after,
+html body #courtsList .court-visual-status.is-playing i::after,
+html body #waitingCourtsList .court-visual-status.is-playing i::after,
+html body #courtsList .court-visual-status.is-up-next i::after,
+html body #waitingCourtsList .court-visual-status.is-up-next i::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  box-sizing: border-box !important;
+  border: 1.5px solid currentColor !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  opacity: .85;
+  pointer-events: none !important;
+  transform-origin: 50% 50% !important;
+  animation: liveViewDotPingVisible 1.4s cubic-bezier(.1, .7, .3, 1) infinite !important;
+  animation-delay: 0s !important;
+  animation-play-state: running !important;
+  z-index: 2 !important;
+}
+/* Live-dot animation is intentionally preserved; see the final ping rules below. */
+
+/* FINAL LIVE DOT PING — single authoritative rule set; keep this block last to defeat prior resets. */
+@keyframes liveDotPingReliable20261022 {
+  0%   { opacity: .92; transform: scale(.48); }
+  72%  { opacity: .32; transform: scale(2.25); }
+  100% { opacity: 0; transform: scale(2.55); }
+}
+@keyframes liveDotBreathReliable20261022 {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .68; }
+}
+
+/* The dot itself stays in place and breathes subtly; this does not change layout. */
+html body.live-view-page .live-header .connection-status i,
+html body.live-view-page .connection-status i,
+html body.live-view-page .live-page-pinned #sessionTitleToggle .live-pulse,
+html body.live-view-page .live-pulse,
+html body.live-view-page #courtsList .court-visual-status i,
+html body.live-view-page #waitingCourtsList .court-visual-status i,
+html body.live-view-page #courtsList .court-visual-status.is-ready i,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-ready i,
+html body.live-view-page #courtsList .court-visual-status.is-playing i,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-playing i,
+html body.live-view-page #courtsList .court-visual-status.is-up-next i,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-up-next i,
+html body.live-view-page .court-card .court-state::before,
+html body.live-view-page .court-state.ready::before,
+html body.live-view-page .court-state.playing::before,
+html body.live-view-page .court-state.up-next::before,
+html body.live-view-page .player-chip::before,
+html body.live-view-page .match-timer::before {
+  animation: liveDotBreathReliable20261022 1.7s ease-in-out infinite !important;
+  animation-delay: 0s !important;
+  animation-play-state: running !important;
+  will-change: opacity !important;
+}
+
+/* A separate circular ripple is anchored to each real Live indicator dot. */
+html body.live-view-page .live-header .connection-status i,
+html body.live-view-page .connection-status i,
+html body.live-view-page .live-page-pinned #sessionTitleToggle .live-pulse,
+html body.live-view-page .live-pulse,
+html body.live-view-page #courtsList .court-visual-status i,
+html body.live-view-page #waitingCourtsList .court-visual-status i,
+html body.live-view-page #courtsList .court-visual-status.is-ready i,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-ready i,
+html body.live-view-page #courtsList .court-visual-status.is-playing i,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-playing i,
+html body.live-view-page #courtsList .court-visual-status.is-up-next i,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-up-next i {
+  position: relative !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+html body.live-view-page .live-header .connection-status i::after,
+html body.live-view-page .connection-status i::after,
+html body.live-view-page .live-page-pinned #sessionTitleToggle .live-pulse::after,
+html body.live-view-page .live-pulse::after,
+html body.live-view-page #courtsList .court-visual-status i::after,
+html body.live-view-page #waitingCourtsList .court-visual-status i::after,
+html body.live-view-page #courtsList .court-visual-status.is-ready i::after,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-ready i::after,
+html body.live-view-page #courtsList .court-visual-status.is-playing i::after,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-playing i::after,
+html body.live-view-page #courtsList .court-visual-status.is-up-next i::after,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-up-next i::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: -1px !important;
+  box-sizing: border-box !important;
+  border: 1px solid currentColor !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  transform-origin: 50% 50% !important;
+  animation: liveDotPingReliable20261022 1.4s cubic-bezier(.12, .68, .28, 1) infinite !important;
+  animation-delay: 0s !important;
+  animation-play-state: running !important;
+  will-change: transform, opacity !important;
+  z-index: 3 !important;
+}
+
+
+
+/* FINAL LIVE DOT COLOR-CHANGE ANIMATION — visible hue + brightness change only.
+   Dots stay the same size and position. No rings, scaling, or layout movement. */
+@keyframes liveDotColorShift20261022 {
+  0%, 100% {
+    opacity: .82;
+    filter: hue-rotate(0deg) brightness(.82) saturate(1.15);
+  }
+  35% {
+    opacity: 1;
+    filter: hue-rotate(24deg) brightness(1.18) saturate(1.8);
+  }
+  65% {
+    opacity: .96;
+    filter: hue-rotate(12deg) brightness(1.08) saturate(1.55);
+  }
+}
+
+/* Remove all ripple pseudo-elements from earlier ping attempts. */
+html body.live-view-page .live-header .connection-status i::after,
+html body.live-view-page .connection-status i::after,
+html body.live-view-page .live-page-pinned #sessionTitleToggle .live-pulse::after,
+html body.live-view-page .live-pulse::after,
+html body.live-view-page #courtsList .court-visual-status i::after,
+html body.live-view-page #waitingCourtsList .court-visual-status i::after,
+html body.live-view-page #courtsList .court-visual-status.is-ready i::after,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-ready i::after,
+html body.live-view-page #courtsList .court-visual-status.is-playing i::after,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-playing i::after,
+html body.live-view-page #courtsList .court-visual-status.is-up-next i::after,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-up-next i::after {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Color-shifting animation on actual Live page dots; no spatial motion.
+   This deliberate color-only effect remains active with reduced-motion enabled. */
+html body.live-view-page .live-header .connection-status i,
+html body.live-view-page .connection-status i,
+html body.live-view-page .live-page-pinned #sessionTitleToggle .live-pulse,
+html body.live-view-page .live-pulse,
+html body.live-view-page #courtsList .court-visual-status i,
+html body.live-view-page #waitingCourtsList .court-visual-status i,
+html body.live-view-page .court-card .court-state::before,
+html body.live-view-page .court-state.ready::before,
+html body.live-view-page .court-state.playing::before,
+html body.live-view-page .court-state.up-next::before,
+html body.live-view-page .player-chip::before,
+html body.live-view-page .match-timer::before {
+  animation: liveDotColorShift20261022 1.55s ease-in-out infinite !important;
+  animation-delay: 0s !important;
+  animation-play-state: running !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  will-change: opacity, filter !important;
+}
+
+
+/* FINAL LIVE DOT SIZE — all primary Live page status dots are exactly 10x10px.
+   Keep their existing status colors and color-shift animation; no rings or position movement. */
+html body.live-view-page .live-header .connection-status i,
+html body.live-view-page .connection-status i,
+html body.live-view-page .live-page-pinned #sessionTitleToggle .live-pulse,
+html body.live-view-page .live-pulse,
+html body.live-view-page #courtsList .court-visual-status i,
+html body.live-view-page #waitingCourtsList .court-visual-status i,
+html body.live-view-page #courtsList .court-visual-status.is-ready i,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-ready i,
+html body.live-view-page #courtsList .court-visual-status.is-playing i,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-playing i,
+html body.live-view-page #courtsList .court-visual-status.is-up-next i,
+html body.live-view-page #waitingCourtsList .court-visual-status.is-up-next i {
+  box-sizing: border-box !important;
+  display: inline-block !important;
+  width: 6px !important;
+  height: 6px !important;
+  min-width: 6px !important;
+  min-height: 6px !important;
+  max-width: 6px !important;
+  max-height: 6px !important;
+  flex: 0 0 6px !important;
+  border-radius: 50% !important;
+  align-self: center !important;
+  margin-block: 0 !important;
+  padding: 0 !important;
 }

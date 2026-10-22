@@ -161,7 +161,7 @@
   function renderCourtCard(c) {
     // Mirror the Queueing page: regular courts are READY until playing;
     // waiting-court slots are labeled Up Next.
-    const status = c.waitingOnly ? 'Up Next' : (c.playing ? 'PLAYING' : 'READY');
+    const status = c.waitingOnly ? 'UP NEXT' : (c.playing ? 'PLAYING' : 'READY');
     const statusClass = c.waitingOnly ? 'is-up-next' : (c.playing ? 'is-playing' : 'is-ready');
     const t1 = Array.isArray(c.team1) ? c.team1 : [];
     const t2 = Array.isArray(c.team2) ? c.team2 : [];
@@ -231,7 +231,7 @@
     if (!list) return;
     const ranking = Array.isArray(currentState?.ranking) ? currentState.ranking : [];
     if (!currentState?.active || currentState?.liveRankingEnabled === false) {
-      replaceListContent(list, '<div class="live-ranking-empty"><span aria-hidden="true">🏆</span><strong>Rankings unavailable</strong><span>Live rankings are currently disabled for this session.</span><span>Request on QM to enable the live ranking.</span></div>', preserveScroll);
+      replaceListContent(list, '<div class="live-ranking-empty"><span aria-hidden="true">🏆</span><strong>Rankings unavailable</strong><span>Live rankings are currently disabled for this momment.</span><span>Request on QM to enable the live ranking.</span></div>', preserveScroll);
       return;
     }
     if (!ranking.length) {
@@ -287,27 +287,17 @@
     const count = $('matchesSectionCount');
     if (!currentState?.active || currentState?.liveMatchesEnabled === false) {
       setTextIfChanged(count, '(0)');
-      replaceListContent(list, '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>Matches unavailable</strong><span>Live matches are currently disabled for this session.</span><span>Request on QM to enable live matches.</span></div>', preserveScroll);
+      replaceListContent(list, '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>Matches unavailable</strong><span>Live matches are currently disabled for this momment.</span><span>Request on QM to enable the live matches.</span></div>', preserveScroll);
       return;
     }
     const rawSearchTerm = String($('pageMatchesSearch')?.value || '').trim();
     const searchTerm = rawSearchTerm.toLocaleLowerCase();
+    // Match search is intentionally player-name-only; court, score, and match metadata
+    // remain visible in results but do not affect which matches are filtered in.
     const filteredMatches = matches.filter(match => {
       if (!searchTerm) return true;
-      const date = match.endedAt ? new Date(match.endedAt) : null;
-      const endedAt = date && !Number.isNaN(date.getTime())
-        ? date.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-        : '';
-      const searchableValues = [
-        match.court,
-        match.winner,
-        match.loser,
-        match.score,
-        match.duration,
-        match.endedAt,
-        endedAt
-      ];
-      return searchableValues.some(value => String(value || '').toLocaleLowerCase().includes(searchTerm));
+      return [match.winner, match.loser]
+        .some(name => String(name || '').toLocaleLowerCase().includes(searchTerm));
     });
 
     // Keep the section count in sync with the same filtered results shown below.
@@ -319,7 +309,7 @@
     }
 
     if (!filteredMatches.length) {
-      replaceListContent(list, `<div class="live-ranking-empty"><span aria-hidden="true">🔎</span><strong>No matches found</strong><span>No match results match “${escapeHTML(rawSearchTerm)}”. Try another search.</span></div>`, preserveScroll);
+      replaceListContent(list, `<div class="live-ranking-empty"><span aria-hidden="true">🔎</span><strong>No matches found</strong><span>No player names match “${escapeHTML(rawSearchTerm)}”. Try another name.</span></div>`, preserveScroll);
       return;
     }
 
@@ -335,9 +325,9 @@
       const duration = String(match.duration || '').trim();
       const matchMeta = [endedAt, duration].filter(Boolean).join(' · ');
       return `<article class="live-match-row">
-        <div class="live-match-topline"><strong>${highlightSearchMatch(court, rawSearchTerm)}</strong><span>${highlightSearchMatch(matchMeta, rawSearchTerm)}</span></div>
+        <div class="live-match-topline"><strong>${escapeHTML(court)}</strong><span>${escapeHTML(matchMeta)}</span></div>
         <div class="live-match-result"><div class="live-match-winner"><span class="live-match-outcome">WINNER</span><strong>${highlightSearchMatch(winner, rawSearchTerm)}</strong></div><span class="live-match-vs">VS</span><div class="live-match-loser"><span class="live-match-outcome">OPPONENT</span><strong>${highlightSearchMatch(loser, rawSearchTerm)}</strong></div></div>
-        ${score ? `<div class="live-match-score">${highlightSearchMatch(score, rawSearchTerm)}</div>` : ''}
+        ${score ? `<div class="live-match-score">${escapeHTML(score)}</div>` : ''}
       </article>`;
     }).join(''), preserveScroll);
   }

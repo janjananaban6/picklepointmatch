@@ -20507,3 +20507,104 @@ img, svg, video, canvas { max-width: 100%; }
   html body[data-page="queueing"] .workspace { padding-left: 5px !important; padding-right: 5px !important; }
   html body[data-page="queueing"] .workspace > .panel { padding-left: 9px !important; padding-right: 9px !important; }
 }
+
+/* Queueing QR modal: style the theme control like the muted disabled Live Standing toggle,
+   while keeping it interactive; make Copy Link visually match Open Live View. */
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle:hover,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle:active,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light {
+  border: 1px solid #d5dfe2 !important;
+  border-radius: 9px !important;
+  background: linear-gradient(180deg, #f7f9fa 0%, #ebeff1 100%) !important;
+  color: #64777d !important;
+  box-shadow: 0 2px 5px rgba(7, 62, 72, 0.08) !important;
+  cursor: pointer !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-track,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .theme-switch-track {
+  border-color: #9baab0 !important;
+  background: #c4cfd3 !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-sun {
+  color: #839198 !important;
+  opacity: 0.65 !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-moon {
+  color: #667a81 !important;
+  opacity: 1 !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .theme-switch-sun {
+  color: #667a81 !important;
+  opacity: 1 !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .theme-switch-moon {
+  color: #839198 !important;
+  opacity: 0.65 !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-thumb,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .theme-switch-thumb {
+  background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .live-view-theme-label,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .live-view-theme-label {
+  color: #64777d !important;
+}
+
+#liveViewQrModal .live-view-qr-actions > #liveViewQrCopyBtn,
+#liveViewQrModal .live-view-qr-actions > #liveViewQrCopyBtn.blue,
+#liveViewQrModal .live-view-qr-actions > #liveViewQrOpenPageBtn {
+  border: 1px solid #b8dcd8 !important;
+  border-radius: 9px !important;
+  background: linear-gradient(180deg, #f7fcfb 0%, #e6f5f2 100%) !important;
+  color: #15565a !important;
+  box-shadow: 0 2px 5px rgba(7, 62, 72, 0.08) !important;
+  font-weight: 850 !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewQrCopyBtn:hover,
+#liveViewQrModal .live-view-qr-actions > #liveViewQrCopyBtn.blue:hover,
+#liveViewQrModal .live-view-qr-actions > #liveViewQrOpenPageBtn:hover {
+  border-color: #8bcfc7 !important;
+  background: linear-gradient(180deg, #eaf9f6 0%, #d9f1ed 100%) !important;
+  color: #0b6566 !important;
+  box-shadow: 0 4px 9px rgba(7, 94, 99, 0.1) !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewQrCopyBtn:active,
+#liveViewQrModal .live-view-qr-actions > #liveViewQrCopyBtn.blue:active,
+#liveViewQrModal .live-view-qr-actions > #liveViewQrOpenPageBtn:active {
+  background: linear-gradient(180deg, #e6f5f2 0%, #d9f1ed 100%) !important;
+  box-shadow: 0 1px 3px rgba(7, 62, 72, 0.1) !important;
+}
+
+
+
+/* Live View theme switch thumb: match the clean white thumb used by the muted
+   Live Standing switch, with the same left/right state movement. */
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-thumb {
+  top: 2px !important;
+  left: 2px !important;
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  transform: translateX(0) !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .theme-switch-thumb {
+  transform: translateX(20px) !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .live-view-theme-label,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .live-view-theme-label {
+  white-space: nowrap !important;
+  font-size: 9px !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle:hover,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle:active,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light {
+  gap: 4px !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
