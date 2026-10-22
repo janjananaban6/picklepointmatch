@@ -8,7 +8,7 @@
   <title>Pickle Point Match — Queueing</title>
   <script>window.ppMobileQueueingBlocked = false;</script>
 <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=queue-live-control-design-20261022-2">
+  <link rel="stylesheet" href="style.css?v=queue-theme-switch-defaults-20261022-3">
   <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261022-1">
 </head>
 <body data-page="queueing">
@@ -336,8 +336,8 @@ Maria Santos,Female"></textarea>
         <input id="liveViewQrUrl" type="text" readonly spellcheck="false">
         <div class="live-view-qr-actions">
           <button type="button" id="liveViewThemeToggle" class="live-view-theme-toggle" aria-pressed="false" aria-label="Switch Live View to light mode" title="Switch Live View to light mode"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-sun">☀</span><span class="theme-switch-icon theme-switch-moon">☾</span><span class="theme-switch-thumb"></span></span><span class="live-view-theme-label">Dark Mode</span></button>
-          <button type="button" id="liveRankingAdminToggle" class="live-ranking-admin-toggle is-enabled" aria-pressed="true" aria-label="Turn Live Standing off" title="Turn Live Standing off"><span class="live-ranking-admin-switch" aria-hidden="true"><span class="live-ranking-admin-switch-thumb"></span></span><span class="live-ranking-admin-label">Live Standing: On</span></button>
-          <button type="button" id="liveMatchesAdminToggle" class="live-ranking-admin-toggle is-enabled" aria-pressed="true" aria-label="Turn Live Matches off" title="Turn Live Matches off"><span class="live-ranking-admin-switch" aria-hidden="true"><span class="live-ranking-admin-switch-thumb"></span></span><span class="live-ranking-admin-label">Live Matches: On</span></button>
+          <button type="button" id="liveRankingAdminToggle" class="live-ranking-admin-toggle is-disabled" aria-pressed="false" aria-label="Turn Live Standing on" title="Turn Live Standing on"><span class="live-ranking-admin-switch" aria-hidden="true"><span class="live-ranking-admin-switch-thumb"></span></span><span class="live-ranking-admin-label">Live Standing: Off</span></button>
+          <button type="button" id="liveMatchesAdminToggle" class="live-ranking-admin-toggle is-disabled" aria-pressed="false" aria-label="Turn Live Matches on" title="Turn Live Matches on"><span class="live-ranking-admin-switch" aria-hidden="true"><span class="live-ranking-admin-switch-thumb"></span></span><span class="live-ranking-admin-label">Live Matches: Off</span></button>
           <button type="button" id="liveViewQrCopyBtn" class="blue">Copy Link</button>
           <button type="button" id="liveViewQrOpenPageBtn">Open Live View</button>
         </div>
@@ -372,7 +372,7 @@ Maria Santos,Female"></textarea>
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="queueing-app-loader.js?v=queue-responsive-all-devices-20261022-1" defer></script>
+<script src="queueing-app-loader.js?v=queue-session-defaults-20261022-3" defer></script>
 
 
 

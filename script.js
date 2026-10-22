@@ -21,8 +21,8 @@ const state={
   sessionName:'Open Play — Oct 6, 2026',
   duprMatch:false,
   recordScores:false,
-  liveRankingEnabled:true,
-  liveMatchesEnabled:true
+  liveRankingEnabled:false,
+  liveMatchesEnabled:false
 };
 
 const STORAGE_KEY='pickleq_v11_state';
@@ -35,7 +35,7 @@ const LIVE_VIEW_THEME_STORAGE_KEY='picklepoint_live_view_theme_v1';
 const LIVE_RANKING_ENABLED_KEY='picklepoint_live_ranking_enabled_v1';
 const LIVE_MATCHES_ENABLED_KEY='picklepoint_live_matches_enabled_v1';
 const RESULTS_TAB_STORAGE_KEY='picklepoint_results_tab_v1';
-try{state.liveRankingEnabled=localStorage.getItem(LIVE_RANKING_ENABLED_KEY)!=='false';state.liveMatchesEnabled=localStorage.getItem(LIVE_MATCHES_ENABLED_KEY)!=='false';}catch(e){}
+try{state.liveRankingEnabled=localStorage.getItem(LIVE_RANKING_ENABLED_KEY)==='true';state.liveMatchesEnabled=localStorage.getItem(LIVE_MATCHES_ENABLED_KEY)==='true';}catch(e){}
 let liveViewBroadcastChannel=null;
 let liveViewPublishInFlight=false;
 let liveViewPendingSnapshot=null;
@@ -379,7 +379,7 @@ function liveViewPlayerLabel(p){
 }
 function isLiveRankingEnabled(){
   if(typeof state.liveRankingEnabled==='boolean')return state.liveRankingEnabled;
-  try{return localStorage.getItem(LIVE_RANKING_ENABLED_KEY)!=='false';}catch(e){return true;}
+  try{return localStorage.getItem(LIVE_RANKING_ENABLED_KEY)==='true';}catch(e){return false;}
 }
 function syncLiveRankingAdminToggle(enabled=isLiveRankingEnabled()){
   const button=$('liveRankingAdminToggle');
@@ -407,7 +407,7 @@ function initLiveRankingAdminToggle(){
   });
   window.addEventListener('storage',event=>{
     if(event.key===LIVE_RANKING_ENABLED_KEY){
-      state.liveRankingEnabled=event.newValue!=='false';
+      state.liveRankingEnabled=event.newValue==='true';
       syncLiveRankingAdminToggle(state.liveRankingEnabled);
       publishLiveViewState();
     }
@@ -415,7 +415,7 @@ function initLiveRankingAdminToggle(){
 }
 function isLiveMatchesEnabled(){
   if(typeof state.liveMatchesEnabled==='boolean')return state.liveMatchesEnabled;
-  try{return localStorage.getItem(LIVE_MATCHES_ENABLED_KEY)!=='false';}catch(e){return true;}
+  try{return localStorage.getItem(LIVE_MATCHES_ENABLED_KEY)==='true';}catch(e){return false;}
 }
 function syncLiveMatchesAdminToggle(enabled=isLiveMatchesEnabled()){
   const button=$('liveMatchesAdminToggle');
@@ -443,11 +443,23 @@ function initLiveMatchesAdminToggle(){
   });
   window.addEventListener('storage',event=>{
     if(event.key===LIVE_MATCHES_ENABLED_KEY){
-      state.liveMatchesEnabled=event.newValue!=='false';
+      state.liveMatchesEnabled=event.newValue==='true';
       syncLiveMatchesAdminToggle(state.liveMatchesEnabled);
       publishLiveViewState();
     }
   });
+}
+function resetLiveViewFeatureTogglesForNewSession(){
+  // Every newly created session starts with both public Live View sections disabled.
+  // Continuing an existing session does not call this helper, so its saved settings remain intact.
+  state.liveRankingEnabled=false;
+  state.liveMatchesEnabled=false;
+  try{
+    localStorage.setItem(LIVE_RANKING_ENABLED_KEY,'false');
+    localStorage.setItem(LIVE_MATCHES_ENABLED_KEY,'false');
+  }catch(e){}
+  syncLiveRankingAdminToggle(false);
+  syncLiveMatchesAdminToggle(false);
 }
 
 function buildLiveViewSnapshot(){
@@ -3771,6 +3783,7 @@ function enterLiveQueueFromStart(){
   const sessionInput=$('liveQueueSessionName');
   enforceLiveQueueSessionPrefix();
   state.sessionName=sessionInput?.value?.trim()||name;
+  resetLiveViewFeatureTogglesForNewSession();
   state.sessionActive=true;
   state.sessionEndedAt=null;
   state.duprMatch=!!$('liveQueueDupr')?.checked;
@@ -3865,6 +3878,7 @@ function applyPendingLiveQueueStartConfig(){
   const winBy=Number(config.winBy)||1;
   const matchingMode=['balanced','social-mix','skill-separated','winners-losers'].includes(config.matchingMode)?config.matchingMode:'balanced';
   state.sessionName=String(config.sessionName||getAutoLiveQueueSessionName(false)).trim()||getAutoLiveQueueSessionName(false);
+  resetLiveViewFeatureTogglesForNewSession();
   state.sessionActive=true;
   state.sessionEndedAt=null;
   state.duprMatch=false;

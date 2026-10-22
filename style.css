@@ -16617,7 +16617,9 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
 /* Offline fallback for the Live View QR preview: show only the fading topbar emblem. */
 .live-view-qr-image-wrap{position:relative;overflow:hidden;}
 .live-view-qr-image-wrap #liveViewQrImage[hidden],
+.live-view-qr-image-wrap #registrationQrImage[hidden],
 .live-view-qr-image-wrap #liveViewQrUnavailable[hidden],
+.live-view-qr-image-wrap #registrationQrUnavailable[hidden],
 .live-view-qr-image-wrap .live-view-qr-offline-loader[hidden]{display:none!important;}
 .live-view-qr-image-wrap .live-view-qr-offline-loader{
   position:absolute;inset:12px;display:flex;align-items:center;justify-content:center;
@@ -20607,4 +20609,107 @@ img, svg, video, canvas { max-width: 100%; }
   gap: 4px !important;
   padding-left: 4px !important;
   padding-right: 4px !important;
+}
+
+/* Queueing page — refined Light/Night slider track for the QR/share modal. */
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-track {
+  width: 46px !important;
+  height: 24px !important;
+  flex-basis: 46px !important;
+  border: 1px solid #245b65 !important;
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, #154753 0%, #092d39 100%) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .32), 0 1px 0 rgba(255, 255, 255, .16) !important;
+  transition: background .24s ease, border-color .24s ease, box-shadow .24s ease !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .theme-switch-track {
+  border-color: #d5b54d !important;
+  background: linear-gradient(135deg, #ffedab 0%, #f3ce63 100%) !important;
+  box-shadow: inset 0 1px 2px rgba(112, 82, 14, .18), 0 1px 0 rgba(255, 255, 255, .4) !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-thumb {
+  top: 2px !important;
+  left: 2px !important;
+  width: 18px !important;
+  height: 18px !important;
+  border: 1px solid rgba(21, 61, 71, .14) !important;
+  border-radius: 50% !important;
+  background: linear-gradient(180deg, #ffffff 0%, #e9f1f3 100%) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .22), inset 0 1px 0 rgba(255, 255, 255, .95) !important;
+  transform: translateX(0) !important;
+  transition: transform .28s cubic-bezier(.22, .8, .25, 1), background .22s ease, box-shadow .22s ease !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .theme-switch-thumb {
+  background: linear-gradient(180deg, #ffffff 0%, #fff8dc 100%) !important;
+  box-shadow: 0 2px 4px rgba(102, 72, 8, .2), inset 0 1px 0 #ffffff !important;
+  transform: translateX(22px) !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-sun {
+  left: 5px !important;
+  color: #ffe08a !important;
+  opacity: .7 !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-moon {
+  right: 5px !important;
+  color: #d7e8f4 !important;
+  opacity: 1 !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .theme-switch-sun {
+  color: #946d13 !important;
+  opacity: 1 !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .theme-switch-moon {
+  color: #7d817e !important;
+  opacity: .52 !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  #liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-track,
+  #liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-thumb {
+    transition: none !important;
+  }
+}
+
+
+/* Keep both QR previews the same size while offline; the absolute loader must
+   not make the registration QR container collapse on small screens. */
+#liveViewQrImageWrap.is-offline,
+#registrationQrImageWrap.is-offline {
+  min-height: 250px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+@media (max-width: 560px) {
+  #liveViewQrImageWrap.is-offline,
+  #registrationQrImageWrap.is-offline {
+    min-height: 210px !important;
+  }
+}
+
+/* Normalize the Light/Night control's alignment in both states. The thumb
+   remains inset by 2px on either side of the fixed-size track. */
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle:hover,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle:active,
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-track {
+  box-sizing: border-box !important;
+  flex: 0 0 46px !important;
+  width: 46px !important;
+  height: 24px !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-thumb {
+  box-sizing: border-box !important;
+  top: 2px !important;
+  left: 2px !important;
+  width: 18px !important;
+  height: 18px !important;
+  transform: translateX(0) !important;
+}
+#liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle.is-light .theme-switch-thumb {
+  transform: translateX(22px) !important;
 }

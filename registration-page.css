@@ -593,3 +593,321 @@ html body.registration-page-body .registration-page-intro h1 {
 @media (max-width: 760px) {
   .registration-page-shell { padding-top: 66px; }
 }
+
+
+/* Registration name inputs — align placeholders and keep normal text selection usable. */
+html body.registration-page-body .registration-page-form.registration-area #registerFullname,
+html body.registration-page-body .registration-page-form.registration-area #registerNickname {
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 7px 0 12px !important;
+  box-sizing: border-box !important;
+  text-align: left !important;
+  text-indent: 0 !important;
+  line-height: normal !important;
+  vertical-align: middle !important;
+  cursor: text !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -webkit-touch-callout: default !important;
+  touch-action: auto !important;
+  caret-color: #087d79 !important;
+}
+
+html body.registration-page-body .registration-page-form.registration-area #registerFullname::placeholder,
+html body.registration-page-body .registration-page-form.registration-area #registerNickname::placeholder {
+  text-align: left !important;
+  line-height: normal !important;
+  vertical-align: middle !important;
+  opacity: 1 !important;
+}
+
+html body.registration-page-body .registration-page-form.registration-area #registerFullname::selection,
+html body.registration-page-body .registration-page-form.registration-area #registerNickname::selection {
+  color: #183b40 !important;
+  background: rgba(8, 125, 121, 0.25) !important;
+}
+
+/* REGISTRATION LIVE HEADER + CONNECTION DOT — mirror the effective Live View styling. */
+html body.registration-page-body > .live-header {
+  box-sizing: border-box !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex: 0 0 58px !important;
+  width: 100% !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  max-height: 58px !important;
+  padding: 0 clamp(16px, 4vw, 54px) !important;
+  gap: 16px !important;
+  border-bottom: 1px solid #24535a !important;
+  background: rgba(4, 30, 37, .92) !important;
+  box-shadow: none !important;
+  color: #eefafa !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  backdrop-filter: blur(14px) !important;
+}
+html body.registration-page-body > .live-header .brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+  color: #eefafa !important;
+}
+html body.registration-page-body > .live-header .brand img {
+  width: 39px !important;
+  height: 39px !important;
+  object-fit: contain !important;
+}
+html body.registration-page-body > .live-header .brand-words b {
+  font-size: 14px !important;
+  font-weight: 950 !important;
+}
+html body.registration-page-body > .live-header .brand-words strong {
+  color: #27d3c5 !important;
+}
+html body.registration-page-body > .live-header .brand-words small {
+  font-size: 8px !important;
+  letter-spacing: 4px !important;
+  font-weight: 900 !important;
+  color: #95c4c7 !important;
+}
+html body.registration-page-body > .live-header .header-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+  flex: 0 1 auto !important;
+}
+html body.registration-page-body > .live-header #registrationConnectionStatus {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 7px 10px !important;
+  border: 1px solid #2d6569 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  color: #b9d4d6 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: normal !important;
+  white-space: nowrap !important;
+}
+
+/* Match the Live View's actual 6px status dot and color-only animation. */
+html body.registration-page-body > .live-header #registrationConnectionStatus i {
+  box-sizing: border-box !important;
+  position: relative !important;
+  display: inline-block !important;
+  width: 6px !important;
+  height: 6px !important;
+  min-width: 6px !important;
+  min-height: 6px !important;
+  max-width: 6px !important;
+  max-height: 6px !important;
+  flex: 0 0 6px !important;
+  border-radius: 50% !important;
+  align-self: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  animation: liveDotColorShift20261022 1.55s ease-in-out infinite !important;
+  animation-delay: 0s !important;
+  animation-play-state: running !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  will-change: opacity, filter !important;
+}
+html body.registration-page-body > .live-header #registrationConnectionStatus.connected i {
+  background: #37d6a1 !important;
+  box-shadow: none !important;
+}
+html body.registration-page-body > .live-header #registrationConnectionStatus.local i {
+  background: #ffb04e !important;
+  box-shadow: none !important;
+}
+/* Live View has no expanding ring around its connection dot; suppress legacy ripple rules here too. */
+html body.registration-page-body > .live-header #registrationConnectionStatus i::after {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 560px) {
+  html body.registration-page-body > .live-header {
+    height: 58px !important;
+    min-height: 58px !important;
+    padding: 0 13px !important;
+    gap: 7px !important;
+  }
+  html body.registration-page-body > .live-header .brand {
+    gap: 10px !important;
+  }
+  html body.registration-page-body > .live-header .brand img {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  html body.registration-page-body > .live-header .brand-words b {
+    font-size: 11px !important;
+  }
+  html body.registration-page-body > .live-header .brand-words small {
+    font-size: 7px !important;
+    letter-spacing: 3px !important;
+  }
+  html body.registration-page-body > .live-header .header-right {
+    gap: 5px !important;
+  }
+  html body.registration-page-body > .live-header #registrationConnectionStatus {
+    height: 25px !important;
+    max-width: 42vw !important;
+    gap: 5px !important;
+    padding: 6px 7px !important;
+    font-size: 9px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
+/* Match Live View's compact brand sizing on narrow phones (<=380px). */
+@media (max-width: 380px) {
+  html body.registration-page-body > .live-header .brand {
+    gap: 6px !important;
+  }
+  html body.registration-page-body > .live-header .brand img {
+    width: 29px !important;
+    height: 29px !important;
+  }
+  html body.registration-page-body > .live-header .brand-words b {
+    font-size: 10px !important;
+  }
+  html body.registration-page-body > .live-header .brand-words small {
+    font-size: 7px !important;
+    letter-spacing: 2.2px !important;
+  }
+}
+
+
+/* Queue-added toast: shared live queue events, styled to match the supplied reference. */
+.registration-queue-toast[hidden] {
+  display: none !important;
+}
+.registration-page-body .registration-queue-toast {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  z-index: 2200;
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 4.2vw, 30px);
+  width: min(660px, calc(100vw - 28px));
+  min-height: 174px;
+  margin: 0;
+  padding: 23px clamp(22px, 5.2vw, 36px);
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 2px solid #2c3d33;
+  border-radius: 40px;
+  background: #101f16;
+  color: #edf4ef;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, .28);
+  opacity: 0;
+  transform: translate(-50%, calc(-100% - 28px));
+  pointer-events: none;
+  transition: transform .38s cubic-bezier(.2,.8,.2,1), opacity .28s ease;
+}
+.registration-page-body .registration-queue-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.registration-page-body .registration-queue-toast-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 90px;
+  width: 90px;
+  height: 90px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: #a1ed23;
+  color: #10251a;
+}
+.registration-page-body .registration-queue-toast-icon svg {
+  display: block;
+  width: 55px;
+  height: 55px;
+}
+.registration-page-body .registration-queue-toast-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  gap: 8px;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+.registration-page-body .registration-queue-toast-copy strong {
+  display: block;
+  margin: 0;
+  color: #edf4ef;
+  font-size: clamp(25px, 5.8vw, 42px);
+  line-height: 1.08;
+  font-weight: 850;
+  letter-spacing: -1.1px;
+}
+.registration-page-body .registration-queue-toast-copy > span {
+  display: block;
+  color: #91a79a;
+  font-size: clamp(20px, 4.8vw, 35px);
+  font-weight: 450;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 520px) {
+  .registration-page-body .registration-queue-toast {
+    top: 10px;
+    gap: 16px;
+    min-height: 122px;
+    padding: 17px 19px;
+    border-radius: 28px;
+  }
+  .registration-page-body .registration-queue-toast-icon {
+    flex-basis: 66px;
+    width: 66px;
+    height: 66px;
+  }
+  .registration-page-body .registration-queue-toast-icon svg {
+    width: 42px;
+    height: 42px;
+  }
+  .registration-page-body .registration-queue-toast-copy {
+    gap: 5px;
+  }
+  .registration-page-body .registration-queue-toast-copy strong {
+    font-size: clamp(22px, 6vw, 29px);
+    letter-spacing: -.65px;
+  }
+  .registration-page-body .registration-queue-toast-copy > span {
+    font-size: clamp(18px, 5vw, 24px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .registration-page-body .registration-queue-toast {
+    transition: opacity .15s ease;
+    transform: translate(-50%, -12px);
+  }
+  .registration-page-body .registration-queue-toast.is-visible {
+    transform: translate(-50%, 0);
+  }
+}

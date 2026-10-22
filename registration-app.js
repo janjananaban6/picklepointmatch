@@ -10,6 +10,12 @@
   let submitting = false;
   let cloudEvents = null;
   let eyebrowThemeEvents = null;
+  let previousQueueIds = new Set();
+  let queueBaselineReady = false;
+  const addedPlayerToastQueue = [];
+  const recentlyNotifiedPlayers = new Map();
+  let addedPlayerToastActive = false;
+  let addedPlayerToastTimer = null;
 
   const LIVE_THEME_STORAGE_KEY = 'picklepoint_live_view_theme_v1';
 
@@ -86,6 +92,83 @@
     appPlayers = players.concat(left).filter(player => player && player.name);
   }
 
+  function primeQueueWatcher(state) {
+    if (queueBaselineReady || !state || !Array.isArray(state.queue)) return;
+    previousQueueIds = new Set(state.queue.map(id => String(id)));
+    queueBaselineReady = true;
+  }
+
+  function observeQueueState(state) {
+    if (!state || !Array.isArray(state.queue)) return;
+    const currentQueueIds = new Set(state.queue.map(id => String(id)));
+    if (!queueBaselineReady) {
+      previousQueueIds = currentQueueIds;
+      queueBaselineReady = true;
+      return;
+    }
+
+    const newlyQueuedIds = [...currentQueueIds].filter(id => !previousQueueIds.has(id));
+    previousQueueIds = currentQueueIds;
+    if (!newlyQueuedIds.length) return;
+
+    const roster = (Array.isArray(state.players) ? state.players : [])
+      .concat(Array.isArray(state.left) ? state.left : []);
+    newlyQueuedIds.forEach(id => {
+      const player = roster.find(item => item && String(item.id) === id);
+      if (player && player.name) notifyPlayerAdded(player.name);
+    });
+  }
+
+  function notifyPlayerAdded(name) {
+    const cleanName = String(name || '').trim();
+    if (!cleanName) return;
+    const key = normalizedName(cleanName);
+    const now = Date.now();
+    const lastNotified = recentlyNotifiedPlayers.get(key);
+    // A local registration response and its shared app-state event can arrive together.
+    // Suppress that duplicate, while still allowing later queue re-entries to notify again.
+    if (lastNotified && now - lastNotified < 4500) return;
+    recentlyNotifiedPlayers.set(key, now);
+    if (recentlyNotifiedPlayers.size > 100) {
+      for (const [playerKey, timestamp] of recentlyNotifiedPlayers) {
+        if (now - timestamp > 15000) recentlyNotifiedPlayers.delete(playerKey);
+      }
+    }
+    addedPlayerToastQueue.push(cleanName);
+    if (!addedPlayerToastActive) displayNextAddedPlayerToast();
+  }
+
+  function displayNextAddedPlayerToast() {
+    const toast = $('registrationQueueAddedToast');
+    const name = $('registrationQueueAddedName');
+    if (!toast || !name) {
+      addedPlayerToastQueue.length = 0;
+      addedPlayerToastActive = false;
+      return;
+    }
+    const nextName = addedPlayerToastQueue.shift();
+    if (!nextName) {
+      addedPlayerToastActive = false;
+      return;
+    }
+
+    addedPlayerToastActive = true;
+    name.textContent = nextName;
+    toast.hidden = false;
+    toast.classList.remove('is-visible');
+    window.requestAnimationFrame(() => toast.classList.add('is-visible'));
+
+    window.clearTimeout(addedPlayerToastTimer);
+    addedPlayerToastTimer = window.setTimeout(() => {
+      toast.classList.remove('is-visible');
+      window.setTimeout(() => {
+        toast.hidden = true;
+        if (addedPlayerToastQueue.length) displayNextAddedPlayerToast();
+        else addedPlayerToastActive = false;
+      }, 390);
+    }, 2900);
+  }
+
   function duplicatePlayer(name) {
     const normalized = normalizedName(name);
     if (!normalized) return null;
@@ -150,6 +233,7 @@
       if (!response.ok) throw new Error('Registered Player Cloud is unavailable.');
       const [data, appStateData] = await Promise.all([response.json(), appStateRequest]);
       cloudPlayers = Array.isArray(data.records?.players) ? data.records.players : [];
+      primeQueueWatcher(appStateData?.state);
       updateAppPlayers(appStateData?.state);
       serviceReady = true;
       setConnection(true, 'Connected');
@@ -180,6 +264,7 @@
       cloudEvents.addEventListener('app-state', event => {
         try {
           const payload = JSON.parse(event.data);
+          observeQueueState(payload.state);
           updateAppPlayers(payload.state);
           updateSubmitButton();
         } catch (_) {}
@@ -259,11 +344,7 @@
 
       cloudPlayers.push(data.player);
       setPageStatus('Registration saved successfully.', 'success');
-      if (data.queued) {
-        showResult('Registration successful!', `${data.player.name} has been saved to Registered Player Cloud and added to the waiting queue.`);
-      } else {
-        showResult('Player profile saved', `${data.player.name} has been saved to Registered Player Cloud. This player is already assigned to a court, so they were not added to the waiting queue again.`);
-      }
+      if (data.queued) notifyPlayerAdded(data.player.name);
       resetForm();
       $('registerFullname').focus();
     } catch (error) {

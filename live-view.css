@@ -708,7 +708,7 @@ html body .court-card.court-visual-card {
   flex-direction: column !important;
   gap: 0 !important;
   min-width: 0 !important;
-  padding: 22px 18px 18px !important;
+  padding: 18px 18px 18px !important;
   overflow: hidden !important;
   border: 1px solid #35421f !important;
   border-radius: 22px !important;
@@ -946,7 +946,7 @@ html body .court-card.court-visual-card.playing {
 .court-visual-score b { color: #a5c62e; font-size: 15px; }
 .court-visual-score span { color: #87988e; }
 @media (max-width: 560px) {
-  html body .court-card.court-visual-card { padding: 22px 13px 17px !important; border-radius: 21px !important; }
+  html body .court-card.court-visual-card { padding: 18px 18px 18px !important; border-radius: 22px !important; }
   .court-visual-header { margin-bottom: 23px; }
   .court-visual-name { font-size: 11px; letter-spacing: 1.2px; }
   .court-mini-timer { padding: 4px 8px; font-size: 11px; }
@@ -3645,4 +3645,11 @@ html body.live-view-page #waitingCourtsList .court-visual-status.is-up-next i {
   align-self: center !important;
   margin-block: 0 !important;
   padding: 0 !important;
+}
+
+/* Live page: keep count text inline and transparent in Light mode. */
+html[data-theme="light"] body.live-view-page .panel-count {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
