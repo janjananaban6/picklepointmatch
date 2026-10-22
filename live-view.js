@@ -331,6 +331,18 @@
 
   function render() {
     const s = currentState;
+    // Preserve the user's visible court on both horizontal lists while live data
+    // replaces card DOM nodes. An innerHTML rebuild can reset scrollLeft on iOS,
+    // Safari, and some Chromium layouts even when the court count is unchanged.
+    const courtScrollSnapshots = ['courtsList', 'waitingCourtsList'].map(id => {
+      const list = $(id);
+      return list ? {
+        list,
+        left: list.scrollLeft,
+        top: list.scrollTop,
+        horizontal: list.classList.contains('is-horizontal-scroll')
+      } : null;
+    });
     renderLiveRanking('pageRankingList', 'pageRankingSearch');
     renderRecentMatches();
     const active = !!s?.active;
@@ -384,6 +396,14 @@
     $('waitingCourtsSection').hidden = waitingCourts.length === 0;
     $('waitingCourtSectionCount').textContent = `${waitingCourts.length} planned`;
     $('waitingCourtsList').innerHTML = waitingCourts.map((court, index) => renderCourtCard(court, 'waiting', index)).join('');
+    // Reapply scroll offsets before geometry is measured by the layout
+    // controllers. This keeps Court 2/3/etc visible during ordinary live updates,
+    // including empty court cards; only an explicit layout toggle resets to Court 1.
+    courtScrollSnapshots.forEach(snapshot => {
+      if (!snapshot || !snapshot.horizontal || !snapshot.list.classList.contains('is-horizontal-scroll')) return;
+      snapshot.list.scrollLeft = snapshot.left;
+      snapshot.list.scrollTop = snapshot.top;
+    });
     courtLayoutController?.syncCardCount();
     waitingCourtLayoutController?.syncCardCount();
 
@@ -567,6 +587,7 @@
     if (!toggle || !list) return null;
     let horizontalMode = false;
     let transitionToken = 0;
+    let scrollResetToken = 0;
     let animations = [];
     let transitionStacking = new Map();
     // Keep the vertical card geometry across live re-renders. render() replaces
@@ -659,6 +680,38 @@
       toggle.title = nextModeLabel;
     }
 
+    // Browser scroll-snap (especially on iPad/iOS) can restore the last snap
+    // point when a list is switched back to horizontal mode. Temporarily disable
+    // snapping and force Court 1 to the leading edge over the next two frames.
+    // The token prevents an older reset from overriding a newer layout change.
+    function resetScrollToFirstCard() {
+      const resetToken = ++scrollResetToken;
+      list.classList.add('is-resetting-court-scroll');
+      list.scrollLeft = 0;
+      list.scrollTop = 0;
+      if (typeof list.scrollTo === 'function') {
+        try { list.scrollTo({ left: 0, top: 0, behavior: 'auto' }); } catch (error) {}
+      }
+      void list.offsetWidth;
+
+      const requestFrame = typeof window.requestAnimationFrame === 'function'
+        ? window.requestAnimationFrame.bind(window)
+        : callback => window.setTimeout(callback, 16);
+      requestFrame(() => {
+        if (resetToken !== scrollResetToken) return;
+        list.scrollLeft = 0;
+        if (typeof list.scrollTo === 'function') {
+          try { list.scrollTo({ left: 0, top: 0, behavior: 'auto' }); } catch (error) {}
+        }
+        void list.offsetWidth;
+        requestFrame(() => {
+          if (resetToken !== scrollResetToken) return;
+          list.scrollLeft = 0;
+          list.classList.remove('is-resetting-court-scroll');
+        });
+      });
+    }
+
     async function setMode(horizontal, animate = true) {
       const token = ++transitionToken;
       const wasHorizontalMode = horizontalMode;
@@ -671,7 +724,7 @@
       // the mobile breakpoint, without carrying horizontal state to desktop.
       if (!isMobile) {
         list.classList.remove('is-horizontal-scroll');
-        list.scrollLeft = 0;
+        resetScrollToFirstCard();
         lockedGeometry = [];
         list.querySelectorAll('.court-card').forEach(card => {
           card.style.removeProperty('--court-layout-fixed-height');
@@ -714,9 +767,9 @@
 
       if (!canAnimate) {
         list.classList.toggle('is-horizontal-scroll', horizontalMode);
-        // Always start at court one when switching into horizontal mode, so
-        // the preview of the next court stays on the right (not the left).
-        if (!horizontalMode || !wasHorizontalMode) list.scrollLeft = 0;
+        // Reset on every layout exit and whenever horizontal mode is entered;
+        // both regular and waiting-court lists use this same controller.
+        if (!horizontalMode || !wasHorizontalMode) resetScrollToFirstCard();
         applyLockedGeometry();
         return;
       }
@@ -725,8 +778,9 @@
       // height is retained in horizontal mode, preventing the layout from
       // making court cards look shorter while showing the next card on the right.
       list.classList.toggle('is-horizontal-scroll', horizontalMode);
-      // Reset only on entry; do not interrupt a user's later manual swipe.
-      if (!horizontalMode || !wasHorizontalMode) list.scrollLeft = 0;
+      // Reset only when changing layout, not during live re-renders while the
+      // user is swiping through courts. Prevent native snap restoration on exit.
+      if (!horizontalMode || !wasHorizontalMode) resetScrollToFirstCard();
       applyLockedGeometry();
       list.classList.add('is-court-layout-transitioning');
 
@@ -767,6 +821,7 @@
       if (!nextAnimations.length) {
         restoreTransitionStacking();
         list.classList.remove('is-court-layout-transitioning');
+        if (!horizontalMode || !wasHorizontalMode) resetScrollToFirstCard();
         return;
       }
 
@@ -782,6 +837,10 @@
       animations = [];
       restoreTransitionStacking();
       list.classList.remove('is-court-layout-transitioning');
+      // Do the final reset only for the latest completed toggle. Resetting after
+      // the FLIP animation is important on mobile Safari/iPad where scroll snap
+      // can otherwise move back to a previously viewed card.
+      if (!horizontalMode || !wasHorizontalMode) resetScrollToFirstCard();
     }
 
     function refreshLockedGeometryFromCurrentCards() {

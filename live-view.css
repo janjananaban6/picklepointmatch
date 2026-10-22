@@ -2849,3 +2849,34 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-the
   }
 }
 
+
+
+/* COURT LAYOUT TOGGLE — suppress iOS scroll-snap restoration while resetting
+   horizontal courts to Court 1. This applies equally to the waiting-court list. */
+html body #courtsList.courts-grid.is-resetting-court-scroll,
+html body #waitingCourtsList.courts-grid.is-resetting-court-scroll {
+  scroll-snap-type: none !important;
+  scroll-behavior: auto !important;
+  overflow-anchor: none !important;
+}
+
+
+/* DEVICE-WIDE RESPONSIVE SAFETY — Live View */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { overflow-x: hidden; }
+button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+@media (max-width: 380px) {
+  .live-header { gap: 7px; }
+  .brand { gap: 6px; }
+  .brand-words b { font-size: 10px; }
+  .brand-words small { letter-spacing: 2px; }
+  .header-right { min-width: 0; }
+  .connection-status { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; }
+  .page-shell { padding-left: 8px; padding-right: 8px; }
+  .section-card { padding-left: 9px; padding-right: 9px; }
+}
+@media (max-width: 560px) {
+  #courtsList, #waitingCourtsList { overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  #courtsList > .court-card, #waitingCourtsList > .court-card { scroll-margin-inline-start: 0; }
+  .court-layout-toggle { touch-action: manipulation; min-width: 40px; min-height: 40px; }
+}

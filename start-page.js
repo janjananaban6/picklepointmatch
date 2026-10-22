@@ -1,8 +1,6 @@
 /* Standalone Start Screen controller. The queueing workspace lives in queueing.html. */
 (function () {
   'use strict';
-  if (window.ppMobileQueueingBlocked) return;
-
   const STATE_KEY = 'pickleq_v11_state';
   const LEGACY_STATE_KEYS = ['pickleq_v10_state', 'pickleq_v9_state', 'pickleq_v8_state', 'pickleq_v7_state', 'pickleq_v6_state'];
   const SAVED_AT_KEY = 'pickleq_v11_state_saved_at';

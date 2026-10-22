@@ -614,6 +614,7 @@ function setLiveViewTheme(theme,publish=true){
 function initLiveViewThemeController(){
   let initial='night';
   let themeChangedLocally=false;
+  let remoteThemeReceived=false;
   try{const saved=localStorage.getItem(LIVE_VIEW_THEME_STORAGE_KEY);if(saved==='light'||saved==='night')initial=saved;}catch(e){}
   syncLiveViewThemeButton(initial);
   $('liveViewThemeToggle')?.addEventListener('click',()=>{
@@ -630,8 +631,22 @@ function initLiveViewThemeController(){
     }
   });
   if(location.protocol==='http:'||location.protocol==='https:'){
+    // Subscribe to the server's shared theme stream. localStorage only syncs
+    // tabs in the same browser; the server stream keeps other devices in step.
+    try{
+      if(typeof EventSource!=='undefined'){
+        const themeEvents=new EventSource('/api/live-events');
+        themeEvents.addEventListener('live-theme',event=>{
+          const theme=String(event.data||'').trim();
+          if(theme!=='light'&&theme!=='night')return;
+          remoteThemeReceived=true;
+          setLiveViewTheme(theme,false);
+        });
+      }
+    }catch(e){}
+    // Keep GET as a fallback for servers/proxies where EventSource is unavailable.
     fetch('/api/live-theme',{cache:'no-store'}).then(response=>response.ok?response.json():null).then(data=>{
-      if(!themeChangedLocally&&data&&(data.theme==='light'||data.theme==='night'))setLiveViewTheme(data.theme,false);
+      if(!themeChangedLocally&&!remoteThemeReceived&&data&&(data.theme==='light'||data.theme==='night'))setLiveViewTheme(data.theme,false);
     }).catch(()=>{});
   }
 }

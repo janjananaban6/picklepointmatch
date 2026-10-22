@@ -6,74 +6,11 @@
   <meta name="description" content="Pickle Point Match is a pickleball queueing and court management app for organizing players, matches, and live court activity.">
   <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
   <title>Pickle Point Match — Start</title>
-  <script>
-    (function () {
-      var ua = navigator.userAgent || '';
-      var isIPad = /iPad/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1 && Math.min(screen.width || 0, screen.height || 0) >= 600);
-      var isMobilePhone = !isIPad && (
-        (navigator.userAgentData && navigator.userAgentData.mobile === true) ||
-        /iPhone|iPod|Windows Phone|IEMobile|BlackBerry|BB10|Opera Mini/i.test(ua) ||
-        (/Android/i.test(ua) && /Mobile/i.test(ua))
-      );
-      window.ppMobileQueueingBlocked = Boolean(isMobilePhone);
-      if (window.ppMobileQueueingBlocked) document.documentElement.classList.add('mobile-queueing-blocked');
-    })();
-  </script>
-  <style>
-    html.mobile-queueing-blocked,
-    html.mobile-queueing-blocked body { min-height:100%; background:#061f27; }
-    html.mobile-queueing-blocked body { margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; color:#eefafa; }
-    html.mobile-queueing-blocked body > :not(#mobileQueueingRestricted) { display:none !important; }
-    html.mobile-queueing-blocked #mobileQueueingRestricted {
-      box-sizing:border-box; position:fixed; inset:0; z-index:2147483647; display:flex !important;
-      align-items:center; justify-content:center; overflow-y:auto; padding:24px 18px;
-      background:radial-gradient(ellipse at 50% -170px,#18515b 0,transparent 65%),#061f27;
-    }
-    #mobileQueueingRestricted .mobile-restriction-card {
-      box-sizing:border-box; width:min(100%,440px); padding:30px 25px 26px; text-align:center;
-      border:1px solid #1c5059; border-radius:22px;
-      background:linear-gradient(155deg,rgba(11,48,57,.98),rgba(7,39,47,.98));
-      box-shadow:0 22px 70px rgba(0,0,0,.28);
-    }
-    #mobileQueueingRestricted .mobile-restriction-logo { width:68px; height:68px; object-fit:contain; margin:0 auto 13px; display:block; }
-    #mobileQueueingRestricted .mobile-restriction-brand { margin:0; font-size:13px; font-weight:950; letter-spacing:1px; }
-    #mobileQueueingRestricted .mobile-restriction-brand span { color:#27d3c5; }
-    #mobileQueueingRestricted .mobile-restriction-brand-sub { margin:3px 0 24px; color:#95c4c7; font-size:8px; font-weight:900; letter-spacing:4px; }
-    #mobileQueueingRestricted .mobile-restriction-icon {
-      width:54px; height:54px; margin:0 auto 16px; border:1px solid #725c31; border-radius:17px;
-      display:grid; place-items:center; background:#332f21; color:#ffcf79; font-size:25px;
-    }
-    #mobileQueueingRestricted h1 { margin:0 auto 11px; max-width:340px; font-size:clamp(23px,6vw,29px); line-height:1.16; letter-spacing:-.8px; font-weight:950; }
-    #mobileQueueingRestricted .mobile-restriction-copy { margin:0 auto; max-width:340px; color:#a8c5c9; font-size:13px; line-height:1.7; }
-    #mobileQueueingRestricted .mobile-restriction-note { margin:18px 0 22px; padding:12px 13px; border:1px solid #24575d; border-radius:12px; background:#0a2a32; color:#d7eeee; font-size:12px; line-height:1.55; }
-    #mobileQueueingRestricted .mobile-restriction-note strong { color:#27d3c5; }
-    #mobileQueueingRestricted .mobile-restriction-live-link {
-      box-sizing:border-box; display:flex; min-height:48px; align-items:center; justify-content:center; gap:9px;
-      width:100%; padding:13px 17px; border:1px solid #27d3c5; border-radius:12px;
-      color:#042b31; background:#27d3c5; font-size:14px; font-weight:950; text-decoration:none;
-      transition:filter .15s ease,transform .15s ease;
-    }
-    #mobileQueueingRestricted .mobile-restriction-live-link:active { transform:scale(.985); }
-    #mobileQueueingRestricted .mobile-restriction-footer { margin:15px 0 0; color:#729da3; font-size:10px; line-height:1.6; }
-    @media(max-height:620px) { #mobileQueueingRestricted .mobile-restriction-card { padding:20px 20px 18px; } #mobileQueueingRestricted .mobile-restriction-logo { width:48px; height:48px; margin-bottom:8px; } #mobileQueueingRestricted .mobile-restriction-brand-sub { margin-bottom:15px; } #mobileQueueingRestricted .mobile-restriction-icon { width:43px; height:43px; margin-bottom:10px; } #mobileQueueingRestricted .mobile-restriction-note { margin:12px 0 15px; } }
-  </style>
-  <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=live-footer-portrait-side-by-side-20261020-6">
+  <script>window.ppMobileQueueingBlocked = false;</script>
+<link rel="icon" type="image/png" href="pickleball-p-emblem.png">
+  <link rel="stylesheet" href="style.css?v=queue-responsive-all-devices-20261022-1">
 </head>
 <body data-page="start">
-<main id="mobileQueueingRestricted" hidden role="main" aria-labelledby="mobileQueueingRestrictedTitle">
-  <section class="mobile-restriction-card">
-    <img class="mobile-restriction-logo" src="pickleball-p-emblem.png" alt="Pickle Point Match">
-    <p class="mobile-restriction-brand">PICKLE <span>POINT</span></p>
-    <p class="mobile-restriction-brand-sub">M A T C H</p>
-    <div class="mobile-restriction-icon" aria-hidden="true">🔒</div>
-    <h1 id="mobileQueueingRestrictedTitle">Queueing is unavailable on mobile</h1>
-    <p class="mobile-restriction-copy">The Queueing workspace and Start Screen can only be used on a desktop computer or iPad.</p>
-    <div class="mobile-restriction-note">Mobile phones are supported for <strong>Live View only</strong>. You can still watch the live courts, matches, and waiting queue.</div>
-    <a class="mobile-restriction-live-link" href="live.html"><span aria-hidden="true">↗</span> Open Live View</a>
-    <p class="mobile-restriction-footer">To create sessions or manage players and matches, please open Pickle Point Match on a desktop or iPad.</p>
-  </section>
-</main>
 <div id="liveQueueStartScreen" class="live-queue-start-screen">
   <div class="live-queue-start-brand" aria-label="Pickle Point Match">
     <img src="pickleball-p-emblem.png" alt="" aria-hidden="true">
@@ -178,6 +115,6 @@
     </section>
   </div>
 </div>
-<script src="start-page.js?v=separate-start-page-20261019-1"></script>
+<script src="start-page.js?v=queue-responsive-all-devices-20261022-1"></script>
 </body>
 </html>
