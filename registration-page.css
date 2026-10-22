@@ -799,33 +799,33 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
 }
 
 
-/* Queue-added toast: shared live queue events, styled to match the supplied reference. */
+/* Queue-added toast: compact, phone-friendly slide-down notification. */
 .registration-queue-toast[hidden] {
   display: none !important;
 }
 .registration-page-body .registration-queue-toast {
   position: fixed;
-  top: 12px;
+  top: 10px;
   left: 50%;
   z-index: 2200;
   display: flex;
   align-items: center;
-  gap: clamp(16px, 4.2vw, 30px);
-  width: min(660px, calc(100vw - 28px));
-  min-height: 174px;
+  gap: 14px;
+  width: min(440px, calc(100vw - 24px));
+  min-height: 82px;
   margin: 0;
-  padding: 23px clamp(22px, 5.2vw, 36px);
+  padding: 12px 16px;
   box-sizing: border-box;
   overflow: hidden;
-  border: 2px solid #2c3d33;
-  border-radius: 40px;
+  border: 1px solid #2c3d33;
+  border-radius: 22px;
   background: #101f16;
   color: #edf4ef;
-  box-shadow: 0 18px 54px rgba(0, 0, 0, .28);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .24);
   opacity: 0;
-  transform: translate(-50%, calc(-100% - 28px));
+  transform: translate(-50%, calc(-100% - 18px));
   pointer-events: none;
-  transition: transform .38s cubic-bezier(.2,.8,.2,1), opacity .28s ease;
+  transition: transform .32s cubic-bezier(.2,.8,.2,1), opacity .24s ease;
 }
 .registration-page-body .registration-queue-toast.is-visible {
   opacity: 1;
@@ -834,9 +834,9 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
 .registration-page-body .registration-queue-toast-icon {
   display: grid;
   place-items: center;
-  flex: 0 0 90px;
-  width: 90px;
-  height: 90px;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
   box-sizing: border-box;
   border-radius: 50%;
   background: #a1ed23;
@@ -844,8 +844,8 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
 }
 .registration-page-body .registration-queue-toast-icon svg {
   display: block;
-  width: 55px;
-  height: 55px;
+  width: 28px;
+  height: 28px;
 }
 .registration-page-body .registration-queue-toast-copy {
   display: flex;
@@ -853,53 +853,76 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
   flex-direction: column;
   justify-content: center;
   min-width: 0;
-  gap: 8px;
-  line-height: 1.08;
+  gap: 4px;
+  line-height: 1.12;
   overflow-wrap: anywhere;
 }
 .registration-page-body .registration-queue-toast-copy strong {
   display: block;
   margin: 0;
   color: #edf4ef;
-  font-size: clamp(25px, 5.8vw, 42px);
-  line-height: 1.08;
-  font-weight: 850;
-  letter-spacing: -1.1px;
+  font-size: clamp(17px, 3.5vw, 20px);
+  line-height: 1.12;
+  font-weight: 800;
+  letter-spacing: -.35px;
 }
 .registration-page-body .registration-queue-toast-copy > span {
   display: block;
   color: #91a79a;
-  font-size: clamp(20px, 4.8vw, 35px);
+  font-size: clamp(14px, 2.8vw, 16px);
   font-weight: 450;
-  line-height: 1.12;
+  line-height: 1.15;
   overflow-wrap: anywhere;
 }
 @media (max-width: 520px) {
   .registration-page-body .registration-queue-toast {
-    top: 10px;
-    gap: 16px;
-    min-height: 122px;
-    padding: 17px 19px;
-    border-radius: 28px;
+    top: 8px;
+    gap: 10px;
+    min-height: 66px;
+    padding: 10px 12px;
+    border-radius: 18px;
   }
   .registration-page-body .registration-queue-toast-icon {
-    flex-basis: 66px;
-    width: 66px;
-    height: 66px;
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
   }
   .registration-page-body .registration-queue-toast-icon svg {
-    width: 42px;
-    height: 42px;
+    width: 23px;
+    height: 23px;
   }
   .registration-page-body .registration-queue-toast-copy {
-    gap: 5px;
+    gap: 3px;
   }
   .registration-page-body .registration-queue-toast-copy strong {
-    font-size: clamp(22px, 6vw, 29px);
-    letter-spacing: -.65px;
+    font-size: 16px;
+    letter-spacing: -.2px;
   }
   .registration-page-body .registration-queue-toast-copy > span {
-    font-size: clamp(18px, 5vw, 24px);
+    font-size: 13px;
+  }
+}
+@media (max-width: 360px) {
+  .registration-page-body .registration-queue-toast {
+    gap: 9px;
+    min-height: 62px;
+    padding: 9px 10px;
+    border-radius: 16px;
+  }
+  .registration-page-body .registration-queue-toast-icon {
+    flex-basis: 32px;
+    width: 32px;
+    height: 32px;
+  }
+  .registration-page-body .registration-queue-toast-icon svg {
+    width: 21px;
+    height: 21px;
+  }
+  .registration-page-body .registration-queue-toast-copy strong {
+    font-size: 15px;
+  }
+  .registration-page-body .registration-queue-toast-copy > span {
+    font-size: 12px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
