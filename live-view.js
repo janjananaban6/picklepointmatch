@@ -384,6 +384,41 @@
     if (selected === 'matches') renderRecentMatches();
   }
 
+  function renderQueueList(queue) {
+    const list = $('queueList');
+    if (!list) return;
+
+    const players = Array.isArray(queue) ? queue : [];
+    const rawSearchTerm = String($('queueListSearch')?.value || '').trim();
+    const searchTerm = rawSearchTerm.toLocaleLowerCase();
+    const filteredPlayers = players
+      .map((player, index) => ({ player, index }))
+      .filter(({ player }) => {
+        if (!searchTerm) return true;
+        const searchableValues = [player?.name, player?.nickname, playerName(player), player?.lockedPartnerName];
+        return searchableValues.some(value => String(value || '').toLocaleLowerCase().includes(searchTerm));
+      });
+
+    if (!filteredPlayers.length) {
+      list.innerHTML = players.length && searchTerm
+        ? `<div class="empty-state queue-search-empty">No players match “${escapeHTML(rawSearchTerm)}”.</div>`
+        : '<div class="empty-state">No players are waiting in queue.</div>';
+      return;
+    }
+
+    list.innerHTML = filteredPlayers.map(({ player: p, index }) => {
+      const waitingSince = p.waitingSince || p.queuedAt || null;
+      const genderClass = playerGenderClass(p);
+      const genderLabel = genderClass === 'female' ? 'Female' : 'Male';
+      const lockedPartnerName = String(p.lockedPartnerName || '').trim();
+      const lockedPartnerIndicator = lockedPartnerName
+        ? `<span class="queue-locked-partner-inline" title="Locked in with ${escapeHTML(lockedPartnerName)}" aria-label="Locked in with partner ${escapeHTML(lockedPartnerName)}" role="img">🔒${escapeHTML(lockedPartnerName)}</span>`
+        : '';
+      const displayedName = highlightSearchMatch(playerName(p), rawSearchTerm);
+      return `<div class="queue-item"><div class="queue-avatar-stack" aria-label="${genderLabel} player, queue position ${index + 1}"><div class="queue-avatar ${genderClass}" aria-hidden="true">${escapeHTML(playerInitial(p))}</div><span class="queue-position-badge" aria-label="Queue position ${index + 1}">${index + 1}</span></div><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${displayedName}</div><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span>${lockedPartnerIndicator}</div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
+    }).join('');
+  }
+
   function render() {
     const s = currentState;
     // Preserve the user's visible court on both horizontal lists while live data
@@ -489,18 +524,7 @@
 
     const queueSignature = JSON.stringify(queue);
     if (queueSignature !== renderedQueueSignature) {
-      $('queueList').innerHTML = queue.length
-      ? queue.map((p, i) => {
-          const waitingSince = p.waitingSince || p.queuedAt || null;
-          const genderClass = playerGenderClass(p);
-          const genderLabel = genderClass === 'female' ? 'Female' : 'Male';
-          const lockedPartnerName = String(p.lockedPartnerName || '').trim();
-          const lockedPartnerIndicator = lockedPartnerName
-            ? `<span class="queue-locked-partner-inline" title="Locked in with ${escapeHTML(lockedPartnerName)}" aria-label="Locked in with partner ${escapeHTML(lockedPartnerName)}" role="img">🔒${escapeHTML(lockedPartnerName)}</span>`
-            : '';
-          return `<div class="queue-item"><div class="queue-avatar-stack" aria-label="${genderLabel} player, queue position ${i + 1}"><div class="queue-avatar ${genderClass}" aria-hidden="true">${escapeHTML(playerInitial(p))}</div><span class="queue-position-badge" aria-label="Queue position ${i + 1}">${i + 1}</span></div><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${escapeHTML(playerName(p))}</div><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span>${lockedPartnerIndicator}</div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
-        }).join('')
-      : '<div class="empty-state">No players are waiting in queue.</div>';
+      renderQueueList(queue);
       renderedQueueSignature = queueSignature;
     }
 
@@ -1032,6 +1056,9 @@
     queueCollapsed = Boolean(collapsed);
     if (!queueCollapseToggle || !queueListViewport) return;
 
+    // Closing the queue also dismisses the queue-only search field and restores all players.
+    if (queueCollapsed) setQueueSearchVisible(false);
+
     const viewport = queueListViewport;
     const token = ++queueAnimationToken;
 
@@ -1114,6 +1141,76 @@
     queueCollapseToggle.addEventListener('click', () => setQueueCollapsed(!queueCollapsed));
     // Normalize the initial button label, accessibility attributes, and viewport state.
     setQueueCollapsed(false, false);
+  }
+
+  const queueSearchToggle = $('queueSearchToggle');
+  const queueSearchSlot = $('queueSearchSlot');
+  const queueSearchPanel = $('queueSearchPanel');
+  const queueListSearch = $('queueListSearch');
+  const queueSearchTransitionMs = 260;
+  let queueSearchHideTimer = null;
+
+  function setQueueSearchVisible(visible) {
+    if (!queueSearchToggle || !queueSearchSlot || !queueSearchPanel || !queueListSearch) return;
+    const shouldShow = Boolean(visible);
+
+    if (queueSearchHideTimer !== null) {
+      clearTimeout(queueSearchHideTimer);
+      queueSearchHideTimer = null;
+    }
+
+    queueSearchToggle.setAttribute('aria-expanded', String(shouldShow));
+    queueSearchToggle.setAttribute('aria-label', shouldShow ? 'Hide queue search' : 'Show queue search');
+    queueSearchToggle.title = shouldShow ? 'Hide queue search' : 'Search players in queue';
+
+    if (shouldShow) {
+      // The slot owns the layout height; the field itself only fades/slides.
+      // Separating them prevents the queue list from jumping during close.
+      queueSearchSlot.hidden = false;
+      queueSearchPanel.hidden = false;
+      void queueSearchSlot.offsetHeight;
+      requestAnimationFrame(() => {
+        if (queueSearchToggle.getAttribute('aria-expanded') !== 'true') return;
+        queueSearchSlot.classList.add('is-open');
+        queueSearchPanel.classList.add('is-open');
+        queueListSearch.focus();
+      });
+      return;
+    }
+
+    queueSearchSlot.classList.remove('is-open');
+    queueSearchPanel.classList.remove('is-open');
+    // Clear the filter when dismissing the field so the full queue is restored.
+    if (queueListSearch.value) {
+      queueListSearch.value = '';
+      renderQueueList(currentState?.queue);
+    }
+    queueSearchHideTimer = setTimeout(() => {
+      if (queueSearchToggle.getAttribute('aria-expanded') !== 'true'
+          && !queueSearchSlot.classList.contains('is-open')) {
+        queueSearchPanel.hidden = true;
+        queueSearchSlot.hidden = true;
+      }
+      queueSearchHideTimer = null;
+    }, queueSearchTransitionMs + 40);
+  }
+
+  if (queueSearchToggle && queueSearchSlot && queueSearchPanel && queueListSearch) {
+    queueSearchToggle.addEventListener('click', () => {
+      const shouldShow = queueSearchToggle.getAttribute('aria-expanded') !== 'true';
+      // The search control remains available when the queue is collapsed: tapping it
+      // reopens the queue first, then reveals and focuses the compact search field.
+      if (shouldShow && queueCollapsed) setQueueCollapsed(false);
+      setQueueSearchVisible(shouldShow);
+    });
+    queueListSearch.addEventListener('input', () => renderQueueList(currentState?.queue));
+    queueListSearch.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setQueueSearchVisible(false);
+        queueSearchToggle.focus();
+      }
+    });
   }
 
   const sessionTitleToggle = $('sessionTitleToggle');

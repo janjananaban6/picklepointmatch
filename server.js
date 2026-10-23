@@ -25,6 +25,91 @@ let sharedCloudClientId = null;
 let liveTheme = 'night';
 const subscribers = new Set();
 const sharedSubscribers = new Set();
+let dbPool = null;
+
+// Use PostgreSQL when DATABASE_URL is configured (Render), while keeping the
+// original JSON-file storage for local development and offline testing.
+async function initializeStorage() {
+  if (!process.env.DATABASE_URL) return;
+  const { Pool } = require('pg');
+  dbPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000
+  });
+  dbPool.on('error', err => console.error('Unexpected PostgreSQL pool error:', err.message));
+  await dbPool.query(`
+    CREATE TABLE IF NOT EXISTS pickle_point_storage (
+      storage_key TEXT PRIMARY KEY,
+      payload JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await dbPool.query('SELECT 1');
+  console.log('Persistent storage: PostgreSQL');
+}
+
+async function saveStoredBatch(entries) {
+  if (dbPool) {
+    const client = await dbPool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const entry of entries) {
+        await client.query(
+          `INSERT INTO pickle_point_storage (storage_key, payload, updated_at)
+           VALUES ($1, $2::jsonb, NOW())
+           ON CONFLICT (storage_key) DO UPDATE
+           SET payload = EXCLUDED.payload, updated_at = NOW()`,
+          [entry.key, JSON.stringify(entry.value)]
+        );
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+      throw err;
+    } finally {
+      client.release();
+    }
+    return;
+  }
+
+  await fs.promises.mkdir(DATA_DIR, {recursive:true});
+  await Promise.all(entries.map(entry =>
+    fs.promises.writeFile(entry.filePath, JSON.stringify(entry.value), 'utf8')
+  ));
+}
+
+async function loadStored(key, filePath) {
+  if (dbPool) {
+    const result = await dbPool.query(
+      'SELECT payload FROM pickle_point_storage WHERE storage_key = $1', [key]
+    );
+    if (result.rows.length) return result.rows[0].payload;
+
+    // One-time best-effort import from the old JSON file store, if those files
+    // are still present on the instance during the first database-backed boot.
+    let legacy;
+    try {
+      legacy = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
+    } catch (_) {
+      return null;
+    }
+    if (legacy !== null && typeof legacy === 'object') {
+      await saveStoredBatch([{key, filePath, value:legacy}]);
+      console.log(`Imported legacy JSON data into PostgreSQL: ${key}`);
+      return legacy;
+    }
+    return null;
+  }
+
+  try {
+    const saved = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
+    return saved && typeof saved === 'object' ? saved : null;
+  } catch (_) {
+    return null;
+  }
+}
 
 function sendJson(res, status, data) {
   res.writeHead(status, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
@@ -61,8 +146,7 @@ function broadcastTheme() {
 }
 async function persistState(snapshot) {
   latestState = snapshot;
-  await fs.promises.mkdir(DATA_DIR, {recursive:true});
-  await fs.promises.writeFile(DATA_FILE, JSON.stringify(snapshot), 'utf8');
+  await saveStoredBatch([{key:'live-state', filePath:DATA_FILE, value:snapshot}]);
   broadcast();
 }
 
@@ -154,7 +238,11 @@ async function handle(req, res) {
     res.writeHead(200, {'Content-Type':contentType,'Content-Length':Buffer.byteLength(body),'Cache-Control':'public, max-age=300','X-Content-Type-Options':'nosniff'});
     return req.method === 'HEAD' ? res.end() : res.end(body);
   }
-  if (url.pathname === '/api/health' && req.method === 'GET') return sendJson(res, 200, {ok:true, service:'Pickle Point Match Live View'});
+  if (url.pathname === '/api/health' && req.method === 'GET') return sendJson(res, 200, {
+    ok:true,
+    service:'Pickle Point Match Live View',
+    storage:dbPool ? 'postgresql' : 'json-file'
+  });
   if (url.pathname === '/api/live-theme' && req.method === 'GET') return sendJson(res, 200, {ok:true,theme:liveTheme});
 
   // Shared application state powers the Existing Live Queue across devices.
@@ -182,8 +270,7 @@ async function handle(req, res) {
         sharedAppRevision += 1;
         sharedAppUpdatedAt = new Date().toISOString();
         sharedAppClientId = String(body.clientId || '').slice(0,100) || null;
-        await fs.promises.mkdir(DATA_DIR, {recursive:true});
-        await fs.promises.writeFile(APP_STATE_FILE, JSON.stringify({revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState}), 'utf8');
+        await saveStoredBatch([{key:'app-state', filePath:APP_STATE_FILE, value:{revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState}}]);
         broadcastNamedEvent('app-state', {revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState});
       }
       return sendJson(res, 200, {ok:true,accepted:true,revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,unchanged:JSON.stringify(sharedAppState)===JSON.stringify(snapshot)});
@@ -214,8 +301,7 @@ async function handle(req, res) {
         sharedCloudRevision += 1;
         sharedCloudUpdatedAt = new Date().toISOString();
         sharedCloudClientId = String(body.clientId || '').slice(0,100) || null;
-        await fs.promises.mkdir(DATA_DIR, {recursive:true});
-        await fs.promises.writeFile(CLOUD_RECORDS_FILE, JSON.stringify({revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords}), 'utf8');
+        await saveStoredBatch([{key:'cloud-records', filePath:CLOUD_RECORDS_FILE, value:{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords}}]);
         broadcastNamedEvent('cloud-records', {revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
       }
       return sendJson(res, 200, {ok:true,accepted:true,revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,unchanged:JSON.stringify(sharedCloudRecords)===JSON.stringify(records)});
@@ -288,11 +374,10 @@ async function handle(req, res) {
       sharedCloudClientId = 'registration-page';
 
       const liveSnapshot = buildLiveQueueSnapshot(sharedAppState, updatedAt);
-      await fs.promises.mkdir(DATA_DIR, {recursive:true});
-      await Promise.all([
-        fs.promises.writeFile(APP_STATE_FILE, JSON.stringify({revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState}), 'utf8'),
-        fs.promises.writeFile(CLOUD_RECORDS_FILE, JSON.stringify({revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords}), 'utf8'),
-        fs.promises.writeFile(DATA_FILE, JSON.stringify(liveSnapshot), 'utf8')
+      await saveStoredBatch([
+        {key:'app-state', filePath:APP_STATE_FILE, value:{revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState}},
+        {key:'cloud-records', filePath:CLOUD_RECORDS_FILE, value:{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords}},
+        {key:'live-state', filePath:DATA_FILE, value:liveSnapshot}
       ]);
       latestState = liveSnapshot;
       broadcast();
@@ -309,8 +394,7 @@ async function handle(req, res) {
       const body = await readBody(req, 4096);
       if (!body || (body.theme !== 'light' && body.theme !== 'night')) return sendJson(res, 400, {ok:false,error:'Invalid Live View theme'});
       liveTheme = body.theme;
-      await fs.promises.mkdir(DATA_DIR, {recursive:true});
-      await fs.promises.writeFile(THEME_FILE, JSON.stringify({theme:liveTheme,updatedAt:new Date().toISOString()}), 'utf8');
+      await saveStoredBatch([{key:'live-theme', filePath:THEME_FILE, value:{theme:liveTheme,updatedAt:new Date().toISOString()}}]);
       broadcastTheme();
       return sendJson(res, 200, {ok:true,theme:liveTheme});
     } catch (err) { return sendJson(res, 500, {ok:false,error:'Unable to save Live View theme'}); }
@@ -428,12 +512,41 @@ async function handle(req, res) {
 }
 
 (async()=>{
-  try { const saved=await fs.promises.readFile(DATA_FILE,'utf8'); const parsed=JSON.parse(saved); if(parsed&&typeof parsed==='object')latestState=parsed; } catch (_) {}
-  try { const savedTheme=JSON.parse(await fs.promises.readFile(THEME_FILE,'utf8')); if(savedTheme&& (savedTheme.theme==='light'||savedTheme.theme==='night'))liveTheme=savedTheme.theme; } catch (_) {}
-  try { const saved=JSON.parse(await fs.promises.readFile(APP_STATE_FILE,'utf8')); if(saved&&saved.state&&typeof saved.state==='object'){sharedAppState=saved.state;if(typeof sharedAppState.liveRankingEnabled!=='boolean')sharedAppState.liveRankingEnabled=latestState?.liveRankingEnabled!==false;if(typeof sharedAppState.liveMatchesEnabled!=='boolean')sharedAppState.liveMatchesEnabled=latestState?.liveMatchesEnabled!==false;sharedAppRevision=Math.max(0,Number(saved.revision)||1);sharedAppUpdatedAt=saved.updatedAt||null;sharedAppClientId=saved.clientId||null;} } catch (_) {}
-  try { const saved=JSON.parse(await fs.promises.readFile(CLOUD_RECORDS_FILE,'utf8')); if(saved&&saved.records&&typeof saved.records==='object'){sharedCloudRecords=saved.records;sharedCloudRevision=Math.max(0,Number(saved.revision)||1);sharedCloudUpdatedAt=saved.updatedAt||null;sharedCloudClientId=saved.clientId||null;} } catch (_) {}
+  try {
+    await initializeStorage();
+    latestState = await loadStored('live-state', DATA_FILE);
+    const savedTheme = await loadStored('live-theme', THEME_FILE);
+    if (savedTheme && (savedTheme.theme === 'light' || savedTheme.theme === 'night')) liveTheme = savedTheme.theme;
+    const savedApp = await loadStored('app-state', APP_STATE_FILE);
+    if (savedApp && savedApp.state && typeof savedApp.state === 'object') {
+      sharedAppState = savedApp.state;
+      if (typeof sharedAppState.liveRankingEnabled !== 'boolean') sharedAppState.liveRankingEnabled = latestState?.liveRankingEnabled !== false;
+      if (typeof sharedAppState.liveMatchesEnabled !== 'boolean') sharedAppState.liveMatchesEnabled = latestState?.liveMatchesEnabled !== false;
+      sharedAppRevision = Math.max(0, Number(savedApp.revision) || 1);
+      sharedAppUpdatedAt = savedApp.updatedAt || null;
+      sharedAppClientId = savedApp.clientId || null;
+    }
+    const savedCloud = await loadStored('cloud-records', CLOUD_RECORDS_FILE);
+    if (savedCloud && savedCloud.records && typeof savedCloud.records === 'object') {
+      sharedCloudRecords = savedCloud.records;
+      sharedCloudRevision = Math.max(0, Number(savedCloud.revision) || 1);
+      sharedCloudUpdatedAt = savedCloud.updatedAt || null;
+      sharedCloudClientId = savedCloud.clientId || null;
+    }
+  } catch (err) {
+    console.error('Unable to initialize persistent storage:', err);
+    process.exit(1);
+  }
   const server=http.createServer((req,res)=>{handle(req,res).catch(err=>{console.error('Request error:',err);if(!res.headersSent)sendJson(res,500,{ok:false,error:'Internal server error'});else res.end();});});
   server.listen(PORT,HOST,()=>console.log(`Pickle Point Match running at http://localhost:${PORT}\nLive View: http://localhost:${PORT}/live.html\nFor another device on the same Wi-Fi, use this computer's local IP address.`));
-  const shutdown=()=>{for(const res of subscribers){try{res.end();}catch(_){}}server.close(()=>process.exit(0));setTimeout(()=>process.exit(0),1000).unref();};
+  const shutdown=()=>{
+    for(const res of subscribers){try{res.end();}catch(_){}}
+    for(const res of sharedSubscribers){try{res.end();}catch(_){}}
+    server.close(async()=>{
+      if (dbPool) { try { await dbPool.end(); } catch (_) {} }
+      process.exit(0);
+    });
+    setTimeout(()=>process.exit(0),1000).unref();
+  };
   process.on('SIGINT',shutdown);process.on('SIGTERM',shutdown);
 })();

@@ -7,3 +7,15 @@ services:
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pickle-point-match-db
+          property: connectionString
+
+databases:
+  - name: pickle-point-match-db
+    databaseName: pickle_point_match
+    user: pickle_point_match
+    plan: free
+    ipAllowList: []

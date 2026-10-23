@@ -13,7 +13,8 @@ html body #queueMainArea #registeredPlayerSearch,
 html body #historySearchInput,
 html body #cloudRecordsSearch,
 html body #leftPlayersSearch,
-html body #pageRankingSearch {
+html body #pageRankingSearch,
+html body #pageMatchesSearch {
   font-family: var(--pp-search-font) !important;
   font-size: 11px !important;
   font-style: normal !important;
@@ -33,11 +34,13 @@ html body #historySearchInput::placeholder,
 html body #cloudRecordsSearch::placeholder,
 html body #leftPlayersSearch::placeholder,
 html body #pageRankingSearch::placeholder,
+html body #pageMatchesSearch::placeholder,
 html body #queueMainArea #registeredPlayerSearch::-webkit-input-placeholder,
 html body #historySearchInput::-webkit-input-placeholder,
 html body #cloudRecordsSearch::-webkit-input-placeholder,
 html body #leftPlayersSearch::-webkit-input-placeholder,
-html body #pageRankingSearch::-webkit-input-placeholder {
+html body #pageRankingSearch::-webkit-input-placeholder,
+html body #pageMatchesSearch::-webkit-input-placeholder {
   font-family: var(--pp-search-font) !important;
   font-size: 11px !important;
   font-style: normal !important;
@@ -119,7 +122,9 @@ html body #leftPlayersModal #leftPlayersSearch::-webkit-input-placeholder {
 
 /* Preserve Live View's light/dark text colors; only normalize placeholder weight. */
 html:not([data-theme="light"]) body #pageRankingSearch::placeholder,
-html:not([data-theme="light"]) body #pageRankingSearch::-webkit-input-placeholder {
+html:not([data-theme="light"]) body #pageRankingSearch::-webkit-input-placeholder,
+html:not([data-theme="light"]) body #pageMatchesSearch::placeholder,
+html:not([data-theme="light"]) body #pageMatchesSearch::-webkit-input-placeholder {
   color: var(--muted) !important;
 }
 
@@ -129,7 +134,8 @@ html:not([data-theme="light"]) body #pageRankingSearch::-webkit-input-placeholde
   html body #historySearchInput,
   html body #cloudRecordsSearch,
   html body #leftPlayersSearch,
-  html body #pageRankingSearch {
+  html body #pageRankingSearch,
+  html body #pageMatchesSearch {
     font-size: 12px !important;
     font-weight: 400 !important;
   }
@@ -139,11 +145,13 @@ html:not([data-theme="light"]) body #pageRankingSearch::-webkit-input-placeholde
   html body #cloudRecordsSearch::placeholder,
   html body #leftPlayersSearch::placeholder,
   html body #pageRankingSearch::placeholder,
+  html body #pageMatchesSearch::placeholder,
   html body #queueMainArea #registeredPlayerSearch::-webkit-input-placeholder,
   html body #historySearchInput::-webkit-input-placeholder,
   html body #cloudRecordsSearch::-webkit-input-placeholder,
   html body #leftPlayersSearch::-webkit-input-placeholder,
-  html body #pageRankingSearch::-webkit-input-placeholder {
+  html body #pageRankingSearch::-webkit-input-placeholder,
+  html body #pageMatchesSearch::-webkit-input-placeholder {
     font-size: 12px !important;
     font-weight: 400 !important;
     letter-spacing: 0 !important;

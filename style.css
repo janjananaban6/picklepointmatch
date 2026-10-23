@@ -20859,3 +20859,205 @@ html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .co
   transition: border-color .2s ease, background .2s ease !important;
 }
 
+
+/* Queueing page only — center mode-toggle icons consistently on every device. */
+html body[data-page="queueing"] #queueModeButtons.queue-mode-buttons.mode-buttons-shared > .queue-mode-btn {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-content: center !important;
+  line-height: 1 !important;
+  gap: 7px !important;
+}
+html body[data-page="queueing"] #queueModeButtons.queue-mode-buttons.mode-buttons-shared > .queue-mode-btn > .queue-mode-icon {
+  position: static !important;
+  inset: auto !important;
+  display: block !important;
+  align-self: center !important;
+  float: none !important;
+  width: 15px !important;
+  height: 15px !important;
+  min-width: 15px !important;
+  min-height: 15px !important;
+  max-width: 15px !important;
+  max-height: 15px !important;
+  flex: 0 0 15px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #queueModeButtons.queue-mode-buttons.mode-buttons-shared > .queue-mode-btn > span {
+  display: block !important;
+  align-self: center !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  transform: none !important;
+}
+@media (max-width: 380px) {
+  html body[data-page="queueing"] #queueModeButtons.queue-mode-buttons.mode-buttons-shared > .queue-mode-btn {
+    gap: 5px !important;
+  }
+  html body[data-page="queueing"] #queueModeButtons.queue-mode-buttons.mode-buttons-shared > .queue-mode-btn > .queue-mode-icon {
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 14px !important;
+    min-height: 14px !important;
+    max-width: 14px !important;
+    max-height: 14px !important;
+    flex-basis: 14px !important;
+  }
+}
+
+
+/* Queueing page only — translucent glass treatment for QR Share, Register QR,
+   and Results controls. Visual styling only; existing visibility and behavior remain intact. */
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:hover,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:active,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:focus,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:focus-visible,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:hover,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:active,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:focus,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:focus-visible,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:hover,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:active,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:focus,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:focus-visible {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  border: 1px solid rgba(113, 231, 224, .48) !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, .19) 0%,
+    rgba(255, 255, 255, .075) 46%,
+    rgba(39, 211, 197, .14) 100%) !important;
+  background-color: rgba(9, 50, 59, .42) !important;
+  background-clip: padding-box !important;
+  -webkit-backdrop-filter: blur(12px) saturate(155%) !important;
+  backdrop-filter: blur(12px) saturate(155%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25),
+              inset 0 -1px 0 rgba(5, 32, 40, .20),
+              0 4px 12px rgba(0, 0, 0, .18) !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .22) !important;
+  filter: none !important;
+  transform: none !important;
+  transition: background .18s ease, border-color .18s ease,
+              box-shadow .18s ease, color .18s ease, transform .18s ease !important;
+}
+
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:hover,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:active,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:focus,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:focus-visible,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:hover,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:active,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:focus,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:focus-visible {
+  color: #c5fff6 !important;
+}
+
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:hover,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:active,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:focus,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:focus-visible {
+  color: #e6fbff !important;
+}
+
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:hover,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:hover,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:hover {
+  border-color: rgba(141, 255, 242, .78) !important;
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, .25) 0%,
+    rgba(255, 255, 255, .10) 45%,
+    rgba(39, 211, 197, .22) 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32),
+              0 5px 15px rgba(39, 211, 197, .15) !important;
+  transform: translateY(-1px) !important;
+}
+
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:active,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:active,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:active {
+  transform: translateY(0) scale(.985) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .18),
+              0 1px 4px rgba(0, 0, 0, .12) !important;
+}
+
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:focus-visible,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:focus-visible,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:focus-visible {
+  outline: 2px solid rgba(141, 255, 242, .82) !important;
+  outline-offset: 2px !important;
+}
+
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:disabled,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:disabled,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:disabled {
+  opacity: .48 !important;
+  cursor: not-allowed !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn,
+  html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn,
+  html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn {
+    transition: none !important;
+  }
+}
+
+
+/* Queueing page only — keep glass-button hover color changes without the upward hover jump. */
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:hover,
+html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:hover,
+html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:hover {
+  transform: none !important;
+}
+
+
+/* Queueing page only — match QR Share and Register QR icons to the supplied QR-scanner symbol. */
+html body[data-page="queueing"] header.topbar .top-actions > .live-view-qr-open-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+}
+html body[data-page="queueing"] header.topbar .top-actions > .live-view-qr-open-btn > .live-view-qr-button-icon {
+  display: block !important;
+  flex: 0 0 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  color: currentColor !important;
+  overflow: visible !important;
+}
+html body[data-page="queueing"] header.topbar .top-actions > .live-view-qr-open-btn > span {
+  display: inline-block !important;
+  min-width: 0 !important;
+  line-height: 1.1 !important;
+}
+@media (max-width: 760px) {
+  html body[data-page="queueing"] header.topbar .top-actions > .live-view-qr-open-btn > .live-view-qr-button-icon {
+    flex-basis: 14px !important;
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 14px !important;
+    min-height: 14px !important;
+    max-width: 14px !important;
+    max-height: 14px !important;
+  }
+}

@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="live-view.css?v=responsive-session-title-20261022-1">
-  <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261022-1">
+  <link rel="stylesheet" href="live-view.css?v=queue-search-compact-height-20261023-1">
+  <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261023-1">
 </head>
 <body class="live-view-page">
   <header class="live-header">
@@ -69,8 +69,17 @@
               <span class="queue-waiting-icon" aria-hidden="true">
                 <svg viewBox="0 0 12 12" focusable="false"><path d="M3.25 1.5h5.5M3.25 10.5h5.5M4 2.1c0 1.5 2 1.6 2 3.9s-2 2.4-2 3.9M8 2.1c0 1.5-2 1.6-2 3.9s2 2.4 2 3.9" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
               </span>
+              <button id="queueSearchToggle" class="queue-search-toggle" type="button" aria-controls="queueSearchPanel" aria-expanded="false" aria-label="Show queue search" title="Search players in queue">
+                <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
               <button id="queueCollapseToggle" class="queue-collapse-toggle" type="button" aria-controls="queueListViewport" aria-expanded="true" aria-label="Hide waiting queue" title="Hide waiting queue">−</button>
             </div>
+          </div>
+          <div id="queueSearchSlot" class="queue-search-slot" hidden>
+            <label id="queueSearchPanel" class="queue-search-panel" for="queueListSearch" hidden>
+              <svg class="queue-search-field-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <input id="queueListSearch" type="search" placeholder="Search queue player..." aria-label="Search players in queue" autocomplete="off" spellcheck="false">
+            </label>
           </div>
           <div id="queueListViewport" class="queue-list-viewport" aria-hidden="false">
             <div id="queueList" class="queue-list"><div class="empty-state">No players in the queue.</div></div>
@@ -117,6 +126,6 @@
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span><span>Public view · Updates automatically</span></footer>
     </main>
   </div>
-  <script src="live-view.js?v=responsive-session-title-20261022-1" defer></script>
+  <script src="live-view.js?v=queue-search-slot-layout-fix-20261023-1" defer></script>
 </body>
 </html>

@@ -3937,7 +3937,10 @@ function bindTopbarBackButton(){
     button,
     $('endSessionBtn'),
     $('liveViewQrOpenBtn'),
-    $('liveViewRegisterBtn')
+    $('liveViewRegisterBtn'),
+    // Keep the compact Queueing-page Results opener inactive while any modal
+    // is open, preventing stacked dialogs/tap-through on iPad and tablets.
+    document.body?.dataset.page==='queueing' ? $('tabletResultsOpenBtn') : null
   ]);
 }
 
