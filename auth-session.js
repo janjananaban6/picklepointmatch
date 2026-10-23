@@ -2,7 +2,7 @@
   function addLogoutButton() {
     if (document.getElementById('ppOrganizerLogout')) return;
     const style = document.createElement('style');
-    style.textContent = `#ppOrganizerLogout{position:fixed;z-index:10050;top:max(10px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 12px;border:1px solid rgba(99,117,129,.2);border-radius:999px;background:rgba(255,255,255,.96);color:#3d4d59;box-shadow:0 2px 10px rgba(14,32,43,.10);font:600 12px/1.1 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer}#ppOrganizerLogout:hover{background:#f5f8fa}#ppOrganizerLogout svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}#ppOrganizerLogout:disabled{opacity:.65;cursor:wait}`;
+    style.textContent = `#ppOrganizerLogout{position:fixed;z-index:10050;top:max(10px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 12px;border:1px solid rgba(99,117,129,.2);border-radius:999px;background:rgba(255,255,255,.96);color:#3d4d59;box-shadow:0 2px 10px rgba(14,32,43,.10);font:600 12px/1.1 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer}#ppOrganizerLogout:hover{background:#f5f8fa}#ppOrganizerLogout svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}#ppOrganizerLogout:disabled{opacity:.65;cursor:wait}@media(max-width:700px){#ppOrganizerLogout{top:auto;bottom:max(12px,env(safe-area-inset-bottom));right:max(12px,env(safe-area-inset-right));min-height:40px;box-shadow:0 4px 16px rgba(14,32,43,.18)}body.pp-has-logout{padding-bottom:calc(64px + env(safe-area-inset-bottom))}}`;
     document.head.appendChild(style);
     const button = document.createElement('button');
     button.id = 'ppOrganizerLogout';
@@ -15,6 +15,7 @@
       window.location.replace('/index.html');
     });
     document.body.appendChild(button);
+    document.body.classList.add('pp-has-logout');
   }
 
   fetch('/api/auth-status', {cache:'no-store',credentials:'same-origin'}).then(response => response.json()).then(status => {

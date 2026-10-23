@@ -16,7 +16,6 @@ html{min-height:100%;background:var(--bg)}body{margin:0;font-family:Inter,ui-san
 .waiting-courts-section{margin-top:18px}
 .waiting-courts-section[hidden]{display:none!important}
 
-
 /* Live view layout and timer label refinements */
 .content-grid{display:block}
 .court-section{width:100%}
@@ -30,7 +29,6 @@ html{min-height:100%;background:var(--bg)}body{margin:0;font-family:Inter,ui-san
 .queue-player-wrap{min-width:0;flex:1}
 @media(max-width:900px){.support-grid{grid-template-columns:minmax(0,1fr)}.support-grid:has(.waiting-courts-section[hidden]){grid-template-columns:minmax(0,1fr)}}
 @media(max-width:560px){.courts-grid{grid-template-columns:minmax(0,1fr)}.court-card{padding:9px}.court-top{align-items:flex-start;flex-wrap:wrap}.court-name{font-size:12px}.court-state{font-size:8px}.teams{grid-template-columns:minmax(0,1fr) 12px minmax(0,1fr);gap:3px}.player-chip{padding:7px 5px;font-size:9px}.match-meta{font-size:9px}}
-
 
 /* Center the score separator independently from the score label. */
 .scoreline{position:relative;display:flex;align-items:center;justify-content:center;gap:0;min-height:22px}
@@ -135,8 +133,6 @@ html[data-theme="light"] .page-footer {
   color: #6c8589;
 }
 
-
-
 /* Keep the Live View header in its dark teal design in both light and dark page themes. */
 .live-header {
   background: rgba(4, 30, 37, .92);
@@ -156,7 +152,6 @@ html[data-theme="light"] .page-footer {
   box-shadow: 0 0 9px #37d6a1;
 }
 .live-header .connection-status.local i { background: #ffb04e; }
-
 
 /* Player identity details in Live View: name, gender icon and skill category. */
 .queue-player-line{display:flex;align-items:center;gap:6px;min-width:0;width:100%;flex-wrap:nowrap}
@@ -179,7 +174,6 @@ html[data-theme="light"] .page-footer {
 html[data-theme="light"] .live-player-gender.male{background:transparent;color:#2676b7}
 html[data-theme="light"] .live-player-gender.female{background:transparent;color:#c43b7b}
 @media(max-width:560px){.queue-player-line{gap:4px}.queue-player-line .queue-player{font-size:11px}.live-player-category{padding:2px 4px;font-size:7px}.player-chip{gap:4px}}
-
 
 /* Display each player's Queueing-page waiting duration at the far right of the Live View row. */
 .queue-waiting-time{flex:0 0 auto;margin-left:auto;padding-left:8px;color:var(--teal);font-size:10px;font-weight:850;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
@@ -230,8 +224,6 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
   background-clip: padding-box !important;
 }
 
-
-
 /* READY STATUS — use the same teal badge palette as the main court cards. */
 .court-state.ready {
   background: #d9f7f3 !important;
@@ -264,7 +256,6 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
   box-shadow: 0 0 0 2px rgba(101, 226, 181, .2);
 }
 
-
 /* PLAYING STATUS — match the user-provided mint pill reference, including its dot. */
 .court-state.playing {
   display: inline-flex !important;
@@ -293,7 +284,6 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
   background: #08764e !important;
   box-shadow: none !important;
 }
-
 
 /* READY STATUS — match the user-provided light-blue READY pill reference, including its dot. */
 .court-state.ready {
@@ -345,8 +335,6 @@ html body .match-timer::before {
   flex: 0 0 5px !important;
 }
 
-
-
 /* FINAL LIVE VIEW DOT FIX — enforce compact 5px dots and remove oversized glow/rings.
    Applies only to Live View indicators; dot colors and all status behavior remain unchanged. */
 html body .live-header .connection-status i,
@@ -391,7 +379,6 @@ html body .teams > .team:nth-child(3) .player-chip::before {
   flex: 0 0 3px !important;
   background: #8b5cf6 !important;
 }
-
 
 /* Live View section headings — compact sizing and baseline alignment to match Index panel titles. */
 html body .section-card .section-heading {
@@ -455,7 +442,6 @@ html body .section-card .section-heading h2 .panel-count {
   }
 }
 
-
 /* Court status color consistency: Ready uses the light-mode palette in both themes. */
 html body .court-card .court-state.ready {
   background: #e3f2fb !important;
@@ -499,7 +485,6 @@ html body .court-card .court-state.up-next::before {
   background: #00a99d !important;
   box-shadow: none !important;
 }
-
 
 /* Compact Live View queue avatar stack: match the index queue identity style at a smaller size. */
 .queue-item > .queue-avatar-stack {
@@ -569,7 +554,6 @@ html body .court-card .court-state.up-next::before {
   }
 }
 
-
 /* Match the compact gender symbol sizing used throughout the Index app. */
 html body .live-player-gender svg.gender-symbol {
   width: 10px !important;
@@ -585,7 +569,6 @@ html body .player-chip .live-player-gender svg.gender-symbol {
   max-width: 9px !important;
   flex: 0 0 9px !important;
 }
-
 
 /* Live View: inline locked-partner badge, scoped to the queue section only. */
 .queue-section .queue-locked-partner-inline{display:inline-flex;align-items:center;justify-content:center;flex:0 1 auto;min-width:0;max-width:74px;margin:0 0 0 2px;padding:1px 4px;border:1px solid #e5d5ff;border-radius:999px;background:#f1eaff;color:#6d28d9;font-family:inherit;font-size:7.5px;font-weight:500;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
@@ -614,8 +597,6 @@ html body .player-chip .live-player-gender svg.gender-symbol {
 .live-ranking-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;min-height:190px;margin:0;padding:30px 12px;box-sizing:border-box;color:var(--muted);text-align:center;font-size:11px;line-height:1.45}.live-ranking-empty>span:first-child{font-size:28px}.live-ranking-empty strong{color:var(--text);font-size:13px}
 html[data-theme="light"] .live-ranking-playing{background:#e0f8ee;color:#087e59}
 @media(max-width:560px){.live-header{gap:7px}.header-right{gap:5px}.connection-status{height:25px;gap:5px}.live-ranking-list{padding:10px;max-height:548px}.live-ranking-row{grid-template-columns:29px minmax(0,1fr) 51px;gap:7px;padding:9px 8px}.live-ranking-position{font-size:9px}.live-ranking-row.rank-1 .live-ranking-position,.live-ranking-row.rank-2 .live-ranking-position,.live-ranking-row.rank-3 .live-ranking-position{font-size:17px}.live-ranking-name-line strong{font-size:10px}.live-ranking-stats{gap:6px;font-size:8px}.live-ranking-result strong{font-size:14px}.live-ranking-result span{font-size:7px}}
-
-
 
 /* LIGHT MODE SCROLLBAR — keep the track/background fully transparent.
    Preserve the scrollbar thumb and leave dark mode unchanged. */
@@ -699,7 +680,6 @@ html body .page-footer > span:last-child {
   font-weight: 750 !important;
   letter-spacing: .2px !important;
 }
-
 
 /* COURT LIST — compact illustrated scoreboard, based on the supplied court-card reference. */
 html body .court-card.court-visual-card {
@@ -966,7 +946,6 @@ html body .court-card.court-visual-card.playing {
   .court-team-label { font-size: 11px; }
 }
 
-
 /* COURT VISUAL THEME SYNC — apply to both Live View court lists. */
 /* The night palette preserves the supplied scoreboard design; Up Next follows Queueing. */
 html:not([data-theme="light"]) body #courtsList .court-card.court-visual-card .court-visual-status.is-up-next,
@@ -1010,8 +989,7 @@ html[data-theme="light"] body #courtsList .court-visual-status.is-ready,
 html[data-theme="light"] body #waitingCourtsList .court-visual-status.is-ready {
   color: #176a9f !important;
 }
-html[data-theme="light"] body #courtsList .court-visual-status.is-ready i,
-html[data-theme="light"] body #waitingCourtsList .court-visual-status.is-ready i { background: #176a9f !important; }
+
 html[data-theme="light"] body #courtsList .court-visual-status.is-playing,
 html[data-theme="light"] body #waitingCourtsList .court-visual-status.is-playing {
   color: #087e59 !important;
@@ -1026,15 +1004,7 @@ html[data-theme="light"] body #waitingCourtsList .court-visual-status.is-up-next
 }
 html[data-theme="light"] body #courtsList .court-visual-status.is-up-next i,
 html[data-theme="light"] body #waitingCourtsList .court-visual-status.is-up-next i { background: #008f83 !important; }
-html[data-theme="light"] body #courtsList .court-diagram,
-html[data-theme="light"] body #waitingCourtsList .court-diagram {
-  border-color: #8eaaa7 !important;
-  background: rgba(27, 113, 111, .035) !important;
-}
-html[data-theme="light"] body #courtsList .court-diagram-line,
-html[data-theme="light"] body #waitingCourtsList .court-diagram-line { background: rgba(75, 122, 119, .32) !important; }
-html[data-theme="light"] body #courtsList .court-diagram-center-line,
-html[data-theme="light"] body #waitingCourtsList .court-diagram-center-line { background: #839f9b !important; }
+
 html[data-theme="light"] body #courtsList .court-player-marker,
 html[data-theme="light"] body #waitingCourtsList .court-player-marker {
   border-color: #ffffff !important;
@@ -1056,17 +1026,12 @@ html[data-theme="light"] body #waitingCourtsList .court-player-gender {
   border-color: #d3e2de !important;
   background: #f8fcfb !important;
 }
-html[data-theme="light"] body #courtsList .court-team-label,
-html[data-theme="light"] body #waitingCourtsList .court-team-label { color: #243f43 !important; }
+
 html[data-theme="light"] body #courtsList .court-team-versus,
 html[data-theme="light"] body #waitingCourtsList .court-team-versus { color: #78908d !important; }
-html[data-theme="light"] body #courtsList .court-visual-score,
-html[data-theme="light"] body #waitingCourtsList .court-visual-score { color: #29484a !important; }
-html[data-theme="light"] body #courtsList .court-visual-score b,
-html[data-theme="light"] body #waitingCourtsList .court-visual-score b { color: #087f80 !important; }
+
 html[data-theme="light"] body #courtsList .court-visual-score span,
 html[data-theme="light"] body #waitingCourtsList .court-visual-score span { color: #78908d !important; }
-
 
 /* PINNED LIVE HEADER + QUEUE / RANKINGS / MATCHES TABS */
 .live-page-pinned {
@@ -1237,7 +1202,6 @@ html[data-theme="light"] body #waitingCourtsList .court-visual-score span { colo
   .live-match-winner strong, .live-match-loser strong { font-size: 11px; }
 }
 
-
 /* Keep event heading and tabs outside the scrollable content area entirely. */
 html, body { height: 100%; }
 body {
@@ -1286,7 +1250,6 @@ body {
   .live-page-pinned { margin-top: 0; margin-bottom: 13px; padding: 0 12px 0; }
   .page-shell.live-content-scroll { padding: 0 12px 18px; }
 }
-
 
 /* Responsive alignment for Rankings and Matches tab headings/search. */
 html body .section-card .live-tab-section-heading {
@@ -1428,7 +1391,6 @@ html body .live-page-pinned .event-heading .eyebrow {
   }
 }
 
-
 /* The eyebrow line itself toggles the Live View session title. */
 html body .live-page-pinned .event-heading .eyebrow {
   flex-wrap: nowrap;
@@ -1503,7 +1465,6 @@ html body .live-page-pinned .event-heading .session-title-slide.is-collapsed #se
     transition: none;
   }
 }
-
 
 /* Court section heading: compact ON COURT label with a live-match count. */
 html body .section-card.court-section .section-heading.court-section-heading {
@@ -1812,7 +1773,6 @@ html[data-theme="light"] .queue-waiting-icon { color: #778783; }
   .queue-list-viewport { transition: none; }
 }
 
-
 /* FINAL INTERACTION + RESPONSIVE FIXES (Live View v6). */
 /* Use an actual inline SVG arrow inside the outlined circle, across all browsers. */
 html body .waiting-courts-heading-icon {
@@ -2003,7 +1963,6 @@ html body #queueListViewport.queue-list-viewport[hidden] {
   display: none !important;
 }
 
-
 /* SESSION HEADING BADGE — compact green LIVE pill with animated status dot,
    followed by the current match type. This only restyles the session toggle. */
 html body .live-page-pinned .event-heading #sessionTitleToggle.session-title-toggle-row {
@@ -2121,7 +2080,6 @@ html body .live-page-pinned .event-heading #sessionTitleToggle .live-pulse::afte
   transform-origin: 50% 50% !important;
   box-sizing: border-box !important;
 }
-
 
 /* Mobile-only side-scroll layout toggles for ON COURT and NEXT UP. */
 html body .section-card.court-section .section-heading.court-section-heading .court-section-heading-main,
@@ -2528,7 +2486,6 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card:firs
   }
 }
 
-
 /* WAITING COURT NAME — lock mobile typography/alignment for every waiting card.
    Keep the same text box while the list switches between grid and swipe mode. */
 @media (max-width: 560px) {
@@ -2692,8 +2649,6 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-the
   }
 }
 
-
-
 /* COURT LAYOUT TOGGLE — suppress iOS scroll-snap restoration while resetting
    horizontal courts to Court 1. This applies equally to the waiting-court list. */
 html body #courtsList.courts-grid.is-resetting-court-scroll,
@@ -2702,7 +2657,6 @@ html body #waitingCourtsList.courts-grid.is-resetting-court-scroll {
   scroll-behavior: auto !important;
   overflow-anchor: none !important;
 }
-
 
 /* DEVICE-WIDE RESPONSIVE SAFETY — Live View */
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -2737,7 +2691,6 @@ button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation
     box-sizing: border-box !important;
   }
 }
-
 
 /* FINAL LIVE VIEW LIGHT PALETTE — coherent contrast and status colors across all tabs. */
 html[data-theme="light"] {
@@ -2993,7 +2946,6 @@ html body #waitingCourtsList .court-visual-status i::after {
 }
 /* Live-dot animation is intentionally preserved; see the final ping rules below. */
 
-
 /* Focused light-mode polish: Live match rows and connection status only. */
 html[data-theme="light"] body .live-match-row {
   color: #1f414b !important;
@@ -3172,7 +3124,6 @@ html[data-theme="night"] body .section-card.waiting-courts-section {
   box-shadow: 0 12px 30px rgba(0, 0, 0, .20), inset 0 1px 0 rgba(153, 235, 211, .045) !important;
 }
 
-
 /* WINNER / OPPONENT outcome labels: plain light-gray text, no badge styling in either theme. */
 html[data-theme="light"] body .live-match-row .live-match-outcome,
 html[data-theme="light"] body .live-match-row .live-match-loser .live-match-outcome,
@@ -3198,7 +3149,6 @@ html[data-theme="night"] body .live-match-row .live-match-outcome,
 html[data-theme="night"] body .live-match-row .live-match-loser .live-match-outcome {
   color: #b8c2c8 !important;
 }
-
 
 /* COURT CARD EDGE + LIVE-MATCH-ROW SURFACE — correct targets are court cards,
    not the waiting-queue player rows. All regular and waiting court cards stay visible. */
@@ -3259,8 +3209,6 @@ html[data-theme="night"] body #waitingCourtsList > .court-card.court-visual-card
   box-shadow: 0 5px 14px rgba(0, 0, 0, .12) !important;
 }
 
-
-
 /* LIVE PAGE STABILITY PATCH — isolate viewport sizing from other pages that share this stylesheet.
    Use the small viewport unit on mobile so browser chrome expanding/collapsing does not
    resize the app shell on every scroll. The main content remains the only vertical scroller. */
@@ -3293,7 +3241,6 @@ body.live-view-page #queueListViewport.queue-list-viewport {
 @supports not (height: 100svh) {
   body.live-view-page { height: 100vh; }
 }
-
 
 /* LIVE PAGE STATUS DOT POLISH — keep READY and UP NEXT dots centered on the same baseline. */
 html body #courtsList .court-visual-status.is-ready,
@@ -3362,7 +3309,6 @@ html body .match-timer::before {
 }
 /* Live-dot animation is intentionally preserved; see the final ping rules below. */
 
-
 /* RESTORED LIVE VIEW DOT PING — expanding ripple without moving the dot or changing layout. */
 @keyframes liveViewDotPing {
   0% { opacity: .68; transform: scale(.58); }
@@ -3420,7 +3366,6 @@ html body .match-timer::before {
 }
 
 /* Live-dot animation is intentionally preserved; see the final ping rules below. */
-
 
 /* FINAL LIVE DOT PING FIX — anchor each ripple to its actual dot.
    READY/UP NEXT centering previously forced position:static at higher specificity,
@@ -3555,8 +3500,6 @@ html body.live-view-page #waitingCourtsList .court-visual-status.is-up-next i::a
   z-index: 3 !important;
 }
 
-
-
 /* FINAL LIVE DOT COLOR-CHANGE ANIMATION — visible hue + brightness change only.
    Dots stay the same size and position. No rings, scaling, or layout movement. */
 @keyframes liveDotColorShift20261022 {
@@ -3617,7 +3560,6 @@ html body.live-view-page .match-timer::before {
   will-change: opacity, filter !important;
 }
 
-
 /* FINAL LIVE DOT SIZE — all primary Live page status dots are exactly 10x10px.
    Keep their existing status colors and color-shift animation; no rings or position movement. */
 html body.live-view-page .live-header .connection-status i,
@@ -3653,7 +3595,6 @@ html[data-theme="light"] body.live-view-page .panel-count {
   border: 0 !important;
   box-shadow: none !important;
 }
-
 
 /* Responsive Live session title sizing; JS shrinks only titles exceeding two lines. */
 html body.live-view-page .live-page-pinned .event-heading .session-title-slide #sessionTitle {
@@ -3707,7 +3648,6 @@ body.live-view-page #queueListViewport.queue-list-viewport {
     transition: none !important;
   }
 }
-
 
 /* Queue-only player search control: transparent magnifier beside the waiting icon. */
 body.live-view-page .section-card.queue-section .queue-heading-actions {

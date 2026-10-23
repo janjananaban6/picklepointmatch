@@ -41,7 +41,6 @@ button:disabled{cursor:not-allowed;opacity:.45;}
 .live-footer{display:flex;justify-content:space-between;align-items:center;padding:8px 12px 12px;}.live-footer button{border:0;background:none;padding:7px 10px;font-size:10px;font-weight:700;}.cancel-match{color:#b26f75;}.live-footer .submit-score{background:#159fd0;color:#fff;border-radius:7px;min-width:115px;}.live-footer .submit-score:disabled{background:#d9dfe6;color:#8993a0;}
 @media(max-width:760px){.live-match{grid-template-columns:minmax(0,1fr) 25px minmax(0,1fr);gap:4px;padding:8px;}.live-team{padding:8px;}.live-player{font-size:10px;}.live-actions{grid-template-columns:1fr;}.live-footer{padding-left:6px;padding-right:6px;}}
 
-
 /* =========================================================
    PICKLEQ V5 — MATCHMAKING COURT CARD
    ========================================================= */
@@ -97,7 +96,6 @@ button:disabled{cursor:not-allowed;opacity:.45;}
   .score-control>button{width:27px;}
 }
 
-
 /* V6 / persistence + court settings + collapsible left players */
 .subbar-actions,.court-header-actions{display:flex;align-items:center;gap:7px;}.subbar-actions button,.settings-btn{padding:8px 11px;border:1px solid var(--line);border-radius:7px;background:#fff;color:#526175;}.settings-btn{width:34px;padding:8px;}.left-section{transition:all .2s ease;}.left-title{cursor:pointer;user-select:none;}.left-title .collapse-icon{font-size:11px;color:#9aa5b3;}.left-section.collapsed{padding-bottom:7px;}.left-section.collapsed #leftPlayersQueue{display:none;}.left-section.collapsed .left-title{margin-bottom:0;}.modal-close{background:#eef1f4;color:#667381;border-radius:7px;width:30px;height:30px;font-size:18px;}.settings-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;}.next-court-preview{margin-top:12px;padding:10px 12px;border-radius:8px;background:#eef9f7;color:#0b8f79;font-size:11px;font-weight:900;}.court-settings-list{margin-top:14px;max-height:300px;overflow:auto;border:1px solid #e4e9ee;border-radius:9px;}.court-setting-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #edf0f3;}.court-setting-row:last-child{border-bottom:0;}.court-setting-name{font-weight:900;font-size:11px;}.court-setting-status{font-size:9px;color:var(--muted);margin-top:3px;}.court-setting-remove{background:#fff0f2;color:#c63e4b;border-radius:7px;padding:7px 9px;font-size:9px;}.settings-empty{padding:18px;text-align:center;color:var(--muted);font-size:11px;}
 
@@ -105,7 +103,6 @@ button:disabled{cursor:not-allowed;opacity:.45;}
 .court-name-input{width:100%;margin-top:12px;border:1px solid #ccd5df;border-radius:8px;padding:11px 12px;outline:none;font-size:12px;}.court-name-input:focus{border-color:#16b6aa;box-shadow:0 0 0 2px #16b6aa1f;}
 .court-name-inline{width:150px;max-width:42vw;border:0;border-bottom:2px solid #ffb400;background:transparent;padding:3px 2px;font-size:13px;font-weight:900;color:#263443;outline:none;}
 .court-name-inline:focus{border-bottom-color:#16b6aa;}.ready-head{background:#fff;}.ready-grid .team{min-height:108px;}.tap-slot{border:2px dashed #dce3e9;border-radius:8px;margin:5px 0;padding:9px 7px;text-align:center;color:#8d9aaa;font-weight:700;cursor:pointer;}.tap-slot:hover{border-color:#16b6aa;background:#f3fffd;color:#169b91;}.tap-slot:not(.empty-slot){border-style:solid;color:#273646;background:#fff;}
-
 
 /* V8 — final live court controls + player picker + confirmations */
 .live-box{border:2px solid #8adfd5;background:#fbfffe;border-radius:14px;}
@@ -171,7 +168,6 @@ button:disabled{cursor:not-allowed;opacity:.45;}
 .history-detail-box{width:470px;max-width:94vw;}.modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}.detail-score-grid{display:grid;grid-template-columns:1fr 28px 1fr;gap:7px;align-items:center;margin-top:10px;}.detail-team{border:1px solid #bdece6;border-radius:11px;padding:10px;text-align:center;background:#f4fffd;min-height:145px;}.detail-team.loser{border-color:#ffd1d1;background:#fff6f6;}.detail-label{font-size:9px;font-weight:900;color:#0bb0a4;margin-bottom:7px;text-align:center;}.detail-team.loser .detail-label{color:#ee4d55;}.detail-score-input{display:block;width:76px;height:38px;margin:0 auto 8px;border:0;border-bottom:2px dashed #b9c6cf;border-radius:0;text-align:center;font-size:22px;font-weight:900;color:#172235;outline:none;background:transparent;}.detail-score-input:focus{border-bottom-color:#159fd0;box-shadow:none;}.detail-vs{text-align:center;font-size:9px;font-weight:900;color:#9aa4af;}.detail-player{display:flex;align-items:center;justify-content:center;gap:4px;font-size:10px;font-weight:800;line-height:1.25;margin-top:6px;flex-wrap:wrap;}.detail-player-name{min-width:0;}.detail-gender-icon,.detail-row-gender{display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;line-height:1;}.detail-gender-icon.male,.detail-row-gender.male{color:#3988c7;}.detail-gender-icon.female,.detail-row-gender.female{color:#d65291;}.detail-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px 10px;background:#f7f8fa;border-radius:10px;padding:10px;margin-top:10px;font-size:9px;color:#9aa4af;}.detail-meta-grid span{display:flex;justify-content:space-between;padding:4px;}.detail-meta-grid b{color:#465466;}.detail-players{margin-top:10px;}.detail-players h4{font-size:9px;color:#8d98a4;margin:0 0 6px;}.detail-player-row{display:flex;align-items:center;gap:6px;background:#f8f9fa;border-radius:8px;padding:7px;margin-top:4px;font-size:9px;}.detail-player-row .dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px;background:#ff9b28;}.detail-player-row.team-one-dot .dot{background:#ff9b28;}.detail-player-row.team-two-dot .dot{background:#aeb7bf;}.detail-player-row b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.detail-player-row small{margin-left:auto;color:#9aa3ad;white-space:nowrap;}.mini-badge{background:#e0f8f4;color:#0b9f94;border-radius:9px;padding:2px 5px;font-size:7px;font-weight:900;}.mini-badge.skill-beg{background:#e7f3ff;color:#2875b8;}.mini-badge.skill-nov{background:#e6f8f0;color:#188463;}.mini-badge.skill-int{background:#fff4d7;color:#a06a00;}.mini-badge.skill-adv{background:#f1eaff;color:#7250ad;}.mini-badge.skill-exp{background:#ffecef;color:#c43d4b;}
 .import-text{width:100%;min-height:150px;margin-top:12px;border:1px solid #ccd5df;border-radius:8px;padding:10px;resize:vertical;font-family:inherit;font-size:11px;outline:none;}.import-text:focus{border-color:#16b6aa;box-shadow:0 0 0 2px #16b6aa1f;}
 @media(max-width:760px){.queue-modern-item{grid-template-columns:22px 30px minmax(0,1fr) auto;}.queue-row-actions{gap:3px;}.gender-select{width:28px;padding:0;}.history-card{grid-template-columns:18px minmax(0,1fr) 30px minmax(0,1fr) 35px 10px;}.history-team{font-size:9px;}.history-time{font-size:7px;}.detail-meta-grid{grid-template-columns:1fr;}.history-detail-box{padding:15px;}}
-
 
 .queue-list{
   max-height:520px;
@@ -557,12 +553,7 @@ body{overflow-y:auto;}
 }
 
 /* V18 — court expansion, aligned court header controls, disabled settings, and ready-grid refresh */
-.court-header-actions{
-  display:flex!important;
-  align-items:center!important;
-  justify-content:flex-end!important;
-  gap:7px!important;
-}
+
 .court-header-actions .blue,
 .court-header-actions .settings-btn{
   height:34px!important;
@@ -960,7 +951,6 @@ body{overflow-y:auto;}
   .ready-actions button{font-size:8px!important;padding-left:4px!important;padding-right:4px!important;}
 }
 
-
 /* V21 surgical fixes based directly on V20 */
 @media(max-width:600px){.picker-search{width:105px!important;}}
 
@@ -973,8 +963,6 @@ body{overflow-y:auto;}
 .court-picker .picker-search{width:100%!important;height:30px!important;box-sizing:border-box!important;font-size:9px!important;}
 .court-picker .picker-player-list{max-height:185px!important;overflow-y:auto!important;overflow-x:hidden!important;padding-right:2px!important;scrollbar-width:thin;}
 .court-picker .picker-player-list::-webkit-scrollbar{width:6px;}
-
-
 
 /* V24 — custom skill category picker: no native arrow, click-to-open, keeps open until selection/outside click */
 .category-wrap{position:relative;display:inline-flex;align-items:center;vertical-align:middle;z-index:30;}
@@ -996,7 +984,6 @@ body{overflow-y:auto;}
 .category-menu .skill-adv{background:#f5efff;border-color:#dfd1f5;color:#7250ad;}.category-menu .skill-adv:hover{background:#ece2ff;}
 .category-menu .skill-exp{background:#fff1f2;border-color:#f1d0d4;color:#c43d4b;}.category-menu .skill-exp:hover{background:#ffe5e7;}
 @media(max-width:600px){.category-menu{width:118px;}.category-menu button{height:26px;}.category-menu button small{font-size:6.5px;}}
-
 
 /* Register category selector — compact clickable skill buttons matching the supplied reference. */
 .register-category-custom{position:relative;width:100%;margin-top:5px;z-index:80;}
@@ -1098,7 +1085,6 @@ body{overflow-y:auto;}
 
 /* Keep the left-player block visually anchored at the bottom of Queue */
 .queue-panel .left-section{border-radius:0 0 10px 10px;}
-
 
 /* V27 — queue registration / picker polish */
 .registered-search{position:relative;}
@@ -1209,7 +1195,6 @@ body{overflow-y:auto;}
   .queue-checkin{margin-left:1px;color:#16a36a;}
 }
 
-
 /* V27.2 — compact queue stats, overflow-safe selectors, ranking excludes 0-match players, proper left-player toggle */
 .queue-name-line{min-width:0;overflow:visible!important;}
 .queue-name-line .queue-name{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -1276,7 +1261,6 @@ body{overflow-y:auto;}
 .registered-search{position:relative!important;min-width:0!important;}
 .registered-search-icon{position:absolute!important;left:9px!important;top:17px!important;width:16px!important;height:16px!important;display:flex!important;align-items:center!important;justify-content:center!important;transform:translateY(-50%)!important;z-index:5!important;font-size:15px!important;line-height:16px!important;color:#71808c!important;pointer-events:none!important;}
 .registered-search>input{position:relative!important;z-index:1!important;padding-left:30px!important;}
-
 
 /* V27.4 — portal skill category menu: render outside the scrolling queue so it can never be clipped or misplaced by panel overflow. */
 .category-menu-portal{
@@ -1418,9 +1402,7 @@ body{overflow-y:auto;}
   .registered-update-btn span{display:inline!important;}
 }
 
-
 /* V28.2 — keep queue mode controls visible in Registration and switch instantly */
-
 
 /* V28.3 — unified queue/registration controls and compact registered search */
 .queue-add .queue-mode-buttons,
@@ -2017,7 +1999,7 @@ body{overflow-y:auto;}
 }
 
 /* V30 — compact/minimal ranking layout inspired by the reference */
-#rankingView{padding:10px 10px 8px!important;}
+
 .ranking-heading{margin:1px 0 7px!important;padding:0 1px;}
 .ranking-heading h2,.leaderboard-heading h2{font-size:13px!important;font-weight:800!important;}
 .podium-list{gap:6px;margin-bottom:11px;}
@@ -2059,7 +2041,6 @@ body{overflow-y:auto;}
   .ranking-result strong{font-size:11px;}
   .ranking-result span,.ranking-result small{font-size:6.5px;}
 }
-
 
 /* V31 — align Ranking and Match Log section headers consistently */
 #rankingView,
@@ -2208,13 +2189,11 @@ body{overflow-y:auto;}
   justify-content:center!important;
 }
 
-
 /* Final fix: keep queue gender selector open after clicking and fully visible */
 .queue-gender-inline{position:relative!important;z-index:100000!important;overflow:visible!important;}
 .queue-gender-inline .gender-menu{position:absolute!important;display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;top:auto!important;bottom:22px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;z-index:2147483647!important;overflow:visible!important;}
 .queue-gender-inline .gender-menu button{pointer-events:auto!important;}
 .queue-modern-item,.queue-modern-item .queue-main-info,.queue-modern-item .queue-name-line{overflow:visible!important;}
-
 
 /* FINAL FIX — gender selector is a fixed portal so the queue scroll area cannot clip it. */
 .queue-gender-inline .gender-menu{
@@ -2264,7 +2243,7 @@ body{overflow-y:auto;}
 }
 
 /* V18 — remove subbar and align the three dashboard panels with minimal header/button spacing */
-.subbar{display:none!important;}
+
 .workspace{
   height:calc(100vh - 58px);
   min-height:520px;
@@ -2424,8 +2403,6 @@ body{overflow-y:auto;}
 .queue-gender-inline .gender-inline.female{color:#d34f88!important;}
 .queue-gender-inline .gender-inline:hover{filter:none!important;transform:none!important;}
 
-
-
 /* Disable cursor for Add Waiting Court until a regular court is selected. */
 #addCourtBtn:disabled {
   cursor: not-allowed !important;
@@ -2491,7 +2468,6 @@ body{overflow-y:auto;}
   .queue-time-group .queue-checkin,
   .queue-time-group .queue-waiting{font-size:7px!important;}
 }
-
 
 /* V33 — final queue gender alignment + body-portal selector.
    The icon stays directly beside the player name, while the selector is
@@ -2570,7 +2546,6 @@ body{overflow-y:auto;}
   box-sizing:border-box!important;
   pointer-events:auto!important;
 }
-
 
 /* V34 — queue gender selector matches the requested vertical menu design. */
 .gender-menu.gender-menu-portal,
@@ -2706,7 +2681,6 @@ body{overflow-y:auto;}
   flex:0 0 auto!important;
 }
 
-
 /* Shared Queue / Walk-in switch: one consistent 1px edge and identical cell geometry. */
 .queue-mode-buttons.mode-buttons-shared,
 .queue-panel > .mode-buttons-shared{
@@ -2765,7 +2739,6 @@ body{overflow-y:auto;}
     padding:7px 8px!important;
   }
 }
-
 
 /* V38 — final queue-list arrangement based on the supplied reference.
    Keep existing functionality, lock/remove buttons, and the established font family.
@@ -2853,14 +2826,7 @@ body{overflow-y:auto;}
   gap:5px!important;width:100%!important;min-width:0!important;
   min-height:22px!important;margin:0!important;padding:0!important;
 }
-#queueMainArea .queue-modern-item .queue-cat-stack,
-#queueMainArea .queue-modern-item .queue-cat-wrap{
-  flex:0 0 auto!important;min-width:0!important;width:auto!important;
-}
-#queueMainArea .queue-modern-item .queue-cat-wrap .category-trigger{
-  height:22px!important;min-width:39px!important;padding:0 8px!important;
-  border-radius:11px!important;font-size:8px!important;font-weight:900!important;
-}
+
 #queueMainArea .queue-modern-item .queue-record-badge{
   display:inline-flex!important;align-items:center!important;
   min-width:0!important;height:22px!important;padding:0 7px!important;
@@ -3134,52 +3100,6 @@ body{overflow-y:auto;}
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@media(max-width:760px){
-  
-  
-  
-  
-  
-}
-
-
-
-
-
-
-
-@media(max-width:760px){
-  
-  
-}
-
-@media(max-width:760px){
-  
-  
-  
-}
-
 /* V11.1 STABILITY PATCH — final queue layout/popover guards.
    Keep compact selectors inside their row while letting their popup escape
    the scrolling queue container. */
@@ -3311,7 +3231,6 @@ body{overflow-y:auto;}
   stroke-linejoin:round!important;
 }
 
-
 /* V42 — QUEUE TOP CONTROLS / QUEUE SEARCH
    Layout: Search | Walk-in
             Search bar | Update
@@ -3366,28 +3285,6 @@ body{overflow-y:auto;}
 .queue-panel > .queue-mode-buttons.mode-buttons-shared{
   margin:10px 14px 8px!important;
   padding:0!important;
-}
-
-
-
-
-
-@media(max-width:760px){
-  
-  
-  
-}
-
-
-
-
-
-
-
-@media(max-width:760px){
-  
-  
-  
 }
 
 .queue-panel > .queue-mode-buttons.mode-buttons-shared{
@@ -3501,7 +3398,6 @@ body{overflow-y:auto;}
 
 #queueMainArea .queue-modern-item .queue-gender-inline .gender-inline{cursor:default!important;pointer-events:none!important;}
 
-
 /* Empty queue state — moved above the blank queue area; existing queue design unchanged. */
 #queueMainArea .queue-empty-state{
   order:3!important;
@@ -3535,12 +3431,8 @@ body{overflow-y:auto;}
 
 /* Icon update: use native emoji glyphs while preserving existing control sizing/layout. */
 
-
-
 /* V42 — crisp queue action icons and bold gender symbols.
    Uses inline SVG for lock/remove so the controls stay sharp at every scale. */
-
-
 
 #queueMainArea .queue-modern-item .queue-row-actions .player-x{
   background:#fff4f4!important;
@@ -3568,10 +3460,6 @@ body{overflow-y:auto;}
   font-weight:900!important;
   line-height:18px!important;
 }
-
-
-
-
 
 /* Registration-area layout update: FullName / NickName+Gender / Category+Save */
 .registration-area .registration-field{margin:0;}
@@ -3640,7 +3528,6 @@ body{overflow-y:auto;}
   }
 }
 
-
 /* Registration category visual matching only */
 .registration-area .registration-category-control .register-category-trigger,
 .registration-area .registration-category-control .register-category-trigger .register-category-code{
@@ -3675,7 +3562,6 @@ body{overflow-y:auto;}
   font-weight:400;
 }
 
-
 /* FullName / NickName borders: match the category control */
 .registration-area .registration-fullname-row .registration-text-wrap,
 .registration-area .registration-nickname-field .registration-text-wrap{
@@ -3700,7 +3586,6 @@ body{overflow-y:auto;}
   box-shadow:none;
 }
 
-
 /* Correct category active state: use the original category focus color */
 .registration-area .registration-category-control .register-category-trigger:focus,
 .registration-area .registration-category-control .register-category-trigger:focus-visible,
@@ -3709,7 +3594,6 @@ body{overflow-y:auto;}
   border-color:#16b6aa;
   box-shadow:0 0 0 2px rgba(22,182,170,.1);
 }
-
 
 /* FullName / NickName labels aligned with Gender / Category labels */
 .registration-area .registration-field-label{
@@ -3729,7 +3613,6 @@ body{overflow-y:auto;}
 .registration-area .registration-nickname-field .registration-text-wrap{
   margin-top:0;
 }
-
 
 /* Keep NICKNAME and GENDER labels on the exact same horizontal row */
 .registration-area .registration-nickname-gender-row{
@@ -3756,7 +3639,6 @@ body{overflow-y:auto;}
 .registration-area .registration-gender-control .registration-choice-row{
   margin-top:0;
 }
-
 
 /* Final alignment: Gender label and gender-choice row use the same
    two-level structure as NickName, so the buttons start exactly
@@ -3790,9 +3672,7 @@ body{overflow-y:auto;}
   box-sizing:border-box;
 }
 
-
 /* Final vertical alignment: NickName textbox and Gender buttons */
-
 
 .registration-area .registration-nickname-field,
 .registration-area .registration-gender-control{
@@ -3833,7 +3713,6 @@ body{overflow-y:auto;}
   box-sizing:border-box;
 }
 
-
 /* Match NickName textbox border-box height exactly */
 .registration-area .registration-nickname-field .registration-text-wrap{
   height:42px !important;
@@ -3853,7 +3732,6 @@ body{overflow-y:auto;}
   box-sizing:border-box;
   margin:0;
 }
-
 
 /* Final requested sizing: NickName + Gender = 34px */
 .registration-area .registration-nickname-field .registration-text-wrap{
@@ -3889,7 +3767,6 @@ body{overflow-y:auto;}
   box-sizing:border-box;
 }
 
-
 /* Make Category dropdown exactly the same width as NickName textbox.
    Both rows now use the same column proportions. */
 .registration-area .registration-category-save-row{
@@ -3904,7 +3781,6 @@ body{overflow-y:auto;}
   box-sizing:border-box;
 }
 
-
 /* Match queue-modern-item outer width to the FullName textbox.
    Registration content uses 14px side padding while queue-list uses 8px,
    so the queue item is reduced by 12px and centered with 6px side margins. */
@@ -3915,7 +3791,6 @@ body{overflow-y:auto;}
   margin-right:6px!important;
   box-sizing:border-box!important;
 }
-
 
 /* FINAL PANEL TITLE REFRESH — match the supplied Paddle Stack / Courts reference. */
 .queue-header-modern h2,
@@ -3947,7 +3822,6 @@ body{overflow-y:auto;}
 .queue-header-modern h2 .queueCountBadge{
   display:inline!important;
 }
-
 
 /* FINAL HEADER CONTROL MATCH — Add Court / Settings use the same visual language as Import. */
 .court-header-actions .blue,
@@ -4087,7 +3961,6 @@ body{overflow-y:auto;}
   transform:none!important;
 }
 
-
 /* FINAL CLEAN HEADER STYLE — keep Queue/Court counts identical and centered.
    Add Court and Settings use the exact same spacing treatment as Import. */
 .queue-header-modern,
@@ -4096,8 +3969,6 @@ body{overflow-y:auto;}
   align-items:center!important;
   justify-content:space-between!important;
 }
-
-
 
 .queue-header-modern h2 .queueCountBadge,
 .courts-panel > .panel-title h2 #courtCount{
@@ -4740,7 +4611,7 @@ body{overflow-y:auto;}
   scrollbar-gutter:stable!important;
 }
 .court-settings-modal-box .court-settings-pool.court-pool-scroll::-webkit-scrollbar{width:6px!important;}
-.court-settings-modal-box .court-settings-pool.court-pool-scroll::-webkit-scrollbar-thumb{background:#cfd6de!important;border-radius:8px!important;}
+
 .court-settings-modal-box .court-settings-pool.court-pool-scroll::-webkit-scrollbar-track{background:transparent!important;}
 
 /* COURT POOL — scrollbar belongs to COURT POOL, not QUICK ADD */
@@ -4753,7 +4624,6 @@ body{overflow-y:auto;}
   overflow-y:visible!important;
   overflow-x:visible!important;
 }
-
 
 /* COURT POOL — 6 courts fit naturally; 7+ courts gets a dedicated scrollbar
    without squeezing the court chips or changing QUICK ADD. */
@@ -4818,9 +4688,6 @@ body{overflow-y:auto;}
   grid-auto-rows:32px!important;
   align-content:start!important;
 }
-
-
-
 
 /* COURT SETTINGS POOL — compact, consistent chip spacing; prevent overflow gaps. */
 .court-settings-modal-box .court-settings-pool{
@@ -5050,7 +4917,6 @@ body{overflow-y:auto;}
 .court-settings-modal-box .court-settings-skills .court-skill-btn.skill-adv.selected { background:#FFEDD5!important; border-color:#FED7AA!important; color:#9A3412!important; }
 .court-settings-modal-box .court-settings-skills .court-skill-btn.skill-exp.selected { background:#F3E8FF!important; border-color:#E9D5FF!important; color:#6B21A8!important; }
 
-
 /* COURT SETTINGS ACTION BUTTONS — fill the modal width evenly. */
 .court-settings-modal-box .settings-modal-actions {
   display: flex !important;
@@ -5107,7 +4973,6 @@ body{overflow-y:auto;}
   text-overflow: clip !important;
 }
 
-
 /* V13 — updated category palette supplied by user. */
 .skill-beg { background-color:#E8F3FF!important; border-color:#BCE0FD!important; color:#2B6CB0!important; }
 .skill-nov { background-color:#E0F8F3!important; border-color:#A2F0DF!important; color:#227A68!important; }
@@ -5144,19 +5009,7 @@ body{overflow-y:auto;}
 
 /* V15 — unify category color grading across every category UI. */
 
-
-
-
-
-
 /* Keep selected court skill chips colored only after selection. */
-
-
-
-
-
-
-
 
 /* V16 — readable skill trigger menu labels with the shared category palette. */
 #queueCategoryPopup.category-menu{width:140px!important;min-width:140px!important;max-width:140px!important;box-sizing:border-box!important;padding:5px!important;gap:4px!important;}
@@ -5239,8 +5092,7 @@ body{overflow-y:auto;}
 #queueCategoryPopup.category-menu button:not(.skill-beg):not(.skill-nov):not(.skill-int):not(.skill-adv):not(.skill-exp):hover {
   background-color: #EEF2F7 !important; border-color: #CBD5E1 !important; color: #475569 !important;
 }
-@media (prefers-reduced-motion: reduce) {
-}
+
 #queueCategoryPopup.category-menu {
   animation: queueCategoryPopupFadeV23 0.35s ease-in-out both !important;
 }
@@ -5255,7 +5107,6 @@ body{overflow-y:auto;}
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
 
 #queueMainArea .queue-list {
   width: 100% !important;
@@ -5282,9 +5133,6 @@ body{overflow-y:auto;}
   max-width: 100% !important;
   box-sizing: border-box !important;
 }
-
-
-
 
 #queueMainArea .queue-modern-item{
   display:grid!important;
@@ -5331,15 +5179,11 @@ body{overflow-y:auto;}
   transform:none!important;
 }
 
-
-
-
 @media(max-width:760px){
   #queueMainArea .queue-modern-item{grid-template-columns:40px minmax(0,1fr) auto!important;column-gap:7px!important;}
   #queueMainArea .queue-modern-item > .queue-avatar-stack{width:36px!important;height:36px!important;min-width:36px!important;}
   
 }
-
 
 #queueMainArea .queue-list{
   scrollbar-gutter:stable!important;
@@ -5371,7 +5215,6 @@ body{overflow-y:auto;}
   .ready-meta-hint{margin-left:auto;}
 }
 
-
 /* COURT HEADER ACTIONS — Settings first, gray; preserve Add Court styling. */
 .court-header-actions{
   display:flex!important;
@@ -5393,7 +5236,6 @@ body{overflow-y:auto;}
   background:#f1f3f5!important;
   border-color:#d8dde3!important;
 }
-
 
 /* User adjustment: Settings matches Add Court text sizing; light-gray background. */
 .court-header-actions #courtSettingsBtn{
@@ -5447,7 +5289,6 @@ body{overflow-y:auto;}
 .court-delete-confirm-row .court-delete-message{font-size:9px!important;}
 .court-delete-confirm-row .court-confirm-yes,.court-delete-confirm-row .court-confirm-no{font-size:8.5px!important;}
 @media(max-width:480px){.court-head.ready-head .court-head-right{gap:7px!important;}.court-delete-confirm-row{padding:7px 10px;gap:7px;}}
-
 
 /* V27 — ready match sheet: side-by-side teams with centered VS and clear edge lining */
 .ready-match-sheet{
@@ -5527,7 +5368,6 @@ body{overflow-y:auto;}
   .ready-match-sheet .slot-player-text{font-size:9px!important;}
 }
 
-
 /* V28 — final ready-court alignment adjustments */
 .ready-match-sheet .ready-match-vs{
   align-self:center!important;
@@ -5564,7 +5404,6 @@ body{overflow-y:auto;}
   gap:3px!important;
 }
 
-
 /* V43 — align ready team headings to the start and identify previously paired partners */
 .ready-match-sheet .ready-team-heading{
   text-align:left!important;
@@ -5594,7 +5433,6 @@ body{overflow-y:auto;}
   white-space:nowrap!important;
 }
 
-
 /* Paired-before history indicator in the court player picker */
 .picker-paired-before {
   color: #dc2626 !important;
@@ -5603,7 +5441,6 @@ body{overflow-y:auto;}
   white-space: nowrap;
   margin-left: 5px;
 }
-
 
 /* Open Play Podium: category chips use consistent, readable skill colors. */
 #podiumList .podium-player > span[class~="skill-beg"],
@@ -5731,7 +5568,6 @@ body{overflow-y:auto;}
   #cloudRecordsModal .cloud-records-content{max-height:none!important;min-height:0!important;}
 }
 
-
 /* Cloud header: light/white background with dark text. */
 #cloudRecordsModal .cloud-records-head{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -5754,7 +5590,6 @@ body{overflow-y:auto;}
   #cloudRecordsModal .cloud-import-btn{padding:8px 7px;font-size:9px;}
 }
 
-
 /* Cloud header: horizontal divider only; no surrounding edge or box. */
 #cloudRecordsModal .cloud-records-head{
   border:0 !important;
@@ -5765,15 +5600,11 @@ body{overflow-y:auto;}
   margin:0 0 10px !important;
 }
 
-
-
-
 /* Registered Player Cloud: remove divider line beneath the search bar/summary only. */
 #cloudRecordsModal .cloud-search-summary{border-bottom:none!important;}
 
 /* Cloud player check-in is unavailable while the player is already in the queue. */
 #cloudRecordsModal .cloud-checkin-btn:disabled{opacity:.58;cursor:not-allowed;background:#f3f4f6!important;border-color:#d1d5db!important;color:#6b7280!important;}
-
 
 /* Left Players modal — match Registered Player Cloud modal dimensions, spacing and styling. */
 #leftPlayersModal .left-players-modal-box{
@@ -5847,7 +5678,6 @@ body{overflow-y:auto;}
 #leftPlayersModal .cloud-avatar{font-size:13px!important;}
 #leftPlayersModal .cloud-avatar-number{font-size:9px!important;}
 
-
 /* Left Players search: reuse Registered Player Cloud search appearance and gender colors. */
 #leftPlayersModal .left-players-search-summary{display:grid;grid-template-columns:minmax(170px,1fr) auto;align-items:center;gap:10px;padding:0 0 9px;margin:0 0 2px;border-bottom:none!important;flex:0 0 auto;}
 #leftPlayersModal .left-players-search-wrap{display:flex;align-items:center;gap:7px;min-width:0;margin:0;padding:0 9px;border:1px solid #dce4ec;border-radius:8px;background:#f8fafc;color:#7e8b99;box-sizing:border-box;}
@@ -5864,7 +5694,6 @@ body{overflow-y:auto;}
 #leftPlayersModal .cloud-delete-warning button{border:1px solid #e7c4c7;background:#fff5f5;color:#b23b46;border-radius:6px;padding:5px 8px;font-size:8px;line-height:1.2;cursor:pointer;white-space:nowrap;}
 #leftPlayersModal .cloud-delete-warning .left-cloud-cancel-confirm{border:1px solid #dce4eb;background:#f7f9fb;color:#5c6d7d;}
 @media(max-width:620px){#leftPlayersModal .cloud-delete-warning{margin-left:44px!important;}}
-
 
 /* Match the Left Players and Registered Player Cloud search icons to registeredPlayerSearch. */
 #cloudRecordsModal .cloud-search-icon,
@@ -5908,7 +5737,6 @@ body{overflow-y:auto;}
 .court-modal-empty{text-align:left!important;color:#a0a8b2!important;font-size:10px!important;padding:12px 0!important;}
 .court-modal-vs{display:none!important;}
 @media(max-width:520px){.court-players-modal-box{padding:16px!important;}.court-modal-teams{grid-template-columns:1fr!important;gap:12px!important;}.court-modal-player{padding:7px 0!important;}}
-
 
 /* V26 — ready-match team layout aligned to the supplied Team 1 / Team 2 reference */
 .ready-match-sheet{
@@ -6131,7 +5959,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
 }
 @supports not (overflow:clip){html,body{overflow-x:hidden;}}
 
-
 /* Restore the red edge only when the two occupied slots have a real historical team match. */
 .ready-match-sheet .ready-match-team.has-paired-before{
   border:1px solid #ff6b75!important;
@@ -6141,7 +5968,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
 .ready-match-sheet .ready-match-team.has-paired-before .paired-before-label{
   color:#dc2626!important;
 }
-
 
 /* Keep the existing tap-slot outline style, highlighting the full slot in red for prior pairings. */
 .ready-match-sheet .ready-team-players .team-player.tap-slot.paired-before-player{
@@ -6158,12 +5984,10 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
 .waiting-courts-title small{margin-left:auto;font-size:9px;font-weight:700;color:#9aa6b2;letter-spacing:0;text-transform:none;}
 .waiting-court-card .waiting-box{border-color:#e3e8ed;background:#fbfcfd;}
 .waiting-court-card .waiting-head{background:#fff;}
-.waiting-court-card .waiting-head .court-title{color:#ff9700!important;}
-.waiting-court-card .waiting-head .court-title b{font-size:14px;color:#ff9700!important;}
+
 .waiting-court-card .waiting-head .status{color:#00a99d;}
 .waiting-court-card .ready-meta-hint{color:#7e8995;font-weight:800;}
 .waiting-court-card .ready-actions .start{background:#eef1f4!important;color:#8d98a4!important;border-color:#dce2e8!important;cursor:not-allowed!important;}
-
 
 /* Waiting court header follows the same visual treatment as ready court cards. */
 .waiting-court-card .waiting-box{border:2px solid #8adfd5!important;background:#fbfffe!important;border-radius:14px!important;overflow:hidden;}
@@ -6171,7 +5995,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
 .waiting-court-card .waiting-head .court-title{color:#ff9700!important;}
 .waiting-court-card .waiting-head .court-title b{font-size:14px;color:#ff9700!important;}
 .waiting-court-card .waiting-head .status{color:#00a99d;background:#e5f7f6;}
-
 
 /* Fine-tune: regular and waiting court cards use the same inset width. */
 #courtsList > .court-card.court-ready-card,
@@ -6189,8 +6012,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   min-width:0!important;
   box-sizing:border-box!important;
 }
-
-
 
 /* FIX: Keep regular, waiting, and playing courts the same size when the
    courts list scrollbar appears. Reserve scrollbar space instead of letting
@@ -6255,8 +6076,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
     padding-right: 8px !important;
   }
 }
-
-
 
 /* COURTS PANEL BALANCE: keep equal inset on both sides and prevent the
    scrollbar/card width from pushing the panel's right edge out of alignment. */
@@ -6367,13 +6186,11 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   body { height: auto !important; min-height: 100% !important; overflow-x: hidden !important; overflow-y: auto !important; }
 }
 
-
 /* Requested visual-only cleanup: remove backgrounds from normal timer, court expand, and Ranking View Playing badge. */
 .live-timer.timer-normal{background:transparent!important;border-color:transparent!important;box-shadow:none!important;}
 .court-expand,.court-expand:hover,.court-expand.is-expanded{background:transparent!important;border-color:transparent!important;box-shadow:none!important;}
 .court-expand:disabled,.court-expand:disabled:hover,.court-expand:disabled:focus{opacity:.35!important;cursor:not-allowed!important;color:#b5bdc5!important;pointer-events:none!important;}
 #rankingView .playing-badge{background:transparent!important;border-color:transparent!important;box-shadow:none!important;}
-
 
 /* Requested follow-up: keep every court-expand control the same size and background-free. */
 .court-expand,
@@ -6391,7 +6208,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   box-shadow: none !important;
   border-radius: 0 !important;
 }
-
 
 /* Fix: force the expand control in live court cards to match the standard 25px control. */
 .court-card.court-live-card .court-head .court-head-right > .court-expand,
@@ -6418,7 +6234,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   box-shadow: none !important;
   border-radius: 0 !important;
 }
-
 
 /* Final hard override: normalize the live-card expand control itself (not just its flex parent). */
 #courtsList .court-card.court-live-card .court-box.live-box .court-head.live-head .court-head-right > button.court-expand,
@@ -6449,7 +6264,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   box-shadow: none !important;
 }
 
-
 /* Final live-timer cleanup: transparent timer with no visible border or outline. */
 .live-timer.timer-normal,
 .live-timer.timer-yellow,
@@ -6465,7 +6279,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   outline: none !important;
   box-shadow: none !important;
 }
-
 
 /* FIX: reliable visible color-fading for live timers. Keep timer backgrounds/borders transparent. */
 .live-timer.timer-yellow,
@@ -6531,7 +6344,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   to { opacity: .35; transform: scale(.78); }
 }
 
-
 /* Normal live timer: static gray status dot. Only yellow/red dots fade. */
 .live-timer.timer-normal::before {
   content: "" !important;
@@ -6548,7 +6360,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   opacity: 1 !important;
   transform: none !important;
 }
-
 
 /* FINAL CLOSE BUTTON UPDATE — registered player cloud + left player */
 #cloudRecordsModal .cloud-records-actions button#cloudRecordsDone,
@@ -6645,7 +6456,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
 .court-modal-player b{font-size:10.5px!important;}
 .court-modal-player small{font-size:8px!important;color:#8a96a2!important;}
 .court-modal-empty{padding:30px 6px!important;}
-
 
 /* Minimal Court Expand Modal */
 .court-players-modal-overlay{
@@ -6816,7 +6626,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
 .court-lineup-close:hover{color:#b42318;border-color:#b42318;background:#fff5f5;}
 @media(max-width:560px){.court-players-modal-box{padding:15px!important;}.court-lineup-top{align-items:flex-start;}.court-lineup-label{font-size:7px;}.court-lineup-teams{grid-template-columns:1fr;gap:7px;}.court-lineup-vs{margin:0 auto;}.court-lineup-rule{margin-left:auto;}.court-lineup-footer{margin-top:10px;}}
 
-
 /* Waiting Court expand modal state */
 .court-lineup-count.waiting{background:#e8f8ec;color:#1f9d4b;border-color:#c7e9d0;}
 .court-lineup-count.waiting b{color:#1f9d4b;}
@@ -6897,7 +6706,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   margin-top:0!important;
   padding-top:0!important;
 }
-
 
 /* V34 — Minimal empty Match Log state matching reference */
 #historyView:has(.history-empty) > h2{
@@ -7004,7 +6812,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   color:#8b97a8;
 }
 
-
 /* Minimal Left Players empty state */
 .left-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;padding:18px 10px 12px;color:#8190a0;gap:6px;box-sizing:border-box;}
 .left-empty-icon{font-size:24px;line-height:1;opacity:.9;}
@@ -7015,7 +6822,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
 
 #cloudRecordsModal .cloud-empty{padding:22px 10px 16px!important;text-align:center;color:#8190a0;font-size:10px!important;font-weight:400!important;}
 #cloudRecordsModal .cloud-empty-icon{font-size:24px;line-height:1;margin-bottom:8px;}
-
 
 /* TOP BAR — event dashboard header inspired by the supplied reference */
 .topbar{
@@ -7085,7 +6891,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   .top-actions .online{font-size:10px;padding:7px 8px;}
 }
 
-
 /* Minimal top bar refinement */
 .topbar{
   min-height:76px;height:auto;padding:10px 22px;gap:12px;
@@ -7114,7 +6919,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   .top-actions{gap:4px;margin-top:2px;}
   .top-actions button{font-size:10px;padding:6px 8px;}
 }
-
 
 /* Minimal top bar: remove nonessential controls and support inline event-title editing */
 .topbar{
@@ -7314,7 +7118,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   max-height: 31px !important;
 }
 
-
 /* READY / UP NEXT COURT STATUS — green ready state and matching Up Next indicator. */
 .court-card.court-ready-card .court-head.ready-head .status.ready{
   background:#e6f8ed !important;
@@ -7405,9 +7208,7 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   opacity:1;
 }
 
-
 /* Final — Minimal confirmation modal */
-
 
 /* Inline live-match delete confirmation — replaces the confirmation modal. */
 .live-footer .cancel-match{cursor:pointer!important;transition:background .15s ease,border-color .15s ease,color .15s ease!important;}
@@ -7476,7 +7277,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   border-color:#e9aab0!important;
 }
 
-
 /* Final live-match delete confirmation: no Back to Match; compact note below with Confirm/Cancel. */
 .live-footer.delete-confirming{
   display:grid!important;
@@ -7544,7 +7344,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   .live-footer.delete-confirming .delete-match-note{gap:6px!important;font-size:8.5px!important;}
   .live-footer.delete-confirming .delete-match-note button{padding:5px 8px!important;}
 }
-
 
 /* Live Submit Score confirmation — inline note. */
 .live-footer.submit-confirming{
@@ -7767,7 +7566,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   filter:brightness(.96);
 }
 
-
 /* End live queue session summary. */
 .end-session-summary-box{
   width:500px;
@@ -7848,7 +7646,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
 @media(max-width:520px){
   .end-session-summary-grid{grid-template-columns:1fr;}
 }
-
 
 /* End Session modal — polished spacing and balanced actions (scoped only to this modal) */
 #endSessionModal .end-session-modal-box{
@@ -8180,7 +7977,6 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
   cursor:not-allowed!important;
 }
 
-
 /* EXPANDED PODIUM RANKING */
 .ranking-heading{justify-content:space-between!important;}
 .podium-expand-btn{
@@ -8416,7 +8212,6 @@ body.podium-modal-open{overflow:hidden;}
     grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr)!important;
   }
 }
-
 
 /* History detail redesign — keep existing behavior unchanged */
 .history-detail-box .detail-label{
@@ -8878,7 +8673,6 @@ body.podium-modal-open{overflow:hidden;}
 .registration-area .registration-category-control .register-category-option.selected.skill-adv:hover{background:#FFE5CF!important;border-color:#F7C29A!important;color:#C05621!important;}
 .registration-area .registration-category-control .register-category-option.selected.skill-exp:hover{background:#FBDADA!important;border-color:#F29A9A!important;color:#9B1C1C!important;}
 
-
 /* FINAL FIX — registration Skill Level has no gray default background.
    Only the actually selected option may receive a skill color. */
 .registration-area .registration-category-control,
@@ -8904,7 +8698,6 @@ body.podium-modal-open{overflow:hidden;}
 /* Registered player: skill-level control removed. Keep SAVE PLAYER full-width in its row. */
 .registration-area .registration-category-save-row{grid-template-columns:minmax(0,1fr)!important;}
 .registration-area .registration-category-save-row .register-save-btn{width:100%!important;}
-
 
 /* FINAL — registered player skill level selector.
    Layout: SKILL LEVEL on its own line; skill buttons below; SAVE PLAYER beside them.
@@ -9064,8 +8857,6 @@ body.podium-modal-open{overflow:hidden;}
   background:#FDE8E8 !important;border-color:#F8B4B4 !important;color:#9B1C1C !important;
 }
 
-
-
 #queueMainArea .queue-modern-item{
   display:grid!important;
   grid-template-columns:38px minmax(0,1fr) auto!important;
@@ -9153,10 +8944,6 @@ body.podium-modal-open{overflow:hidden;}
   }
   #queueMainArea .queue-modern-item .queue-avatar-stack{margin-top:0!important;align-self:center!important;}
 }
-
-
-
-
 
 /* Queue player dropdown: slim line handle, matching the cloud match-log disclosure. */
 #queueMainArea .queue-player-details{grid-column:1/-1;min-width:0;margin:0 0 0 36px;padding:0;border:0;}
@@ -9260,7 +9047,6 @@ body.podium-modal-open{overflow:hidden;}
   text-decoration:none!important;
 }
 
-
 /* FIX — restore category badge colors inside picker-player-list. Keep this scoped
    to the court picker so paired-before row styling cannot flatten the badges. */
 .court-picker .picker-player-list .picker-category{
@@ -9278,7 +9064,6 @@ body.podium-modal-open{overflow:hidden;}
 .court-picker .picker-player-list .picker-category.skill-adv{background:#f1eaff!important;border-color:#d9c9f5!important;color:#7250ad!important;}
 .court-picker .picker-player-list .picker-category.skill-exp{background:#ffecef!important;border-color:#f2c8cd!important;color:#c43d4b!important;}
 
-
 /* Locked-in partner icon beside the court slot remove control only. */
 .ready-match-sheet .ready-team-players .team-player.tap-slot .slot-lock-icon,
 .team-player.tap-slot .slot-lock-icon{
@@ -9289,7 +9074,6 @@ body.podium-modal-open{overflow:hidden;}
 
 /* Keep lock icon immediately beside the remove button. */
 .team-player.tap-slot .slot-lock-icon + .slot-remove{margin-left:0!important;}
-
 
 /* V28.10 — keep locked icon directly next to remove control (🔒❌). */
 .ready-match-sheet .ready-team-players .team-player.tap-slot,
@@ -9314,7 +9098,6 @@ body.podium-modal-open{overflow:hidden;}
   margin: 0 !important;
 }
 
-
 /* V28.12 — show Partner-In and the actual locked partner name; match category badge radius. */
 .court-picker .picker-player-list .partner-inline-badge {
   display: inline-flex !important;
@@ -9337,7 +9120,6 @@ body.podium-modal-open{overflow:hidden;}
   white-space: nowrap !important;
 }
 
-
 /* V28.13 — picker partner-inline: no border line and no unlock affordance here. */
 .court-picker .picker-player-list .partner-inline-badge {
   border: 0 !important;
@@ -9345,7 +9127,6 @@ body.podium-modal-open{overflow:hidden;}
   box-shadow: none !important;
   cursor: inherit !important;
 }
-
 
 /* V28.14 — truncate only the partner name; keep the lock visible and stable. */
 .court-picker .picker-player-list .partner-inline-badge {
@@ -9387,12 +9168,10 @@ body.podium-modal-open{overflow:hidden;}
   color: #7250ad !important;
 }
 
-
 /* Queue lock shortcut beside the remove button; hover changes color only. */
 #queueMainArea .queue-row-actions .queue-lock-open-btn{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:24px;height:24px;padding:0;border:1px solid transparent;border-radius:5px;background:transparent;color:#64748b;font-size:15px;line-height:1;cursor:pointer;transition:color .18s ease,background-color .18s ease;}
 #queueMainArea .queue-row-actions .queue-lock-open-btn:hover,#queueMainArea .queue-row-actions .queue-lock-open-btn:focus-visible{color:#15803d;background:#f0fdf4;border-color:transparent;outline:none;}
 #queueMainArea .queue-row-actions .queue-lock-open-btn:disabled{opacity:.58;cursor:not-allowed;pointer-events:none;color:#64748b;background:transparent;border-color:transparent;}
-
 
 /* Queue lock-in state indicator: closed lock means paired, open lock means unpaired. */
 #queueMainArea .queue-row-actions .queue-lock-open-btn{perspective:120px;}
@@ -9419,8 +9198,6 @@ body.podium-modal-open{overflow:hidden;}
 /* DUPR toggle temporarily disabled */
 .live-queue-toggle-row:has(#liveQueueDupr){cursor:not-allowed;opacity:.55;}
 .live-queue-toggle-row:has(#liveQueueDupr) .live-queue-toggle{filter:grayscale(1);}
-
-
 
 /* Requested minimal topbar status and event-rule hover updates */
 .top-actions .online.offline{
@@ -9640,7 +9417,6 @@ body.podium-modal-open{overflow:hidden;}
   justify-content:center;
 }
 
-
 /* FINAL UPDATE — full-width skill buttons with save action underneath.
    Keep all other registration styling and behavior unchanged. */
 .registration-area .registration-category-save-row{
@@ -9685,7 +9461,6 @@ body.podium-modal-open{overflow:hidden;}
   top:3px;
 }
 
-
 /* Registration required-field markers and disabled save state. */
 .registration-area .registration-required-star{
   color:#e53935!important;
@@ -9705,7 +9480,6 @@ body.podium-modal-open{overflow:hidden;}
   box-shadow:none!important;
 }
 
-
 /* Duplicate Registered Player Cloud notice: compact, centered red text. */
 .registration-area .registration-duplicate-message{
   margin:4px auto 0;
@@ -9717,7 +9491,6 @@ body.podium-modal-open{overflow:hidden;}
   overflow-wrap:anywhere;
 }
 .registration-area .registration-duplicate-message[hidden]{display:none!important;}
-
 
 /* RESPONSIVE PATCH — mobile header/actions and tablet panel height balance.
    Scoped to responsive breakpoints; desktop styling and application logic remain unchanged. */
@@ -9871,7 +9644,6 @@ body.podium-modal-open{overflow:hidden;}
   .event-stats { overflow-wrap: anywhere; }
 }
 
-
 /* TABLET FIX: queue panel height follows the courts panel, whose natural height
    is determined by the number of courts shown. Do not size it from queue players. */
 @media (min-width: 901px) and (max-width: 1100px) {
@@ -9918,7 +9690,6 @@ body.podium-modal-open{overflow:hidden;}
   }
 }
 
-
 /* Tablet-only results modal and court-list scrolling for multiple waiting courts. */
 .tablet-results-open-btn{display:none!important;}
 .tablet-results-modal{display:none;}
@@ -9936,7 +9707,6 @@ body.podium-modal-open{overflow:hidden;}
   #tabletResultsModalBody{overflow:auto;min-height:0;}
   #tabletResultsModalBody > .results-panel{display:block!important;position:static!important;grid-column:auto!important;grid-row:auto!important;width:100%!important;height:auto!important;max-height:calc(88vh - 45px)!important;overflow:auto!important;border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important;}
 }
-
 
 /* TABLET PANEL HEIGHT REFINEMENT
    Both panels share the same bounded height when the visible court count exceeds two.
@@ -9964,10 +9734,7 @@ body.podium-modal-open{overflow:hidden;}
     overflow-x: hidden !important;
     scrollbar-gutter: stable !important;
   }
-  .workspace > .courts-panel.tablet-court-overflow {
-    display: flex !important;
-    flex-direction: column !important;
-  }
+  
   .workspace > .courts-panel.tablet-court-overflow > #courtsList {
     flex: 1 1 auto !important;
     height: 0 !important;
@@ -9977,10 +9744,7 @@ body.podium-modal-open{overflow:hidden;}
     overflow-x: hidden !important;
     scrollbar-gutter: stable !important;
   }
-  .workspace > .queue-panel.tablet-court-overflow {
-    display: flex !important;
-    flex-direction: column !important;
-  }
+  
   .workspace > .queue-panel.tablet-court-overflow > :not(.queue-header):not(.queue-title) {
     min-height: 0;
   }
@@ -9992,7 +9756,6 @@ body.podium-modal-open{overflow:hidden;}
     overflow-x: hidden !important;
   }
 }
-
 
 /* TABLET EDGE ALIGNMENT FIX — keep queue/courts panel bottoms aligned.
    The shared height is triggered by court-card count, not queued player count.
@@ -10026,10 +9789,7 @@ body.podium-modal-open{overflow:hidden;}
     overscroll-behavior: contain !important;
     scrollbar-gutter: stable !important;
   }
-  .workspace > .queue-panel.tablet-court-overflow {
-    display: flex !important;
-    flex-direction: column !important;
-  }
+  
   .workspace > .queue-panel.tablet-court-overflow .queue-list,
   .workspace > .queue-panel.tablet-court-overflow .queue-players,
   .workspace > .queue-panel.tablet-court-overflow .queue-items {
@@ -10042,7 +9802,6 @@ body.podium-modal-open{overflow:hidden;}
     scrollbar-gutter: stable !important;
   }
 }
-
 
 /* TABLET BOTTOM GAP FIX: panels should extend closer to the viewport bottom.
    Keep queue/court panels aligned; scrolling remains inside their own content areas. */
@@ -10226,9 +9985,7 @@ body.podium-modal-open{overflow:hidden;}
 
 /* Narrower tablets have a slightly taller top bar. Keep the same bottom inset. */
 @media (min-width: 768px) and (max-width: 900px) {
-  .workspace {
-    height: calc(100dvh - 68px) !important;
-  }
+  
   .tablet-results-modal.is-open {
     inset: 68px 0 0 0 !important;
   }
@@ -10238,17 +9995,7 @@ body.podium-modal-open{overflow:hidden;}
 @media (min-width: 768px) and (max-width: 1100px) {
   /* Use the full area below the sticky top bar so panels finish one gutter
      above the viewport bottom, matching the left/right panel gutters. */
-  .workspace {
-    height: calc(100dvh - 58px) !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: 10px !important;
-    box-sizing: border-box !important;
-    grid-template-rows: minmax(0, 1fr) !important;
-    align-items: stretch !important;
-    overflow: hidden !important;
-  }
+  
   .workspace > .queue-panel,
   .workspace > .courts-panel {
     height: 100% !important;
@@ -10301,9 +10048,7 @@ body.podium-modal-open{overflow:hidden;}
     margin: 0 auto !important;
     overflow: hidden !important;
   }
-  #tabletResultsModal .tablet-results-modal-header {
-    flex: 0 0 auto !important;
-  }
+  
   #tabletResultsModal #tabletResultsModalBody {
     flex: 1 1 auto !important;
     min-height: 0 !important;
@@ -10340,9 +10085,7 @@ body.podium-modal-open{overflow:hidden;}
 }
 
 @media (min-width: 768px) and (max-width: 900px) {
-  .workspace {
-    height: calc(100dvh - 68px) !important;
-  }
+  
   #tabletResultsModal.tablet-results-modal.is-open {
     inset: 68px 0 0 0 !important;
   }
@@ -10511,9 +10254,7 @@ body.podium-modal-open{overflow:hidden;}
 }
 
 @media (min-width: 768px) and (max-width: 900px) {
-  .workspace {
-    height: calc(100dvh - 68px) !important;
-  }
+  
   #tabletResultsModal .tablet-results-dialog {
     height: min(74dvh, 620px) !important;
     max-height: calc(100dvh - 32px) !important;
@@ -10596,18 +10337,7 @@ body.podium-modal-open{overflow:hidden;}
     max-height: none !important;
     overflow: hidden !important;
   }
-  #tabletResultsModal #tabletResultsModalBody > .results-panel {
-    display: flex !important;
-    flex: 1 1 0 !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    height: 100% !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    margin: 0 !important;
-    overflow: hidden !important;
-  }
+  
   #tabletResultsModal .results-panel > .tabs {
     position: relative !important;
     z-index: 2 !important;
@@ -10672,7 +10402,6 @@ body.podium-modal-open{overflow:hidden;}
   }
 }
 
-
 /* FINAL TABLET MODAL POLISH — familiar Close button and isolated podium backdrop.
    Scoped to tablet dialogs so the rest of the app remains unchanged. */
 @media (min-width: 768px) and (max-width: 1100px) {
@@ -10691,14 +10420,7 @@ body.podium-modal-open{overflow:hidden;}
     cursor: pointer !important;
     box-shadow: none !important;
   }
-  #tabletResultsModal .tablet-results-modal-header #tabletResultsCloseBtn:hover,
-  #tabletResultsModal .tablet-results-modal-header #tabletResultsCloseBtn:focus-visible {
-    background: #fff5f5 !important;
-    color: #b42318 !important;
-    border-color: #b42318 !important;
-    outline: 2px solid rgba(217, 48, 37, .15) !important;
-    outline-offset: 1px !important;
-  }
+  
 
   /* Blur only the scrim behind the podium dialog, never its header/top bar. */
   #podiumExpandModal.podium-expand-modal-overlay {
@@ -10981,7 +10703,6 @@ body.podium-modal-open{overflow:hidden;}
   }
 }
 
-
 /* HISTORY DETAIL MODAL FIX
    Keep Match Details above the tablet Results dialog when both are open.
    Scoped to the history modal so other dialogs and layouts remain unchanged. */
@@ -10995,7 +10716,6 @@ body.podium-modal-open{overflow:hidden;}
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-
 
 /* RESPONSIVE MODAL + LIST SCROLLBAR ALIGNMENT (iPad and mobile) */
 body.podium-modal-open .topbar{
@@ -11117,7 +10837,6 @@ body.podium-modal-open .topbar{
   }
 }
 
-
 /* Responsive-only queue edge alignment. Keep desktop styling untouched;
    on tablet/iPad and smaller screens, align queue card borders with the
    shared mode-buttons edge inset and avoid a reserved scrollbar gutter. */
@@ -11140,7 +10859,6 @@ body.podium-modal-open .topbar{
     box-sizing: border-box !important;
   }
 }
-
 
 /* FINAL responsive queue-card edge alignment. Match the shared mode switch:
    12px inset on each side, same as .queue-mode-buttons.mode-buttons-shared.
@@ -11167,7 +10885,6 @@ body.podium-modal-open .topbar{
   }
 }
 
-
 /* Responsive parity: keep queue-record-badge visually/layout-wise like desktop.
    Remove mobile-only stretching and clipping without changing other queue UI. */
 @media (max-width: 1024px){
@@ -11190,7 +10907,6 @@ body.podium-modal-open .topbar{
   }
 }
 
-
 /* Responsive parity: keep queue stats spacing identical to desktop. */
 @media (max-width: 1024px) {
   #queueMainArea .queue-modern-item .queue-stats-line {
@@ -11202,7 +10918,6 @@ body.podium-modal-open .topbar{
     column-gap: 4px !important;
   }
 }
-
 
 /* iPad portrait responsive refinement — scoped to portrait tablets only.
    Keep all existing desktop/landscape styling unchanged. */
@@ -11276,7 +10991,6 @@ body.podium-modal-open .topbar{
   }
 }
 
-
 /* Match Log desktop responsiveness ONLY. Keep hidden tabs hidden. */
 #historyView:not(.hidden) {
   display: flex !important;
@@ -11313,7 +11027,6 @@ body.podium-modal-open .topbar{
     grid-template-columns: 18px minmax(0, 1fr) 30px minmax(0, 1fr) auto 10px !important; gap: 4px !important;
   }
 }
-
 
 /* Minimal queue-list scrollbar only — keep all queue layout and behavior unchanged. */
 #queueMainArea .queue-list {
@@ -11427,7 +11140,6 @@ body.podium-modal-open .topbar{
   margin-right: 0 !important;
 }
 
-
 /* Minimal player-name search for Match History. Keep the existing header/cards unchanged. */
 #historyView .history-search-wrap {
   position: relative !important;
@@ -11510,7 +11222,6 @@ body.podium-modal-open .topbar{
   #historyView .history-search-input { height: 28px !important; font-size: 10px !important; }
   #historyView .history-search-wrap { margin-bottom: 6px !important; }
 }
-
 
 /* Unified search icons: match every search field to Match History player search. */
 .registered-search-icon,
@@ -11655,7 +11366,6 @@ body.podium-modal-open .topbar{
   }
 }
 
-
 /* PODIUM MODAL TABLET ALIGNMENT — align with the Results dialog and fully hide Results behind it.
    Scoped to tablet widths; preserve the top bar and all unrelated layouts. */
 @media (min-width: 901px) and (max-width: 1100px) {
@@ -11712,7 +11422,6 @@ body.podium-modal-open .topbar{
   }
 }
 
-
 /* TABLET RESULTS BUTTON — transparent background, no border, white label. */
 @media (min-width: 768px) and (max-width: 1100px) {
   .tablet-results-open-btn {
@@ -11722,7 +11431,6 @@ body.podium-modal-open .topbar{
     color: #ffffff !important;
   }
 }
-
 
 /* Recording-results mode: compact setting toggle and per-team winner buttons. */
 .record-results-toggle-row .live-queue-toggle-copy small+small{margin-top:2px;}
@@ -11745,7 +11453,6 @@ body.podium-modal-open .topbar{
 .detail-score-grid.detail-winner-only .detail-team .detail-label{margin-bottom:10px;}
 .detail-score-grid.detail-winner-only .detail-player{margin-top:8px;}
 @media(max-width:760px){.team-win-btn{min-width:58px;height:33px;padding:0 6px;font-size:9px;}.history-swap-btn{width:18px;height:18px;font-size:12px;}}
-
 
 /* Minor update: center the winner-swap control between WIN and LOSS labels. */
 .history-card-win-only .history-result-labels{
@@ -11967,7 +11674,6 @@ body.podium-modal-open .topbar{
   .live-footer.win-only-footer:not(.delete-confirming) .cancel-match{order:2!important;margin-top:8px!important;}
 }
 
-
 /* Keep live action buttons in their original layout while delete confirmation is visible. */
 @media (min-width:1101px){
   .live-footer.win-only-footer.delete-confirming{
@@ -12107,7 +11813,7 @@ body.podium-modal-open .topbar{
   font-family:Inter,Arial,sans-serif;
   -webkit-overflow-scrolling:touch;
 }
-#liveQueueStartScreen::-webkit-scrollbar{width:8px;}
+
 #liveQueueStartScreen::-webkit-scrollbar-track{background:rgba(255,255,255,.07);}
 #liveQueueStartScreen::-webkit-scrollbar-thumb{
   min-height:36px;
@@ -12638,7 +12344,6 @@ body.podium-modal-open .topbar{
   display:none !important;
 }
 
-
 /* TOPBAR THEME — match the Live Queue Start screen's forest-green / slate / lime palette.
    Color-only refinement: preserve all existing topbar height, padding, and responsive sizing. */
 .topbar {
@@ -12698,13 +12403,10 @@ body.podium-modal-open .topbar{
   border-color: #9A6416 !important;
   background: #3B2B12 !important;
 }
-.topbar .top-actions .online.offline i {
-  background: #F59E0B !important;
-}
+
 .topbar .top-actions .danger {
   color: #FF5C66 !important;
 }
-
 
 /* TOPBAR BRAND UPDATE — use the supplied lime/white P emblem and tighten only
    the Back-button-to-logo spacing. Existing topbar height rules are untouched. */
@@ -12871,11 +12573,6 @@ body.podium-modal-open .topbar{
 #endSessionModal .end-session-modal-actions button {
   transition: background 200ms ease, border-color 200ms ease, color 200ms ease, box-shadow 200ms ease, filter 200ms ease, transform 150ms ease !important;
 }
-@media (prefers-reduced-motion: reduce) {
-  #endSessionModal .end-session-modal-actions button {
-    transition: none !important;
-  }
-}
 
 /* End Session modal — white surface, forest-green heading, soft gray note, and smooth button hover. */
 #endSessionModal .end-session-modal-box {
@@ -12884,12 +12581,7 @@ body.podium-modal-open .topbar{
   border: 1px solid #DCE7DF !important;
   box-shadow: 0 22px 60px rgba(15, 35, 25, .22) !important;
 }
-#endSessionModal .end-session-modal-box h2 {
-  color: #0D3B26 !important;
-}
-#endSessionModal .end-session-modal-box > .modal-note {
-  color: #89919B !important;
-}
+
 /* Keep the summary readable against the newly white modal surface. */
 #endSessionModal .end-session-summary-card {
   background: #F7FAF8 !important;
@@ -12931,11 +12623,6 @@ body.podium-modal-open .topbar{
 #endSessionModal .end-session-modal-actions button:active {
   transform: translateY(0) !important;
 }
-@media (prefers-reduced-motion: reduce) {
-  #endSessionModal .end-session-modal-actions button {
-    transition: none !important;
-  }
-}
 
 /* Final End Session modal refinements: steady hover (no movement), forest-green heading, light-gray note. */
 #endSessionModal .end-session-modal-box h2 {
@@ -12962,7 +12649,6 @@ body.podium-modal-open .topbar{
     transition: none !important;
   }
 }
-
 
 /* Animated red live-session indicator beside the End Session heading. */
 #endSessionModal .end-session-modal-box h2 .end-session-live-indicator {
@@ -13030,7 +12716,6 @@ body.podium-modal-open .topbar{
   50% { transform: scale(1.06); opacity: 1; filter: drop-shadow(0 0 3px rgba(255, 20, 30, .48)); }
 }
 
-
 /* Live Queue start-screen brand lockup: uses the same emblem as the workspace topbar */
 #liveQueueStartScreen .live-queue-start-brand{
   display:flex;
@@ -13083,7 +12768,6 @@ body.podium-modal-open .topbar{
   #liveQueueStartScreen .live-queue-start-brand-wordmark > small{font-size:9px;letter-spacing:4px;margin-top:6px}
 }
 
-
 /* Logo sits OUTSIDE and above the Live Queue card; all other styling/functions unchanged */
 #liveQueueStartScreen{
   flex-direction:column;
@@ -13104,7 +12788,6 @@ body.podium-modal-open .topbar{
 @media(max-width:520px){
   #liveQueueStartScreen > .live-queue-start-brand{margin-bottom:16px}
 }
-
 
 /* PICKLE POINT MATCH wordmark refinement — isolated to Live Queue start brand */
 #liveQueueStartScreen > .live-queue-start-brand{
@@ -13163,7 +12846,6 @@ body.podium-modal-open .topbar{
   #liveQueueStartScreen .live-queue-start-brand-wordmark > small::before,
   #liveQueueStartScreen .live-queue-start-brand-wordmark > small::after{min-width:14px}
 }
-
 
 /* =========================================================
    Registered Player Cloud modal — green brand refresh
@@ -13502,7 +13184,6 @@ body.podium-modal-open .topbar{
   #leftPlayersModal .left-players-head{padding:10px 8px 11px!important;}
 }
 
-
 /* Keep the Left Players modal bottom Close button in its original style. */
 #leftPlayersModal .left-players-actions button{
   min-width:0!important;
@@ -13523,7 +13204,6 @@ body.podium-modal-open .topbar{
   transform:none!important;
   box-shadow:none!important;
 }
-
 
 /* Restore the Registered Player Cloud Done button to its original compact red-outline style. */
 #cloudRecordsModal .cloud-records-actions button#cloudRecordsDone{
@@ -13546,7 +13226,6 @@ body.podium-modal-open .topbar{
   transform:none!important;
   box-shadow:none!important;
 }
-
 
 /* COURT SETTINGS MODAL — Pickle Point Match green refresh.
    Scoped to this modal only; content, controls, and JavaScript behavior remain unchanged. */
@@ -13724,7 +13403,6 @@ body.podium-modal-open .topbar{
   transform:none!important;
 }
 
-
 /* Match Court Settings modal top accent line to the Register Cloud modal top line.
    Scoped only to the Court Settings modal; all other styles and behavior stay unchanged. */
 #courtSettingsModal .court-settings-modal-box{
@@ -13793,7 +13471,6 @@ body.podium-modal-open .topbar{
   background:#FDE8E8!important;border-color:#F8B4B4!important;color:#9B1C1C!important;transform:none!important;
 }
 
-
 /* Queue list avatars — match Registered Player Cloud avatar styling only.
    Layout, queue order badge behavior, gender indicators, and all other UI remain unchanged. */
 #queueMainArea .queue-modern-item > .queue-avatar-stack .queue-avatar{
@@ -13818,7 +13495,6 @@ body.podium-modal-open .topbar{
   line-height:1!important;
   box-shadow:none!important;
 }
-
 
 /* Match Details: update only the modal's top accent line to match Registered Player Cloud.
    All other Match Details styling and behavior remain unchanged. */
@@ -13907,14 +13583,12 @@ body.podium-modal-open .topbar{
   background:transparent!important;
 }
 
-
 /* Requested: remove only the header background fills from Registered Player Cloud and Left Players modals. */
 #cloudRecordsModal .cloud-records-head,
 #leftPlayersModal .left-players-head{
   background:transparent!important;
   background-image:none!important;
 }
-
 
 /* Left Players count: match the Registered Player Cloud count badge exactly. */
 #leftPlayersModal .left-players-head #leftPopupCount{
@@ -13932,7 +13606,6 @@ body.podium-modal-open .topbar{
   font-weight:800!important;
   line-height:1.2!important;
 }
-
 
 /* Match Details modal: match action footer styling from Court Settings and keep the header background transparent.
    Scoped only to Match Details; existing buttons, scoring, and modal behavior remain unchanged. */
@@ -14040,7 +13713,6 @@ body.podium-modal-open .topbar{
   box-sizing:border-box!important;
 }
 
-
 /* Match Details modal: extend the actions separator to the modal's inner edge. */
 #historyDetailModal .modal-box.history-detail-box .modal-actions{
   width:calc(100% + 40px)!important;
@@ -14060,7 +13732,6 @@ body.podium-modal-open .topbar{
     padding-right:11px!important;
   }
 }
-
 
 /* Match Details footer — match reference: separator and equal-width buttons share the same inner edges. */
 #historyDetailModal .modal-box.history-detail-box .modal-actions{
@@ -14103,8 +13774,6 @@ body.podium-modal-open .topbar{
   }
 }
 
-
-
 /* Shareable public Live View QR modal */
 .top-actions .live-view-qr-open-btn{background:#0b7774;color:#fff;border:1px solid #25aaa3;}
 .top-actions .live-view-qr-open-btn:hover{background:#09625f;}
@@ -14128,7 +13797,6 @@ body.podium-modal-open .topbar{
 .live-view-qr-footer{margin:17px 0 0;padding-top:13px;border-top:1px solid #dce8ea;color:#607a80;font-size:11px;line-height:1.5;}
 @media(max-width:560px){.live-view-qr-modal-box{padding:15px!important;}.live-view-qr-content{grid-template-columns:1fr;gap:15px;}.live-view-qr-image-wrap{min-height:0;padding:8px;}.live-view-qr-image-wrap img{max-width:210px;}.live-view-qr-details>p{margin-bottom:10px;}}
 
-
 /* Organizer-only Live View theme control, placed in top-actions. */
 .top-actions .live-view-theme-toggle{
   display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;
@@ -14141,7 +13809,6 @@ body.podium-modal-open .topbar{
 .top-actions .live-view-theme-label{line-height:1;}
 @media(max-width:700px){.top-actions .live-view-theme-toggle{padding:6px 8px!important;font-size:10px!important;}}
 @media(max-width:560px){.top-actions .live-view-theme-toggle{gap:0;min-width:30px;padding:6px!important}.top-actions .live-view-theme-label{display:none;}}
-
 
 /* LIVE VIEW-INSPIRED TOPBAR — keep existing sizing and responsive layout intact. */
 .topbar {
@@ -14430,7 +14097,6 @@ body.podium-modal-open .topbar{
   animation:none!important;
 }
 
-
 /* COURT SETTINGS BACKGROUND FIX — force the dark Live View surface over legacy light CSS.
    Scoped only to Court Settings; modal structure and functionality remain unchanged. */
 html body #courtSettingsModal.modal:not(.hidden) > .modal-box.court-settings-modal-box,
@@ -14456,7 +14122,6 @@ html body #courtSettingsModal .court-settings-modal-box .court-settings-quick-ad
   background-color: transparent !important;
   color: #eefafa !important;
 }
-
 
 /* COURT SETTINGS — SOLID WHITE MODAL SURFACE.
    Keep the modal itself pure white; retain Live View teal accents and readable light controls. */
@@ -14841,7 +14506,6 @@ html body #cloudRecordsModal button:focus-visible {
   html body #cloudRecordsModal .cloud-records-modal-box { background-color: #ffffff !important; background-image: none !important; }
   html body #cloudRecordsModal .cloud-records-head { background: #ffffff !important; }
 }
-
 
 /* =========================================================
    LEFT PLAYERS MODAL — Live View aqua/teal design
@@ -15362,7 +15026,6 @@ html body #historyDetailModal .modal-box.history-detail-box .detail-team.loser .
   color: #e58b93 !important;
 }
 
-
 /* =========================================================
    PODIUM MODAL — Live View aqua/teal design
    Solid white surface and white border; ranking logic and layout unchanged.
@@ -15521,7 +15184,6 @@ html body #podiumExpandModal .podium-modal-actions button:focus-visible {
   transform: none !important;
   translate: none !important;
 }
-
 
 /* =========================================================
    COURT PLAYERS MODAL — Live View aqua/teal design
@@ -15709,7 +15371,6 @@ html body #courtPlayersModal .court-lineup-close:focus-visible {
   .court-players-modal-box .detail-player-info{gap:4px!important;}
 }
 
-
 /* V45 — Court Players modal: centered VS, team-colored player dots, Live View timer */
 html body #courtPlayersModal .court-lineup-teams {
   display: grid !important;
@@ -15847,7 +15508,6 @@ html body #leftPlayersModal .left-players-head #leftPopupCount {
   line-height: 1.2 !important;
   box-sizing: border-box !important;
 }
-
 
 /* FINAL — End Session modal matches the standard Live View modal surface and action styling.
    Presentation only: keeps all confirmation logic, labels, and layout structure unchanged. */
@@ -16017,7 +15677,6 @@ html body #endSessionModal .end-session-modal-box > .end-session-modal-actions >
   }
 }
 
-
 /* Smooth Light/Night slider — limited to the existing Live View theme control. */
 .topbar .top-actions .live-view-theme-toggle,
 .topbar .top-actions .live-view-theme-toggle:hover,
@@ -16152,7 +15811,6 @@ html body #endSessionModal .end-session-modal-box > .end-session-modal-actions >
   color: #d9f7f5 !important;
 }
 
-
 /* Keep the Live View Light/Night control beside the QR modal actions. */
 .live-view-qr-actions{align-items:center;}
 .live-view-qr-actions .live-view-theme-toggle,
@@ -16215,15 +15873,7 @@ html body #endSessionModal .end-session-modal-box > .end-session-modal-actions >
   min-height: 33px !important;
   box-sizing: border-box !important;
 }
-.live-view-qr-actions .live-view-theme-toggle,
-.live-view-qr-actions .live-view-theme-toggle:hover,
-.live-view-qr-actions .live-view-theme-toggle:active,
-.live-view-qr-actions .live-view-theme-toggle.is-light {
-  height: 33px !important;
-  min-height: 33px !important;
-  padding: 4px 9px !important;
-  box-sizing: border-box !important;
-}
+
 @media (max-width: 560px) {
   .live-view-qr-actions {
     display: flex !important;
@@ -16352,7 +16002,6 @@ html body #queueMainArea .queue-modern-item > .queue-avatar-stack > .queue-posit
     height: 36px !important;
   }
 }
-
 
 /* TABLET RESULTS BACKDROP FIX — apply blur on the full-screen overlay itself.
    iPad/Safari may not sample the page behind an isolated modal when the filter
@@ -16553,7 +16202,6 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
   flex: 0 0 auto;
 }
 
-
 /* Automatic network status for the main queue workspace only.
    Preserve the existing badge dimensions while using the requested light colors. */
 .topbar .top-actions .online:not(.offline) {
@@ -16569,10 +16217,6 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
   border-color: #FCD34D !important;
   background: #FEF3C7 !important;
 }
-.topbar .top-actions .online.offline i {
-  background: #F59E0B !important;
-}
-
 
 /* Requested status appearance: keep Online/Offline labels, remove visible chip fill and border. */
 .topbar .top-actions .online:not(.offline),
@@ -16612,7 +16256,6 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
 .topbar .top-actions .online.offline i {
   background: #F59E0B !important;
 }
-
 
 /* Offline fallback for the Live View QR preview: show only the fading topbar emblem. */
 .live-view-qr-image-wrap{position:relative;overflow:hidden;}
@@ -16710,8 +16353,6 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
 #queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-inline.male{color:#2676b7!important;}
 #queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-inline.female{color:#c43b7b!important;}
 
-
-
 /* Final queue gender-color correction: males stay blue and females stay pink.
    Explicit SVG stroke rules avoid any legacy cascade changing individual icons. */
 .queue-gender-inline .gender-inline.male,
@@ -16738,7 +16379,6 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
 #queueMainArea .queue-modern-item .queue-name-line .queue-gender-inline .gender-inline.female .gender-symbol * {
   stroke: #c43b7b !important;
 }
-
 
 /* System-wide gender icon polish — one SVG size, consistent centering, and stable gender colors. */
 .gender-symbol{
@@ -17151,7 +16791,6 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
   }
 }
 
-
 /* Live match action row: Delete Match | Mix Teams | Submit Score, kept compact. */
 #courtsList .court-card.court-live-card .live-footer:not(.win-only-footer) {
   display: grid !important;
@@ -17360,7 +16999,6 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
   color: #18383e;
 }
 
-
 /* Refined Live View QR action buttons — visual-only polish; preserve existing layout and behavior. */
 .live-view-qr-actions > button:not(.live-view-theme-toggle) {
   border: 1px solid #c7dfe0 !important;
@@ -17421,7 +17059,6 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
   }
 }
 
-
 /* Final polish requested: prevent QR action buttons from jumping on hover. */
 .live-view-qr-actions > #liveViewQrCopyBtn:hover,
 .live-view-qr-actions > #liveViewQrCopyBtn.blue:hover,
@@ -17445,7 +17082,6 @@ html body #tabletResultsModal.tablet-results-modal.is-open > .tablet-results-bac
   min-height: 0 !important;
 }
 
-
 /* Explicitly override the more-specific legacy counter chip rules. */
 html body .workspace > .queue-panel > .queue-header-modern .panel-count,
 html body .workspace > .courts-panel > .panel-title h2 #courtCount,
@@ -17461,7 +17097,6 @@ html body #leftPlayersModal .left-players-head .history-count {
   min-width: 0 !important;
   min-height: 0 !important;
 }
-
 
 /* Final targeted fix: remove the legacy pill fill and outline from both modal counters.
    ID-level selectors override the older, more-specific counter chip declarations. */
@@ -17572,8 +17207,6 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
   background: #c4c9d1 !important;
   background-clip: padding-box !important;
 }
-
-
 
 /* TOP ACTIONS DESIGN POLISH — coordinated teal controls, refined status badge,
    and a restrained red End action. Visual styling only; preserve all behavior. */
@@ -17695,7 +17328,6 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
     transition: none !important;
   }
 }
-
 
 /* TOP ACTIONS — flat/unstyled request: remove fills, hover treatments, and all
    button/status-chip borders while preserving labels, status dots, and actions. */
@@ -17844,8 +17476,6 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
   color: #ffc25c !important;
 }
 
-
-
 /* TOP ACTIONS FINAL OVERRIDE — truly transparent, borderless, and hover-neutral.
    Keep label/status colors and click behavior; remove all button/status-chip decoration. */
 html body header.topbar div.top-actions,
@@ -17904,42 +17534,6 @@ html body header.topbar div.top-actions > span.online::after {
 }
 
 /* Keep the same text colors in every state; the status dot remains meaningful. */
-html body header.topbar div.top-actions > #liveViewQrOpenBtn,
-html body header.topbar div.top-actions > #liveViewQrOpenBtn:hover,
-html body header.topbar div.top-actions > #liveViewQrOpenBtn:active,
-html body header.topbar div.top-actions > #liveViewQrOpenBtn:focus,
-html body header.topbar div.top-actions > #liveViewQrOpenBtn:focus-visible {
-  color: #27d3c5 !important;
-}
-html body header.topbar div.top-actions > #tabletResultsOpenBtn,
-html body header.topbar div.top-actions > #tabletResultsOpenBtn:hover,
-html body header.topbar div.top-actions > #tabletResultsOpenBtn:active,
-html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus,
-html body header.topbar div.top-actions > #tabletResultsOpenBtn:focus-visible {
-  color: #d9f7f5 !important;
-}
-html body header.topbar div.top-actions > #endSessionBtn,
-html body header.topbar div.top-actions > #endSessionBtn:hover,
-html body header.topbar div.top-actions > #endSessionBtn:active,
-html body header.topbar div.top-actions > #endSessionBtn:focus,
-html body header.topbar div.top-actions > #endSessionBtn:focus-visible {
-  color: #ff7e87 !important;
-}
-html body header.topbar div.top-actions > span.online:not(.offline),
-html body header.topbar div.top-actions > span.online:not(.offline):hover,
-html body header.topbar div.top-actions > span.online:not(.offline):active,
-html body header.topbar div.top-actions > span.online:not(.offline):focus,
-html body header.topbar div.top-actions > span.online:not(.offline):focus-visible {
-  color: #8bc8ff !important;
-}
-html body header.topbar div.top-actions > span.online.offline,
-html body header.topbar div.top-actions > span.online.offline:hover,
-html body header.topbar div.top-actions > span.online.offline:active,
-html body header.topbar div.top-actions > span.online.offline:focus,
-html body header.topbar div.top-actions > span.online.offline:focus-visible {
-  color: #ffc25c !important;
-}
-
 
 /* TARGETED TOP-ACTIONS FIX — only QR Share, Results, Online/Offline, and End.
    These selectors intentionally match the specificity of the existing topbar rules.
@@ -18020,7 +17614,6 @@ html body header.topbar div.top-actions > #endSessionBtn:active,
 html body header.topbar div.top-actions > #endSessionBtn:focus,
 html body header.topbar div.top-actions > #endSessionBtn:focus-visible { color: #ff7e87 !important; }
 
-
 /* FINAL QR SHARE OVERRIDE ONLY.
    Keep the previously cleaned Results, Online/Offline, and End controls untouched.
    High-specificity selectors defeat earlier QR button hover/background/border rules. */
@@ -18058,7 +17651,6 @@ html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpe
   box-shadow: none !important;
   outline: 0 !important;
 }
-
 
 /* V43 — top actions coordinated with the dark teal Live View UI.
    QR Share and Results keep refined accent borders; network status uses a
@@ -18227,7 +17819,6 @@ html body header.topbar div.top-actions > #endSessionBtn:hover {
     font-size: 10px !important;
   }
 }
-
 
 /* V44 — compact Top Actions height and responsive Results button visibility.
    Results is available on phones/tablets only; desktop keeps the original panel. */
@@ -18400,7 +17991,6 @@ html body #courtSettingsModal .court-settings-modal-box .settings-head {
   padding-top: 0 !important;
 }
 
-
 /* READY STATUS — coordinated teal colors across the court card and Live View. */
 html body #courtsList .court-card.court-ready-card .court-box.ready-box .court-head.ready-head .status.ready {
   background: #d9f7f3 !important;
@@ -18426,7 +18016,6 @@ html body #courtsList .court-card.court-live-card .court-head .status.live .stat
   background: #65e2b5 !important;
   box-shadow: 0 0 0 2px rgba(101, 226, 181, .2) !important;
 }
-
 
 /* PLAYING STATUS — match the user-provided mint pill reference on Court Box and Live View. */
 html body #courtsList .court-card.court-live-card .court-head .status.live {
@@ -18456,7 +18045,6 @@ html body #courtsList .court-card.court-live-card .court-head .status.live .stat
   background: #08764e !important;
   box-shadow: none !important;
 }
-
 
 /* READY STATUS — match the user-provided light-blue READY pill reference, including its dot. */
 html body #courtsList .court-card.court-ready-card .court-box.ready-box .court-head.ready-head .status.ready {
@@ -18510,7 +18098,6 @@ html body #courtPlayersModal .court-lineup-time::before {
   min-height: 5px !important;
   flex: 0 0 5px !important;
 }
-
 
 /* Ranking View: match the Court Playing status dot size and color only. */
 html body #rankingView .playing-badge::before {
@@ -18612,7 +18199,6 @@ html body #queueMainArea #registeredPlayerSearch:focus-visible {
   background: #fff !important;
 }
 
-
 /* Disable event-rule controls whenever match scores are not being recorded. */
 .topbar .event-rule-btn:disabled{
   opacity:.45!important;
@@ -18637,7 +18223,6 @@ html body .topbar .event-stats .event-rule-btn:disabled:active {
   animation:none!important;
   transition:none!important;
 }
-
 
 /* Minor UI polish (2026-10-19): keep history swap controls visually transparent. */
 html body .history-swap-btn,
@@ -18697,19 +18282,10 @@ html body #queueMainArea .queue-modern-item .queue-name-line .queue-gender-inlin
   flex: 0 0 10px !important;
 }
 
-
 /* V47 — Apply the bordered player-row treatment to History only; keep Court Players styling intact. */
 
 /* History details: clean, borderless list container with teal-outlined player rows. */
-html body #historyDetailModal .modal-box.history-detail-box .detail-players {
-  width: 100% !important;
-  box-sizing: border-box !important;
-  margin-top: 11px !important;
-  padding: 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
+
 html body #historyDetailModal .modal-box.history-detail-box .detail-players h4 {
   margin: 0 0 6px !important;
   color: #087d79 !important;
@@ -18735,26 +18311,14 @@ html body #historyDetailModal .modal-box.history-detail-box .detail-players .det
   translate: none !important;
   transition: none !important;
 }
-html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row .dot {
-  width: 7px !important;
-  height: 7px !important;
-  min-width: 7px !important;
-  flex: 0 0 7px !important;
-  border-radius: 50% !important;
-}
+
 html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row.team-one-dot .dot {
   background: #27bdb1 !important;
 }
 html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row.team-two-dot .dot {
   background: #7b9ba1 !important;
 }
-html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row .detail-player-info {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  min-width: 0 !important;
-  flex: 1 1 auto !important;
-}
+
 html body #historyDetailModal .modal-box.history-detail-box .detail-players .detail-player-row b {
   min-width: 0 !important;
   overflow: hidden !important;
@@ -18853,7 +18417,6 @@ html body #courtPlayersModal .modal-box.court-players-modal-box .court-lineup-de
   }
 }
 
-
 /* V49 — Match History detail-players: screenshot styling with row height matched to Court Players. */
 html body #historyDetailModal .modal-box.history-detail-box .detail-players {
   width: 100% !important;
@@ -18933,7 +18496,6 @@ html body #historyDetailModal .modal-box.history-detail-box .detail-players .det
     gap: 4px !important;
   }
 }
-
 
 /* Browser-style highlight for matching names across every index-page search. */
 .search-match-highlight,
@@ -19030,8 +18592,6 @@ html body #courtPlayersModal .court-players-modal-body .mini-badge.skill-exp {
   background: #ffecef !important; border-color: #f2c8cd !important; color: #c43d4b !important;
 }
 
-
-
 /* FINAL SYNC — Match the Expanded Ranking List Playing badge to the tablet Results panel badge. */
 html body #podiumExpandModal .expanded-ranking-list .ranking-name-line .playing-badge {
   display: inline-flex !important;
@@ -19067,7 +18627,6 @@ html body #podiumExpandModal .expanded-ranking-list .ranking-name-line .playing-
   background: #08764e !important;
   box-shadow: none !important;
 }
-
 
 /* MOBILE REPAIR — normalize the Tablet Results dialog/header after prior tablet-specific overrides.
    Only phone widths are affected; tablet and desktop layouts remain unchanged. */
@@ -19259,7 +18818,6 @@ html body #podiumExpandModal .expanded-ranking-list .ranking-name-line .playing-
   }
 }
 
-
 /* Live Ranking organizer switch — scoped to the Share Live View actions. */
 .live-view-qr-actions {
   display: grid !important;
@@ -19402,7 +18960,6 @@ html body #podiumExpandModal .expanded-ranking-list .ranking-name-line .playing-
   }
 }
 
-
 /* Match the Live View QR close button to the Registered Player Cloud "Close" button. */
 html body .live-view-qr-close {
   display: inline-flex !important;
@@ -19456,7 +19013,6 @@ html body .live-view-qr-close:focus-visible {
   display: none !important;
 }
 
-
 /* Keep each player's match-record badge visible regardless of lock state.
    Allow the badge to wrap rather than shrink away beside the category chip. */
 #queueMainArea .queue-modern-item .queue-stats-line > .queue-record-badge {
@@ -19494,7 +19050,6 @@ html body .live-view-qr-close:focus-visible {
     font-size: 12px !important;
   }
 }
-
 
 /* V33 — synchronize History, Cloud, and Left Players search fields with Registered Player Search.
    Keep layout and search behavior untouched. Hover/focus use the same border treatment;
@@ -19620,7 +19175,6 @@ html body .live-ranking-search:focus-within {
   -webkit-box-shadow: none !important;
 }
 
-
 /* iPad/tablet search placeholders — keep placeholders compact and regular-weight
    while retaining 16px entered text for Safari's no-auto-zoom behavior.
    Covers static and dynamically rendered search bars without changing layout. */
@@ -19669,7 +19223,6 @@ html body .live-ranking-search:focus-within {
     line-height: 1.2 !important;
   }
 }
-
 
 /* iPad/tablet search typography normalization.
    Keep typed text and placeholders at a compact, consistent size without changing layout. */
@@ -19729,7 +19282,6 @@ html body #leftPlayersModal .left-players-actions button {
   line-height: 1.1 !important;
 }
 
-
 /* Match win-only and recorded-results live footer outer edges and spacing.
    Keep their footer width, horizontal inset, vertical padding, and auto margins identical. */
 #courtsList .court-card.court-live-card .live-footer.win-only-footer,
@@ -19753,7 +19305,6 @@ html body #leftPlayersModal .left-players-actions button {
     box-sizing: border-box !important;
   }
 }
-
 
 /* FINAL CROSS-DEVICE LIVE FOOTER ALIGNMENT — 2026-10-20 */
 /* Keep the Win Only and Recorded Results footer edges consistent at every size. */
@@ -19850,7 +19401,6 @@ html body #leftPlayersModal .left-players-actions button {
 #courtsList .court-card.court-live-card .live-footer.win-only-footer .live-actions-win-only {
   padding-top: 0 !important;
 }
-
 
 /* FINAL IPAD ORIENTATION FIX — Win Only footer.
    Keep the outer margin/padding identical to Recorded Score; remove the
@@ -19996,7 +19546,6 @@ html body #leftPlayersModal .left-players-actions button {
   }
 }
 
-
 /* FINAL PORTRAIT TABLET FIX — 2026-10-20.
    Keep portrait iPad controls side by side too, as requested. Landscape rules remain unchanged.
    Use a viewport-shape fallback for iPad browsers with nonstandard orientation reporting. */
@@ -20116,7 +19665,6 @@ html body #leftPlayersModal .left-players-actions button {
 .workspace > .courts-panel > .panel-title .court-header-actions #courtSettingsBtn {
   flex: 0 0 auto !important;
 }
-
 
 /* QUEUEING PAGE — compact header actions for a cleaner, balanced toolbar.
    Only button sizing/spacing is adjusted; labels, colors, and behavior stay the same. */
@@ -20457,8 +20005,6 @@ html body #leftPlayersModal #leftPlayersPopupList {
   html body header.topbar .top-actions .online { gap: 5px !important; }
 }
 
-
-
 /* DEVICE-WIDE INPUT AND VIEWPORT SAFETY — queue/start screens */
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { overflow-x: hidden; }
@@ -20580,8 +20126,6 @@ img, svg, video, canvas { max-width: 100%; }
   box-shadow: 0 1px 3px rgba(7, 62, 72, 0.1) !important;
 }
 
-
-
 /* Live View theme switch thumb: match the clean white thumb used by the muted
    Live Standing switch, with the same left/right state movement. */
 #liveViewQrModal .live-view-qr-actions > #liveViewThemeToggle .theme-switch-thumb {
@@ -20668,7 +20212,6 @@ img, svg, video, canvas { max-width: 100%; }
     transition: none !important;
   }
 }
-
 
 /* Keep both QR previews the same size while offline; the absolute loader must
    not make the registration QR container collapse on small screens. */
@@ -20778,7 +20321,6 @@ html body[data-page="queueing"] .live-timer.timer-normal::before {
   vertical-align: middle !important;
 }
 
-
 /* QUEUEING PAGE — remove the lingering READY dot ring only.
    This intentionally outranks the older READY badge box-shadow rule while keeping its color-shift animation. */
 html body[data-page="queueing"] #courtsList .court-card.court-ready-card .court-box.ready-box .court-head.ready-head .status.ready .status-dot.ready {
@@ -20804,7 +20346,6 @@ body[data-page="queueing"] #queueModeButtons.queue-mode-buttons.mode-buttons-sha
   align-self:stretch!important;
 }
 
-
 /* Queueing page only — match Registered Player Search line to the 32px mode buttons. */
 html body[data-page="queueing"] #queueMainArea .registered-search {
   height: 32px !important;
@@ -20825,7 +20366,6 @@ html body[data-page="queueing"] #queueMainArea .registered-search > .registered-
 html body[data-page="queueing"] #queueMainArea .registered-search .registered-search-icon {
   top: 16px !important;
 }
-
 
 /* Queueing page only — match the court player-picker search to the 32px queue controls. */
 html body[data-page="queueing"] .court-picker .picker-search-wrap {
@@ -20848,7 +20388,6 @@ html body[data-page="queueing"] .court-picker .picker-search-icon {
   transform: translateY(-50%) !important;
 }
 
-
 /* Queueing page: amber dashed border and light background ONLY for an empty waiting court.
    No glow/shadow. Ready courts keep their default border/color. Once a player is attached,
    the empty-court-box class is removed and the waiting court returns to its normal styling. */
@@ -20858,7 +20397,6 @@ html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .co
   box-shadow: none !important;
   transition: border-color .2s ease, background .2s ease !important;
 }
-
 
 /* Queueing page only — center mode-toggle icons consistently on every device. */
 html body[data-page="queueing"] #queueModeButtons.queue-mode-buttons.mode-buttons-shared > .queue-mode-btn {
@@ -20912,7 +20450,6 @@ html body[data-page="queueing"] #queueModeButtons.queue-mode-buttons.mode-button
     flex-basis: 14px !important;
   }
 }
-
 
 /* Queueing page only — translucent glass treatment for QR Share, Register QR,
    and Results controls. Visual styling only; existing visibility and behavior remain intact. */
@@ -21017,14 +20554,12 @@ html body[data-page="queueing"] header.topbar div.top-actions > button#tabletRes
   }
 }
 
-
 /* Queueing page only — keep glass-button hover color changes without the upward hover jump. */
 html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpenBtn#liveViewQrOpenBtn:hover,
 html body[data-page="queueing"] header.topbar div.top-actions > button#liveViewRegisterBtn#liveViewRegisterBtn#liveViewRegisterBtn:hover,
 html body[data-page="queueing"] header.topbar div.top-actions > button#tabletResultsOpenBtn#tabletResultsOpenBtn#tabletResultsOpenBtn:hover {
   transform: none !important;
 }
-
 
 /* Queueing page only — match QR Share and Register QR icons to the supplied QR-scanner symbol. */
 html body[data-page="queueing"] header.topbar .top-actions > .live-view-qr-open-btn {
@@ -21061,3 +20596,26 @@ html body[data-page="queueing"] header.topbar .top-actions > .live-view-qr-open-
     max-height: 14px !important;
   }
 }
+
+/* =========================================================
+   Responsive consolidation — final pass (all devices)
+   ========================================================= */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+img,svg,video{max-width:100%}
+.topbar{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
+/* Long player names truncate instead of pushing the gender icon onto its own line. */
+#queueMainArea .queue-name-line{display:flex!important;align-items:center;gap:6px;min-width:0;flex-wrap:nowrap!important}
+#queueMainArea .queue-name-line .queue-name{flex:0 1 auto;min-width:0;max-width:100%;overflow:hidden!important;text-overflow:ellipsis;white-space:nowrap!important}
+#queueMainArea .queue-name-line .queue-gender-inline{flex:0 0 auto}
+/* Phones: header actions form two tidy rows, End stays beside the status pill. */
+@media(max-width:600px){
+  .top-actions{display:flex;flex-wrap:wrap;align-items:stretch;justify-content:flex-start;gap:6px}
+  .top-actions>button:not(.danger){flex:1 1 28%;min-width:0;justify-content:center;white-space:nowrap}
+  .top-actions>.online{flex:1 1 50%;min-width:0;justify-content:center;white-space:nowrap}
+  .top-actions>.danger{flex:0 0 auto;margin-left:auto}
+}
+/* Touch devices: comfortable tap targets. */
+@media(pointer:coarse){
+  .top-actions button,.queue-mode-btn,.registration-skill-btn{min-height:40px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

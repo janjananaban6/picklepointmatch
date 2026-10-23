@@ -406,7 +406,6 @@ html {
   }
 }
 
-
 /* Desktop polish: a stable, slim scrollbar without horizontal page overflow. */
 @media (min-width: 761px) {
   html {
@@ -431,7 +430,6 @@ html {
     background: #829da3;
   }
 }
-
 
 /* Registration-only scroll fix. The shared Live View stylesheet intentionally locks
    the organizer body to the viewport on desktop; override that behavior here. */
@@ -483,7 +481,6 @@ body.registration-page-body {
   }
 }
 
-
 /* Registration header/footer cleanup. These rules are page-scoped so the Live View
    standing button and its modal remain unchanged on live.html. */
 .registration-page-body .live-ranking-toggle,
@@ -523,7 +520,6 @@ body.registration-page-body {
   overflow-wrap: anywhere;
 }
 
-
 /* Mobile Safari focuses text fields without zooming when the input text is at least 16px. */
 @media (max-width: 760px) {
   .registration-page-form.registration-area .registration-fullname-row .registration-text-wrap > input,
@@ -531,7 +527,6 @@ body.registration-page-body {
     font-size: 16px !important;
   }
 }
-
 
 /* FINAL RESPONSIVE EYEBROW LOCK — match Live View at desktop, tablet, and mobile.
    Keep these dimensions independent of viewport breakpoints; only theme colors may change. */
@@ -584,7 +579,6 @@ html body.registration-page-body .registration-page-intro h1 {
   }
 }
 
-
 /* ALIGN REGISTRATION HEADING TOP WITH LIVE VIEW .live-page-pinned.
    Header is fixed on this page, so reserve the same 58px header + 8px label offset. */
 .registration-page-shell {
@@ -593,7 +587,6 @@ html body.registration-page-body .registration-page-intro h1 {
 @media (max-width: 760px) {
   .registration-page-shell { padding-top: 66px; }
 }
-
 
 /* Registration name inputs — align placeholders and keep normal text selection usable. */
 html body.registration-page-body .registration-page-form.registration-area #registerFullname,
@@ -797,7 +790,6 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
     letter-spacing: 2.2px !important;
   }
 }
-
 
 /* Queue-added toast: content-sized notification positioned just below the fixed 58px live header. */
 .registration-queue-toast[hidden] {

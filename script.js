@@ -2557,7 +2557,7 @@ function renderQueue(){
       </div>
       <div class="queue-main-info">
         <div class="queue-name-line">
-          <span class="queue-name">${highlightSearchMatch(displayPlayerName(p),search)}</span>
+          <span class="queue-name" title="${esc(displayPlayerName(p))}">${highlightSearchMatch(displayPlayerName(p),search)}</span>
           <span class="queue-gender-inline">
             <span class="gender-inline ${gender==='Female'?'female':'male'}" title="${gender}" aria-label="${gender}">${gender==='Female'
               ? '<svg class="gender-symbol" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="4.8" r="3.55" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.4v5.9M5.25 11.35h5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>'
