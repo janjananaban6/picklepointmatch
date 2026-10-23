@@ -24,3 +24,18 @@ If the current web service is **not managed by a Render Blueprint**, create a Po
 - The code can import legacy JSON data only if those JSON files are still available to the running service during its first PostgreSQL-backed startup. A ZIP/GitHub repository does not include runtime data files by default. Export or back up important existing registrations, match history, and sessions before deploying this change.
 - This migration keeps the existing app data structures intact in JSONB rows, minimizing changes to the current frontend and APIs. It is a persistence layer, not a normalized relational redesign.
 - If `DATABASE_URL` is configured but PostgreSQL cannot be reached, the server intentionally fails during startup instead of silently falling back to temporary file storage.
+
+
+## Organizer Login
+
+The site root (`/`) and `index.html` are now the organizer login page. The previous start/session screen is now `session.html`. Direct access to `session.html` and `queueing.html` redirects to login until an organizer signs in. Public player registration (`Registration.html`) and public Live View (`live.html`) remain available.
+
+The organizer username defaults to `organizer`. Set the following variables on the Render web service:
+
+- `ORGANIZER_USERNAME`: `organizer` (or your preferred username)
+- `ORGANIZER_PASSWORD`: choose a strong password and keep it secret
+- `SESSION_SECRET`: a long random secret used to sign login sessions
+
+For a Render Blueprint deployment, `render.yaml` uses `generateValue: true` for the password and session secret, so Render can generate secret values instead of committing passwords to GitHub. On an existing Render service, open **Environment** and confirm that all three keys exist; if the Blueprint update has not applied them, add them manually. Save with **Save, rebuild, and deploy** (or **Save and deploy**) so the service receives them. Use the value shown by Render for `ORGANIZER_PASSWORD` to sign in. Never paste or share the password or `SESSION_SECRET` in chat or commit them to GitHub.
+
+Successful sign-in uses an HTTP-only, same-site cookie that expires after 12 hours. Organizer state-write APIs require this cookie, while public registration and Live View read APIs remain available.

@@ -161,7 +161,7 @@ function applySharedAppState(payload,force=false){
         if(document.body?.dataset.page==='queueing'){
           remoteSessionEndRedirectInProgress=true;
           try{sessionStorage.setItem('liveQueueView','start');}catch(e){}
-          window.location.replace('index.html');
+          window.location.replace('session.html');
         }else{
           showLiveQueueStartScreen();
         }
@@ -365,7 +365,7 @@ function endSession(){
   saveState();
   publishLiveViewState(true);
   if(document.body?.dataset.page==='queueing'){
-    window.location.assign('index.html');
+    window.location.assign('session.html');
     return;
   }
   showLiveQueueStartScreen();
@@ -3928,7 +3928,7 @@ function bindTopbarBackButton(){
   button.addEventListener('click',()=>{
     if(button.disabled)return;
     if(document.body?.dataset.page==='queueing'){
-      window.location.assign('index.html');
+      window.location.assign('session.html');
       return;
     }
     showLiveQueueStartScreen();

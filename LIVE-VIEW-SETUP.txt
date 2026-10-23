@@ -20,7 +20,7 @@ DEPLOY ONLINE (RENDER EXAMPLE)
 2. Create a GitHub repository and upload the CONTENTS of this folder (including render.yaml, package.json, server.js, index.html, queueing.html, start-page.js, queueing-app-loader.js, script.js, CSS and image files).
 3. Sign in to Render and choose New > Blueprint, then connect the GitHub repository containing render.yaml.
 4. Deploy the service. Render will assign a public URL similar to https://your-service-name.onrender.com.
-5. Open that HTTPS URL on the organizer computer. The root URL opens the Start Screen (`index.html`); creating or continuing a session opens the separate Queueing workspace (`queueing.html`).
+5. Open that HTTPS URL on the organizer computer. The root URL opens the Organizer Login (`index.html`). After sign-in, the previous Start Screen is available at `session.html`; creating or continuing a session opens the Queueing workspace (`queueing.html`).
 6. Create or continue a live queue. Click “QR Share” in the topbar and show/print the QR for players.
 7. Scan the QR with a phone using mobile data or Wi-Fi. It should open https://your-service-name.onrender.com/live.html.
 8. Keep the organizer page open and connected to the same deployed service during the session so updates keep being published.
@@ -38,5 +38,5 @@ DATA / HOSTING NOTES
 - Live View broadcasts one current live session at a time.
 - This build uses the included Node server and its live-state snapshot. It is intended for one running server instance; do not scale it to multiple instances without shared storage/pub-sub.
 - Some free hosting plans can sleep and use temporary disk storage. Keep the organizer page open during the session; it republishes the latest queue snapshot every 30 seconds while the session is active. If the organizer page was closed during a host restart, reopen it to republish the locally saved queue.
-- The current app has no user login. Treat the public queue and player names as public information when deploying. Anyone who knows the API endpoint can currently submit a snapshot; use authenticated write access before running private or sensitive sessions.
+- Organizer sign-in protects `session.html`, `queueing.html`, and organizer write APIs. Public player registration (`Registration.html`) and Live View (`live.html`) remain accessible so players can register and watch the queue. Configure `ORGANIZER_USERNAME`, `ORGANIZER_PASSWORD`, and `SESSION_SECRET` in Render and keep the password secret.
 - The QR code image is generated through the external QR Server image endpoint, so an internet connection is needed to display the QR image. The copy-link button still provides the exact URL.

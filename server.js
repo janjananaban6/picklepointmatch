@@ -2,6 +2,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { URL } = require('node:url');
+const crypto = require('node:crypto');
 
 const ROOT = __dirname;
 const DATA_DIR = process.env.PICKLE_DATA_DIR ? path.resolve(process.env.PICKLE_DATA_DIR) : path.join(ROOT, 'data');
@@ -12,7 +13,7 @@ const CLOUD_RECORDS_FILE = path.join(DATA_DIR, 'registered-player-cloud.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
-const allowedFiles = new Set(['index.html','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','live-queue-start-card.html','live-queue-start-loader.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css']);
+const allowedFiles = new Set(['index.html','session.html','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','live-queue-start-card.html','live-queue-start-loader.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css']);
 let latestState = null;
 let sharedAppState = null;
 let sharedAppRevision = 0;
@@ -26,6 +27,85 @@ let liveTheme = 'night';
 const subscribers = new Set();
 const sharedSubscribers = new Set();
 let dbPool = null;
+
+// Organizer authentication. Credentials and the signing secret live only in Render
+// environment variables; passwords are never embedded in browser assets or source.
+const AUTH_USERNAME = String(process.env.ORGANIZER_USERNAME || '').trim();
+const AUTH_PASSWORD = String(process.env.ORGANIZER_PASSWORD || '');
+const SESSION_SECRET = String(process.env.SESSION_SECRET || '');
+const AUTH_COOKIE = 'ppm_organizer_session';
+const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
+const LOGIN_LIMIT = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const loginFailures = new Map();
+function authIsConfigured() {
+  return !!(AUTH_USERNAME && AUTH_PASSWORD && SESSION_SECRET);
+}
+function safeEqual(a, b) {
+  const left = Buffer.from(String(a));
+  const right = Buffer.from(String(b));
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+function signSessionPayload(encodedPayload) {
+  return crypto.createHmac('sha256', SESSION_SECRET).update(encodedPayload).digest('base64url');
+}
+function getCookieValue(req, name) {
+  const raw = String(req.headers.cookie || '');
+  for (const item of raw.split(';')) {
+    const index = item.indexOf('=');
+    if (index < 0) continue;
+    if (item.slice(0, index).trim() === name) return item.slice(index + 1).trim();
+  }
+  return '';
+}
+function isAuthenticated(req) {
+  if (!authIsConfigured()) return false;
+  const token = getCookieValue(req, AUTH_COOKIE);
+  if (!token) return false;
+  const parts = token.split('.');
+  if (parts.length !== 2) return false;
+  const [encodedPayload, suppliedSignature] = parts;
+  const expectedSignature = signSessionPayload(encodedPayload);
+  if (!safeEqual(suppliedSignature, expectedSignature)) return false;
+  try {
+    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+    return payload && payload.u === AUTH_USERNAME && Number(payload.exp) > Date.now();
+  } catch (_) {
+    return false;
+  }
+}
+function makeSessionToken() {
+  const now = Date.now();
+  const payload = Buffer.from(JSON.stringify({
+    u: AUTH_USERNAME,
+    iat: now,
+    exp: now + SESSION_MAX_AGE_SECONDS * 1000,
+    nonce: crypto.randomBytes(16).toString('hex')
+  })).toString('base64url');
+  return `${payload}.${signSessionPayload(payload)}`;
+}
+function cookieOptions(req, maxAge) {
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+  const secure = process.env.NODE_ENV === 'production' || forwardedProto === 'https';
+  return `Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
+}
+function loginClientKey(req) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwarded || req.socket?.remoteAddress || 'unknown';
+}
+function getLoginFailureRecord(key) {
+  const now = Date.now();
+  let record = loginFailures.get(key);
+  if (!record || now - record.firstAt > LOGIN_WINDOW_MS) {
+    record = {count:0, firstAt:now};
+    loginFailures.set(key, record);
+  }
+  return record;
+}
+function setRedirect(res, location) {
+  res.writeHead(302, {'Location':location,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
+  res.end();
+}
 
 // Use PostgreSQL when DATABASE_URL is configured (Render), while keeping the
 // original JSON-file storage for local development and offline testing.
@@ -213,6 +293,55 @@ async function readBody(req, limit = 2 * 1024 * 1024) {
 }
 async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+
+  if (url.pathname === '/api/auth-status' && req.method === 'GET') {
+    return sendJson(res, 200, {ok:true, configured:authIsConfigured(), authenticated:isAuthenticated(req)});
+  }
+  if (url.pathname === '/api/login' && req.method === 'POST') {
+    if (!authIsConfigured()) {
+      return sendJson(res, 503, {ok:false,error:'Organizer login is not configured. Set ORGANIZER_USERNAME, ORGANIZER_PASSWORD, and SESSION_SECRET in Render.'});
+    }
+    const key = loginClientKey(req);
+    const failureRecord = getLoginFailureRecord(key);
+    if (failureRecord.count >= LOGIN_LIMIT && Date.now() - failureRecord.firstAt <= LOGIN_WINDOW_MS) {
+      return sendJson(res, 429, {ok:false,error:'Too many login attempts. Please try again later.'});
+    }
+    try {
+      const body = await readBody(req, 16 * 1024);
+      const username = String(body?.username || '').trim();
+      const password = String(body?.password || '');
+      const valid = safeEqual(username, AUTH_USERNAME) && safeEqual(password, AUTH_PASSWORD);
+      if (!valid) {
+        failureRecord.count += 1;
+        return sendJson(res, 401, {ok:false,error:'Incorrect organizer username or password.'});
+      }
+      loginFailures.delete(key);
+      res.writeHead(200, {
+        'Content-Type':'application/json; charset=utf-8',
+        'Cache-Control':'no-store',
+        'Set-Cookie':`${AUTH_COOKIE}=${makeSessionToken()}; ${cookieOptions(req, SESSION_MAX_AGE_SECONDS)}`,
+        'X-Content-Type-Options':'nosniff'
+      });
+      return res.end(JSON.stringify({ok:true,username:AUTH_USERNAME,expiresIn:SESSION_MAX_AGE_SECONDS}));
+    } catch (err) {
+      return sendJson(res, err.statusCode || 400, {ok:false,error:err.statusCode === 413 ? 'Payload too large' : 'Invalid login request.'});
+    }
+  }
+  if (url.pathname === '/api/logout' && req.method === 'POST') {
+    res.writeHead(200, {
+      'Content-Type':'application/json; charset=utf-8',
+      'Cache-Control':'no-store',
+      'Set-Cookie':`${AUTH_COOKIE}=; ${cookieOptions(req, 0)}`,
+      'X-Content-Type-Options':'nosniff'
+    });
+    return res.end(JSON.stringify({ok:true}));
+  }
+
+  // Keep public player registration and public Live View reads available, while
+  // requiring organizer auth for the app's write APIs.
+  if (req.method === 'POST' && ['/api/app-state','/api/cloud-records','/api/live-state','/api/live-theme'].includes(url.pathname) && !isAuthenticated(req)) {
+    return sendJson(res, 401, {ok:false,error:'Organizer login required.'});
+  }
 
   // SEO endpoints: generate absolute URLs from the public host that requested them,
   // so the same build works on Render's onrender.com address or a custom domain.
@@ -499,13 +628,20 @@ async function handle(req, res) {
   if (pathname === '/') pathname = '/index.html';
   const name = path.basename(pathname);
   if (!allowedFiles.has(name) || pathname.includes('..')) return sendJson(res,404,{ok:false,error:'Not found'});
+  if (name === 'index.html' && isAuthenticated(req)) return setRedirect(res, '/session.html');
+  if ((name === 'session.html' || name === 'queueing.html') && !isAuthenticated(req)) {
+    const next = `${name}${url.search || ''}`;
+    return setRedirect(res, `/index.html?next=${encodeURIComponent(next)}`);
+  }
   const filePath = path.join(ROOT,name);
   try {
     const stat = await fs.promises.stat(filePath);
     if (!stat.isFile()) return sendJson(res,404,{ok:false,error:'Not found'});
     const extension=path.extname(filePath).toLowerCase();
     const mutableAsset=['.html','.js','.css'].includes(extension);
-    res.writeHead(200, {'Content-Type':MIME[extension]||'application/octet-stream','Content-Length':stat.size,'Cache-Control':mutableAsset?'no-cache, must-revalidate':'public, max-age=300','X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});
+    const noStorePage = ['index.html','session.html','queueing.html'].includes(name);
+    const cacheControl = noStorePage ? 'private, no-store, max-age=0' : (mutableAsset ? 'no-cache, must-revalidate' : 'public, max-age=300');
+    res.writeHead(200, {'Content-Type':MIME[extension]||'application/octet-stream','Content-Length':stat.size,'Cache-Control':cacheControl,'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});
     if(req.method==='HEAD')return res.end();
     fs.createReadStream(filePath).pipe(res);
   } catch (_) { return sendJson(res,404,{ok:false,error:'Not found'}); }

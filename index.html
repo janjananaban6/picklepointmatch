@@ -1,120 +1,61 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Pickle Point Match is a pickleball queueing and court management app for organizing players, matches, and live court activity.">
-  <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
-  <title>Pickle Point Match — Start</title>
-  <script>window.ppMobileQueueingBlocked = false;</script>
-<link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=queue-responsive-all-devices-20261022-1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a1d2b">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Organizer sign-in for Pickle Point Match.">
+  <title>Organizer Login — Pickle Point Match</title>
+  <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
+  <link rel="stylesheet" href="login.css?v=organizer-login-20261023-1">
+  <script src="login.js?v=organizer-login-20261023-1" defer></script>
 </head>
-<body data-page="start">
-<div id="liveQueueStartScreen" class="live-queue-start-screen">
-  <div class="live-queue-start-brand" aria-label="Pickle Point Match">
-    <img src="pickleball-p-emblem.png" alt="" aria-hidden="true">
-    <div class="live-queue-start-brand-wordmark">
-      <span>PICKLE <b>POINT</b></span>
-      <small>M A T C H</small>
-    </div>
-  </div>
-
-  <div class="live-queue-start-card">
-    <!-- Container 1: start heading and game/session settings through Win By. -->
-    <section class="live-queue-start-panel live-queue-start-panel-settings" aria-label="Live queue settings">
-      <div class="live-queue-start-heading">
-        <h1>Live Queue</h1>
-        <p id="liveQueueStartSubtitle">Create a live queue session before entering the queueing workspace.</p>
+<body class="organizer-login-page">
+  <main class="login-shell">
+    <section class="login-brand-panel" aria-label="Pickle Point Match">
+      <div class="court-orbit orbit-one"></div>
+      <div class="court-orbit orbit-two"></div>
+      <div class="brand-content">
+        <img class="brand-mark" src="pickleball-p-emblem.png" alt="Pickle Point Match logo">
+        <div class="brand-wordmark"><span>PICKLE <strong>POINT</strong></span><small>M A T C H</small></div>
+        <p class="brand-tagline">Your courts. Your players. One live session.</p>
+        <div class="brand-court-lines" aria-hidden="true"><span></span><span></span><i></i></div>
       </div>
-
-      <div id="existingLiveQueueCard" class="existing-live-queue hidden">
-        <div class="existing-live-queue-icon">▶</div>
-        <div class="existing-live-queue-copy">
-          <strong>Existing Live Queue</strong>
-          <span id="existingLiveQueueName">Live Queue</span>
-        </div>
-        <button type="button" id="continueLiveQueueBtn" class="continue-live-queue-btn">Continue</button>
-      </div>
-
-      <div id="existingLiveQueueStats" class="existing-live-queue-stats hidden" aria-label="Existing live queue statistics">
-        <div class="existing-live-queue-stat">
-          <span class="existing-live-queue-stat-label">Players on Queue</span>
-          <strong id="existingLiveQueuePlayersCount">0</strong>
-        </div>
-        <div class="existing-live-queue-stat">
-          <span class="existing-live-queue-stat-label">Court Session</span>
-          <strong id="existingLiveQueueCourtsCount">0</strong>
-        </div>
-        <div class="existing-live-queue-stat">
-          <span class="existing-live-queue-stat-label">Matches Total</span>
-          <strong id="existingLiveQueueMatchesCount">0</strong>
-        </div>
-      </div>
-
-      <div class="live-queue-form-section">
-        <label class="live-queue-field-label">SESSION NAME</label>
-        <input id="liveQueueSessionName" class="live-queue-input" type="text" value="(NON DUPR MATCH) Open Play" autocomplete="off" aria-label="Session name. Match type prefix is automatic and cannot be removed.">
-
-        <label class="live-queue-field-label">MATCH TYPE</label>
-        <div class="live-queue-choice-row two" id="liveQueueMatchType">
-          <button type="button" class="live-queue-choice active" data-value="Doubles">👥 <span>Doubles</span></button>
-          <button type="button" class="live-queue-choice" data-value="Singles" disabled aria-disabled="true">👤 <span>Singles</span></button>
-        </div>
-
-        <label class="live-queue-field-label">GAME MODE</label>
-        <div class="live-queue-game-list" id="liveQueueGameMode">
-          <button type="button" class="live-queue-game active" data-target="11"><b>Race to 11</b><span>Standard open play</span></button>
-          <button type="button" class="live-queue-game" data-target="15"><b>Race to 15</b><span>Extended play</span></button>
-          <button type="button" class="live-queue-game" data-target="21" disabled aria-disabled="true"><b>Rally to 21</b><span>MLP/PPA format</span></button>
-        </div>
-
-        <label class="live-queue-field-label">WIN BY</label>
-        <div class="live-queue-choice-row three" id="liveQueueWinBy">
-          <button type="button" class="live-queue-choice active" data-value="1">Win by 1</button>
-          <button type="button" class="live-queue-choice" data-value="2">Win by 2</button>
-          <button type="button" class="live-queue-choice" data-value="3">Win by 3</button>
-        </div>
-      </div>
+      <p class="brand-footer">ORGANIZER ACCESS</p>
     </section>
 
-    <!-- Container 2: matching mode options. -->
-    <section class="live-queue-start-panel live-queue-start-panel-matching" aria-label="Matching mode">
-      <label class="live-queue-field-label">MATCHING MODE</label>
-      <div class="live-queue-matching-list" id="liveQueueMatchingMode" role="group" aria-label="Choose player matching mode">
-        <button type="button" class="live-queue-matching-option active" data-mode="balanced" aria-pressed="true">
-          <span class="live-queue-matching-copy"><span class="live-queue-matching-title">Balanced <span class="live-queue-mode-badge recommended">RECOMMENDED</span></span><span class="live-queue-matching-description">Balances teams by skill and rating. Avoids repeat matchups when possible.</span></span>
-        </button>
-        <button type="button" class="live-queue-matching-option" data-mode="social-mix" aria-pressed="false">
-          <span class="live-queue-matching-copy"><span class="live-queue-matching-title">Social Mix <span class="live-queue-mode-badge improved">IMPROVED</span></span><span class="live-queue-matching-description">Rotates partners before repeating, then spreads opponents fairly. Ratings aren’t used.</span></span>
-        </button>
-        <button type="button" class="live-queue-matching-option" data-mode="skill-separated" aria-pressed="false">
-          <span class="live-queue-matching-copy"><span class="live-queue-matching-title">Skill Separated</span><span class="live-queue-matching-description">Keeps similar skill levels together. May leave a court waiting.</span></span>
-        </button>
-        <button type="button" class="live-queue-matching-option" data-mode="winners-losers" aria-pressed="false">
-          <span class="live-queue-matching-copy"><span class="live-queue-matching-title">Winners / Losers</span><span class="live-queue-matching-description">Winners play winners and losers play losers. PickleQ rotates between both groups.</span></span>
-        </button>
+    <section class="login-form-panel">
+      <div class="mobile-brand">
+        <img src="pickleball-p-emblem.png" alt="">
+        <span>PICKLE <b>POINT</b> MATCH</span>
       </div>
+      <div class="login-heading">
+        <div class="secure-badge"><span class="secure-dot"></span> SECURE SIGN IN</div>
+        <h1>Welcome back</h1>
+        <p>Sign in with your organizer account to manage your live queue.</p>
+      </div>
+
+      <form id="organizerLoginForm" class="login-form" autocomplete="on">
+        <label for="organizerUsername">Organizer username</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>
+          <input id="organizerUsername" name="username" type="text" value="organizer" placeholder="Enter username" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="80">
+        </div>
+
+        <label for="organizerPassword">Password</label>
+        <div class="input-wrap password-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3M12 14v3"/></svg>
+          <input id="organizerPassword" name="password" type="password" placeholder="Enter organizer password" autocomplete="current-password" required maxlength="200">
+          <button type="button" id="togglePassword" class="toggle-password" aria-label="Show password">Show</button>
+        </div>
+
+        <p id="loginMessage" class="login-message" role="alert" aria-live="polite"></p>
+        <button id="loginSubmit" class="login-submit" type="submit"><span>Sign in</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <p class="login-footnote"><span aria-hidden="true">●</span> Organizer access only</p>
+      </form>
     </section>
-
-    <!-- Container 3: result toggles and the final create action. -->
-    <section class="live-queue-start-panel live-queue-start-panel-actions" aria-label="Recording options and queue creation">
-      <label class="live-queue-toggle-row record-results-toggle-row" title="Choose whether to record numeric game scores">
-        <span class="live-queue-toggle-copy"><strong>Recording results</strong><small>Record game scores</small><small>Save the final score of each game.</small></span>
-        <input id="liveQueueRecordResults" type="checkbox" aria-label="Record game scores">
-        <span class="live-queue-toggle" aria-hidden="true"></span>
-      </label>
-
-      <label class="live-queue-toggle-row">
-        <span class="live-queue-toggle-copy"><strong>DUPR Match</strong><small>Results will be uploaded to DUPR.com</small></span>
-        <input id="liveQueueDupr" type="checkbox" disabled aria-disabled="true">
-        <span class="live-queue-toggle" aria-hidden="true"></span>
-      </label>
-
-      <button type="button" id="createLiveQueueBtn" class="create-live-queue-btn">Create Live Queue</button>
-    </section>
-  </div>
-</div>
-<script src="start-page.js?v=queue-responsive-all-devices-20261022-1"></script>
+  </main>
+  <footer class="page-footer">PICKLE POINT MATCH <span>•</span> LIVE QUEUE MANAGEMENT</footer>
 </body>
 </html>

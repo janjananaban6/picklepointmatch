@@ -12,6 +12,12 @@ services:
         fromDatabase:
           name: pickle-point-match-db
           property: connectionString
+      - key: ORGANIZER_USERNAME
+        value: organizer
+      - key: ORGANIZER_PASSWORD
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
 
 databases:
   - name: pickle-point-match-db
