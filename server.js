@@ -150,11 +150,11 @@ function verifyPassword(password, storedHash) {
   } catch (_) { return false; }
 }
 function organizerPublicRecord(account) {
-  return {id:account.id,username:account.username,displayName:account.displayName || account.username,active:account.active !== false,createdAt:account.createdAt || null,lastLoginAt:account.lastLoginAt || null,createdBy:account.createdBy || 'registration'};
+  return {id:account.id,username:account.username,displayName:account.displayName || account.username,profileImage:account.profileImage || null,active:account.active !== false,createdAt:account.createdAt || null,lastLoginAt:account.lastLoginAt || null,createdBy:account.createdBy || 'registration'};
 }
 function makeOrganizerRecord(username, password, displayName, createdBy = 'registration') {
   const now = new Date().toISOString();
-  return {id:crypto.randomUUID(),username,displayName:displayName || username,passwordHash:hashPassword(password),active:true,createdAt:now,lastLoginAt:null,createdBy};
+  return {id:crypto.randomUUID(),username,displayName:displayName || username,profileImage:null,passwordHash:hashPassword(password),active:true,createdAt:now,lastLoginAt:null,createdBy};
 }
 function getDefaultOrganizer() {
   return organizerAccounts.find(account => account && account.active !== false) || null;
@@ -490,7 +490,7 @@ async function handle(req, res) {
   if (organizerAdminMatch && req.method === 'PATCH') {
     if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
     try {
-      const body = await readBody(req, 16 * 1024);
+      const body = await readBody(req, 900 * 1024);
       const account = organizerAccounts.find(item => item.id === organizerAdminMatch[1]);
       if (!account) return sendJson(res, 404, {ok:false,error:'Organizer account not found.'});
       if (body.displayName !== undefined) {
@@ -498,11 +498,27 @@ async function handle(req, res) {
         if (!displayName) return sendJson(res, 400, {ok:false,error:'Display name cannot be blank.'});
         account.displayName = displayName;
       }
+      if (body.username !== undefined) {
+        const username = String(body.username || '').trim();
+        if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{2,39}$/.test(username)) return sendJson(res, 400, {ok:false,error:'Username must be 3–40 characters and use letters, numbers, dot, underscore, or hyphen.'});
+        const collision = accountByUsername(username);
+        if (username.toLocaleLowerCase() === PANEL_USERNAME.toLocaleLowerCase() || (AUTH_USERNAME && username.toLocaleLowerCase() === AUTH_USERNAME.toLocaleLowerCase()) || (collision && collision.id !== account.id)) {
+          return sendJson(res, 409, {ok:false,error:'That username is already in use.'});
+        }
+        account.username = username;
+      }
       if (body.active !== undefined) account.active = !!body.active;
       if (body.password !== undefined && String(body.password)) {
         const password = String(body.password);
         if (password.length < 8 || password.length > 200) return sendJson(res, 400, {ok:false,error:'New password must be at least 8 characters long.'});
         account.passwordHash = hashPassword(password);
+      }
+      if (body.profileImage !== undefined) {
+        const profileImage = String(body.profileImage || '').trim();
+        if (profileImage && (profileImage.length > 650000 || !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(profileImage))) {
+          return sendJson(res, 400, {ok:false,error:'Profile photo must be a small PNG, JPG, or WebP image.'});
+        }
+        account.profileImage = profileImage || null;
       }
       await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
       return sendJson(res, 200, {ok:true,organizer:organizerPublicRecord(account)});

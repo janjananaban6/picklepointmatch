@@ -3,30 +3,40 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f4f7fb">
+  <meta name="theme-color" content="#0b2522">
   <meta name="robots" content="noindex, nofollow">
   <title>Organizer Management — Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="panel.css?v=organizer-panel-20261023-1">
-  <script src="panel.js?v=organizer-panel-20261023-1" defer></script>
+  <link rel="stylesheet" href="panel.css?v=organizer-panel-responsive-20261023-2">
+  <script src="panel.js?v=organizer-panel-responsive-20261023-2" defer></script>
 </head>
 <body class="panel-page">
-  <main class="panel-shell">
-    <header class="panel-topbar">
+  <header class="panel-topbar">
+    <div class="topbar-inner">
       <div class="panel-brand">
-        <img src="pickleball-p-emblem.png" alt="">
-        <div><strong>PICKLE <span>POINT</span> MATCH</strong><small>ADMINISTRATOR PANEL</small></div>
+        <img src="pickleball-p-emblem.png" alt="" aria-hidden="true">
+        <div class="panel-brand-copy">
+          <strong>PICKLE <span>POINT</span> MATCH</strong>
+          <small>ADMINISTRATOR PANEL</small>
+        </div>
       </div>
-      <button type="button" id="panelLogout" class="logout-button">Log out <span aria-hidden="true">↗</span></button>
-    </header>
+      <div class="panel-top-actions">
+        <button type="button" id="panelThemeToggle" class="live-view-theme-toggle" aria-pressed="false" aria-label="Switch panel to light mode" title="Switch panel to light mode">
+          <span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-sun">☀</span><span class="theme-switch-icon theme-switch-moon">☾</span><span class="theme-switch-thumb"></span></span>
+          <span class="live-view-theme-label">Dark Mode</span>
+        </button>
+        <button type="button" id="panelLogout" class="logout-button"><span class="logout-icon" aria-hidden="true">↗</span><span>Log out</span></button>
+      </div>
+    </div>
+  </header>
 
+  <main class="panel-shell">
     <section class="panel-intro">
-      <div>
-        <p class="eyebrow"><span></span> CONTROL CENTER</p>
+      <div class="panel-intro-copy">
+        <p class="eyebrow"><span aria-hidden="true"></span> CONTROL CENTER</p>
         <h1>Organizer accounts</h1>
         <p class="intro-copy">Create and manage organizer access. Every organizer has a separate live queue, while the Registered Player Cloud remains shared across all accounts.</p>
       </div>
-      <button class="primary-button intro-create" type="button" id="jumpToCreate"><span aria-hidden="true">＋</span> Add organizer</button>
     </section>
 
     <section class="summary-grid" aria-label="Account overview">
@@ -39,7 +49,7 @@
       <section class="account-section panel-card">
         <div class="section-heading">
           <div><h2>All organizers</h2><p>Review account details and access status.</p></div>
-          <button id="refreshAccounts" class="quiet-button" type="button" aria-label="Refresh organizer accounts">↻ <span>Refresh</span></button>
+          <button id="refreshAccounts" class="quiet-button" type="button" aria-label="Refresh organizer accounts"><span aria-hidden="true">↻</span> <span>Refresh</span></button>
         </div>
         <div id="panelNotice" class="panel-notice" role="status" aria-live="polite"></div>
         <div class="table-wrap">
@@ -48,8 +58,7 @@
             <tbody id="organizerRows"><tr><td colspan="5" class="empty-row">Loading organizer accounts…</td></tr></tbody>
           </table>
         </div>
-        <div id="mobileAccounts" class="mobile-account-list"></div>
-        <p class="table-footnote"><span class="status-dot"></span> Only active accounts can sign in. Inactive organizer sessions are blocked on their next request.</p>
+        <p class="table-footnote"><span class="status-dot" aria-hidden="true"></span> Only active accounts can sign in. Inactive organizer sessions are blocked on their next request.</p>
       </section>
 
       <aside class="create-section panel-card" id="createSection">
@@ -69,5 +78,36 @@
     </section>
     <footer class="panel-footer">PICKLE POINT MATCH <span>•</span> ACCOUNT MANAGEMENT</footer>
   </main>
+
+  <div id="accountModal" class="panel-modal" hidden>
+    <button class="panel-modal-scrim" type="button" data-close-modal aria-label="Close dialog"></button>
+    <section class="panel-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle" tabindex="-1">
+      <div class="modal-heading">
+        <div class="modal-heading-icon" id="modalIcon" aria-hidden="true">✦</div>
+        <div class="modal-heading-copy"><h2 id="accountModalTitle">Edit organizer profile</h2><p id="accountModalDescription">Update the organizer's account details.</p></div>
+        <button type="button" id="closeAccountModal" class="modal-close" aria-label="Close dialog">×</button>
+      </div>
+      <div id="confirmModalBody" class="confirm-modal-body" hidden>
+        <p id="confirmModalText"></p>
+        <p id="confirmModalDetail" class="confirm-detail"></p>
+        <p id="confirmModalError" class="modal-error" role="alert" aria-live="polite"></p>
+        <div class="modal-actions"><button type="button" class="secondary-button" data-close-modal>Cancel</button><button type="button" id="confirmAccountAction" class="primary-button">Confirm</button></div>
+      </div>
+      <form id="editOrganizerForm" class="edit-organizer-form" hidden>
+        <div class="avatar-editor-row">
+          <div class="avatar-preview-wrap"><img id="organizerAvatarPreview" alt="Organizer profile preview"><span id="avatarFallback" aria-hidden="true">OP</span></div>
+          <div class="avatar-editor-copy"><strong>Organizer photo</strong><p>Optional JPG, PNG, or WebP. The image is resized before saving.</p><div class="avatar-editor-actions"><label for="organizerProfileImage" class="upload-photo-button">Choose photo</label><button type="button" id="removeOrganizerPhoto" class="text-button">Remove photo</button></div><input id="organizerProfileImage" class="visually-hidden-input" type="file" accept="image/png,image/jpeg,image/webp"></div>
+        </div>
+        <label for="editDisplayName">Organizer / venue name</label>
+        <input id="editDisplayName" name="displayName" type="text" maxlength="80" autocomplete="organization" required>
+        <label for="editUsername">Username</label>
+        <input id="editUsername" name="username" type="text" minlength="3" maxlength="40" pattern="[A-Za-z0-9][A-Za-z0-9_.-]{2,39}" autocomplete="off" required>
+        <label for="editPassword">New password <small>Leave blank to keep current password</small></label>
+        <div class="password-input"><input id="editPassword" name="password" type="password" minlength="8" maxlength="200" autocomplete="new-password" placeholder="Leave blank to keep current password"><button type="button" id="toggleEditPassword" aria-label="Show new password">Show</button></div>
+        <p id="editModalError" class="modal-error" role="alert" aria-live="polite"></p>
+        <div class="modal-actions"><button type="button" class="secondary-button" data-close-modal>Cancel</button><button type="submit" id="saveOrganizerChanges" class="primary-button">Save changes <span aria-hidden="true">→</span></button></div>
+      </form>
+    </section>
+  </div>
 </body>
 </html>
