@@ -1,10 +1,11 @@
 /* Standalone Start Screen controller. The queueing workspace lives in queueing.html. */
 (function () {
   'use strict';
-  const STATE_KEY = 'pickleq_v11_state';
-  const LEGACY_STATE_KEYS = ['pickleq_v10_state', 'pickleq_v9_state', 'pickleq_v8_state', 'pickleq_v7_state', 'pickleq_v6_state'];
-  const SAVED_AT_KEY = 'pickleq_v11_state_saved_at';
-  const PENDING_SYNC_KEY = 'pickleq_v11_state_pending_sync';
+  const ORGANIZER_STORAGE_SUFFIX = String(window.PPM_ORGANIZER_ID || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  const STATE_KEY = `pickleq_v11_state${ORGANIZER_STORAGE_SUFFIX ? `_${ORGANIZER_STORAGE_SUFFIX}` : ''}`;
+  const LEGACY_STATE_KEYS = ORGANIZER_STORAGE_SUFFIX ? [] : ['pickleq_v10_state', 'pickleq_v9_state', 'pickleq_v8_state', 'pickleq_v7_state', 'pickleq_v6_state'];
+  const SAVED_AT_KEY = `${STATE_KEY}_saved_at`;
+  const PENDING_SYNC_KEY = `${STATE_KEY}_pending_sync`;
   const PENDING_START_CONFIG_KEY = 'picklepoint.pending-live-queue-start-config';
   const $ = id => document.getElementById(id);
 

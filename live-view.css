@@ -3932,3 +3932,107 @@ html body.live-view-page .section-card.queue-section #queueSearchSlot.queue-sear
     transition: none !important;
   }
 }
+
+
+/* LIVE PAGE PICKLEBALL COURT — realistic top-down court markings.
+   Scoped to the Live page court diagram so unrelated screens remain unchanged. */
+html body #courtsList .court-diagram.pickleball-court,
+html body #waitingCourtsList .court-diagram.pickleball-court {
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  aspect-ratio: 2.2 / 1 !important;
+  border: 2px solid #f5faf7 !important;
+  border-radius: 3px !important;
+  background: linear-gradient(135deg, #27865a 0%, #18764f 100%) !important;
+  box-shadow: inset 0 0 0 1px rgba(7, 47, 34, .13), 0 2px 7px rgba(0, 0, 0, .12) !important;
+  isolation: isolate;
+}
+html body #courtsList .court-diagram.pickleball-court .pickleball-kitchen,
+html body #waitingCourtsList .court-diagram.pickleball-court .pickleball-kitchen {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  width: 16%;
+  background: linear-gradient(135deg, #2879bd 0%, #1d68a6 100%);
+  pointer-events: none;
+}
+html body #courtsList .court-diagram.pickleball-court .pickleball-kitchen-left,
+html body #waitingCourtsList .court-diagram.pickleball-court .pickleball-kitchen-left {
+  left: 34%;
+}
+html body #courtsList .court-diagram.pickleball-court .pickleball-kitchen-right,
+html body #waitingCourtsList .court-diagram.pickleball-court .pickleball-kitchen-right {
+  left: 50%;
+}
+html body #courtsList .court-diagram.pickleball-court .pickleball-court-line,
+html body #waitingCourtsList .court-diagram.pickleball-court .pickleball-court-line {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  background: rgba(255, 255, 255, .96);
+  pointer-events: none;
+}
+html body #courtsList .court-diagram.pickleball-court .pickleball-kitchen-line,
+html body #waitingCourtsList .court-diagram.pickleball-court .pickleball-kitchen-line {
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-1px);
+}
+html body #courtsList .court-diagram.pickleball-court .pickleball-kitchen-line-left,
+html body #waitingCourtsList .court-diagram.pickleball-court .pickleball-kitchen-line-left {
+  left: 34%;
+}
+html body #courtsList .court-diagram.pickleball-court .pickleball-kitchen-line-right,
+html body #waitingCourtsList .court-diagram.pickleball-court .pickleball-kitchen-line-right {
+  left: 66%;
+}
+html body #courtsList .court-diagram.pickleball-court .pickleball-service-line,
+html body #waitingCourtsList .court-diagram.pickleball-court .pickleball-service-line {
+  top: 50%;
+  height: 2px;
+  transform: translateY(-1px);
+}
+html body #courtsList .court-diagram.pickleball-court .pickleball-service-line-left,
+html body #waitingCourtsList .court-diagram.pickleball-court .pickleball-service-line-left {
+  left: 0;
+  width: 34%;
+}
+html body #courtsList .court-diagram.pickleball-court .pickleball-service-line-right,
+html body #waitingCourtsList .court-diagram.pickleball-court .pickleball-service-line-right {
+  left: 66%;
+  right: 0;
+}
+html body #courtsList .court-diagram.pickleball-court .pickleball-net,
+html body #waitingCourtsList .court-diagram.pickleball-court .pickleball-net {
+  position: absolute;
+  z-index: 2;
+  top: -2px;
+  bottom: -2px;
+  left: 50%;
+  width: 3px;
+  transform: translateX(-50%);
+  background: repeating-linear-gradient(to bottom, #f8fafc 0 3px, #cbd5e1 3px 5px);
+  border-left: 1px solid rgba(20, 38, 42, .32);
+  border-right: 1px solid rgba(20, 38, 42, .32);
+  box-shadow: 0 0 2px rgba(0, 0, 0, .22);
+  pointer-events: none;
+}
+html body #courtsList .court-diagram.pickleball-court .court-player-marker,
+html body #waitingCourtsList .court-diagram.pickleball-court .court-player-marker {
+  z-index: 3;
+}
+/* Keep all four player markers inside their side's service area. */
+html body #courtsList .court-diagram.pickleball-court .court-player-marker.marker-top-left,
+html body #courtsList .court-diagram.pickleball-court .court-player-marker.marker-bottom-left,
+html body #waitingCourtsList .court-diagram.pickleball-court .court-player-marker.marker-top-left,
+html body #waitingCourtsList .court-diagram.pickleball-court .court-player-marker.marker-bottom-left {
+  left: 16%;
+}
+html body #courtsList .court-diagram.pickleball-court .court-player-marker.marker-top-right,
+html body #courtsList .court-diagram.pickleball-court .court-player-marker.marker-bottom-right,
+html body #waitingCourtsList .court-diagram.pickleball-court .court-player-marker.marker-top-right,
+html body #waitingCourtsList .court-diagram.pickleball-court .court-player-marker.marker-bottom-right {
+  left: 84%;
+}

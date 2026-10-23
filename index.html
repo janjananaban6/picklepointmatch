@@ -1,59 +1,79 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f3f7f8">
+  <meta name="theme-color" content="#f4f7fb">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="description" content="Organizer sign-in for Pickle Point Match.">
-  <title>Organizer Login — Pickle Point Match</title>
+  <meta name="description" content="Secure sign-in and organizer registration for Pickle Point Match.">
+  <title>Sign In — Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="login.css?v=organizer-login-20261023-2">
-  <script src="login.js?v=organizer-login-20261023-1" defer></script>
+  <link rel="stylesheet" href="login.css?v=organizer-login-rework-20261023-1">
+  <script src="login.js?v=organizer-login-rework-20261023-1" defer></script>
 </head>
 <body class="organizer-login-page">
   <main class="login-shell">
-    <section class="login-brand-panel" aria-label="Pickle Point Match">
-      <div class="court-orbit orbit-one"></div>
-      <div class="court-orbit orbit-two"></div>
-      <div class="brand-content">
+    <section class="login-form-panel" aria-labelledby="loginTitle">
+      <header class="login-brand">
         <img class="brand-mark" src="pickleball-p-emblem.png" alt="Pickle Point Match logo">
         <div class="brand-wordmark"><span>PICKLE <strong>POINT</strong></span><small>M A T C H</small></div>
-        <p class="brand-tagline">Your courts. Your players. One live session.</p>
-        <div class="brand-court-lines" aria-hidden="true"><span></span><span></span><i></i></div>
-      </div>
-      <p class="brand-footer">ORGANIZER ACCESS</p>
-    </section>
+      </header>
 
-    <section class="login-form-panel">
-      <div class="mobile-brand">
-        <img src="pickleball-p-emblem.png" alt="">
-        <span>PICKLE <b>POINT</b> MATCH</span>
-      </div>
       <div class="login-heading">
-        <div class="secure-badge"><span class="secure-dot"></span> SECURE SIGN IN</div>
-        <h1>Welcome back</h1>
-        <p>Sign in with your organizer account to manage your live queue.</p>
+        <div class="secure-badge"><span class="secure-dot" aria-hidden="true"></span><span id="headingBadge">ORGANIZER ACCESS</span></div>
+        <h1 id="loginTitle">Welcome back</h1>
+        <p id="loginDescription">Sign in to open your own live queue. Administrator credentials open the organizer management panel.</p>
       </div>
 
       <form id="organizerLoginForm" class="login-form" autocomplete="on">
-        <label for="organizerUsername">Organizer username</label>
+        <label for="organizerUsername">Username</label>
         <div class="input-wrap">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>
-          <input id="organizerUsername" name="username" type="text" value="organizer" placeholder="Enter username" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="80">
+          <input id="organizerUsername" name="username" type="text" placeholder="Enter username" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="80">
         </div>
 
         <label for="organizerPassword">Password</label>
         <div class="input-wrap password-wrap">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3M12 14v3"/></svg>
-          <input id="organizerPassword" name="password" type="password" placeholder="Enter organizer password" autocomplete="current-password" required maxlength="200">
+          <input id="organizerPassword" name="password" type="password" placeholder="Enter password" autocomplete="current-password" required maxlength="200">
           <button type="button" id="togglePassword" class="toggle-password" aria-label="Show password">Show</button>
         </div>
 
         <p id="loginMessage" class="login-message" role="alert" aria-live="polite"></p>
         <button id="loginSubmit" class="login-submit" type="submit"><span>Sign in</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-        <p class="login-footnote"><span aria-hidden="true">●</span> Organizer access only</p>
+        <div class="login-footnote"><span aria-hidden="true">●</span> Secure account access</div>
       </form>
+
+      <form id="organizerRegistrationForm" class="login-form registration-form" autocomplete="on" hidden>
+        <label for="organizerDisplayName">Organizer / venue name</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V5l7-2 7 2v16M9 9h1M14 9h1M9 13h1M14 13h1M10 21v-4h4v4"/></svg>
+          <input id="organizerDisplayName" name="displayName" type="text" placeholder="e.g. Husay Dinkers" autocomplete="organization" required maxlength="80">
+        </div>
+        <label for="registerUsername">Username</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>
+          <input id="registerUsername" name="username" type="text" placeholder="Choose a username" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="3" maxlength="40" pattern="[A-Za-z0-9][A-Za-z0-9_.-]{2,39}">
+        </div>
+        <label for="registerPassword">Password <span class="label-note">8 characters minimum</span></label>
+        <div class="input-wrap password-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3M12 14v3"/></svg>
+          <input id="registerPassword" name="password" type="password" placeholder="Create a strong password" autocomplete="new-password" required minlength="8" maxlength="200">
+        </div>
+        <label for="registerPasswordConfirm">Confirm password</label>
+        <div class="input-wrap password-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3M9 15l2 2 4-4"/></svg>
+          <input id="registerPasswordConfirm" name="passwordConfirm" type="password" placeholder="Repeat your password" autocomplete="new-password" required minlength="8" maxlength="200">
+        </div>
+        <p id="registerMessage" class="login-message" role="alert" aria-live="polite"></p>
+        <button id="registerSubmit" class="login-submit" type="submit"><span>Create organizer account</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <p class="registration-note">Your account receives a separate live queue. Registered Player Cloud remains shared with all organizers.</p>
+      </form>
+
+      <div class="mode-switch" id="modeSwitch">
+        <span id="modePrompt">New organizer?</span>
+        <button type="button" id="showRegistration">Create an account</button>
+      </div>
     </section>
   </main>
   <footer class="page-footer">PICKLE POINT MATCH <span>•</span> LIVE QUEUE MANAGEMENT</footer>

@@ -10,10 +10,11 @@ const DATA_FILE = path.join(DATA_DIR, 'live-state.json');
 const THEME_FILE = path.join(DATA_DIR, 'live-theme.json');
 const APP_STATE_FILE = path.join(DATA_DIR, 'app-state.json');
 const CLOUD_RECORDS_FILE = path.join(DATA_DIR, 'registered-player-cloud.json');
+const ORGANIZERS_FILE = path.join(DATA_DIR, 'organizer-accounts.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
-const allowedFiles = new Set(['index.html','session.html','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css']);
+const allowedFiles = new Set(['index.html','panel.html','panel.css','panel.js','session.html','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css']);
 let latestState = null;
 let sharedAppState = null;
 let sharedAppRevision = 0;
@@ -25,22 +26,30 @@ let sharedCloudUpdatedAt = null;
 let sharedCloudClientId = null;
 let liveTheme = 'night';
 const subscribers = new Set();
+const liveSubscriberScopes = new Map();
 const sharedSubscribers = new Set();
+const sharedSubscriberScopes = new Map();
 let dbPool = null;
+let organizerAccounts = [];
+const organizerAppStates = new Map();
+const organizerLiveStates = new Map();
 
-// Organizer authentication. Credentials and the signing secret live only in Render
-// environment variables; passwords are never embedded in browser assets or source.
+// Signed organizer and panel sessions. Credentials and the signing secret stay server-side.
 const AUTH_USERNAME = String(process.env.ORGANIZER_USERNAME || '').trim();
 const AUTH_PASSWORD = String(process.env.ORGANIZER_PASSWORD || '');
+const PANEL_USERNAME = String(process.env.PANEL_USERNAME || 'admin').trim();
+const PANEL_PASSWORD = String(process.env.PANEL_PASSWORD || '');
 const SESSION_SECRET = String(process.env.SESSION_SECRET || '');
 const AUTH_COOKIE = 'ppm_organizer_session';
 const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
 const LOGIN_LIMIT = 5;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const loginFailures = new Map();
+const registrationFailures = new Map();
 function authIsConfigured() {
-  return !!(AUTH_USERNAME && AUTH_PASSWORD && SESSION_SECRET);
+  return !!(SESSION_SECRET && ((PANEL_USERNAME && PANEL_PASSWORD) || organizerAccounts.some(a => a.active)));
 }
+function panelIsConfigured() { return !!(PANEL_USERNAME && PANEL_PASSWORD && SESSION_SECRET); }
 function safeEqual(a, b) {
   const left = Buffer.from(String(a));
   const right = Buffer.from(String(b));
@@ -58,26 +67,46 @@ function getCookieValue(req, name) {
   }
   return '';
 }
-function isAuthenticated(req) {
-  if (!authIsConfigured()) return false;
+function accountById(id) {
+  return organizerAccounts.find(account => account && account.id === String(id || '') && account.active !== false) || null;
+}
+function accountByUsername(username) {
+  const normalized = String(username || '').trim().toLocaleLowerCase();
+  return organizerAccounts.find(account => account && String(account.username || '').trim().toLocaleLowerCase() === normalized) || null;
+}
+function getAuthSession(req) {
+  if (!SESSION_SECRET) return null;
   const token = getCookieValue(req, AUTH_COOKIE);
-  if (!token) return false;
+  if (!token) return null;
   const parts = token.split('.');
-  if (parts.length !== 2) return false;
+  if (parts.length !== 2) return null;
   const [encodedPayload, suppliedSignature] = parts;
   const expectedSignature = signSessionPayload(encodedPayload);
-  if (!safeEqual(suppliedSignature, expectedSignature)) return false;
+  if (!safeEqual(suppliedSignature, expectedSignature)) return null;
   try {
     const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
-    return payload && payload.u === AUTH_USERNAME && Number(payload.exp) > Date.now();
-  } catch (_) {
-    return false;
-  }
+    if (!payload || Number(payload.exp) <= Date.now()) return null;
+    if (payload.role === 'panel') {
+      if (panelIsConfigured() && payload.u === PANEL_USERNAME) return {role:'panel', username:PANEL_USERNAME, organizerId:null, exp:Number(payload.exp)};
+      return null;
+    }
+    const account = payload.role === 'organizer' && payload.id ? accountById(payload.id) : (payload.role ? null : accountByUsername(payload.u));
+    // A token from the previous single-organizer build remains valid until it expires,
+    // provided the matching legacy account still exists and is active.
+    if (account && String(payload.u || '').toLocaleLowerCase() === String(account.username).toLocaleLowerCase()) {
+      return {role:'organizer', username:account.username, organizerId:account.id, exp:Number(payload.exp)};
+    }
+    return null;
+  } catch (_) { return null; }
 }
-function makeSessionToken() {
+function isAuthenticated(req) { return getAuthSession(req)?.role === 'organizer'; }
+function isPanelAuthenticated(req) { return getAuthSession(req)?.role === 'panel'; }
+function makeSessionToken(username, role = 'organizer', organizerId = null) {
   const now = Date.now();
   const payload = Buffer.from(JSON.stringify({
-    u: AUTH_USERNAME,
+    u: username,
+    role,
+    ...(organizerId ? {id:organizerId} : {}),
     iat: now,
     exp: now + SESSION_MAX_AGE_SECONDS * 1000,
     nonce: crypto.randomBytes(16).toString('hex')
@@ -93,12 +122,12 @@ function loginClientKey(req) {
   const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   return forwarded || req.socket?.remoteAddress || 'unknown';
 }
-function getLoginFailureRecord(key) {
+function getLoginFailureRecord(key, table = loginFailures) {
   const now = Date.now();
-  let record = loginFailures.get(key);
+  let record = table.get(key);
   if (!record || now - record.firstAt > LOGIN_WINDOW_MS) {
     record = {count:0, firstAt:now};
-    loginFailures.set(key, record);
+    table.set(key, record);
   }
   return record;
 }
@@ -106,7 +135,54 @@ function setRedirect(res, location) {
   res.writeHead(302, {'Location':location,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
   res.end();
 }
-
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derived = crypto.scryptSync(String(password), salt, 64).toString('hex');
+  return `scrypt$${salt}$${derived}`;
+}
+function verifyPassword(password, storedHash) {
+  const [scheme, salt, expectedHex] = String(storedHash || '').split('$');
+  if (scheme !== 'scrypt' || !salt || !expectedHex) return false;
+  try {
+    const expected = Buffer.from(expectedHex, 'hex');
+    const actual = crypto.scryptSync(String(password), salt, expected.length);
+    return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+  } catch (_) { return false; }
+}
+function organizerPublicRecord(account) {
+  return {id:account.id,username:account.username,displayName:account.displayName || account.username,active:account.active !== false,createdAt:account.createdAt || null,lastLoginAt:account.lastLoginAt || null,createdBy:account.createdBy || 'registration'};
+}
+function makeOrganizerRecord(username, password, displayName, createdBy = 'registration') {
+  const now = new Date().toISOString();
+  return {id:crypto.randomUUID(),username,displayName:displayName || username,passwordHash:hashPassword(password),active:true,createdAt:now,lastLoginAt:null,createdBy};
+}
+function getDefaultOrganizer() {
+  return organizerAccounts.find(account => account && account.active !== false) || null;
+}
+function resolveOrganizerId(req, url, body = null, allowDefault = false) {
+  const auth = getAuthSession(req);
+  if (auth?.role === 'organizer') return auth.organizerId;
+  const requested = String(url?.searchParams?.get('organizer') || body?.organizerId || '').trim();
+  if (requested) return accountById(requested)?.id || null;
+  if (allowDefault) return getDefaultOrganizer()?.id || null;
+  return null;
+}
+function defaultAppEntry() { return {revision:0,updatedAt:null,clientId:null,state:null}; }
+function getOrganizerAppEntry(id) { return id ? (organizerAppStates.get(id) || defaultAppEntry()) : {revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState}; }
+function getOrganizerLiveState(id) { return id ? (organizerLiveStates.get(id) || null) : latestState; }
+function organizerDataPath(prefix, id) { return path.join(DATA_DIR, `${prefix}-${String(id).replace(/[^a-zA-Z0-9_-]/g, '')}.json`); }
+async function saveOrganizerAppState(id, entry) {
+  organizerAppStates.set(id, entry);
+  await saveStoredBatch([{key:`app-state:${id}`,filePath:organizerDataPath('app-state',id),value:entry}]);
+}
+async function saveOrganizerLiveState(id, snapshot) {
+  organizerLiveStates.set(id, snapshot);
+  await saveStoredBatch([{key:`live-state:${id}`,filePath:organizerDataPath('live-state',id),value:snapshot}]);
+}
+async function deleteStoredKey(key, filePath) {
+  if (dbPool) await dbPool.query('DELETE FROM pickle_point_storage WHERE storage_key = $1', [key]);
+  else { try { await fs.promises.unlink(filePath); } catch (_) {} }
+}
 // Use PostgreSQL when DATABASE_URL is configured (Render), while keeping the
 // original JSON-file storage for local development and offline testing.
 async function initializeStorage() {
@@ -211,29 +287,35 @@ function normalizeTimestamp(value) {
   }
   return null;
 }
-function broadcast() {
-  if (!latestState) return;
-  const packet = `event: live-state\ndata: ${JSON.stringify(latestState)}\n\n`;
-  for (const res of subscribers) { try { res.write(packet); } catch (_) { subscribers.delete(res); } }
+function broadcast(snapshot = latestState, organizerId = null) {
+  if (!snapshot) return;
+  const packet = `event: live-state\ndata: ${JSON.stringify(snapshot)}\n\n`;
+  for (const res of subscribers) {
+    if ((liveSubscriberScopes.get(res) || null) !== (organizerId || null)) continue;
+    try { res.write(packet); } catch (_) { subscribers.delete(res); liveSubscriberScopes.delete(res); }
+  }
 }
-function broadcastNamedEvent(eventName, payload) {
+function broadcastNamedEvent(eventName, payload, organizerId = null) {
   const packet = `event: ${eventName}\ndata: ${JSON.stringify(payload)}\n\n`;
-  for (const res of sharedSubscribers) { try { res.write(packet); } catch (_) { sharedSubscribers.delete(res); } }
+  for (const res of sharedSubscribers) {
+    if (eventName === 'app-state' && (sharedSubscriberScopes.get(res) || null) !== (organizerId || null)) continue;
+    try { res.write(packet); } catch (_) { sharedSubscribers.delete(res); sharedSubscriberScopes.delete(res); }
+  }
 }
 function broadcastTheme() {
   const packet = `event: live-theme\ndata: ${liveTheme}\n\n`;
-  for (const res of subscribers) { try { res.write(packet); } catch (_) { subscribers.delete(res); } }
+  for (const res of subscribers) { try { res.write(packet); } catch (_) { subscribers.delete(res); liveSubscriberScopes.delete(res); } }
 }
 async function persistState(snapshot) {
   latestState = snapshot;
   await saveStoredBatch([{key:'live-state', filePath:DATA_FILE, value:snapshot}]);
-  broadcast();
+  broadcast(snapshot, null);
 }
 
 // Project the authoritative shared queue into the public Live View snapshot.
 // This means phone registrations appear immediately even when the organizer tab
 // is temporarily asleep or the live queue client has not yet consumed its event.
-function buildLiveQueueSnapshot(appState, updatedAt = new Date().toISOString()) {
+function buildLiveQueueSnapshot(appState, updatedAt = new Date().toISOString(), previousState = latestState) {
   const players = Array.isArray(appState?.players) ? appState.players : [];
   const left = Array.isArray(appState?.left) ? appState.left : [];
   const roster = [...players, ...left];
@@ -257,7 +339,7 @@ function buildLiveQueueSnapshot(appState, updatedAt = new Date().toISOString()) 
     };
   }).filter(Boolean);
 
-  const previous = latestState && typeof latestState === 'object' ? latestState : {};
+  const previous = previousState && typeof previousState === 'object' ? previousState : {};
   return {
     ...previous,
     sessionName: String(appState?.sessionName || previous.sessionName || 'Open Play'),
@@ -295,11 +377,21 @@ async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
   if (url.pathname === '/api/auth-status' && req.method === 'GET') {
-    return sendJson(res, 200, {ok:true, configured:authIsConfigured(), authenticated:isAuthenticated(req)});
+    const auth = getAuthSession(req);
+    return sendJson(res, 200, {
+      ok:true,
+      configured:authIsConfigured(),
+      panelConfigured:panelIsConfigured(),
+      authenticated:!!auth,
+      role:auth?.role || null,
+      username:auth?.username || null,
+      organizerId:auth?.organizerId || null
+    });
   }
+
   if (url.pathname === '/api/login' && req.method === 'POST') {
-    if (!authIsConfigured()) {
-      return sendJson(res, 503, {ok:false,error:'Organizer login is not configured. Set ORGANIZER_USERNAME, ORGANIZER_PASSWORD, and SESSION_SECRET in Render.'});
+    if (!SESSION_SECRET || (!panelIsConfigured() && !organizerAccounts.some(account => account.active !== false))) {
+      return sendJson(res, 503, {ok:false,error:'Login is not configured yet. Configure PANEL_USERNAME, PANEL_PASSWORD, SESSION_SECRET, or register an organizer after setup.'});
     }
     const key = loginClientKey(req);
     const failureRecord = getLoginFailureRecord(key);
@@ -310,23 +402,125 @@ async function handle(req, res) {
       const body = await readBody(req, 16 * 1024);
       const username = String(body?.username || '').trim();
       const password = String(body?.password || '');
-      const valid = safeEqual(username, AUTH_USERNAME) && safeEqual(password, AUTH_PASSWORD);
-      if (!valid) {
+      let role = null;
+      let account = null;
+      if (panelIsConfigured() && safeEqual(username, PANEL_USERNAME) && safeEqual(password, PANEL_PASSWORD)) {
+        role = 'panel';
+      } else {
+        account = accountByUsername(username);
+        if (account && account.active !== false && verifyPassword(password, account.passwordHash)) role = 'organizer';
+      }
+      if (!role) {
         failureRecord.count += 1;
-        return sendJson(res, 401, {ok:false,error:'Incorrect organizer username or password.'});
+        return sendJson(res, 401, {ok:false,error:'Incorrect username or password, or this account is inactive.'});
       }
       loginFailures.delete(key);
+      if (role === 'organizer') {
+        account.lastLoginAt = new Date().toISOString();
+        await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
+      }
+      const authUsername = role === 'panel' ? PANEL_USERNAME : account.username;
+      const authId = role === 'organizer' ? account.id : null;
       res.writeHead(200, {
         'Content-Type':'application/json; charset=utf-8',
         'Cache-Control':'no-store',
-        'Set-Cookie':`${AUTH_COOKIE}=${makeSessionToken()}; ${cookieOptions(req, SESSION_MAX_AGE_SECONDS)}`,
+        'Set-Cookie':`${AUTH_COOKIE}=${makeSessionToken(authUsername,role,authId)}; ${cookieOptions(req, SESSION_MAX_AGE_SECONDS)}`,
         'X-Content-Type-Options':'nosniff'
       });
-      return res.end(JSON.stringify({ok:true,username:AUTH_USERNAME,expiresIn:SESSION_MAX_AGE_SECONDS}));
+      return res.end(JSON.stringify({ok:true,role,username:authUsername,organizerId:authId,expiresIn:SESSION_MAX_AGE_SECONDS}));
     } catch (err) {
       return sendJson(res, err.statusCode || 400, {ok:false,error:err.statusCode === 413 ? 'Payload too large' : 'Invalid login request.'});
     }
   }
+
+  if (url.pathname === '/api/register-organizer' && req.method === 'POST') {
+    if (!SESSION_SECRET) return sendJson(res, 503, {ok:false,error:'Organizer registration is not configured. Set SESSION_SECRET on the server and redeploy.'});
+    const key = loginClientKey(req);
+    const record = getLoginFailureRecord(key, registrationFailures);
+    if (record.count >= 5 && Date.now() - record.firstAt <= LOGIN_WINDOW_MS) return sendJson(res, 429, {ok:false,error:'Too many registration attempts. Please try again later.'});
+    record.count += 1;
+    try {
+      const body = await readBody(req, 16 * 1024);
+      const username = String(body?.username || '').trim();
+      const displayName = String(body?.displayName || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+      const password = String(body?.password || '');
+      if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{2,39}$/.test(username)) return sendJson(res, 400, {ok:false,error:'Username must be 3–40 characters and use letters, numbers, dot, underscore, or hyphen.'});
+      if (password.length < 8 || password.length > 200) return sendJson(res, 400, {ok:false,error:'Password must be at least 8 characters long.'});
+      if (!displayName) return sendJson(res, 400, {ok:false,error:'Enter the organizer or venue name.'});
+      if (username.toLocaleLowerCase() === PANEL_USERNAME.toLocaleLowerCase() || (AUTH_USERNAME && username.toLocaleLowerCase() === AUTH_USERNAME.toLocaleLowerCase()) || accountByUsername(username)) {
+        return sendJson(res, 409, {ok:false,error:'That username is already in use.'});
+      }
+      const account = makeOrganizerRecord(username,password,displayName,'self-registration');
+      organizerAccounts.push(account);
+      await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
+      res.writeHead(201, {
+        'Content-Type':'application/json; charset=utf-8',
+        'Cache-Control':'no-store',
+        'Set-Cookie':`${AUTH_COOKIE}=${makeSessionToken(account.username,'organizer',account.id)}; ${cookieOptions(req, SESSION_MAX_AGE_SECONDS)}`,
+        'X-Content-Type-Options':'nosniff'
+      });
+      return res.end(JSON.stringify({ok:true,role:'organizer',username:account.username,organizerId:account.id,organizer:organizerPublicRecord(account)}));
+    } catch (err) {
+      return sendJson(res, err.statusCode || 400, {ok:false,error:err.statusCode === 413 ? 'Payload too large' : 'Unable to register this organizer.'});
+    }
+  }
+
+  if (url.pathname === '/api/panel/organizers' && req.method === 'GET') {
+    if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
+    return sendJson(res, 200, {ok:true,organizers:organizerAccounts.map(organizerPublicRecord)});
+  }
+  if (url.pathname === '/api/panel/organizers' && req.method === 'POST') {
+    if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
+    try {
+      const body = await readBody(req, 16 * 1024);
+      const username = String(body?.username || '').trim();
+      const displayName = String(body?.displayName || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+      const password = String(body?.password || '');
+      if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{2,39}$/.test(username)) return sendJson(res, 400, {ok:false,error:'Username must be 3–40 characters and use letters, numbers, dot, underscore, or hyphen.'});
+      if (password.length < 8 || password.length > 200) return sendJson(res, 400, {ok:false,error:'Password must be at least 8 characters long.'});
+      if (!displayName) return sendJson(res, 400, {ok:false,error:'Enter an organizer or venue name.'});
+      if (username.toLocaleLowerCase() === PANEL_USERNAME.toLocaleLowerCase() || accountByUsername(username)) return sendJson(res, 409, {ok:false,error:'That username is already in use.'});
+      const account = makeOrganizerRecord(username,password,displayName,'panel');
+      organizerAccounts.push(account);
+      await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
+      return sendJson(res, 201, {ok:true,organizer:organizerPublicRecord(account)});
+    } catch (err) { return sendJson(res, err.statusCode || 400, {ok:false,error:err.statusCode === 413 ? 'Payload too large' : 'Unable to create organizer account.'}); }
+  }
+  const organizerAdminMatch = url.pathname.match(/^\/api\/panel\/organizers\/([a-f0-9-]{20,})$/i);
+  if (organizerAdminMatch && req.method === 'PATCH') {
+    if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
+    try {
+      const body = await readBody(req, 16 * 1024);
+      const account = organizerAccounts.find(item => item.id === organizerAdminMatch[1]);
+      if (!account) return sendJson(res, 404, {ok:false,error:'Organizer account not found.'});
+      if (body.displayName !== undefined) {
+        const displayName = String(body.displayName || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+        if (!displayName) return sendJson(res, 400, {ok:false,error:'Display name cannot be blank.'});
+        account.displayName = displayName;
+      }
+      if (body.active !== undefined) account.active = !!body.active;
+      if (body.password !== undefined && String(body.password)) {
+        const password = String(body.password);
+        if (password.length < 8 || password.length > 200) return sendJson(res, 400, {ok:false,error:'New password must be at least 8 characters long.'});
+        account.passwordHash = hashPassword(password);
+      }
+      await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
+      return sendJson(res, 200, {ok:true,organizer:organizerPublicRecord(account)});
+    } catch (err) { return sendJson(res, err.statusCode || 400, {ok:false,error:err.statusCode === 413 ? 'Payload too large' : 'Unable to update organizer account.'}); }
+  }
+  if (organizerAdminMatch && req.method === 'DELETE') {
+    if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
+    const index = organizerAccounts.findIndex(item => item.id === organizerAdminMatch[1]);
+    if (index < 0) return sendJson(res, 404, {ok:false,error:'Organizer account not found.'});
+    const [account] = organizerAccounts.splice(index,1);
+    await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
+    organizerAppStates.delete(account.id);
+    organizerLiveStates.delete(account.id);
+    await deleteStoredKey(`app-state:${account.id}`,organizerDataPath('app-state',account.id));
+    await deleteStoredKey(`live-state:${account.id}`,organizerDataPath('live-state',account.id));
+    return sendJson(res, 200, {ok:true,deletedId:account.id});
+  }
+
   if (url.pathname === '/api/logout' && req.method === 'POST') {
     res.writeHead(200, {
       'Content-Type':'application/json; charset=utf-8',
@@ -374,12 +568,23 @@ async function handle(req, res) {
   });
   if (url.pathname === '/api/live-theme' && req.method === 'GET') return sendJson(res, 200, {ok:true,theme:liveTheme});
 
-  // Shared application state powers the Existing Live Queue across devices.
+  // The app state is scoped to the signed-in organizer. Public registration and
+  // public Live View may read a specific organizer using its shared organizer id.
   if (url.pathname === '/api/app-state' && req.method === 'GET') {
-    return sendJson(res, 200, {ok:true, revision:sharedAppRevision, state:sharedAppState, updatedAt:sharedAppUpdatedAt});
+    const requestedScope = String(url.searchParams.get('organizer') || '').trim();
+    const organizerId = resolveOrganizerId(req,url,null,true);
+    if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
+    if (organizerId) {
+      const entry = getOrganizerAppEntry(organizerId);
+      return sendJson(res, 200, {ok:true,revision:entry.revision,state:entry.state,updatedAt:entry.updatedAt,organizerId});
+    }
+    return sendJson(res, 200, {ok:true,revision:sharedAppRevision,state:sharedAppState,updatedAt:sharedAppUpdatedAt});
   }
   if (url.pathname === '/api/app-state' && req.method === 'POST') {
     try {
+      const auth = getAuthSession(req);
+      if (auth?.role !== 'organizer') return sendJson(res, 401, {ok:false,error:'Organizer login required.'});
+      const organizerId = auth.organizerId;
       const body = await readBody(req, 8 * 1024 * 1024);
       const incoming = body && body.state;
       if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming) ||
@@ -387,23 +592,22 @@ async function handle(req, res) {
           !Array.isArray(incoming.queue) || !Array.isArray(incoming.courts) || !Array.isArray(incoming.logs)) {
         return sendJson(res, 400, {ok:false,error:'Invalid shared application state'});
       }
-      if (body.onlyIfEmpty && sharedAppState) {
-        return sendJson(res, 200, {ok:true,accepted:false,unchanged:true,revision:sharedAppRevision,state:sharedAppState,updatedAt:sharedAppUpdatedAt});
+      const currentEntry = getOrganizerAppEntry(organizerId);
+      if (body.onlyIfEmpty && currentEntry.state) {
+        return sendJson(res, 200, {ok:true,accepted:false,unchanged:true,revision:currentEntry.revision,state:currentEntry.state,updatedAt:currentEntry.updatedAt});
       }
-      if (!body.onlyIfEmpty && Number.isFinite(Number(body.baseRevision)) && Number(body.baseRevision) !== sharedAppRevision) {
-        return sendJson(res, 409, {ok:false,conflict:true,error:'Queue state changed on another device',revision:sharedAppRevision,state:sharedAppState,updatedAt:sharedAppUpdatedAt});
+      if (!body.onlyIfEmpty && Number.isFinite(Number(body.baseRevision)) && Number(body.baseRevision) !== currentEntry.revision) {
+        return sendJson(res, 409, {ok:false,conflict:true,error:'Queue state changed on another device',revision:currentEntry.revision,state:currentEntry.state,updatedAt:currentEntry.updatedAt});
       }
       const snapshot = JSON.parse(JSON.stringify(incoming));
-      if (JSON.stringify(sharedAppState) !== JSON.stringify(snapshot)) {
-        sharedAppState = snapshot;
-        sharedAppRevision += 1;
-        sharedAppUpdatedAt = new Date().toISOString();
-        sharedAppClientId = String(body.clientId || '').slice(0,100) || null;
-        await saveStoredBatch([{key:'app-state', filePath:APP_STATE_FILE, value:{revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState}}]);
-        broadcastNamedEvent('app-state', {revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState});
+      let entry = currentEntry;
+      if (JSON.stringify(currentEntry.state) !== JSON.stringify(snapshot)) {
+        entry = {revision:currentEntry.revision+1,updatedAt:new Date().toISOString(),clientId:String(body.clientId||'').slice(0,100)||null,state:snapshot};
+        await saveOrganizerAppState(organizerId,entry);
+        broadcastNamedEvent('app-state',{revision:entry.revision,updatedAt:entry.updatedAt,clientId:entry.clientId,state:entry.state,organizerId},organizerId);
       }
-      return sendJson(res, 200, {ok:true,accepted:true,revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,unchanged:JSON.stringify(sharedAppState)===JSON.stringify(snapshot)});
-    } catch (err) { return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to save shared application state'}); }
+      return sendJson(res, 200, {ok:true,accepted:true,revision:entry.revision,updatedAt:entry.updatedAt,unchanged:JSON.stringify(entry.state)===JSON.stringify(snapshot)});
+    } catch (err) { return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to save organizer queue state'}); }
   }
 
   // Registered Player Cloud is stored on the server, not in each browser only.
@@ -436,8 +640,8 @@ async function handle(req, res) {
       return sendJson(res, 200, {ok:true,accepted:true,revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,unchanged:JSON.stringify(sharedCloudRecords)===JSON.stringify(records)});
     } catch (err) { return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to save Registered Player Cloud records'}); }
   }
-  // Register a player and update both shared data stores as one operation.
-  // The server-side duplicate check protects against submissions from multiple phones.
+  // Register a player into one organizer's queue, while keeping the Registered
+  // Player Cloud global so every organizer sees the same player library.
   if (url.pathname === '/api/register-player' && req.method === 'POST') {
     try {
       const body = await readBody(req, 16 * 1024);
@@ -449,15 +653,19 @@ async function handle(req, res) {
       if (!['Male','Female'].includes(gender)) return sendJson(res, 400, {ok:false,error:'Please select Male or Female.'});
       if (!['BEG','NOV','INT','ADV','EXP'].includes(category)) return sendJson(res, 400, {ok:false,error:'Please select a skill level.'});
 
+      const requestedScope = String(url.searchParams.get('organizer') || body?.organizerId || '').trim();
+      const organizerId = resolveOrganizerId(req,url,body,true);
+      if (requestedScope && !organizerId) return sendJson(res, 400, {ok:false,error:'Organizer link is invalid or inactive. Ask the organizer for an updated registration link.'});
       const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
       const duplicate = (Array.isArray(currentRecords.players) ? currentRecords.players : []).find(p => normalizePlayerName(p?.name) === normalizePlayerName(name));
-      if (duplicate) return sendJson(res, 409, {ok:false,duplicate:true,error:'This user is already registered',player:{name:duplicate.name}});
+      if (duplicate) return sendJson(res, 409, {ok:false,duplicate:true,error:'This user is already registered in Registered Player Cloud',player:{name:duplicate.name}});
 
       const records = JSON.parse(JSON.stringify(currentRecords));
       records.players = Array.isArray(records.players) ? records.players : [];
       records.logs = Array.isArray(records.logs) ? records.logs : [];
       records.sessions = Array.isArray(records.sessions) ? records.sessions : [];
-      const appState = JSON.parse(JSON.stringify(sharedAppState || createDefaultSharedAppState()));
+      const entry = organizerId ? getOrganizerAppEntry(organizerId) : getOrganizerAppEntry(null);
+      const appState = JSON.parse(JSON.stringify(entry.state || createDefaultSharedAppState()));
       appState.players = Array.isArray(appState.players) ? appState.players : [];
       appState.left = Array.isArray(appState.left) ? appState.left : [];
       appState.queue = Array.isArray(appState.queue) ? appState.queue : [];
@@ -493,26 +701,34 @@ async function handle(req, res) {
       records.players.push(cloudPlayer);
 
       const updatedAt = new Date().toISOString();
-      sharedAppState = appState;
-      sharedAppRevision += 1;
-      sharedAppUpdatedAt = updatedAt;
-      sharedAppClientId = 'registration-page';
+      if (organizerId) {
+        const nextEntry = {revision:(Number(entry.revision)||0)+1,updatedAt,clientId:'registration-page',state:appState};
+        await saveOrganizerAppState(organizerId,nextEntry);
+        broadcastNamedEvent('app-state',{revision:nextEntry.revision,updatedAt,clientId:'registration-page',state:appState,organizerId},organizerId);
+      } else {
+        sharedAppState = appState;
+        sharedAppRevision += 1;
+        sharedAppUpdatedAt = updatedAt;
+        sharedAppClientId = 'registration-page';
+      }
       sharedCloudRecords = records;
       sharedCloudRevision += 1;
       sharedCloudUpdatedAt = updatedAt;
       sharedCloudClientId = 'registration-page';
-
-      const liveSnapshot = buildLiveQueueSnapshot(sharedAppState, updatedAt);
-      await saveStoredBatch([
-        {key:'app-state', filePath:APP_STATE_FILE, value:{revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState}},
-        {key:'cloud-records', filePath:CLOUD_RECORDS_FILE, value:{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords}},
-        {key:'live-state', filePath:DATA_FILE, value:liveSnapshot}
-      ]);
-      latestState = liveSnapshot;
-      broadcast();
-      broadcastNamedEvent('app-state', {revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState});
-      broadcastNamedEvent('cloud-records', {revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
-      return sendJson(res, 200, {ok:true,player:cloudPlayer,queued:!playingOnCourt,queueCount:sharedAppState.queue.length,cloudCount:sharedCloudRecords.players.length,appRevision:sharedAppRevision,cloudRevision:sharedCloudRevision,liveViewUpdated:true});
+      const liveSnapshot = buildLiveQueueSnapshot(appState, updatedAt, getOrganizerLiveState(organizerId));
+      if (organizerId) {
+        await saveOrganizerLiveState(organizerId,liveSnapshot);
+        broadcast(liveSnapshot,organizerId);
+      } else {
+        latestState = liveSnapshot;
+        await saveStoredBatch([{key:'app-state',filePath:APP_STATE_FILE,value:{revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState}}]);
+        await saveStoredBatch([{key:'live-state',filePath:DATA_FILE,value:liveSnapshot}]);
+        broadcast(liveSnapshot,null);
+        broadcastNamedEvent('app-state',{revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState},null);
+      }
+      await saveStoredBatch([{key:'cloud-records',filePath:CLOUD_RECORDS_FILE,value:{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords}}]);
+      broadcastNamedEvent('cloud-records',{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
+      return sendJson(res, 200, {ok:true,player:cloudPlayer,queued:!playingOnCourt,queueCount:appState.queue.length,cloudCount:sharedCloudRecords.players.length,appRevision:organizerId?getOrganizerAppEntry(organizerId).revision:sharedAppRevision,cloudRevision:sharedCloudRevision,liveViewUpdated:true,organizerId});
     } catch (err) {
       return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to register player'});
     }
@@ -528,9 +744,17 @@ async function handle(req, res) {
       return sendJson(res, 200, {ok:true,theme:liveTheme});
     } catch (err) { return sendJson(res, 500, {ok:false,error:'Unable to save Live View theme'}); }
   }
-  if (url.pathname === '/api/live-state' && req.method === 'GET') return sendJson(res, 200, {ok:true,state:latestState});
+  if (url.pathname === '/api/live-state' && req.method === 'GET') {
+    const requestedScope = String(url.searchParams.get('organizer') || '').trim();
+    const organizerId = resolveOrganizerId(req,url,null,true);
+    if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
+    return sendJson(res, 200, {ok:true,state:getOrganizerLiveState(organizerId),organizerId});
+  }
   if (url.pathname === '/api/live-state' && req.method === 'POST') {
     try {
+      const auth = getAuthSession(req);
+      if (auth?.role !== 'organizer') return sendJson(res, 401, {ok:false,error:'Organizer login required.'});
+      const organizerId = auth.organizerId;
       const body = await readBody(req);
       if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.sessionName !== 'string') return sendJson(res, 400, {ok:false,error:'Invalid live view state'});
       // Only public display fields should be submitted by the browser publisher.
@@ -578,45 +802,60 @@ async function handle(req, res) {
       snapshot.courtCount = regularCourts.length;
       snapshot.waitingCourtCount = snapshot.courts.filter(c => c.waitingOnly).length;
 
-      // A lightweight publisher heartbeat keeps hosted free-tier services awake.
-      // Avoid disk writes and viewer broadcasts when only updatedAt has changed.
-      if (latestState) {
-        const previousComparable = {...latestState};
+      // Heartbeats and the public Live View snapshot are isolated per organizer.
+      const previousState = getOrganizerLiveState(organizerId);
+      if (previousState) {
+        const previousComparable = {...previousState};
         const nextComparable = {...snapshot};
         delete previousComparable.updatedAt;
         delete nextComparable.updatedAt;
         if (JSON.stringify(previousComparable) === JSON.stringify(nextComparable)) {
-          latestState.updatedAt = snapshot.updatedAt;
+          snapshot.updatedAt = snapshot.updatedAt || new Date().toISOString();
+          if (organizerId) organizerLiveStates.set(organizerId,snapshot);
+          else latestState = snapshot;
           return sendJson(res, 200, {ok:true,updatedAt:snapshot.updatedAt,unchanged:true});
         }
       }
-      await persistState(snapshot);
-      return sendJson(res, 200, {ok:true,updatedAt:snapshot.updatedAt});
+      if (organizerId) {
+        await saveOrganizerLiveState(organizerId,snapshot);
+        broadcast(snapshot,organizerId);
+      } else {
+        await persistState(snapshot);
+      }
+      return sendJson(res, 200, {ok:true,updatedAt:snapshot.updatedAt,organizerId});
     } catch (err) { return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to save live state'}); }
   }
   if (url.pathname === '/api/shared-events' && req.method === 'GET') {
+    const requestedScope = String(url.searchParams.get('organizer') || '').trim();
+    const organizerId = resolveOrganizerId(req,url,null,true);
+    if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     res.writeHead(200, {'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
     res.write('retry: 2000\n\n');
-    if (sharedAppState) res.write(`event: app-state\ndata: ${JSON.stringify({revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState})}\n\n`);
+    const appEntry = organizerId ? getOrganizerAppEntry(organizerId) : getOrganizerAppEntry(null);
+    if (appEntry.state) res.write(`event: app-state\ndata: ${JSON.stringify({...appEntry,organizerId})}\n\n`);
     if (sharedCloudRecords) res.write(`event: cloud-records\ndata: ${JSON.stringify({revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords})}\n\n`);
     sharedSubscribers.add(res);
+    sharedSubscriberScopes.set(res,organizerId || null);
     const heartbeat = setInterval(()=>{try{res.write(': keep-alive\n\n');}catch(_){cleanup();}},20000);
-    const cleanup = () => { clearInterval(heartbeat); sharedSubscribers.delete(res); };
+    const cleanup = () => { clearInterval(heartbeat); sharedSubscribers.delete(res); sharedSubscriberScopes.delete(res); };
     res.on('close', cleanup);
     res.on('error', cleanup);
     req.on('aborted', cleanup);
     return;
   }
   if (url.pathname === '/api/live-events' && req.method === 'GET') {
+    const requestedScope = String(url.searchParams.get('organizer') || '').trim();
+    const organizerId = resolveOrganizerId(req,url,null,true);
+    if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     res.writeHead(200, {'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
     res.write('retry: 2000\n\n');
-    if (latestState) res.write(`event: live-state\ndata: ${JSON.stringify(latestState)}\n\n`);
+    const scopedState = getOrganizerLiveState(organizerId);
+    if (scopedState) res.write(`event: live-state\ndata: ${JSON.stringify(scopedState)}\n\n`);
     res.write(`event: live-theme\ndata: ${liveTheme}\n\n`);
     subscribers.add(res);
+    liveSubscriberScopes.set(res,organizerId || null);
     const heartbeat = setInterval(()=>{try{res.write(': keep-alive\n\n');}catch(_){cleanup();}},20000);
-    const cleanup = () => { clearInterval(heartbeat); subscribers.delete(res); };
-    // Track the response/socket lifetime for SSE clients. The incoming request
-    // itself can finish before the long-lived event stream has ended.
+    const cleanup = () => { clearInterval(heartbeat); subscribers.delete(res); liveSubscriberScopes.delete(res); };
     res.on('close', cleanup);
     res.on('error', cleanup);
     req.on('aborted', cleanup);
@@ -628,8 +867,14 @@ async function handle(req, res) {
   if (pathname === '/') pathname = '/index.html';
   const name = path.basename(pathname);
   if (!allowedFiles.has(name) || pathname.includes('..')) return sendJson(res,404,{ok:false,error:'Not found'});
-  if (name === 'index.html' && isAuthenticated(req)) return setRedirect(res, '/session.html');
-  if ((name === 'session.html' || name === 'queueing.html') && !isAuthenticated(req)) {
+  const auth = getAuthSession(req);
+  if (name === 'index.html' && auth?.role === 'organizer') return setRedirect(res, '/session.html');
+  if (name === 'index.html' && auth?.role === 'panel') return setRedirect(res, '/panel.html');
+  if (name === 'panel.html' && !isPanelAuthenticated(req)) {
+    if (auth?.role === 'organizer') return setRedirect(res, '/session.html');
+    return setRedirect(res, '/index.html');
+  }
+  if ((name === 'session.html' || name === 'queueing.html') && auth?.role !== 'organizer') {
     const next = `${name}${url.search || ''}`;
     return setRedirect(res, `/index.html?next=${encodeURIComponent(next)}`);
   }
@@ -639,7 +884,7 @@ async function handle(req, res) {
     if (!stat.isFile()) return sendJson(res,404,{ok:false,error:'Not found'});
     const extension=path.extname(filePath).toLowerCase();
     const mutableAsset=['.html','.js','.css'].includes(extension);
-    const noStorePage = ['index.html','session.html','queueing.html'].includes(name);
+    const noStorePage = ['index.html','panel.html','session.html','queueing.html'].includes(name);
     const cacheControl = noStorePage ? 'private, no-store, max-age=0' : (mutableAsset ? 'no-cache, must-revalidate' : 'public, max-age=300');
     res.writeHead(200, {'Content-Type':MIME[extension]||'application/octet-stream','Content-Length':stat.size,'Cache-Control':cacheControl,'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});
     if(req.method==='HEAD')return res.end();
@@ -650,9 +895,20 @@ async function handle(req, res) {
 (async()=>{
   try {
     await initializeStorage();
+
+    const savedAccounts = await loadStored('organizer-accounts', ORGANIZERS_FILE);
+    organizerAccounts = Array.isArray(savedAccounts) ? savedAccounts.filter(account => account && typeof account === 'object' && account.id && account.username && account.passwordHash) : [];
+    let accountsChanged = !Array.isArray(savedAccounts);
+    if (AUTH_USERNAME && AUTH_PASSWORD && !accountByUsername(AUTH_USERNAME)) {
+      organizerAccounts.push(makeOrganizerRecord(AUTH_USERNAME,AUTH_PASSWORD,AUTH_USERNAME,'legacy-environment'));
+      accountsChanged = true;
+    }
+    if (accountsChanged) await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
+
     latestState = await loadStored('live-state', DATA_FILE);
     const savedTheme = await loadStored('live-theme', THEME_FILE);
     if (savedTheme && (savedTheme.theme === 'light' || savedTheme.theme === 'night')) liveTheme = savedTheme.theme;
+
     const savedApp = await loadStored('app-state', APP_STATE_FILE);
     if (savedApp && savedApp.state && typeof savedApp.state === 'object') {
       sharedAppState = savedApp.state;
@@ -662,6 +918,24 @@ async function handle(req, res) {
       sharedAppUpdatedAt = savedApp.updatedAt || null;
       sharedAppClientId = savedApp.clientId || null;
     }
+
+    for (const account of organizerAccounts) {
+      const orgApp = await loadStored(`app-state:${account.id}`,organizerDataPath('app-state',account.id));
+      if (orgApp && typeof orgApp === 'object' && orgApp.state && typeof orgApp.state === 'object') organizerAppStates.set(account.id,orgApp);
+      const orgLive = await loadStored(`live-state:${account.id}`,organizerDataPath('live-state',account.id));
+      if (orgLive && typeof orgLive === 'object') organizerLiveStates.set(account.id,orgLive);
+    }
+    const migrationTarget = (AUTH_USERNAME && accountByUsername(AUTH_USERNAME)) || getDefaultOrganizer();
+    if (migrationTarget && !organizerAppStates.has(migrationTarget.id) && savedApp?.state && typeof savedApp.state === 'object') {
+      const migrated = {revision:Math.max(0,Number(savedApp.revision)||1),updatedAt:savedApp.updatedAt||new Date().toISOString(),clientId:savedApp.clientId||'legacy-migration',state:savedApp.state};
+      organizerAppStates.set(migrationTarget.id,migrated);
+      await saveOrganizerAppState(migrationTarget.id,migrated);
+    }
+    if (migrationTarget && !organizerLiveStates.has(migrationTarget.id) && latestState && typeof latestState === 'object') {
+      organizerLiveStates.set(migrationTarget.id,latestState);
+      await saveOrganizerLiveState(migrationTarget.id,latestState);
+    }
+
     const savedCloud = await loadStored('cloud-records', CLOUD_RECORDS_FILE);
     if (savedCloud && savedCloud.records && typeof savedCloud.records === 'object') {
       sharedCloudRecords = savedCloud.records;

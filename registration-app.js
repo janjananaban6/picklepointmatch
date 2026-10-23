@@ -1,6 +1,13 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
+  const organizerScope = String(new URLSearchParams(window.location.search).get('organizer') || '').trim();
+  function scopedApiUrl(path, params = {}) {
+    const url = new URL(path, window.location.origin);
+    if (organizerScope) url.searchParams.set('organizer', organizerScope);
+    Object.entries(params).forEach(([key,value]) => url.searchParams.set(key, String(value)));
+    return url.pathname + url.search;
+  }
   const SKILLS = new Set(['BEG', 'NOV', 'INT', 'ADV', 'EXP']);
   let selectedGender = '';
   let selectedSkill = '';
@@ -40,7 +47,7 @@
 
     if (!eyebrowThemeEvents && typeof EventSource !== 'undefined' && ['http:', 'https:'].includes(location.protocol)) {
       try {
-        eyebrowThemeEvents = new EventSource('/api/live-events');
+        eyebrowThemeEvents = new EventSource(scopedApiUrl('/api/live-events'));
         eyebrowThemeEvents.addEventListener('live-theme', event => {
           applyRegistrationEyebrowTheme(String(event.data || '').trim());
         });
@@ -228,7 +235,7 @@
 
   async function loadCloudRecords() {
     try {
-      const appStateRequest = fetch(`/api/app-state?_=${Date.now()}`, {cache: 'no-store'})
+      const appStateRequest = fetch(scopedApiUrl('/api/app-state',{_:Date.now()}), {cache: 'no-store'})
         .then(response => response.ok ? response.json() : null)
         .catch(() => null);
       const response = await fetch(`/api/cloud-records?_=${Date.now()}`, {cache: 'no-store'});
@@ -255,7 +262,7 @@
   function bindCloudEvents() {
     if (cloudEvents || !('EventSource' in window)) return;
     try {
-      cloudEvents = new EventSource('/api/shared-events');
+      cloudEvents = new EventSource(scopedApiUrl('/api/shared-events'));
       cloudEvents.addEventListener('cloud-records', event => {
         try {
           const payload = JSON.parse(event.data);
@@ -331,7 +338,7 @@
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         cache: 'no-store',
-        body: JSON.stringify({name: fullname, nickname: $('registerNickname').value.trim(), gender: selectedGender, category: selectedSkill})
+        body: JSON.stringify({name: fullname, nickname: $('registerNickname').value.trim(), gender: selectedGender, category: selectedSkill, ...(organizerScope ? {organizerId:organizerScope} : {})})
       });
       const data = await response.json().catch(() => ({}));
       if (response.status === 409 && data.duplicate) {

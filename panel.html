@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f7fb">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Organizer Management — Pickle Point Match</title>
+  <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
+  <link rel="stylesheet" href="panel.css?v=organizer-panel-20261023-1">
+  <script src="panel.js?v=organizer-panel-20261023-1" defer></script>
+</head>
+<body class="panel-page">
+  <main class="panel-shell">
+    <header class="panel-topbar">
+      <div class="panel-brand">
+        <img src="pickleball-p-emblem.png" alt="">
+        <div><strong>PICKLE <span>POINT</span> MATCH</strong><small>ADMINISTRATOR PANEL</small></div>
+      </div>
+      <button type="button" id="panelLogout" class="logout-button">Log out <span aria-hidden="true">↗</span></button>
+    </header>
+
+    <section class="panel-intro">
+      <div>
+        <p class="eyebrow"><span></span> CONTROL CENTER</p>
+        <h1>Organizer accounts</h1>
+        <p class="intro-copy">Create and manage organizer access. Every organizer has a separate live queue, while the Registered Player Cloud remains shared across all accounts.</p>
+      </div>
+      <button class="primary-button intro-create" type="button" id="jumpToCreate"><span aria-hidden="true">＋</span> Add organizer</button>
+    </section>
+
+    <section class="summary-grid" aria-label="Account overview">
+      <article class="summary-card"><div class="summary-icon all-icon" aria-hidden="true">◎</div><div><span>Total organizers</span><strong id="totalAccounts">—</strong></div></article>
+      <article class="summary-card"><div class="summary-icon active-icon" aria-hidden="true">✓</div><div><span>Active accounts</span><strong id="activeAccounts">—</strong></div></article>
+      <article class="summary-card"><div class="summary-icon paused-icon" aria-hidden="true">Ⅱ</div><div><span>Inactive accounts</span><strong id="inactiveAccounts">—</strong></div></article>
+    </section>
+
+    <section class="panel-content-grid">
+      <section class="account-section panel-card">
+        <div class="section-heading">
+          <div><h2>All organizers</h2><p>Review account details and access status.</p></div>
+          <button id="refreshAccounts" class="quiet-button" type="button" aria-label="Refresh organizer accounts">↻ <span>Refresh</span></button>
+        </div>
+        <div id="panelNotice" class="panel-notice" role="status" aria-live="polite"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Organizer</th><th>Username</th><th>Status</th><th>Last sign in</th><th>Actions</th></tr></thead>
+            <tbody id="organizerRows"><tr><td colspan="5" class="empty-row">Loading organizer accounts…</td></tr></tbody>
+          </table>
+        </div>
+        <div id="mobileAccounts" class="mobile-account-list"></div>
+        <p class="table-footnote"><span class="status-dot"></span> Only active accounts can sign in. Inactive organizer sessions are blocked on their next request.</p>
+      </section>
+
+      <aside class="create-section panel-card" id="createSection">
+        <div class="section-heading create-heading"><div><h2>Add an organizer</h2><p>Create an account directly from the panel.</p></div><span class="plus-chip" aria-hidden="true">＋</span></div>
+        <form id="createOrganizerForm">
+          <label for="newDisplayName">Organizer / venue name</label>
+          <input id="newDisplayName" name="displayName" type="text" maxlength="80" placeholder="e.g. Husay Dinkers" required>
+          <label for="newUsername">Username</label>
+          <input id="newUsername" name="username" type="text" minlength="3" maxlength="40" pattern="[A-Za-z0-9][A-Za-z0-9_.-]{2,39}" autocomplete="off" placeholder="Choose a username" required>
+          <label for="newPassword">Temporary password <small>8 characters minimum</small></label>
+          <div class="password-input"><input id="newPassword" name="password" type="password" minlength="8" maxlength="200" placeholder="Set initial password" required><button type="button" id="toggleNewPassword" aria-label="Show password">Show</button></div>
+          <p id="createMessage" class="create-message" role="alert" aria-live="polite"></p>
+          <button type="submit" id="createOrganizerButton" class="primary-button full-button">Create organizer account <span aria-hidden="true">→</span></button>
+          <p class="form-security-note"><span aria-hidden="true">♢</span> Passwords are stored as secure hashes and are never displayed in this panel.</p>
+        </form>
+      </aside>
+    </section>
+    <footer class="panel-footer">PICKLE POINT MATCH <span>•</span> ACCOUNT MANAGEMENT</footer>
+  </main>
+</body>
+</html>

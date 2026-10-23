@@ -16,6 +16,10 @@ services:
         value: organizer
       - key: ORGANIZER_PASSWORD
         generateValue: true
+      - key: PANEL_USERNAME
+        value: admin
+      - key: PANEL_PASSWORD
+        generateValue: true
       - key: SESSION_SECRET
         generateValue: true
 

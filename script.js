@@ -25,16 +25,17 @@ const state={
   liveMatchesEnabled:false
 };
 
-const STORAGE_KEY='pickleq_v11_state';
-const LOCAL_STATE_SAVED_AT_KEY='pickleq_v11_state_saved_at';
-const LOCAL_STATE_PENDING_SYNC_KEY='pickleq_v11_state_pending_sync';
+const ORGANIZER_STORAGE_SUFFIX=String(window.PPM_ORGANIZER_ID||'').replace(/[^a-zA-Z0-9_-]/g,'');
+const STORAGE_KEY=`pickleq_v11_state${ORGANIZER_STORAGE_SUFFIX?`_${ORGANIZER_STORAGE_SUFFIX}`:''}`;
+const LOCAL_STATE_SAVED_AT_KEY=`${STORAGE_KEY}_saved_at`;
+const LOCAL_STATE_PENDING_SYNC_KEY=`${STORAGE_KEY}_pending_sync`;
 const CLOUD_RECORDS_SAVED_AT_KEY='pickleq_registered_cloud_records_saved_at';
 const CLOUD_RECORDS_PENDING_SYNC_KEY='pickleq_registered_cloud_records_pending_sync';
-const LIVE_VIEW_STORAGE_KEY='picklepoint_live_view_state_v1';
+const LIVE_VIEW_STORAGE_KEY=`picklepoint_live_view_state_v1${ORGANIZER_STORAGE_SUFFIX?`_${ORGANIZER_STORAGE_SUFFIX}`:''}`;
 const LIVE_VIEW_THEME_STORAGE_KEY='picklepoint_live_view_theme_v1';
-const LIVE_RANKING_ENABLED_KEY='picklepoint_live_ranking_enabled_v1';
-const LIVE_MATCHES_ENABLED_KEY='picklepoint_live_matches_enabled_v1';
-const RESULTS_TAB_STORAGE_KEY='picklepoint_results_tab_v1';
+const LIVE_RANKING_ENABLED_KEY=`picklepoint_live_ranking_enabled_v1${ORGANIZER_STORAGE_SUFFIX?`_${ORGANIZER_STORAGE_SUFFIX}`:''}`;
+const LIVE_MATCHES_ENABLED_KEY=`picklepoint_live_matches_enabled_v1${ORGANIZER_STORAGE_SUFFIX?`_${ORGANIZER_STORAGE_SUFFIX}`:''}`;
+const RESULTS_TAB_STORAGE_KEY=`picklepoint_results_tab_v1${ORGANIZER_STORAGE_SUFFIX?`_${ORGANIZER_STORAGE_SUFFIX}`:''}`;
 try{state.liveRankingEnabled=localStorage.getItem(LIVE_RANKING_ENABLED_KEY)==='true';state.liveMatchesEnabled=localStorage.getItem(LIVE_MATCHES_ENABLED_KEY)==='true';}catch(e){}
 let liveViewBroadcastChannel=null;
 let liveViewPublishInFlight=false;
@@ -42,8 +43,8 @@ let liveViewPendingSnapshot=null;
 let liveViewPublishRetryTimer=null;
 let liveViewPublishRetryDelay=3000;
 let liveViewPendingKeepalive=false;
-try{if('BroadcastChannel' in window)liveViewBroadcastChannel=new BroadcastChannel('pickle-point-match-live-view');}catch(e){}
-const LEGACY_STORAGE_KEYS=['pickleq_v10_state','pickleq_v9_state','pickleq_v8_state','pickleq_v7_state','pickleq_v6_state'];
+try{if('BroadcastChannel' in window)liveViewBroadcastChannel=new BroadcastChannel(`pickle-point-match-live-view${ORGANIZER_STORAGE_SUFFIX?`-${ORGANIZER_STORAGE_SUFFIX}`:''}`);}catch(e){}
+const LEGACY_STORAGE_KEYS=ORGANIZER_STORAGE_SUFFIX?[]:['pickleq_v10_state','pickleq_v9_state','pickleq_v8_state','pickleq_v7_state','pickleq_v6_state'];
 const CLOUD_RECORDS_KEY='pickleq_registered_cloud_records_v1';
 let cloudRecords={players:[],logs:[],sessions:[]};let pendingCloudDeleteId=null;let pendingCloudMatchDeleteId=null;let pendingCloudMatchPlayerId=null;let pendingCloudMatchEditId=null;let pendingCloudMatchEditPlayerId=null;
 const sharedClientId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():`pp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -600,7 +601,9 @@ function publishLiveViewState(keepalive=false){
   return snapshot;
 }
 function getLiveViewUrl(){
-  return new URL('live.html',window.location.href);
+  const url=new URL('live.html',window.location.href);
+  if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);
+  return url;
 }
 function syncLiveViewThemeButton(theme){
   const button=$('liveViewThemeToggle');
@@ -768,7 +771,7 @@ async function copyLiveViewQrLink(){
   try{await navigator.clipboard.writeText(field.value);toast('Live View link copied.');}
   catch(e){field.focus();field.select();let copied=false;try{copied=document.execCommand('copy');}catch(err){}toast(copied?'Live View link copied.':'Select and copy the Live View link.');}
 }
-function getRegistrationPageUrl(){return new URL('Registration.html',window.location.href);}
+function getRegistrationPageUrl(){const url=new URL('Registration.html',window.location.href);if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);return url;}
 function syncRegistrationQrNetworkState(){
   const modal=$('registrationQrModal'),wrap=$('registrationQrImageWrap'),image=$('registrationQrImage'),unavailable=$('registrationQrUnavailable'),loader=$('registrationQrLoader'),title=$('registrationQrStatusTitle'),note=$('registrationQrStatusNote');
   if(!modal||!wrap||!image||!unavailable||!loader)return;

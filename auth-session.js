@@ -18,12 +18,18 @@
     document.body.classList.add('pp-has-logout');
   }
 
-  fetch('/api/auth-status', {cache:'no-store',credentials:'same-origin'}).then(response => response.json()).then(status => {
-    if (!status.authenticated) {
+  window.PPM_AUTH_READY = fetch('/api/auth-status', {cache:'no-store',credentials:'same-origin'}).then(response => response.json()).then(status => {
+    if (!status.authenticated || status.role !== 'organizer') {
       const next = encodeURIComponent(window.location.pathname.slice(1) + window.location.search);
       window.location.replace(`/index.html?next=${next}`);
-      return;
+      return null;
     }
+    window.PPM_ORGANIZER_ID = status.organizerId || '';
+    window.PPM_ORGANIZER_USERNAME = status.username || '';
     addLogoutButton();
-  }).catch(() => window.location.replace('/index.html'));
+    return status;
+  }).catch(() => {
+    window.location.replace('/index.html');
+    return null;
+  });
 })();

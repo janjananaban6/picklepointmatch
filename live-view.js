@@ -1,6 +1,9 @@
 (() => {
   'use strict';
-  const LIVE_VIEW_STORAGE_KEY = 'picklepoint_live_view_state_v1';
+  const LIVE_VIEW_STORAGE_KEY = `picklepoint_live_view_state_v1${new URLSearchParams(window.location.search).get('organizer') ? '_' + String(new URLSearchParams(window.location.search).get('organizer')).replace(/[^a-zA-Z0-9_-]/g,'') : ''}`;
+  const organizerScope = String(new URLSearchParams(window.location.search).get('organizer') || '').trim();
+  const LIVE_CHANNEL_NAME = `pickle-point-match-live-view${organizerScope ? '-' + organizerScope.replace(/[^a-zA-Z0-9_-]/g,'') : ''}`;
+  function scopedApiUrl(path, params = {}) { const url = new URL(path, window.location.origin); if (organizerScope) url.searchParams.set('organizer',organizerScope); Object.entries(params).forEach(([key,value])=>url.searchParams.set(key,String(value))); return url.pathname+url.search; }
   const THEME_STORAGE_KEY = 'picklepoint_live_view_theme_v1';
   const $ = id => document.getElementById(id);
   let currentState = null;
@@ -236,11 +239,14 @@
       : '';
     const diagramLabel = `${courtName}: ${teamLabel(t1)} versus ${teamLabel(t2)}`;
     const diagramContent = hasPlayers
-      ? `<div class="court-diagram" role="img" aria-label="${escapeHTML(diagramLabel)}">
-          <span class="court-diagram-line court-diagram-horizontal" aria-hidden="true"></span>
-          <span class="court-diagram-line court-diagram-vertical court-diagram-third" aria-hidden="true"></span>
-          <span class="court-diagram-line court-diagram-vertical court-diagram-two-thirds" aria-hidden="true"></span>
-          <span class="court-diagram-center-line" aria-hidden="true"></span>
+      ? `<div class="court-diagram pickleball-court" role="img" aria-label="Pickleball court — ${escapeHTML(diagramLabel)}">
+          <span class="pickleball-kitchen pickleball-kitchen-left" aria-hidden="true"></span>
+          <span class="pickleball-kitchen pickleball-kitchen-right" aria-hidden="true"></span>
+          <span class="pickleball-court-line pickleball-kitchen-line pickleball-kitchen-line-left" aria-hidden="true"></span>
+          <span class="pickleball-court-line pickleball-kitchen-line pickleball-kitchen-line-right" aria-hidden="true"></span>
+          <span class="pickleball-court-line pickleball-service-line pickleball-service-line-left" aria-hidden="true"></span>
+          <span class="pickleball-court-line pickleball-service-line pickleball-service-line-right" aria-hidden="true"></span>
+          <span class="pickleball-net" aria-hidden="true"></span>
           ${marker(t1[0], 'marker-top-left')}
           ${marker(t1[1], 'marker-bottom-left')}
           ${marker(t2[0], 'marker-top-right')}
@@ -597,7 +603,7 @@
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 10000);
     try {
-      const response = await fetch(`/api/live-state?_=${Date.now()}`, {
+      const response = await fetch(scopedApiUrl('/api/live-state',{_:Date.now()}), {
         cache: 'no-store',
         signal: controller.signal
       });
@@ -638,7 +644,7 @@
     if (!isHttpPage() || typeof EventSource === 'undefined') return;
     if (eventSource && eventSource.readyState !== EventSource.CLOSED) return;
     try {
-      const source = new EventSource('/api/live-events');
+      const source = new EventSource(scopedApiUrl('/api/live-events'));
       eventSource = source;
       source.addEventListener('live-state', event => {
         try {
@@ -681,7 +687,7 @@
 
   try {
     if ('BroadcastChannel' in window) {
-      channel = new BroadcastChannel('pickle-point-match-live-view');
+      channel = new BroadcastChannel(LIVE_CHANNEL_NAME);
       channel.onmessage = event => { if (event.data) acceptState(event.data); };
     }
   } catch (error) {}
