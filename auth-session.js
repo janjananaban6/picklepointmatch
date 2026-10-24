@@ -38,6 +38,7 @@
     }
     window.PPM_ORGANIZER_ID = status.organizerId || '';
     window.PPM_ORGANIZER_USERNAME = status.username || '';
+    window.PPM_ORGANIZER_NAME = status.displayName || status.username || '';
     if (document.body?.dataset?.page !== 'queueing') addLogoutButton();
     return status;
   }).catch(() => {

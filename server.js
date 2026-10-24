@@ -90,7 +90,7 @@ function getAuthSession(req) {
     // A token from the previous single-organizer build remains valid until it expires,
     // provided the matching legacy account still exists and is active.
     if (account && String(payload.u || '').toLocaleLowerCase() === String(account.username).toLocaleLowerCase()) {
-      return {role:'organizer', username:account.username, organizerId:account.id, exp:Number(payload.exp)};
+      return {role:'organizer', username:account.username, displayName:account.displayName || account.username, organizerId:account.id, exp:Number(payload.exp)};
     }
     return null;
   } catch (_) { return null; }
@@ -374,6 +374,7 @@ async function handle(req, res) {
       authenticated:!!auth,
       role:auth?.role || null,
       username:auth?.username || null,
+      displayName:auth?.displayName || null,
       organizerId:auth?.organizerId || null
     });
   }
@@ -429,7 +430,7 @@ async function handle(req, res) {
         'Set-Cookie':`${AUTH_COOKIE}=${makeSessionToken(authUsername,role,authId)}; ${cookieOptions(req, SESSION_MAX_AGE_SECONDS)}`,
         'X-Content-Type-Options':'nosniff'
       });
-      return res.end(JSON.stringify({ok:true,role,username:authUsername,organizerId:authId,expiresIn:SESSION_MAX_AGE_SECONDS}));
+      return res.end(JSON.stringify({ok:true,role,username:authUsername,displayName:role === 'organizer' ? (account.displayName || account.username) : null,organizerId:authId,expiresIn:SESSION_MAX_AGE_SECONDS}));
     } catch (err) {
       const statusCode = err.statusCode || 503;
       const errorText = err.statusCode === 413
@@ -781,9 +782,12 @@ async function handle(req, res) {
   }
   if (url.pathname === '/api/live-state' && req.method === 'GET') {
     const requestedScope = String(url.searchParams.get('organizer') || '').trim();
-    const organizerId = resolveOrganizerId(req,url,null,true);
+    // A QR/shared Live View URL is explicitly scoped to its organizer. Honor
+    // that scope even if this browser has a different organizer login cookie.
+    const organizerId = requestedScope ? (accountById(requestedScope)?.id || null) : resolveOrganizerId(req,url,null,true);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
-    return sendJson(res, 200, {ok:true,state:getOrganizerLiveState(organizerId),organizerId});
+    const organizer = organizerId ? accountById(organizerId) : null;
+    return sendJson(res, 200, {ok:true,state:getOrganizerLiveState(organizerId),organizerId,organizerName:organizer ? String(organizer.displayName || organizer.username) : null});
   }
   if (url.pathname === '/api/live-state' && req.method === 'POST') {
     try {
@@ -880,7 +884,9 @@ async function handle(req, res) {
   }
   if (url.pathname === '/api/live-events' && req.method === 'GET') {
     const requestedScope = String(url.searchParams.get('organizer') || '').trim();
-    const organizerId = resolveOrganizerId(req,url,null,true);
+    // Match the HTTP snapshot lookup so EventSource never subscribes to another
+    // organizer's queue just because the browser has a login cookie.
+    const organizerId = requestedScope ? (accountById(requestedScope)?.id || null) : resolveOrganizerId(req,url,null,true);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     res.writeHead(200, {'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
     res.write('retry: 2000\n\n');

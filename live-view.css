@@ -2043,6 +2043,16 @@ html[data-theme="light"] body .live-page-pinned .event-heading #sessionTitleTogg
 html[data-theme="light"] body .live-page-pinned .event-heading #sessionTitleToggle .event-stat-text {
   color: #58777c;
 }
+html body .live-page-pinned .event-heading #sessionTitleToggle .session-organizer-stat {
+  color: #b58aff !important;
+  font-weight: 850;
+  max-width: min(220px, 36vw);
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+html[data-theme="light"] body .live-page-pinned .event-heading #sessionTitleToggle .session-organizer-stat {
+  color: #8752cf !important;
+}
 html body .live-page-pinned .event-heading #sessionTitleToggle:hover .session-live-badge {
   border-color: rgba(139, 211, 79, .75);
   background: rgba(82, 132, 46, .25);
@@ -4296,3 +4306,11 @@ html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab {
   }
 }
 
+
+
+/* The organizer label is optional; keep hidden placeholders out of the header even
+   though the shared stat/separator rules normally assign inline-block display. */
+html body .live-page-pinned .event-heading #sessionTitleToggle .session-organizer-stat[hidden],
+html body .live-page-pinned .event-heading #sessionTitleToggle #sessionOrganizerSeparator[hidden] {
+  display: none !important;
+}

@@ -6855,6 +6855,8 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
 .event-stats{display:flex;align-items:center;gap:7px;color:#15c6bd;font-size:12px;font-weight:700;line-height:1.2;}
 .event-stats .event-stat-sep{color:#778f99;}
 .event-stats .event-stat-text{color:#15c6bd;}
+.event-stats .organizer-event-stat{color:#b58aff!important;font-weight:850;white-space:normal;}
+.event-stats .organizer-stat-sep{color:#9a79d8!important;}
 .event-rule-btn{appearance:none;border:0;background:transparent;color:#15c6bd;font:inherit;font-weight:800;padding:0;cursor:pointer;line-height:1.2;text-decoration:none;}
 .event-rule-btn:hover{color:#20b8b0;text-decoration:none;}
 .event-rule-btn:focus-visible{outline:1px solid #15c6bd;outline-offset:3px;border-radius:3px;}

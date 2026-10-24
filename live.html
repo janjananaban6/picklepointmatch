@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="live-view.css?v=queue-search-compact-height-20261023-1&mzoom=20261024-1&livetabs=radius15-min35-responsive-20261024-5">
+  <link rel="stylesheet" href="live-view.css?v=queue-search-compact-height-20261023-1&mzoom=20261024-1&livetabs=radius15-min35-responsive-20261024-5&organizer-stats=20261024-2">
   <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261023-1&mzoom=20261024-1">
 </head>
 <body class="live-view-page">
@@ -24,7 +24,7 @@
   <div class="live-page-layout">
     <div class="live-page-pinned">
       <section class="event-heading">
-        <button id="sessionTitleToggle" class="eyebrow session-title-toggle-row" type="button" aria-controls="sessionTitle" aria-expanded="true" aria-label="Hide session title" title="Hide session title"><span class="session-live-badge"><span class="live-pulse" aria-hidden="true"></span><span class="session-title-toggle-label">Live</span></span><span class="session-heading-separator" aria-hidden="true">·</span><span id="sessionMatchType" class="session-match-type">Doubles</span><span class="session-heading-separator" aria-hidden="true">·</span><span id="sessionPlayerCount" class="event-stat-text">0 players</span><span class="session-heading-separator" aria-hidden="true">·</span><span id="sessionCourtCount" class="event-stat-text">0 courts</span></button>
+        <button id="sessionTitleToggle" class="eyebrow session-title-toggle-row" type="button" aria-controls="sessionTitle" aria-expanded="true" aria-label="Hide session title" title="Hide session title"><span class="session-live-badge"><span class="live-pulse" aria-hidden="true"></span><span class="session-title-toggle-label">Live</span></span><span class="session-heading-separator" aria-hidden="true">·</span><span id="sessionMatchType" class="session-match-type">Doubles</span><span class="session-heading-separator" aria-hidden="true">·</span><span id="sessionPlayerCount" class="event-stat-text">0 players</span><span class="session-heading-separator" aria-hidden="true">·</span><span id="sessionCourtCount" class="event-stat-text">0 courts</span><span id="sessionOrganizerSeparator" class="session-heading-separator" aria-hidden="true" hidden>·</span><span id="sessionOrganizerStat" class="event-stat-text session-organizer-stat" hidden></span></button>
         <div id="sessionTitleSlide" class="session-title-slide"><h1 id="sessionTitle">Pickle Point Match</h1></div>
       </section>
       <nav class="live-tabs" role="tablist" aria-label="Live view sections">
@@ -126,6 +126,6 @@
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
     </main>
   </div>
-  <script src="live-view.js?v=queue-search-slot-layout-fix-20261023-1" defer></script>
+  <script src="live-view.js?v=organizer-name-scope-20261024-2" defer></script>
 </body>
 </html>
