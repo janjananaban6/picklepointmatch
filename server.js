@@ -132,8 +132,14 @@ function verifyPassword(password, storedHash) {
     return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
   } catch (_) { return false; }
 }
+function safeOrganizerLogo(value) {
+  return typeof value === 'string' && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/i.test(value.trim()) ? value.trim() : null;
+}
+function organizerLogoFor(account) {
+  return safeOrganizerLogo(account?.profileImage) || safeOrganizerLogo(account?.organizerLogo) || safeOrganizerLogo(account?.logoData) || safeOrganizerLogo(account?.logo);
+}
 function organizerPublicRecord(account) {
-  return {id:account.id,username:account.username,displayName:account.displayName || account.username,profileImage:account.profileImage || null,active:account.active !== false,createdAt:account.createdAt || null,lastLoginAt:account.lastLoginAt || null,createdBy:account.createdBy || 'registration'};
+  return {id:account.id,username:account.username,displayName:account.displayName || account.username,profileImage:organizerLogoFor(account),active:account.active !== false,createdAt:account.createdAt || null,lastLoginAt:account.lastLoginAt || null,createdBy:account.createdBy || 'registration'};
 }
 function makeOrganizerRecord(username, password, displayName, createdBy = 'registration') {
   const now = new Date().toISOString();
@@ -381,7 +387,7 @@ async function handle(req, res) {
         id: String(account.id),
         username: String(account.username),
         displayName: String(account.displayName || account.username),
-        profileImage: typeof account.profileImage === 'string' && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(account.profileImage) ? account.profileImage : null
+        profileImage: organizerLogoFor(account)
       }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, {sensitivity:'base'}));
     const panelAccount = panelIsConfigured()

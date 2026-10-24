@@ -36,6 +36,7 @@
   let organizerLogoData = '';
   let loginAccounts = [];
   let selectedLoginAccount = null;
+  let panelLoginAccount = null;
   let accountsLoaded = false;
   let accountsLoadError = false;
 
@@ -57,7 +58,17 @@
   }
 
   function isSafeLogoData(value) {
-    return typeof value === 'string' && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value);
+    return typeof value === 'string' && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/i.test(value.trim());
+  }
+
+  function getAccountLogoData(account) {
+    if (!account || typeof account !== 'object') return '';
+    return [account.profileImage, account.organizerLogo, account.logoData, account.logo]
+      .find(isSafeLogoData) || '';
+  }
+
+  function hasOrganizerLogo(account) {
+    return !!getAccountLogoData(account);
   }
 
   function closeOrganizerOptions() {
@@ -76,14 +87,25 @@
   }
 
   function optionLogo(account) {
-    return isSafeLogoData(account.profileImage) ? account.profileImage : 'pickleball-p-emblem.png';
+    return getAccountLogoData(account) || 'pickleball-p-emblem.png';
+  }
+
+  function setSelectedOrganizerLogo(account) {
+    selectedOrganizerLogo.onerror = null;
+    selectedOrganizerLogo.src = optionLogo(account);
+    selectedOrganizerLogo.classList.toggle('is-default-logo', !hasOrganizerLogo(account));
+    selectedOrganizerLogo.onerror = () => {
+      selectedOrganizerLogo.onerror = null;
+      selectedOrganizerLogo.src = 'pickleball-p-emblem.png';
+      selectedOrganizerLogo.classList.add('is-default-logo');
+    };
   }
 
   function renderOrganizerOptions(query = '') {
     accountOptions.replaceChildren();
     const term = String(query || '').trim().toLocaleLowerCase();
     const matching = loginAccounts.filter(account => {
-      const searchable = `${account.displayName || ''} ${account.username || ''} ${account.role === 'panel' ? 'administrator panel admin' : ''}`.toLocaleLowerCase();
+      const searchable = `${account.displayName || ''} ${account.username || ''}`.toLocaleLowerCase();
       return searchable.includes(term);
     });
 
@@ -106,7 +128,7 @@
     matching.forEach(account => {
       const option = document.createElement('button');
       option.type = 'button';
-      option.className = `organizer-option${account.role === 'panel' ? ' is-panel-option' : ''}${selectedLoginAccount && selectedLoginAccount.username === account.username ? ' is-selected' : ''}`;
+      option.className = `organizer-option${selectedLoginAccount && selectedLoginAccount.username === account.username ? ' is-selected' : ''}`;
       option.setAttribute('role', 'option');
       option.setAttribute('aria-selected', String(!!(selectedLoginAccount && selectedLoginAccount.username === account.username)));
       option.dataset.username = account.username;
@@ -116,6 +138,11 @@
       logo.src = optionLogo(account);
       logo.alt = '';
       logo.setAttribute('aria-hidden', 'true');
+      logo.addEventListener('error', () => {
+        if (logo.dataset.defaultLogoApplied === 'true') return;
+        logo.dataset.defaultLogoApplied = 'true';
+        logo.src = 'pickleball-p-emblem.png';
+      });
 
       const copy = document.createElement('span');
       copy.className = 'organizer-option-copy';
@@ -124,7 +151,7 @@
       name.textContent = account.displayName || account.username;
       const username = document.createElement('small');
       username.className = 'organizer-option-username';
-      username.textContent = account.role === 'panel' ? `Administrator · @${account.username}` : `@${account.username}`;
+      username.textContent = `@${account.username}`;
       copy.append(name, username);
 
       const check = document.createElement('span');
@@ -141,9 +168,8 @@
     selectedLoginAccount = account;
     usernameInput.value = account.username;
     accountSearchInput.value = account.displayName || account.username;
-    selectedOrganizerLogo.src = optionLogo(account);
+    setSelectedOrganizerLogo(account);
     selectedOrganizerLogo.alt = '';
-    selectedOrganizerLogo.classList.toggle('is-default-logo', !isSafeLogoData(account.profileImage));
     passwordInput.value = '';
     closeOrganizerOptions();
     renderOrganizerOptions(accountSearchInput.value);
@@ -160,9 +186,10 @@
       loginAccounts = result.organizers
         .filter(account => account && typeof account.username === 'string' && account.username.trim())
         .map(account => ({...account, role: 'organizer'}));
-      if (result.panelAccount && typeof result.panelAccount.username === 'string' && result.panelAccount.username.trim()) {
-        loginAccounts.push({...result.panelAccount, role: 'panel'});
-      }
+      // Keep the administrator account available for direct sign-in, but never list it as an organizer option.
+      panelLoginAccount = result.panelAccount && typeof result.panelAccount.username === 'string' && result.panelAccount.username.trim()
+        ? {...result.panelAccount, role: 'panel'}
+        : null;
       accountsLoaded = true;
       accountsLoadError = false;
     } catch (_) {
@@ -174,10 +201,11 @@
 
   accountSearchInput.addEventListener('focus', () => openOrganizerOptions());
   accountSearchInput.addEventListener('input', () => {
-    selectedLoginAccount = null;
-    usernameInput.value = '';
-    selectedOrganizerLogo.src = 'pickleball-p-emblem.png';
-    selectedOrganizerLogo.classList.add('is-default-logo');
+    const entered = accountSearchInput.value.trim().toLocaleLowerCase();
+    const isDirectPanelLogin = !!(panelLoginAccount && entered && entered === String(panelLoginAccount.username || '').trim().toLocaleLowerCase());
+    selectedLoginAccount = isDirectPanelLogin ? panelLoginAccount : null;
+    usernameInput.value = isDirectPanelLogin ? panelLoginAccount.username : '';
+    setSelectedOrganizerLogo(isDirectPanelLogin ? panelLoginAccount : null);
     renderOrganizerOptions(accountSearchInput.value);
     accountOptions.hidden = false;
     accountSearchInput.setAttribute('aria-expanded', 'true');
@@ -402,6 +430,21 @@
     organizerLogoInput.value = '';
     setMessage(registerMessage, '');
     updateRegisterSubmitState();
+  });
+
+  // Start with a blank credential state; never restore hidden username or password values.
+  accountSearchInput.value = '';
+  usernameInput.value = '';
+  passwordInput.value = '';
+  setSelectedOrganizerLogo(null);
+
+  window.addEventListener('pageshow', () => {
+    selectedLoginAccount = null;
+    accountSearchInput.value = '';
+    usernameInput.value = '';
+    passwordInput.value = '';
+    setSelectedOrganizerLogo(null);
+    closeOrganizerOptions();
   });
 
   loadOrganizerAccounts();
