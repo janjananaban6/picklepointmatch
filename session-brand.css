@@ -1,0 +1,134 @@
+/* Live Queue start-screen brand: exact visual clone of the organizer login brand.
+   Scoped to session.html only; queue cards and the rest of the page are untouched. */
+html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  display: flex !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: auto !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  color: #eefafa !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+  white-space: nowrap !important;
+  transform: translate(-50%, -50%) !important;
+  text-align: left !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand > .brand-mark {
+  display: block !important;
+  width: 39px !important;
+  height: 39px !important;
+  min-width: auto !important;
+  min-height: auto !important;
+  flex: 0 0 39px !important;
+  object-fit: contain !important;
+}
+
+html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand > .brand-words {
+  display: flex !important;
+  min-width: 0 !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-self: auto !important;
+  gap: 1px !important;
+  color: #eefafa !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+  white-space: nowrap !important;
+}
+
+html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand .brand-words > b {
+  display: block !important;
+  margin: 0 !important;
+  color: #eefafa !important;
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  letter-spacing: .7px !important;
+  line-height: 1.2 !important;
+}
+
+html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand .brand-words > b > strong {
+  color: #27d3c5 !important;
+  font-weight: 900 !important;
+}
+
+html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand .brand-words > small {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #95c4c7 !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  letter-spacing: 4px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand .brand-words > small::before,
+html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand .brand-words > small::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Same breakpoint values and order as login.css. */
+@media (max-width: 520px) {
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
+    max-width: 100% !important;
+    gap: 8px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand > .brand-mark {
+    width: 32px !important;
+    height: 32px !important;
+    flex-basis: 32px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand .brand-words > b {
+    font-size: 11px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand .brand-words > small {
+    font-size: 7px !important;
+    letter-spacing: 3px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
+    gap: 6px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand > .brand-mark {
+    width: 30px !important;
+    height: 30px !important;
+    flex-basis: 30px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand .brand-words > b {
+    font-size: 10px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand .brand-words > small {
+    font-size: 7px !important;
+    letter-spacing: 2.5px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
+    max-width: 100% !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand > .brand-mark {
+    width: 25px !important;
+    height: 25px !important;
+    flex-basis: 25px !important;
+  }
+}

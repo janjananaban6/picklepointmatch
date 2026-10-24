@@ -3,27 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0b2522">
+  <meta name="theme-color" content="#f1f7f8">
   <meta name="robots" content="noindex, nofollow">
   <title>Organizer Management — Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="panel.css?v=organizer-panel-responsive-20261023-2">
-  <script src="panel.js?v=organizer-panel-responsive-20261023-2" defer></script>
+  <link rel="stylesheet" href="panel.css?v=panel-settings-dropdowns-20261023-5&mzoom=20261024-3">
+  <script src="panel.js?v=organizer-image-size-fix-20261024-6" defer></script>
 </head>
 <body class="panel-page">
-  <header class="panel-topbar">
+  <header class="live-header panel-topbar">
     <div class="topbar-inner">
-      <div class="panel-brand">
-        <img src="pickleball-p-emblem.png" alt="" aria-hidden="true">
-        <div class="panel-brand-copy">
-          <strong>PICKLE <span>POINT</span> MATCH</strong>
-          <small>ADMINISTRATOR PANEL</small>
-        </div>
+      <div class="brand panel-brand">
+        <img src="pickleball-p-emblem.png" alt="Pickle Point Match logo">
+        <span class="brand-words"><b>PICKLE <strong>POINT</strong></b><small>M A T C H</small></span>
       </div>
       <div class="panel-top-actions">
-        <button type="button" id="panelThemeToggle" class="live-view-theme-toggle" aria-pressed="false" aria-label="Switch panel to light mode" title="Switch panel to light mode">
-          <span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-sun">☀</span><span class="theme-switch-icon theme-switch-moon">☾</span><span class="theme-switch-thumb"></span></span>
-          <span class="live-view-theme-label">Dark Mode</span>
+        <button type="button" id="panelOpenManager" class="panel-tool-button" aria-haspopup="dialog" aria-controls="panelContentModal" aria-label="Create organizer account" title="Create organizer account">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5h16M4 12h16M4 18.5h16"/><circle cx="8" cy="5.5" r="1.5"/><circle cx="15.5" cy="12" r="1.5"/><circle cx="10" cy="18.5" r="1.5"/></svg>
+        </button>
+        <button type="button" id="panelOpenSettings" class="panel-tool-button panel-settings-trigger" aria-haspopup="dialog" aria-controls="panelSettingsModal" aria-label="Open settings" title="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8.1a3.9 3.9 0 1 0 0 7.8 3.9 3.9 0 0 0 0-7.8Z"/><path d="m19.4 13.5 1.1.8-1.1 2-1.3-.4a7.7 7.7 0 0 1-1.4.8l-.2 1.4h-2.3l-.4-1.3a7.8 7.8 0 0 1-1.6 0l-.7 1.1-2.1-1.1.4-1.3a7.7 7.7 0 0 1-.8-1.4l-1.4-.2v-2.3l1.3-.4a7.8 7.8 0 0 1 0-1.6l-1.1-.7 1.1-2.1 1.3.4a7.7 7.7 0 0 1 1.4-.8l.2-1.4h2.3l.4 1.3a7.8 7.8 0 0 1 1.6 0l.7-1.1 2.1 1.1-.4 1.3a7.7 7.7 0 0 1 .8 1.4l1.4.2v2.3l-1.3.4a7.8 7.8 0 0 1 0 1.6Z" transform="translate(-1 -1) scale(1.08)"/></svg>
         </button>
         <button type="button" id="panelLogout" class="logout-button"><span class="logout-icon" aria-hidden="true">↗</span><span>Log out</span></button>
       </div>
@@ -33,59 +32,172 @@
   <main class="panel-shell">
     <section class="panel-intro">
       <div class="panel-intro-copy">
-        <p class="eyebrow"><span aria-hidden="true"></span> CONTROL CENTER</p>
         <h1>Organizer accounts</h1>
-        <p class="intro-copy">Create and manage organizer access. Every organizer has a separate live queue, while the Registered Player Cloud remains shared across all accounts.</p>
+        <p class="intro-copy">View organizer totals and manage existing accounts below. Use the account button to create a new organizer.</p>
       </div>
     </section>
 
     <section class="summary-grid" aria-label="Account overview">
-      <article class="summary-card"><div class="summary-icon all-icon" aria-hidden="true">◎</div><div><span>Total organizers</span><strong id="totalAccounts">—</strong></div></article>
-      <article class="summary-card"><div class="summary-icon active-icon" aria-hidden="true">✓</div><div><span>Active accounts</span><strong id="activeAccounts">—</strong></div></article>
-      <article class="summary-card"><div class="summary-icon paused-icon" aria-hidden="true">Ⅱ</div><div><span>Inactive accounts</span><strong id="inactiveAccounts">—</strong></div></article>
+      <article class="summary-card"><div class="summary-icon all-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="7.5" r="3.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 6.8M20 20v-1.5a3.5 3.5 0 0 0-2.5-3.35"/></svg></div><div class="summary-copy"><span>Total organizers</span><strong id="totalAccounts">—</strong></div></article>
+      <article class="summary-card"><div class="summary-icon active-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m5 12.5 4.3 4.2L19 7"/></svg></div><div class="summary-copy"><span>Active accounts</span><strong id="activeAccounts">—</strong></div></article>
+      <article class="summary-card"><div class="summary-icon paused-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M8 5v14M16 5v14"/></svg></div><div class="summary-copy"><span>Inactive accounts</span><strong id="inactiveAccounts">—</strong></div></article>
     </section>
 
-    <section class="panel-content-grid">
-      <section class="account-section panel-card">
-        <div class="section-heading">
-          <div><h2>All organizers</h2><p>Review account details and access status.</p></div>
-          <button id="refreshAccounts" class="quiet-button" type="button" aria-label="Refresh organizer accounts"><span aria-hidden="true">↻</span> <span>Refresh</span></button>
-        </div>
-        <div id="panelNotice" class="panel-notice" role="status" aria-live="polite"></div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Organizer</th><th>Username</th><th>Status</th><th>Last sign in</th><th>Actions</th></tr></thead>
-            <tbody id="organizerRows"><tr><td colspan="5" class="empty-row">Loading organizer accounts…</td></tr></tbody>
-          </table>
-        </div>
-        <p class="table-footnote"><span class="status-dot" aria-hidden="true"></span> Only active accounts can sign in. Inactive organizer sessions are blocked on their next request.</p>
-      </section>
-
-      <aside class="create-section panel-card" id="createSection">
-        <div class="section-heading create-heading"><div><h2>Add an organizer</h2><p>Create an account directly from the panel.</p></div><span class="plus-chip" aria-hidden="true">＋</span></div>
-        <form id="createOrganizerForm">
-          <label for="newDisplayName">Organizer / venue name</label>
-          <input id="newDisplayName" name="displayName" type="text" maxlength="80" placeholder="e.g. Husay Dinkers" required>
-          <label for="newUsername">Username</label>
-          <input id="newUsername" name="username" type="text" minlength="3" maxlength="40" pattern="[A-Za-z0-9][A-Za-z0-9_.-]{2,39}" autocomplete="off" placeholder="Choose a username" required>
-          <label for="newPassword">Temporary password <small>8 characters minimum</small></label>
-          <div class="password-input"><input id="newPassword" name="password" type="password" minlength="8" maxlength="200" placeholder="Set initial password" required><button type="button" id="toggleNewPassword" aria-label="Show password">Show</button></div>
-          <p id="createMessage" class="create-message" role="alert" aria-live="polite"></p>
-          <button type="submit" id="createOrganizerButton" class="primary-button full-button">Create organizer account <span aria-hidden="true">→</span></button>
-          <p class="form-security-note"><span aria-hidden="true">♢</span> Passwords are stored as secure hashes and are never displayed in this panel.</p>
-        </form>
-      </aside>
+    <section class="account-section panel-card">
+      <div class="section-heading">
+        <div><h2>All organizers</h2><p>Review account details and access status.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Organizer</th><th>Username</th><th>Password</th><th>Status</th><th>Last sign in</th><th>Actions</th></tr></thead>
+          <tbody id="organizerRows"><tr><td colspan="6" class="empty-row">Loading organizer accounts…</td></tr></tbody>
+        </table>
+      </div>
+      <p class="table-footnote"><span class="status-dot" aria-hidden="true"></span> Only active accounts can sign in. Inactive organizer sessions are blocked on their next request.</p>
     </section>
-    <footer class="panel-footer">PICKLE POINT MATCH <span>•</span> ACCOUNT MANAGEMENT</footer>
+
+    <footer class="page-footer panel-footer"><span>● PICKLE POINT MATCH</span><span>Account management · Organizer controls</span></footer>
   </main>
 
-  <div id="accountModal" class="panel-modal" hidden>
+  <div id="panelSettingsModal" class="panel-settings-modal" hidden>
+    <button type="button" class="panel-settings-scrim" data-close-settings aria-label="Close settings"></button>
+    <section class="panel-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="panelSettingsTitle" tabindex="-1">
+      <aside class="panel-settings-sidebar">
+        <label class="panel-settings-search" for="panelSettingsSearch">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.7"/><path d="m16 16 4.4 4.4"/></svg>
+          <input id="panelSettingsSearch" type="search" placeholder="Search" autocomplete="off">
+        </label>
+        <div class="panel-settings-nav-label" data-nav-group-label="settings">Settings</div>
+        <nav class="panel-settings-nav" aria-label="Settings categories">
+          <button type="button" class="panel-settings-nav-item is-active" data-settings-page="general"><span class="settings-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="m19 13.5 1.1.8-1.1 2-1.3-.4a7.6 7.6 0 0 1-1.4.8l-.2 1.4h-2.3l-.4-1.3a7.8 7.8 0 0 1-1.6 0l-.7 1.1-2.1-1.1.4-1.3a7.7 7.7 0 0 1-.8-1.4l-1.4-.2v-2.3l1.3-.4a7.8 7.8 0 0 1 0-1.6l-1.1-.7 1.1-2.1 1.3.4a7.7 7.7 0 0 1 1.4-.8l.2-1.4h2.3l.4 1.3a7.8 7.8 0 0 1 1.6 0l.7-1.1 2.1 1.1-.4 1.3a7.7 7.7 0 0 1 .8 1.4l1.4.2v2.3l-1.3.4a7.8 7.8 0 0 1 0 1.6Z" transform="translate(-1 -1) scale(1.08)"/></svg></span><span>General</span></button>
+          <button type="button" class="panel-settings-nav-item" data-settings-page="account"><span class="settings-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/><circle cx="12" cy="12" r="9"/></svg></span><span>Account</span></button>
+          <button type="button" class="panel-settings-nav-item" data-settings-page="privacy"><span class="settings-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-3Z"/><rect x="9" y="10" width="6" height="5" rx="1"/><path d="M10.5 10V8.7a1.5 1.5 0 0 1 3 0V10"/></svg></span><span>Privacy</span></button>
+          <button type="button" class="panel-settings-nav-item" data-settings-page="billing"><span class="settings-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 15h4"/></svg></span><span>Billing</span></button>
+          <button type="button" class="panel-settings-nav-item" data-settings-page="capabilities"><span class="settings-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V5a3 3 0 0 1 6 0v2M4 12h16"/></svg></span><span>Capabilities</span></button>
+          <button type="button" class="panel-settings-nav-item" data-settings-page="memory"><span class="settings-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-4.7-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6.3-8 11-8 11Z"/><path d="M8 12h2l1-2 2 4 1-2h2"/></svg></span><span>Memory</span></button>
+          <button type="button" class="panel-settings-nav-item" data-settings-page="reflect"><span class="settings-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.5"/><path d="M4 4v4.5h4.5M12 7v5l3 2"/></svg></span><span>Reflect</span></button>
+          <button type="button" class="panel-settings-nav-item" data-settings-page="time-focus"><span class="settings-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2M18.5 4.5 21 2"/></svg></span><span>Time and focus</span></button>
+          <button type="button" class="panel-settings-nav-item" data-settings-page="claude-code"><span class="settings-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5-7 7 7 7M16 5l7 7-7 7M14 3l-4 18"/></svg></span><span>Claude Code</span></button>
+        </nav>
+        <div class="panel-settings-nav-label panel-settings-customize-label" data-nav-group-label="customize">Customize</div>
+        <nav class="panel-settings-nav" aria-label="Customize">
+          <button type="button" class="panel-settings-nav-item" data-settings-page="skills"><span class="settings-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM7 3v4M17 3v4M4 9h16M8 13h3M8 16h6"/></svg></span><span>Skills</span></button>
+          <button type="button" class="panel-settings-nav-item" data-settings-page="connectors"><span class="settings-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span>Connectors</span></button>
+          <button type="button" class="panel-settings-nav-item" data-settings-page="plugins"><span class="settings-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v4M16 4v4M4 8h16v4a3 3 0 0 1-3 3h-2v5H9v-5H7a3 3 0 0 1-3-3V8Z"/></svg></span><span>Plugins</span></button>
+        </nav>
+      </aside>
+      <main class="panel-settings-main">
+        <header class="panel-settings-main-header">
+          <h2 id="panelSettingsTitle" class="settings-visually-hidden">Panel settings</h2>
+          <button type="button" id="closePanelSettings" class="panel-settings-close" aria-label="Close settings" title="Close settings">×</button>
+        </header>
+        <div class="panel-settings-scroll" id="panelSettingsScroll">
+          <section class="panel-settings-page" id="panelSettingsGeneral" data-settings-content="general">
+            <section class="panel-settings-section">
+              <h3>Appearance</h3>
+              <div class="panel-setting-row panel-theme-row">
+                <div class="panel-setting-copy"><div class="panel-setting-title">Theme</div></div>
+                <div class="panel-theme-segment" role="group" aria-label="Theme">
+                  <button type="button" class="panel-theme-choice" data-theme-choice="system" aria-label="System theme" title="System" data-tooltip="System"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/></svg></button>
+                  <button type="button" class="panel-theme-choice" data-theme-choice="light" aria-label="Light theme" title="Light" data-tooltip="Light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+                  <button type="button" class="panel-theme-choice" data-theme-choice="dark" aria-label="Dark theme" title="Dark" data-tooltip="Dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.3A8.5 8.5 0 0 1 8.7 3.5 8.8 8.8 0 1 0 20.5 15.3Z"/></svg></button>
+                </div>
+              </div>
+              <div class="panel-setting-row">
+                <div class="panel-setting-copy"><div class="panel-setting-title">Interface font</div><p>Font for the whole interface — menus, sidebars, and panels. <span class="panel-settings-license-link">Font licenses</span></p></div>
+                <div class="panel-settings-dropdown" data-font-dropdown="panelSettingInterfaceFont">
+                  <button type="button" class="panel-settings-dropdown-trigger" data-dropdown-trigger aria-haspopup="listbox" aria-expanded="false" aria-label="Interface font">
+                    <span data-dropdown-current>Anthropic Sans</span>
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 7.5 4.5 4.5 4.5-4.5"/></svg>
+                  </button>
+                  <div class="panel-settings-dropdown-menu" role="listbox" aria-label="Interface font options" hidden>
+                    <button type="button" class="panel-settings-dropdown-option is-selected" role="option" aria-selected="true" data-font-value="anthropic-sans"><span>Anthropic Sans</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m3.5 10.5 4.1 4.1L16.5 5.8"/></svg></button>
+                    <button type="button" class="panel-settings-dropdown-option" role="option" aria-selected="false" data-font-value="system"><span>System</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m3.5 10.5 4.1 4.1L16.5 5.8"/></svg></button>
+                    <button type="button" class="panel-settings-dropdown-option" role="option" aria-selected="false" data-font-value="opendyslexic"><span class="font-option-opendyslexic">OpenDyslexic</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m3.5 10.5 4.1 4.1L16.5 5.8"/></svg></button>
+                  </div>
+                  <select class="panel-settings-native-select" id="panelSettingInterfaceFont" aria-label="Interface font" hidden><option value="anthropic-sans">Anthropic Sans</option><option value="system">System</option><option value="opendyslexic">OpenDyslexic</option></select>
+                </div>
+              </div>
+              <div class="panel-setting-row">
+                <div class="panel-setting-copy"><div class="panel-setting-title">Chat font</div></div>
+                <div class="panel-settings-dropdown" data-font-dropdown="panelSettingChatFont">
+                  <button type="button" class="panel-settings-dropdown-trigger" data-dropdown-trigger aria-haspopup="listbox" aria-expanded="false" aria-label="Chat font">
+                    <span data-dropdown-current>Anthropic Serif</span>
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5.5 7.5 4.5 4.5 4.5-4.5"/></svg>
+                  </button>
+                  <div class="panel-settings-dropdown-menu" role="listbox" aria-label="Chat font options" hidden>
+                    <button type="button" class="panel-settings-dropdown-option is-selected" role="option" aria-selected="true" data-font-value="anthropic-serif"><span>Anthropic Serif</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m3.5 10.5 4.1 4.1L16.5 5.8"/></svg></button>
+                    <button type="button" class="panel-settings-dropdown-option" role="option" aria-selected="false" data-font-value="anthropic-sans"><span>Anthropic Sans</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m3.5 10.5 4.1 4.1L16.5 5.8"/></svg></button>
+                    <button type="button" class="panel-settings-dropdown-option" role="option" aria-selected="false" data-font-value="system"><span>System</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m3.5 10.5 4.1 4.1L16.5 5.8"/></svg></button>
+                    <button type="button" class="panel-settings-dropdown-option" role="option" aria-selected="false" data-font-value="opendyslexic"><span class="font-option-opendyslexic">OpenDyslexic</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m3.5 10.5 4.1 4.1L16.5 5.8"/></svg></button>
+                  </div>
+                  <select class="panel-settings-native-select" id="panelSettingChatFont" aria-label="Chat font" hidden><option value="anthropic-serif">Anthropic Serif</option><option value="anthropic-sans">Anthropic Sans</option><option value="system">System</option><option value="opendyslexic">OpenDyslexic</option></select>
+                </div>
+              </div>
+              <div class="panel-setting-row">
+                <div class="panel-setting-copy"><div class="panel-setting-title">Transcript text size</div></div>
+                <div class="panel-setting-segment" role="group" aria-label="Transcript text size"><button type="button" data-setting-key="textSize" data-setting-choice="small">Small</button><button type="button" data-setting-key="textSize" data-setting-choice="medium">Medium</button><button type="button" data-setting-key="textSize" data-setting-choice="large">Large</button></div>
+              </div>
+              <div class="panel-setting-row">
+                <div class="panel-setting-copy"><div class="panel-setting-title">Transcript width</div><p>Maximum width of the transcript and composer columns.</p></div>
+                <div class="panel-setting-segment" role="group" aria-label="Transcript width"><button type="button" data-setting-key="transcriptWidth" data-setting-choice="narrow">Narrow</button><button type="button" data-setting-key="transcriptWidth" data-setting-choice="medium">Medium</button><button type="button" data-setting-key="transcriptWidth" data-setting-choice="wide">Wide</button></div>
+              </div>
+              <div class="panel-setting-row">
+                <div class="panel-setting-copy"><div class="panel-setting-title">Motion</div><p>Reduce animation in streaming responses and other interface elements.</p></div>
+                <div class="panel-setting-segment" role="group" aria-label="Motion"><button type="button" data-setting-key="motion" data-setting-choice="system">System</button><button type="button" data-setting-key="motion" data-setting-choice="reduced">Reduced</button></div>
+              </div>
+            </section>
+            <section class="panel-settings-section panel-settings-voice-section">
+              <h3>Voice</h3>
+              <div class="panel-setting-row"><div class="panel-setting-copy"><div class="panel-setting-title">Language</div></div><select class="panel-settings-select" id="panelSettingVoiceLanguage" aria-label="Voice language"><option>English</option><option>Filipino</option><option>Spanish</option><option>French</option><option>Japanese</option><option>Korean</option></select></div>
+              <div class="panel-setting-row"><div class="panel-setting-copy"><div class="panel-setting-title">Style</div></div><select class="panel-settings-select" id="panelSettingVoiceStyle" aria-label="Voice style"><option>Buttery</option><option>Bright</option><option>Calm</option><option>Warm</option><option>Professional</option></select></div>
+              <div class="panel-setting-row"><div class="panel-setting-copy"><div class="panel-setting-title">Speed</div></div><select class="panel-settings-select" id="panelSettingVoiceSpeed" aria-label="Voice speed"><option>Slow</option><option>Normal</option><option>Fast</option><option>Faster</option></select></div>
+            </section>
+          </section>
+          <section class="panel-settings-page panel-settings-placeholder" id="panelSettingsPlaceholder" hidden>
+            <h3 id="panelSettingsPlaceholderTitle">Account</h3>
+            <p id="panelSettingsPlaceholderText">These settings are not configured for this panel.</p>
+          </section>
+        </div>
+      </main>
+    </section>
+  </div>
+
+  <div id="panelContentModal" class="panel-modal panel-content-modal" hidden>
+    <button class="panel-modal-scrim" type="button" data-close-manager aria-label="Close organizer management"></button>
+    <section class="panel-modal-dialog panel-content-dialog" role="dialog" aria-modal="true" aria-labelledby="panelContentTitle" tabindex="-1">
+      <div class="modal-heading">
+        <div class="modal-heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5h16M4 12h16M4 18.5h16"/><circle cx="8" cy="5.5" r="1.5"/><circle cx="15.5" cy="12" r="1.5"/><circle cx="10" cy="18.5" r="1.5"/></svg></div>
+        <div class="modal-heading-copy"><h2 id="panelContentTitle">Add an organizer</h2><p>Create a new organizer account from this panel.</p></div>
+        <button type="button" id="closePanelContent" class="modal-close" aria-label="Close organizer management">×</button>
+      </div>
+      <section class="panel-content-grid" id="panelContentGrid">
+
+
+        <aside class="create-section panel-card" id="createSection">
+          <div class="section-heading create-heading"><div><h2>Add an organizer</h2><p>Create an account directly from the panel.</p></div><span class="plus-chip" aria-hidden="true">＋</span></div>
+          <form id="createOrganizerForm" autocomplete="off" data-bwignore="true" data-lpignore="true" data-1p-ignore="true">
+            <label for="newDisplayName">Organizer / venue name</label>
+            <input id="newDisplayName" name="displayName" type="text" maxlength="80" placeholder="e.g. Husay Dinkers" required>
+            <label for="newUsername">Username</label>
+            <input id="newUsername" name="username" type="text" minlength="3" maxlength="40" pattern="[A-Za-z0-9][A-Za-z0-9_.-]{2,39}" autocomplete="off" placeholder="Choose a username" required>
+            <label for="newPassword">Temporary password <small>8 characters minimum</small></label>
+            <div class="password-input"><input id="newPassword" name="password" type="password" minlength="8" maxlength="200" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" placeholder="Set initial password" required><button type="button" id="toggleNewPassword" aria-label="Show password">Show</button></div>
+            <p id="createMessage" class="create-message" role="alert" aria-live="polite"></p>
+            <button type="submit" id="createOrganizerButton" class="primary-button full-button">Create organizer account <span aria-hidden="true">→</span></button>
+            <p class="form-security-note"><span aria-hidden="true">♢</span> Passwords are stored as secure hashes and are never displayed in this panel.</p>
+          </form>
+        </aside>
+      </section>
+    </section>
+  </div>
+
+  <div id="accountModal" class="panel-modal account-modal" hidden>
     <button class="panel-modal-scrim" type="button" data-close-modal aria-label="Close dialog"></button>
     <section class="panel-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle" tabindex="-1">
       <div class="modal-heading">
         <div class="modal-heading-icon" id="modalIcon" aria-hidden="true">✦</div>
         <div class="modal-heading-copy"><h2 id="accountModalTitle">Edit organizer profile</h2><p id="accountModalDescription">Update the organizer's account details.</p></div>
-        <button type="button" id="closeAccountModal" class="modal-close" aria-label="Close dialog">×</button>
       </div>
       <div id="confirmModalBody" class="confirm-modal-body" hidden>
         <p id="confirmModalText"></p>
@@ -93,20 +205,32 @@
         <p id="confirmModalError" class="modal-error" role="alert" aria-live="polite"></p>
         <div class="modal-actions"><button type="button" class="secondary-button" data-close-modal>Cancel</button><button type="button" id="confirmAccountAction" class="primary-button">Confirm</button></div>
       </div>
-      <form id="editOrganizerForm" class="edit-organizer-form" hidden>
+      <form id="editOrganizerForm" class="edit-organizer-form" autocomplete="off" data-bwignore="true" data-lpignore="true" data-1p-ignore="true" hidden>
         <div class="avatar-editor-row">
           <div class="avatar-preview-wrap"><img id="organizerAvatarPreview" alt="Organizer profile preview"><span id="avatarFallback" aria-hidden="true">OP</span></div>
-          <div class="avatar-editor-copy"><strong>Organizer photo</strong><p>Optional JPG, PNG, or WebP. The image is resized before saving.</p><div class="avatar-editor-actions"><label for="organizerProfileImage" class="upload-photo-button">Choose photo</label><button type="button" id="removeOrganizerPhoto" class="text-button">Remove photo</button></div><input id="organizerProfileImage" class="visually-hidden-input" type="file" accept="image/png,image/jpeg,image/webp"></div>
+          <div class="avatar-editor-copy"><strong>Organizer photo</strong><p>Optional image in a browser-supported format. Automatically resized and compressed before saving.</p><div class="avatar-editor-actions"><label for="organizerProfileImage" class="upload-photo-button">Choose photo</label><button type="button" id="removeOrganizerPhoto" class="text-button">Remove photo</button></div><input id="organizerProfileImage" class="visually-hidden-input" type="file" accept="image/*"></div>
         </div>
         <label for="editDisplayName">Organizer / venue name</label>
         <input id="editDisplayName" name="displayName" type="text" maxlength="80" autocomplete="organization" required>
         <label for="editUsername">Username</label>
         <input id="editUsername" name="username" type="text" minlength="3" maxlength="40" pattern="[A-Za-z0-9][A-Za-z0-9_.-]{2,39}" autocomplete="off" required>
         <label for="editPassword">New password <small>Leave blank to keep current password</small></label>
-        <div class="password-input"><input id="editPassword" name="password" type="password" minlength="8" maxlength="200" autocomplete="new-password" placeholder="Leave blank to keep current password"><button type="button" id="toggleEditPassword" aria-label="Show new password">Show</button></div>
+        <div class="password-input"><input id="editPassword" name="password" type="password" minlength="8" maxlength="200" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" placeholder="Leave blank to keep current password"><button type="button" id="toggleEditPassword" aria-label="Show new password">Show</button></div>
         <p id="editModalError" class="modal-error" role="alert" aria-live="polite"></p>
         <div class="modal-actions"><button type="button" class="secondary-button" data-close-modal>Cancel</button><button type="submit" id="saveOrganizerChanges" class="primary-button">Save changes <span aria-hidden="true">→</span></button></div>
       </form>
+    </section>
+  </div>
+
+  <div id="panelLogoutModal" class="panel-modal logout-confirm-modal" hidden>
+    <button type="button" class="panel-modal-scrim" data-cancel-logout aria-label="Cancel logout"></button>
+    <section class="panel-modal-dialog logout-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="logoutConfirmTitle" aria-describedby="logoutConfirmDescription" tabindex="-1">
+      <div class="modal-heading">
+        <div class="modal-heading-icon logout-modal-icon" aria-hidden="true">↗</div>
+        <div class="modal-heading-copy"><h2 id="logoutConfirmTitle">Log out of the organizer panel?</h2><p id="logoutConfirmDescription">You will need to sign in again to manage organizer accounts.</p></div>
+        <button type="button" id="closeLogoutConfirm" class="modal-close" aria-label="Cancel logout">×</button>
+      </div>
+      <div class="logout-confirm-actions"><button type="button" id="cancelPanelLogout" class="secondary-button">Stay signed in</button><button type="button" id="confirmPanelLogout" class="primary-button danger-confirm">Log out</button></div>
     </section>
   </div>
 </body>

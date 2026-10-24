@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-page="start">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -7,15 +7,18 @@
   <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
   <title>Pickle Point Match — Session</title>
 <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=queue-responsive-all-devices-20261022-1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=queue-responsive-all-devices-20261022-1&mzoom=20261024-2&sessionfooter=20261024-1&sessionpolish=20261024-3&sessionbrand=20261024-8&sessionscrollbar=20261024-6&brandalign=20261024-1&sessionbg=20261024-1&brandcopy=20261024-1">
+  <link rel="stylesheet" href="session-brand.css?v=20261024-2">
 </head>
 <body data-page="start">
 <div id="liveQueueStartScreen" class="live-queue-start-screen">
-  <div class="live-queue-start-brand" aria-label="Pickle Point Match">
-    <img src="pickleball-p-emblem.png" alt="" aria-hidden="true">
-    <div class="live-queue-start-brand-wordmark">
-      <span>PICKLE <b>POINT</b></span>
-      <small>M A T C H</small>
+  <div class="live-queue-start-brand-slot">
+    <div class="login-brand live-queue-start-brand" role="img" aria-label="Pickle Point Match">
+      <img class="brand-mark" src="pickleball-p-emblem.png" alt="" aria-hidden="true">
+      <span class="brand-words"><b>PICKLE <strong>POINT</strong></b><small>M A T C H</small></span>
     </div>
   </div>
 
@@ -113,8 +116,9 @@
       <button type="button" id="createLiveQueueBtn" class="create-live-queue-btn">Create Live Queue</button>
     </section>
   </div>
+  <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
 </div>
-<script src="auth-session.js?v=organizer-login-rework-20261023-1"></script>
+<script src="auth-session.js?v=organizer-login-rework-20261024-1"></script>
 <script>window.PPM_AUTH_READY?.then(status=>{if(!status||status.role!=='organizer')return;const app=document.createElement('script');app.src='start-page.js?v=organizer-scoped-start-page-20261023-1';app.onerror=()=>console.error('Pickle Point Match could not load the organizer start screen.');document.body.appendChild(app);});</script>
 </body>
 </html>

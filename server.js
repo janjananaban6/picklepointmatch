@@ -42,10 +42,6 @@ const PANEL_PASSWORD = String(process.env.PANEL_PASSWORD || '');
 const SESSION_SECRET = String(process.env.SESSION_SECRET || '');
 const AUTH_COOKIE = 'ppm_organizer_session';
 const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
-const LOGIN_LIMIT = 5;
-const LOGIN_WINDOW_MS = 15 * 60 * 1000;
-const loginFailures = new Map();
-const registrationFailures = new Map();
 function authIsConfigured() {
   return !!(SESSION_SECRET && ((PANEL_USERNAME && PANEL_PASSWORD) || organizerAccounts.some(a => a.active)));
 }
@@ -117,19 +113,6 @@ function cookieOptions(req, maxAge) {
   const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
   const secure = process.env.NODE_ENV === 'production' || forwardedProto === 'https';
   return `Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
-}
-function loginClientKey(req) {
-  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || req.socket?.remoteAddress || 'unknown';
-}
-function getLoginFailureRecord(key, table = loginFailures) {
-  const now = Date.now();
-  let record = table.get(key);
-  if (!record || now - record.firstAt > LOGIN_WINDOW_MS) {
-    record = {count:0, firstAt:now};
-    table.set(key, record);
-  }
-  return record;
 }
 function setRedirect(res, location) {
   res.writeHead(302, {'Location':location,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
@@ -389,15 +372,30 @@ async function handle(req, res) {
     });
   }
 
+  if (url.pathname === '/api/organizers/public' && req.method === 'GET') {
+    // This endpoint intentionally exposes only what the public sign-in picker needs.
+    // Never include password hashes, login timestamps, or admin-only account metadata.
+    const organizers = organizerAccounts
+      .filter(account => account && account.active !== false && account.username)
+      .map(account => ({
+        id: String(account.id),
+        username: String(account.username),
+        displayName: String(account.displayName || account.username),
+        profileImage: typeof account.profileImage === 'string' && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(account.profileImage) ? account.profileImage : null
+      }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, {sensitivity:'base'}));
+    const panelAccount = panelIsConfigured()
+      ? {username:PANEL_USERNAME,displayName:'Panel Administrator',profileImage:null}
+      : null;
+    return sendJson(res, 200, {ok:true,organizers,panelAccount});
+  }
+
   if (url.pathname === '/api/login' && req.method === 'POST') {
     if (!SESSION_SECRET || (!panelIsConfigured() && !organizerAccounts.some(account => account.active !== false))) {
       return sendJson(res, 503, {ok:false,error:'Login is not configured yet. Configure PANEL_USERNAME, PANEL_PASSWORD, SESSION_SECRET, or register an organizer after setup.'});
     }
-    const key = loginClientKey(req);
-    const failureRecord = getLoginFailureRecord(key);
-    if (failureRecord.count >= LOGIN_LIMIT && Date.now() - failureRecord.firstAt <= LOGIN_WINDOW_MS) {
-      return sendJson(res, 429, {ok:false,error:'Too many login attempts. Please try again later.'});
-    }
+    // Login attempts are not counted or locked out. A failed sign-in returns a normal
+    // 401 response, and users can correct credentials and retry immediately.
     try {
       const body = await readBody(req, 16 * 1024);
       const username = String(body?.username || '').trim();
@@ -411,10 +409,8 @@ async function handle(req, res) {
         if (account && account.active !== false && verifyPassword(password, account.passwordHash)) role = 'organizer';
       }
       if (!role) {
-        failureRecord.count += 1;
         return sendJson(res, 401, {ok:false,error:'Incorrect username or password, or this account is inactive.'});
       }
-      loginFailures.delete(key);
       if (role === 'organizer') {
         account.lastLoginAt = new Date().toISOString();
         await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
@@ -429,18 +425,23 @@ async function handle(req, res) {
       });
       return res.end(JSON.stringify({ok:true,role,username:authUsername,organizerId:authId,expiresIn:SESSION_MAX_AGE_SECONDS}));
     } catch (err) {
-      return sendJson(res, err.statusCode || 400, {ok:false,error:err.statusCode === 413 ? 'Payload too large' : 'Invalid login request.'});
+      const statusCode = err.statusCode || 503;
+      const errorText = err.statusCode === 413
+        ? 'Login request is too large.'
+        : err.statusCode === 400
+          ? 'Invalid login request. Please check the submitted fields and try again.'
+          : 'The login service could not access account storage. Please try again shortly.';
+      if (!err.statusCode) console.error('Unable to complete login request:', err.message);
+      return sendJson(res, statusCode, {ok:false,error:errorText});
     }
   }
 
   if (url.pathname === '/api/register-organizer' && req.method === 'POST') {
     if (!SESSION_SECRET) return sendJson(res, 503, {ok:false,error:'Organizer registration is not configured. Set SESSION_SECRET on the server and redeploy.'});
-    const key = loginClientKey(req);
-    const record = getLoginFailureRecord(key, registrationFailures);
-    if (record.count >= 5 && Date.now() - record.firstAt <= LOGIN_WINDOW_MS) return sendJson(res, 429, {ok:false,error:'Too many registration attempts. Please try again later.'});
-    record.count += 1;
+    // Public organizer registration intentionally has no application-level attempt lockout.
+    // Logos are compressed in the browser; the larger body allowance also accommodates cached clients.
     try {
-      const body = await readBody(req, 16 * 1024);
+      const body = await readBody(req, 16 * 1024 * 1024);
       const username = String(body?.username || '').trim();
       const displayName = String(body?.displayName || '').trim().replace(/\s+/g, ' ').slice(0, 80);
       const password = String(body?.password || '');
@@ -450,7 +451,12 @@ async function handle(req, res) {
       if (username.toLocaleLowerCase() === PANEL_USERNAME.toLocaleLowerCase() || (AUTH_USERNAME && username.toLocaleLowerCase() === AUTH_USERNAME.toLocaleLowerCase()) || accountByUsername(username)) {
         return sendJson(res, 409, {ok:false,error:'That username is already in use.'});
       }
+      const profileImage = String(body?.profileImage || '').trim();
+      if (profileImage && (profileImage.length > 12_000_000 || !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(profileImage))) {
+        return sendJson(res, 400, {ok:false,error:'Please choose a valid PNG, JPG, or WebP logo. Large logos are compressed automatically before saving.'});
+      }
       const account = makeOrganizerRecord(username,password,displayName,'self-registration');
+      account.profileImage = profileImage || null;
       organizerAccounts.push(account);
       await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
       res.writeHead(201, {
@@ -459,9 +465,16 @@ async function handle(req, res) {
         'Set-Cookie':`${AUTH_COOKIE}=${makeSessionToken(account.username,'organizer',account.id)}; ${cookieOptions(req, SESSION_MAX_AGE_SECONDS)}`,
         'X-Content-Type-Options':'nosniff'
       });
-      return res.end(JSON.stringify({ok:true,role:'organizer',username:account.username,organizerId:account.id,organizer:organizerPublicRecord(account)}));
+      return res.end(JSON.stringify({ok:true,role:'organizer',username:account.username,organizerId:account.id}));
     } catch (err) {
-      return sendJson(res, err.statusCode || 400, {ok:false,error:err.statusCode === 413 ? 'Payload too large' : 'Unable to register this organizer.'});
+      const statusCode = err.statusCode || 503;
+      const errorText = err.statusCode === 413
+        ? 'This registration request is still too large. Refresh the page so logo compression can update, then try again.'
+        : err.statusCode === 400
+          ? 'Invalid registration request. Please check the required fields.'
+          : 'Unable to save the organizer account. Check the database connection and try again.';
+      if (!err.statusCode) console.error('Unable to register organizer:', err.message);
+      return sendJson(res, statusCode, {ok:false,error:errorText});
     }
   }
 
@@ -490,7 +503,7 @@ async function handle(req, res) {
   if (organizerAdminMatch && req.method === 'PATCH') {
     if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
     try {
-      const body = await readBody(req, 900 * 1024);
+      const body = await readBody(req, 4 * 1024 * 1024);
       const account = organizerAccounts.find(item => item.id === organizerAdminMatch[1]);
       if (!account) return sendJson(res, 404, {ok:false,error:'Organizer account not found.'});
       if (body.displayName !== undefined) {
@@ -515,8 +528,8 @@ async function handle(req, res) {
       }
       if (body.profileImage !== undefined) {
         const profileImage = String(body.profileImage || '').trim();
-        if (profileImage && (profileImage.length > 650000 || !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(profileImage))) {
-          return sendJson(res, 400, {ok:false,error:'Profile photo must be a small PNG, JPG, or WebP image.'});
+        if (profileImage && (profileImage.length > 2500000 || !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(profileImage))) {
+          return sendJson(res, 400, {ok:false,error:'Profile photo must be a valid image under 2 MB after processing.'});
         }
         account.profileImage = profileImage || null;
       }

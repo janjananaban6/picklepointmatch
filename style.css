@@ -20619,3 +20619,923 @@ img,svg,video{max-width:100%}
   .top-actions button,.queue-mode-btn,.registration-skill-btn{min-height:40px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* Mobile/iPad input zoom prevention: keep text controls at Safari's 16px threshold. */
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+
+/* SESSION PAGE ONLY — match login branding, add the login-style footer,
+   and keep the session-name field readable without iOS focus zoom. */
+html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand {
+  display: flex !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+  align-self: center !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  margin: 0 auto 12px !important;
+  text-align: center !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand > img {
+  display: block !important;
+  width: 39px !important;
+  height: 39px !important;
+  min-width: 39px !important;
+  flex: 0 0 39px !important;
+  object-fit: contain !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark {
+  display: flex !important;
+  min-width: 0 !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  gap: 1px !important;
+  align-self: center !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  transform: none !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > span {
+  display: block !important;
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  letter-spacing: .7px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > span b {
+  font-weight: 900 !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > small {
+  display: block !important;
+  margin: 0 !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  letter-spacing: 4px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > small::before,
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > small::after {
+  display: none !important;
+  content: none !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-card {
+  width: min(100%, 440px) !important;
+  max-width: 440px !important;
+  min-width: 0 !important;
+  align-self: center !important;
+}
+html body[data-page="start"] #liveQueueStartScreen > .page-footer {
+  display: flex !important;
+  width: min(100%, 440px) !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  margin: auto auto 2px !important;
+  padding: 12px 0 max(4px, env(safe-area-inset-bottom, 0px)) !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #82969a !important;
+  font-size: 9px !important;
+  font-weight: 750 !important;
+  letter-spacing: .2px !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+}
+html body[data-page="start"] #liveQueueStartScreen > .page-footer > span {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  color: #456c72 !important;
+  font-size: inherit !important;
+  font-weight: 950 !important;
+  letter-spacing: .75px !important;
+  line-height: inherit !important;
+  text-align: center !important;
+  overflow-wrap: anywhere !important;
+}
+html body[data-page="start"] #liveQueueStartScreen #liveQueueSessionName {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  text-size-adjust: 100% !important;
+  -webkit-text-size-adjust: 100% !important;
+}
+@media (max-width: 520px) {
+  html body[data-page="start"] #liveQueueStartScreen {
+    padding-right: clamp(16px, 4.5vw, 24px) !important;
+    padding-left: clamp(16px, 4.5vw, 24px) !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand {
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand > img {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    flex-basis: 32px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > span {
+    font-size: 11px !important;
+    font-weight: 950 !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > small {
+    font-size: 7px !important;
+    letter-spacing: 3px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-card {
+    width: 100% !important;
+    max-width: 440px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-panel {
+    padding-right: 13px !important;
+    padding-left: 13px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen #liveQueueSessionName {
+    height: 42px !important;
+    padding: 0 12px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen > .page-footer {
+    font-size: 8px !important;
+    margin-top: auto !important;
+  }
+}
+/* iPad/tablet and touch layouts: 16px prevents browser input-focus zoom. */
+@media (min-width: 521px) and (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  html body[data-page="start"] #liveQueueStartScreen #liveQueueSessionName {
+    height: 42px !important;
+    padding: 0 12px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+  }
+}
+
+
+/* SESSION PAGE FINISHING PASS — align the header lockup to login-topbar,
+   preserve comfortable gaps, hide scrollbars while retaining scrollability,
+   and use a smaller input type size on phones/tablets. */
+html body[data-page="start"] #liveQueueStartScreen {
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  scrollbar-gutter: auto !important;
+}
+html body[data-page="start"] #liveQueueStartScreen::-webkit-scrollbar,
+html body[data-page="start"] #liveQueueStartScreen *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+html body[data-page="start"],
+html body[data-page="start"] * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+html body[data-page="start"] > ::-webkit-scrollbar,
+html body[data-page="start"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Match the login-topbar: a full-width 50px alignment row with a centered brand. */
+html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  display: flex !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 50px !important;
+  flex: 0 0 auto !important;
+  align-self: stretch !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  margin: 0 auto 10px !important;
+  padding: 0 !important;
+  transform: none !important;
+  text-align: center !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand > img {
+  width: 39px !important;
+  height: 39px !important;
+  min-width: 39px !important;
+  min-height: 39px !important;
+  flex: 0 0 39px !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > span {
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  letter-spacing: .7px !important;
+  line-height: 1.2 !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > small {
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  letter-spacing: 4px !important;
+  line-height: 1.2 !important;
+}
+
+/* Keep a visible, intentional breathing gap between the card and footer/logout. */
+html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-card {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+html body[data-page="start"] #liveQueueStartScreen > .page-footer {
+  margin: 14px auto 2px !important;
+  padding: 0 0 max(4px, env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* The field label and value were reading too large on touch devices. */
+html body[data-page="start"] #liveQueueStartScreen .live-queue-field-label {
+  font-size: 8.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: .075em !important;
+  line-height: 1.3 !important;
+}
+html body[data-page="start"] #liveQueueStartScreen #liveQueueSessionName {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+}
+@media (max-width: 520px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand {
+    min-height: 46px !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand > img {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    flex-basis: 32px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > span {
+    font-size: 11px !important;
+    font-weight: 950 !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > small {
+    font-size: 7px !important;
+    letter-spacing: 3px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-card {
+    width: 100% !important;
+    max-width: 440px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen #liveQueueSessionName {
+    height: 38px !important;
+    padding: 0 11px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen > .page-footer {
+    margin-top: 12px !important;
+    font-size: 8px !important;
+  }
+}
+@media (max-width: 380px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand {
+    gap: 6px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand > img {
+    width: 25px !important;
+    height: 25px !important;
+    min-width: 25px !important;
+    min-height: 25px !important;
+    flex-basis: 25px !important;
+  }
+}
+@media (min-width: 521px) and (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand {
+    min-height: 50px !important;
+    margin-bottom: 10px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen #liveQueueSessionName {
+    height: 40px !important;
+    padding: 0 12px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen > .page-footer {
+    margin-top: 14px !important;
+  }
+}
+
+
+/* SESSION.HTML ONLY — match index.html's invisible scrollbar behavior.
+   The repeated :not() terms raise specificity above the global scrollbar theme.
+   Scrolling stays enabled; this hides only the scrollbar visuals. */
+html[data-page="start"]:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override),
+html[data-page="start"] body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override),
+html[data-page="start"] body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override) {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  scrollbar-color: transparent transparent !important;
+}
+html[data-page="start"]:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar,
+html[data-page="start"] body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar,
+html[data-page="start"] body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* Match the login-brand font and colors exactly, including narrow phones. */
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark {
+  color: #eefafa !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > span {
+  color: #eefafa !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > span b {
+  color: #27d3c5 !important;
+  font-weight: 900 !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > small {
+  color: #95c4c7 !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+}
+@media (min-width: 361px) and (max-width: 380px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand {
+    gap: 8px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand > img {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    flex-basis: 32px !important;
+  }
+}
+@media (max-width: 360px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand {
+    gap: 6px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand > img {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    flex-basis: 30px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > span {
+    font-size: 10px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .live-queue-start-brand-wordmark > small {
+    font-size: 7px !important;
+    letter-spacing: 2.5px !important;
+  }
+}
+
+
+/* SESSION START BRAND — mirror login.css brand markup, dimensions and breakpoints.
+   Only the session brand lockup is changed; its position above the session card remains. */
+html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  display: flex !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 50px !important;
+  flex: 0 0 auto !important;
+  align-self: center !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  margin: 0 auto 10px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  color: #eefafa !important;
+  white-space: nowrap !important;
+  transform: none !important;
+  text-align: left !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-mark {
+  display: block !important;
+  width: 39px !important;
+  height: 39px !important;
+  min-width: 39px !important;
+  min-height: 39px !important;
+  flex: 0 0 39px !important;
+  object-fit: contain !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words {
+  display: flex !important;
+  min-width: 0 !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 1px !important;
+  color: #eefafa !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+  white-space: nowrap !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words > b {
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  letter-spacing: .7px !important;
+  line-height: 1.2 !important;
+  color: #eefafa !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words > b > strong {
+  color: #27d3c5 !important;
+  font-weight: 900 !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words > small {
+  display: block !important;
+  margin: 0 !important;
+  color: #95c4c7 !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  letter-spacing: 4px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words > small::before,
+html body[data-page="start"] #liveQueueStartScreen .brand-words > small::after {
+  content: none !important;
+  display: none !important;
+}
+@media (max-width: 520px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand {
+    max-width: 100% !important;
+    gap: 8px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-mark {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    flex-basis: 32px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words > b {
+    font-size: 11px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words > small {
+    font-size: 7px !important;
+    letter-spacing: 3px !important;
+  }
+}
+@media (max-width: 360px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand {
+    gap: 6px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words > b {
+    font-size: 10px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words > small {
+    font-size: 7px !important;
+    letter-spacing: 2.5px !important;
+  }
+}
+@media (max-width: 380px) {
+  html body[data-page="start"] #liveQueueStartScreen .brand-mark {
+    width: 25px !important;
+    height: 25px !important;
+    min-width: 25px !important;
+    min-height: 25px !important;
+    flex-basis: 25px !important;
+  }
+}
+
+
+/* SESSION BRAND — use the same header-row and centered brand lockup as index.html.
+   The slot is the 50px login-topbar equivalent; its inner login-brand uses the
+   same absolute centering model, font metrics, logo sizes, and narrow-screen rules. */
+html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand-slot {
+  position: relative !important;
+  display: flex !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 50px !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: stretch !important;
+  margin: 0 auto 10px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  display: flex !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  color: #eefafa !important;
+  white-space: nowrap !important;
+  transform: translate(-50%, -50%) !important;
+  text-align: left !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-mark {
+  display: block !important;
+  width: 39px !important;
+  height: 39px !important;
+  min-width: 39px !important;
+  min-height: 39px !important;
+  flex: 0 0 39px !important;
+  object-fit: contain !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words {
+  display: flex !important;
+  min-width: 0 !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 1px !important;
+  color: #eefafa !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+  white-space: nowrap !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words b {
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  letter-spacing: .7px !important;
+  line-height: 1.2 !important;
+  color: #eefafa !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words strong {
+  color: #27d3c5 !important;
+  font-weight: 900 !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words small {
+  display: block !important;
+  margin: 0 !important;
+  color: #95c4c7 !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  letter-spacing: 4px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words small::before,
+html body[data-page="start"] #liveQueueStartScreen .brand-words small::after {
+  content: none !important;
+  display: none !important;
+}
+@media (max-width: 520px) {
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
+    gap: 8px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-mark {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    flex-basis: 32px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words b {
+    font-size: 11px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words small {
+    font-size: 7px !important;
+    letter-spacing: 3px !important;
+  }
+}
+@media (max-width: 360px) {
+  html body[data-page="start"] #liveQueueStartScreen .brand-words b {
+    font-size: 10px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words small {
+    font-size: 7px !important;
+    letter-spacing: 2.5px !important;
+  }
+}
+@media (max-width: 380px) {
+  html body[data-page="start"] #liveQueueStartScreen .brand-mark {
+    width: 25px !important;
+    height: 25px !important;
+    min-width: 25px !important;
+    min-height: 25px !important;
+    flex-basis: 25px !important;
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand-slot {
+    min-height: 30px !important;
+    margin-bottom: 6px !important;
+  }
+}
+
+/* Keep the session brand on the same 8px top inset as the login shell. */
+html body[data-page="start"] #liveQueueStartScreen { padding-top: 8px !important; }
+
+/* FINAL SESSION BRAND FIX — use the real .brand-words markup and mirror
+   login.css breakpoints. The versioned stylesheet URL in session.html is
+   deliberately bumped so deployed browsers fetch these rules. */
+html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand-slot {
+  box-sizing: border-box !important;
+  min-height: 50px !important;
+  margin-bottom: 10px !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
+  top: 50% !important;
+  left: 50% !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transform: translate(-50%, -50%) !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-mark {
+  width: 39px !important;
+  height: 39px !important;
+  min-width: 39px !important;
+  min-height: 39px !important;
+  flex: 0 0 39px !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words {
+  display: flex !important;
+  min-width: 0 !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 1px !important;
+  align-self: center !important;
+  color: #eefafa !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+  line-height: normal !important;
+  white-space: nowrap !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words > b {
+  display: block !important;
+  margin: 0 !important;
+  color: #eefafa !important;
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  letter-spacing: .7px !important;
+  line-height: 1.2 !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words > b > strong {
+  color: #27d3c5 !important;
+  font-weight: 900 !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words > small {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #95c4c7 !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  letter-spacing: 4px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words > small::before,
+html body[data-page="start"] #liveQueueStartScreen .brand-words > small::after {
+  display: none !important;
+  content: none !important;
+}
+@media (max-width: 520px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand-slot {
+    min-height: 46px !important;
+    margin-bottom: 14px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
+    gap: 8px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-mark {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    flex-basis: 32px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words > b {
+    font-size: 11px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words > small {
+    font-size: 7px !important;
+    letter-spacing: 3px !important;
+  }
+}
+@media (max-width: 360px) {
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
+    gap: 6px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words > b {
+    font-size: 10px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words > small {
+    font-size: 7px !important;
+    letter-spacing: 2.5px !important;
+  }
+}
+@media (max-width: 380px) {
+  html body[data-page="start"] #liveQueueStartScreen .brand-mark {
+    width: 25px !important;
+    height: 25px !important;
+    min-width: 25px !important;
+    min-height: 25px !important;
+    flex-basis: 25px !important;
+  }
+}
+@media (max-width: 300px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand-slot {
+    min-height: 44px !important;
+    margin-bottom: 16px !important;
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand-slot {
+    min-height: 30px !important;
+    margin-bottom: 6px !important;
+  }
+}
+
+/* SESSION PAGE BACKGROUND — exactly match the organizer login page background. */
+html body[data-page="start"] #liveQueueStartScreen {
+  background: radial-gradient(ellipse at 50% 0%, rgba(13, 59, 38, .42) 0%, rgba(13, 59, 38, 0) 48%), #0f172a !important;
+}
+html body[data-page="start"] {
+  background: radial-gradient(ellipse at 50% 0%, rgba(13, 59, 38, .42) 0%, rgba(13, 59, 38, 0) 48%), #0f172a !important;
+}
+
+/* AUTHORITATIVE LOGIN BRAND CLONE — keep the Live Queue start brand identical to index.html. */
+html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand-slot {
+  position: relative !important;
+  display: flex !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 50px !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: stretch !important;
+  margin: 0 auto 10px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  display: flex !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  color: #eefafa !important;
+  white-space: nowrap !important;
+  transform: translate(-50%, -50%) !important;
+  text-align: left !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-mark {
+  display: block !important;
+  width: 39px !important;
+  height: 39px !important;
+  min-width: 39px !important;
+  min-height: 39px !important;
+  flex: 0 0 39px !important;
+  object-fit: contain !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words {
+  display: flex !important;
+  min-width: 0 !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 1px !important;
+  align-self: center !important;
+  color: #eefafa !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+  white-space: nowrap !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words > b {
+  display: block !important;
+  margin: 0 !important;
+  color: #eefafa !important;
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  letter-spacing: .7px !important;
+  line-height: 1.2 !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words > b > strong {
+  color: #27d3c5 !important;
+  font-weight: 900 !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words > small {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #95c4c7 !important;
+  font-family: 'DM Sans', Arial, sans-serif !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  letter-spacing: 4px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+html body[data-page="start"] #liveQueueStartScreen .brand-words > small::before,
+html body[data-page="start"] #liveQueueStartScreen .brand-words > small::after {
+  content: none !important;
+  display: none !important;
+}
+@media (max-width: 520px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand-slot {
+    min-height: 46px !important;
+    margin-bottom: 14px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
+    gap: 8px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-mark {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    flex-basis: 32px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words > b {
+    font-size: 11px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words > small {
+    font-size: 7px !important;
+    letter-spacing: 3px !important;
+  }
+}
+@media (max-width: 360px) {
+  html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
+    gap: 6px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words > b {
+    font-size: 10px !important;
+  }
+  html body[data-page="start"] #liveQueueStartScreen .brand-words > small {
+    font-size: 7px !important;
+    letter-spacing: 2.5px !important;
+  }
+}
+@media (max-width: 380px) {
+  html body[data-page="start"] #liveQueueStartScreen .brand-mark {
+    width: 25px !important;
+    height: 25px !important;
+    min-width: 25px !important;
+    min-height: 25px !important;
+    flex-basis: 25px !important;
+  }
+}
+@media (max-width: 300px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand-slot {
+    min-height: 44px !important;
+    margin-bottom: 16px !important;
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand-slot {
+    min-height: 30px !important;
+    margin-bottom: 6px !important;
+  }
+}
+

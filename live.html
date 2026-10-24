@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="live-view.css?v=queue-search-compact-height-20261023-1">
-  <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261023-1">
+  <link rel="stylesheet" href="live-view.css?v=queue-search-compact-height-20261023-1&mzoom=20261024-1&livetabs=radius15-min35-responsive-20261024-5">
+  <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261023-1&mzoom=20261024-1">
 </head>
 <body class="live-view-page">
   <header class="live-header">
@@ -28,9 +28,9 @@
         <div id="sessionTitleSlide" class="session-title-slide"><h1 id="sessionTitle">Pickle Point Match</h1></div>
       </section>
       <nav class="live-tabs" role="tablist" aria-label="Live view sections">
-        <button id="queueTab" class="live-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="liveQueuePanel" data-live-tab="queue">Queue</button>
-        <button id="rankingsTab" class="live-tab" type="button" role="tab" aria-selected="false" aria-controls="liveRankingsPanel" data-live-tab="rankings">Rankings</button>
-        <button id="matchesTab" class="live-tab" type="button" role="tab" aria-selected="false" aria-controls="liveMatchesPanel" data-live-tab="matches">Matches</button>
+        <button id="queueTab" class="live-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="liveQueuePanel" data-live-tab="queue"><svg class="live-tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H17v16H6.5A2.5 2.5 0 0 0 4 21V5.5Z"/><path d="M17 5h2a2 2 0 0 1 2 2v14H6.5A2.5 2.5 0 0 1 4 18.5"/><path d="M8 7h5M8 10h5"/></svg><span>Queueing</span></button>
+        <button id="rankingsTab" class="live-tab" type="button" role="tab" aria-selected="false" aria-controls="liveRankingsPanel" data-live-tab="rankings"><svg class="live-tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 4h8v4a4 4 0 0 1-8 0V4Z"/><path d="M8 6H4v2a4 4 0 0 0 4 4M16 6h4v2a4 4 0 0 1-4 4"/><path d="M12 12v5M8 21h8M10 17h4v4h-4z"/></svg><span>Ranking</span></button>
+        <button id="matchesTab" class="live-tab" type="button" role="tab" aria-selected="false" aria-controls="liveMatchesPanel" data-live-tab="matches"><svg class="live-tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a4 4 0 0 1-4-4V5a2 2 0 0 1 2-2h3Z"/><path d="M8 3v18M11 8h6M11 12h6M11 16h4"/><path d="M3 17a4 4 0 0 1 4-4h1"/></svg><span>Matches</span></button>
       </nav>
     </div>
 
@@ -123,7 +123,7 @@
         <div id="matchesList" class="live-matches-list" aria-live="polite"><div class="empty-state">No recorded matches yet.</div></div>
       </section>
     </section>
-    <footer class="page-footer"><span>● PICKLE POINT MATCH</span><span>Public view · Updates automatically</span></footer>
+    <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
     </main>
   </div>
   <script src="live-view.js?v=queue-search-slot-layout-fix-20261023-1" defer></script>

@@ -1,0 +1,17 @@
+PICKLE POINT MATCH — LOCAL TEST SERVER
+
+1. Install Node.js 18 or newer on your Windows computer: https://nodejs.org/
+2. Extract the entire project ZIP to a normal folder (not inside the ZIP preview).
+3. Double-click start-local.bat.
+4. The script installs dependencies if needed, starts the server on 127.0.0.1:3000, and opens the browser.
+5. Panel login for local testing:
+   Username: admin
+   Password: local-admin-change-me
+6. Stop the local server with Ctrl+C in the terminal window.
+
+IMPORTANT:
+- Open http://127.0.0.1:3000 only while the local server terminal is running.
+- Do not use the local test password on the deployed/public server.
+- Local test data is stored in this project's data folder and is separate from Render/cloud data unless DATABASE_URL is configured.
+- Do not set DATABASE_URL for local testing unless you intentionally want to connect to the same cloud database; doing so can modify live data.
+- For deployment, configure PANEL_USERNAME, PANEL_PASSWORD, SESSION_SECRET, and any existing database settings in the hosting environment. Do not deploy the local development credentials.

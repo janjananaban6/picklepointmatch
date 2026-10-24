@@ -930,3 +930,12 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
     transform: translate(-50%, 0);
   }
 }
+
+/* Mobile/iPad input zoom prevention: keep text controls at Safari's 16px threshold. */
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

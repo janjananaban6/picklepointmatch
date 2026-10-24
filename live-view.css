@@ -4036,3 +4036,263 @@ html body #waitingCourtsList .court-diagram.pickleball-court .court-player-marke
 html body #waitingCourtsList .court-diagram.pickleball-court .court-player-marker.marker-bottom-right {
   left: 84%;
 }
+
+/* Mobile/iPad input zoom prevention: keep text controls at Safari's 16px threshold. */
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* LIVE TABS — balanced standalone tabs, no shared outer rail.
+   Scoped to Live View only; tab behavior and page content remain unchanged. */
+html body.live-view-page .live-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html body.live-view-page .live-tab {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  min-height: 30px !important;
+  margin: 0 !important;
+  padding: 7px 10px !important;
+  border: 1px solid rgba(123, 151, 164, .10) !important;
+  border-bottom: 1px solid rgba(123, 151, 164, .10) !important;
+  border-radius: 12px !important;
+  background: #1c262f !important;
+  color: #9aabb5 !important;
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  line-height: 1.1 !important;
+  text-align: center !important;
+  cursor: pointer;
+  box-shadow: none !important;
+  transition: color .16s ease, background-color .16s ease, border-color .16s ease,
+    box-shadow .16s ease, transform .16s ease !important;
+}
+html body.live-view-page .live-tab:hover {
+  color: #dce9ed !important;
+  background: #25313b !important;
+  border-color: rgba(88, 199, 198, .25) !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .16) !important;
+  transform: translateY(-1px);
+}
+html body.live-view-page .live-tab:active {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .22) !important;
+  transform: scale(.985);
+}
+html body.live-view-page .live-tab.is-active {
+  color: #49d9cf !important;
+  background: #10383e !important;
+  border-color: #147f7e !important;
+  box-shadow: 0 2px 7px rgba(25, 190, 178, .10) !important;
+}
+html body.live-view-page .live-tab.is-active:hover {
+  color: #61e9dd !important;
+  background: #144149 !important;
+  border-color: #1a9993 !important;
+  box-shadow: 0 3px 9px rgba(25, 190, 178, .16) !important;
+}
+html body.live-view-page .live-tab.is-active:active {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .20),
+    0 1px 4px rgba(25, 190, 178, .12) !important;
+  transform: scale(.985);
+}
+html body.live-view-page .live-tab:focus-visible {
+  outline: 2px solid #35cfc5 !important;
+  outline-offset: 2px !important;
+}
+
+/* Keep the individual tabs consistent in the optional light theme. */
+html[data-theme="light"] body.live-view-page .live-tabs {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html[data-theme="light"] body.live-view-page .live-tab {
+  color: #60777d !important;
+  background: #f1f6f7 !important;
+  border-color: rgba(76, 116, 123, .13) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+html[data-theme="light"] body.live-view-page .live-tab:hover {
+  color: #24474d !important;
+  background: #e7f1f2 !important;
+  border-color: rgba(8, 127, 128, .27) !important;
+  box-shadow: 0 3px 8px rgba(24, 56, 62, .10) !important;
+}
+html[data-theme="light"] body.live-view-page .live-tab:active {
+  box-shadow: inset 0 1px 3px rgba(24, 56, 62, .12) !important;
+  transform: scale(.985);
+}
+html[data-theme="light"] body.live-view-page .live-tab.is-active {
+  color: #087f80 !important;
+  background: #e1f4f1 !important;
+  border-color: #15918d !important;
+  box-shadow: 0 2px 7px rgba(8, 127, 128, .10) !important;
+}
+html[data-theme="light"] body.live-view-page .live-tab.is-active:hover {
+  background: #d8eeeb !important;
+  border-color: #128783 !important;
+  box-shadow: 0 3px 9px rgba(8, 127, 128, .15) !important;
+}
+html[data-theme="light"] body.live-view-page .live-tab.is-active:active {
+  box-shadow: inset 0 1px 3px rgba(24, 56, 62, .12),
+    0 1px 4px rgba(8, 127, 128, .10) !important;
+  transform: scale(.985);
+}
+@media (max-width: 560px) {
+  html body.live-view-page .live-tabs { gap: 5px !important; padding: 0 !important; }
+  html body.live-view-page .live-tab { min-height: 31px !important; padding: 7px 5px !important; font-size: 10.5px !important; border-radius: 11px !important; }
+}
+
+/* Prevent any inherited pseudo-element from drawing a shared rail behind the tabs. */
+html body.live-view-page .live-page-pinned > nav.live-tabs,
+html[data-theme="light"] body.live-view-page .live-page-pinned > nav.live-tabs {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-top: 0 !important;
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+  border-left: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+html body.live-view-page .live-page-pinned > nav.live-tabs::before,
+html body.live-view-page .live-page-pinned > nav.live-tabs::after,
+html[data-theme="light"] body.live-view-page .live-page-pinned > nav.live-tabs::before,
+html[data-theme="light"] body.live-view-page .live-page-pinned > nav.live-tabs::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* LIVE VIEW TABS — separate the tabs from the session-title divider and remove the outer fill. */
+html body.live-view-page .live-page-pinned,
+html[data-theme="light"] body.live-view-page .live-page-pinned {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html body.live-view-page .live-page-pinned > nav.live-tabs,
+html[data-theme="light"] body.live-view-page .live-page-pinned > nav.live-tabs {
+  margin: 8px 0 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+html body.live-view-page .live-page-pinned > nav.live-tabs::before,
+html body.live-view-page .live-page-pinned > nav.live-tabs::after,
+html[data-theme="light"] body.live-view-page .live-page-pinned > nav.live-tabs::before,
+html[data-theme="light"] body.live-view-page .live-page-pinned > nav.live-tabs::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* LIVE VIEW TABS — responsive sizing and consistent 15px corners across devices. */
+html body.live-view-page .live-page-pinned {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+html body.live-view-page .live-page-pinned > nav.live-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  gap: clamp(4px, 0.7vw, 8px) !important;
+  overflow: visible !important;
+}
+/* Monochrome icons for the Live View tabs; icons inherit the tab text color. */
+html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab {
+  gap: 5px !important;
+}
+html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab .live-tab-icon {
+  display: block;
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 35px !important;
+  box-sizing: border-box !important;
+  border-radius: 15px !important;
+  padding: 7px clamp(4px, 1vw, 10px) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+@media (max-width: 560px) {
+  html body.live-view-page .live-page-pinned > nav.live-tabs {
+    gap: 4px !important;
+  }
+  html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab {
+    gap: 4px !important;
+    min-height: 35px !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    font-size: 10.5px !important;
+    border-radius: 15px !important;
+  }
+}
+@media (max-width: 350px) {
+  html body.live-view-page .live-page-pinned > nav.live-tabs {
+    gap: 3px !important;
+  }
+  html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab {
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    font-size: 10px !important;
+  }
+}
+
