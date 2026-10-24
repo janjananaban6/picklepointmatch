@@ -4316,27 +4316,33 @@ html body .live-page-pinned .event-heading #sessionTitleToggle #sessionOrganizer
 }
 
 
-/* Organizer name sits beneath the brand words; keep the rest of the header unchanged. */
-html body.live-view-page .live-header .brand-words .session-organizer-stat {
+/* Organizer identity badge sits beside connection status, with matching pill height. */
+html body.live-view-page .live-header .header-right #sessionOrganizerStat {
   display: inline-flex;
   align-items: center;
-  align-self: flex-start;
-  gap: 4px;
-  max-width: min(240px, 36vw);
-  margin-top: 2px;
-  color: #b58aff;
-  font-size: 9px;
-  font-weight: 850;
-  letter-spacing: .15px;
-  line-height: 1.2;
+  justify-content: center;
+  flex: 0 1 auto;
+  gap: 6px;
+  min-width: 0;
+  max-width: min(280px, 38vw);
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px solid #d9c3ff;
+  border-radius: 999px;
+  color: #6841a5;
+  background: #f0e7ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: normal;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-html body.live-view-page .live-header .brand-words .session-organizer-stat[hidden] {
+html body.live-view-page .live-header .header-right #sessionOrganizerStat[hidden] {
   display: none !important;
 }
-html body.live-view-page .live-header .brand-words .session-organizer-icon {
+html body.live-view-page .live-header .header-right #sessionOrganizerStat .session-organizer-icon {
   display: block;
   flex: 0 0 11px;
   width: 11px;
@@ -4347,11 +4353,28 @@ html body.live-view-page .live-header .brand-words .session-organizer-icon {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-html body.live-view-page .live-header .brand-words .session-organizer-name {
+html body.live-view-page .live-header .header-right #sessionOrganizerName {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-html[data-theme="light"] body.live-view-page .live-header .brand-words .session-organizer-stat {
-  color: #b58aff;
+@media (max-width: 560px) {
+  html body.live-view-page .live-header .header-right #sessionOrganizerStat {
+    gap: 5px;
+    height: 25px;
+    max-width: 42vw;
+    padding: 6px 7px;
+    font-size: 9px;
+    overflow: hidden;
+  }
+  html body.live-view-page .live-header .header-right #sessionOrganizerStat .session-organizer-icon {
+    flex-basis: 9px;
+    width: 9px;
+    height: 9px;
+  }
+}
+@media (max-width: 380px) {
+  html body.live-view-page .live-header .header-right #sessionOrganizerStat {
+    max-width: 38vw;
+  }
 }
