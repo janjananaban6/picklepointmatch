@@ -669,6 +669,82 @@ function openLiveView(){
   const url=getLiveViewUrl();
   window.open(url.href,'_blank','noopener');
 }
+function syncLiveViewOrganizerQrLogo(forceRefresh=false){
+  const logo=$('liveViewOrganizerQrLogo');
+  if(!logo)return;
+  const organizerId=String(window.PPM_ORGANIZER_ID||'').trim();
+  if(!organizerId){
+    logo.src='pickleball-p-emblem.png';
+    logo.dataset.organizerLogoReady='true';
+    return;
+  }
+  if(!forceRefresh&&logo.dataset.organizerLogoId===organizerId&&['loading','true'].includes(logo.dataset.organizerLogoReady||''))return;
+  logo.dataset.organizerLogoId=organizerId;
+  logo.dataset.organizerLogoReady='loading';
+  fetch(`/api/live-state?organizer=${encodeURIComponent(organizerId)}`,{cache:'no-store',credentials:'same-origin'})
+    .then(response=>response.ok?response.json():null)
+    .then(data=>{
+      if(logo.dataset.organizerLogoId!==organizerId)return;
+      const organizerLogo=typeof data?.organizerLogo==='string'?data.organizerLogo.trim():'';
+      logo.onerror=null;
+      logo.src=organizerLogo||'pickleball-p-emblem.png';
+      logo.dataset.hasCustomOrganizerLogo=organizerLogo?'true':'false';
+      logo.onerror=()=>{
+        logo.onerror=null;
+        logo.src='pickleball-p-emblem.png';
+        logo.dataset.hasCustomOrganizerLogo='false';
+      };
+      logo.dataset.organizerLogoReady='true';
+    })
+    .catch(()=>{
+      if(logo.dataset.organizerLogoId!==organizerId)return;
+      logo.src='pickleball-p-emblem.png';
+      logo.dataset.hasCustomOrganizerLogo='false';
+      logo.dataset.organizerLogoReady='true';
+    });
+}
+function syncEventOrganizerBadgeLogo(forceRefresh=false){
+  const logo=$('eventOrganizerLogo');
+  if(!logo)return;
+  const organizerId=String(window.PPM_ORGANIZER_ID||'').trim();
+  if(!organizerId){
+    logo.hidden=true;
+    logo.removeAttribute('src');
+    logo.dataset.organizerLogoId='';
+    logo.dataset.organizerLogoReady='true';
+    return;
+  }
+  if(!forceRefresh&&logo.dataset.organizerLogoId===organizerId&&['loading','true'].includes(logo.dataset.organizerLogoReady||''))return;
+  logo.dataset.organizerLogoId=organizerId;
+  logo.dataset.organizerLogoReady='loading';
+  logo.hidden=true;
+  fetch(`/api/live-state?organizer=${encodeURIComponent(organizerId)}`,{cache:'no-store',credentials:'same-origin'})
+    .then(response=>response.ok?response.json():null)
+    .then(data=>{
+      if(logo.dataset.organizerLogoId!==organizerId)return;
+      const organizerLogo=typeof data?.organizerLogo==='string'?data.organizerLogo.trim():'';
+      logo.onerror=null;
+      if(organizerLogo){
+        logo.src=organizerLogo;
+        logo.hidden=false;
+        logo.onerror=()=>{
+          logo.onerror=null;
+          logo.hidden=true;
+          logo.removeAttribute('src');
+        };
+      }else{
+        logo.hidden=true;
+        logo.removeAttribute('src');
+      }
+      logo.dataset.organizerLogoReady='true';
+    })
+    .catch(()=>{
+      if(logo.dataset.organizerLogoId!==organizerId)return;
+      logo.hidden=true;
+      logo.removeAttribute('src');
+      logo.dataset.organizerLogoReady='true';
+    });
+}
 function syncLiveViewQrNetworkState(forceQrRefresh=false){
   const modal=$('liveViewQrModal');
   const wrap=$('liveViewQrImageWrap');
@@ -678,6 +754,7 @@ function syncLiveViewQrNetworkState(forceQrRefresh=false){
   const statusTitle=$('liveViewQrStatusTitle');
   const statusNote=$('liveViewQrStatusNote');
   if(!modal||!wrap||!image||!unavailable||!loader)return;
+  syncLiveViewOrganizerQrLogo();
 
   // Bind image events once so the QR becomes visible as soon as it loads,
   // and use a second QR endpoint automatically if the primary one fails.
@@ -688,8 +765,12 @@ function syncLiveViewQrNetworkState(forceQrRefresh=false){
       image.hidden=false;
       loader.hidden=true;
       unavailable.hidden=true;
+      const organizerLogo=$('liveViewOrganizerQrLogo');
+      if(organizerLogo)organizerLogo.hidden=false;
     });
     image.addEventListener('error',()=>{
+      const organizerLogo=$('liveViewOrganizerQrLogo');
+      if(organizerLogo)organizerLogo.hidden=true;
       if(navigator.onLine===false){syncLiveViewQrNetworkState();return;}
       const target=image.dataset.qrTarget;
       if(target&&image.dataset.qrFallbackAttempted!=='true'){
@@ -708,6 +789,8 @@ function syncLiveViewQrNetworkState(forceQrRefresh=false){
   wrap.classList.toggle('is-offline',!isOnline);
   if(!isOnline){
     image.hidden=true;
+    const organizerLogo=$('liveViewOrganizerQrLogo');
+    if(organizerLogo)organizerLogo.hidden=true;
     image.removeAttribute('src');
     delete image.dataset.qrTarget;
     image.dataset.qrFallbackAttempted='false';
@@ -724,6 +807,8 @@ function syncLiveViewQrNetworkState(forceQrRefresh=false){
   image.hidden=!isHttp;
   unavailable.hidden=isHttp;
   if(!isHttp){
+    const organizerLogo=$('liveViewOrganizerQrLogo');
+    if(organizerLogo)organizerLogo.hidden=true;
     image.removeAttribute('src');
     delete image.dataset.qrTarget;
     if(statusTitle)statusTitle.textContent='Local / private link';
@@ -737,6 +822,8 @@ function syncLiveViewQrNetworkState(forceQrRefresh=false){
   const imageFailed=image.complete&&image.naturalWidth===0;
   const needsRefresh=forceQrRefresh===true||image.dataset.qrTarget!==target||!image.getAttribute('src')||imageFailed;
   if(needsRefresh){
+    const organizerLogo=$('liveViewOrganizerQrLogo');
+    if(organizerLogo)organizerLogo.hidden=true;
     image.dataset.qrTarget=target;
     image.dataset.qrFallbackAttempted='false';
     image.src='https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data='+encodeURIComponent(target);
@@ -763,7 +850,7 @@ function openLiveViewQrModal(){
 window.addEventListener('online',()=>syncLiveViewQrNetworkState(true));
 window.addEventListener('offline',()=>syncLiveViewQrNetworkState());
 window.addEventListener('focus',()=>syncLiveViewQrNetworkState());
-// Preload the QR while online so the share modal opens directly to the QR.
+// Preload the Live View QR while online; its centered logo comes from the current organizer profile.
 syncLiveViewQrNetworkState();
 function closeLiveViewQrModal(){ $('liveViewQrModal')?.classList.add('hidden'); }
 async function copyLiveViewQrLink(){
@@ -773,17 +860,22 @@ async function copyLiveViewQrLink(){
 }
 function getRegistrationPageUrl(){const url=new URL('Registration.html',window.location.href);if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);return url;}
 function syncRegistrationQrNetworkState(){
-  const modal=$('registrationQrModal'),wrap=$('registrationQrImageWrap'),image=$('registrationQrImage'),unavailable=$('registrationQrUnavailable'),loader=$('registrationQrLoader'),title=$('registrationQrStatusTitle'),note=$('registrationQrStatusNote');
+  const modal=$('registrationQrModal'),wrap=$('registrationQrImageWrap'),image=$('registrationQrImage'),unavailable=$('registrationQrUnavailable'),loader=$('registrationQrLoader'),title=$('registrationQrStatusTitle'),note=$('registrationQrStatusNote'),brandLogo=$('registrationQrBrandLogo');
   if(!modal||!wrap||!image||!unavailable||!loader)return;
+  if(!image.dataset.brandLogoEventsBound){
+    image.dataset.brandLogoEventsBound='true';
+    image.addEventListener('load',()=>{if(navigator.onLine!==false&&brandLogo)brandLogo.hidden=false;});
+    image.addEventListener('error',()=>{if(brandLogo)brandLogo.hidden=true;});
+  }
   const url=getRegistrationPageUrl();
   const online=navigator.onLine!==false;
   wrap.classList.toggle('is-offline',!online);
-  if(!online){image.hidden=true;image.removeAttribute('src');delete image.dataset.qrTarget;image.dataset.qrFallbackAttempted='false';loader.hidden=false;unavailable.hidden=true;if(title)title.textContent='Offline mode';if(note)note.textContent='Reconnect to generate the registration QR code.';return;}
+  if(!online){image.hidden=true;if(brandLogo)brandLogo.hidden=true;image.removeAttribute('src');delete image.dataset.qrTarget;image.dataset.qrFallbackAttempted='false';loader.hidden=false;unavailable.hidden=true;if(title)title.textContent='Offline mode';if(note)note.textContent='Reconnect to generate the registration QR code.';return;}
   loader.hidden=true;
-  if(!['http:','https:'].includes(url.protocol)){image.hidden=true;image.removeAttribute('src');delete image.dataset.qrTarget;unavailable.textContent='Open Pickle Point Match through a web server to generate a QR code for phones.';unavailable.hidden=false;if(title)title.textContent='Web server required';if(note)note.textContent='The phone needs an HTTP or HTTPS registration link.';return;}
+  if(!['http:','https:'].includes(url.protocol)){image.hidden=true;if(brandLogo)brandLogo.hidden=true;image.removeAttribute('src');delete image.dataset.qrTarget;unavailable.textContent='Open Pickle Point Match through a web server to generate a QR code for phones.';unavailable.hidden=false;if(title)title.textContent='Web server required';if(note)note.textContent='The phone needs an HTTP or HTTPS registration link.';return;}
   const target=url.href;
   image.hidden=false;unavailable.hidden=true;
-  if(image.dataset.qrTarget!==target){image.dataset.qrTarget=target;image.dataset.qrFallbackAttempted='false';image.onerror=()=>{if(image.dataset.qrFallbackAttempted!=='true'){image.dataset.qrFallbackAttempted='true';image.src='https://quickchart.io/qr?size=280&margin=8&text='+encodeURIComponent(target);return;}image.hidden=true;delete image.dataset.qrTarget;unavailable.textContent='QR preview could not load. Use the registration link below instead.';unavailable.hidden=false;};image.src='https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data='+encodeURIComponent(target);}
+  if(image.dataset.qrTarget!==target){if(brandLogo)brandLogo.hidden=true;image.dataset.qrTarget=target;image.dataset.qrFallbackAttempted='false';image.onerror=()=>{if(image.dataset.qrFallbackAttempted!=='true'){image.dataset.qrFallbackAttempted='true';image.src='https://quickchart.io/qr?size=280&margin=8&text='+encodeURIComponent(target);return;}image.hidden=true;delete image.dataset.qrTarget;unavailable.textContent='QR preview could not load. Use the registration link below instead.';unavailable.hidden=false;};image.src='https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data='+encodeURIComponent(target);}
   const host=url.hostname;const localHost=host==='localhost'||host==='127.0.0.1'||host==='0.0.0.0'||host==='::1'||/^10\./.test(host)||/^192\.168\./.test(host)||/^172\.(1[6-9]|2[0-9]|3[01])\./.test(host);
   if(title)title.textContent= url.protocol==='https:'&&!localHost?'Registration link ready':'Local / private link';
   if(note)note.textContent=localHost?'Scan from a phone connected to the same Wi-Fi network, and use the computer’s reachable LAN address if this link contains localhost.':'Players can complete their details, then they are saved to Registered Player Cloud and added to the queue automatically.';
@@ -3500,7 +3592,8 @@ function render(){
   renderQueue(); renderCourts(); renderResults(); renderRegisteredSearch();
   updateAddWaitingCourtButton();
   const realCourts=state.courts.filter(c=>!c.waitingOnly); const waitingCourts=state.courts.filter(c=>c.waitingOnly);
-  const stats=$('topStats'); const organizerName=String(window.PPM_ORGANIZER_NAME||window.PPM_ORGANIZER_USERNAME||'').trim(); if(stats){ stats.innerHTML=`<span class="event-stat-text">${state.players.length} players</span><span class="event-stat-sep">•</span><span class="event-stat-text">${realCourts.length} courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn" title="Change race target" ${state.recordScores?'':'disabled aria-disabled="true"'}>Race to ${state.eventRules.target}</button><span class="event-stat-sep">•</span><span class="event-stat-text">${esc(state.eventRules.type||'Doubles')}</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn" title="Change win-by rule" ${state.recordScores?'':'disabled aria-disabled="true"'}>Win by ${state.eventRules.winBy}</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventMatchingModeBtn" title="Change matching mode" aria-label="Change matching mode, current mode ${matchingModeDisplayName(state.matchingMode)}">${matchingModeDisplayName(state.matchingMode)}</button>${organizerName?`<span class="event-stat-sep organizer-stat-sep" aria-hidden="true">•</span><span class="event-stat-text organizer-event-stat" id="eventOrganizerStat">${esc(organizerName)}</span>`:''}`; bindEventRuleButtons(); }
+  const stats=$('topStats'); const organizerName=String(window.PPM_ORGANIZER_NAME||window.PPM_ORGANIZER_USERNAME||'').trim(); if(stats){ stats.innerHTML=`<span class="event-stat-text">${state.players.length} players</span><span class="event-stat-sep">•</span><span class="event-stat-text">${realCourts.length} courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn" title="Change race target" ${state.recordScores?'':'disabled aria-disabled="true"'}>Race to ${state.eventRules.target}</button><span class="event-stat-sep">•</span><span class="event-stat-text">${esc(state.eventRules.type||'Doubles')}</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn" title="Change win-by rule" ${state.recordScores?'':'disabled aria-disabled="true"'}>Win by ${state.eventRules.winBy}</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventMatchingModeBtn" title="Change matching mode" aria-label="Change matching mode, current mode ${matchingModeDisplayName(state.matchingMode)}">${matchingModeDisplayName(state.matchingMode)}</button>`; bindEventRuleButtons(); }
+  const organizerStat=$('eventOrganizerStat'); const organizerNameLabel=$('eventOrganizerName'); if(organizerNameLabel)organizerNameLabel.textContent=organizerName; if(organizerStat){ organizerStat.hidden=!organizerName; organizerStat.title=organizerName; if(organizerName)organizerStat.setAttribute('aria-label',organizerName); else organizerStat.removeAttribute('aria-label'); } syncEventOrganizerBadgeLogo();
   const title=$('eventTitle'); if(title) title.textContent=state.sessionName||'(DUPR MATCH) @PICKLE WORLD DOWNTOWN | 7PM - 11PM';
 }
 

@@ -4322,37 +4322,44 @@ html body.live-view-page .live-header .header-right #sessionOrganizerStat {
   align-items: center;
   justify-content: center;
   flex: 0 1 auto;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
   max-width: min(280px, 38vw);
+  height: 29px;
   margin: 0;
-  padding: 7px 10px;
-  border: 1px solid #d9c3ff;
+  padding: 0 9px;
+  border: 1px solid rgba(72, 163, 164, .84);
   border-radius: 999px;
-  color: #6841a5;
-  background: #f0e7ff;
+  color: #ddfbf7;
+  background: linear-gradient(135deg, rgba(21, 72, 79, .96), rgba(10, 46, 55, .97));
+  box-shadow: inset 0 1px 0 rgba(224, 255, 250, .16), inset 0 0 0 1px rgba(38, 140, 143, .12), 0 2px 8px rgba(0, 12, 18, .20);
+  -webkit-backdrop-filter: blur(9px) saturate(135%);
+  backdrop-filter: blur(9px) saturate(135%);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0;
-  line-height: normal;
+  line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-sizing: border-box;
 }
 html body.live-view-page .live-header .header-right #sessionOrganizerStat[hidden] {
   display: none !important;
 }
 html body.live-view-page .live-header .header-right #sessionOrganizerStat .session-organizer-icon {
   display: block;
-  flex: 0 0 13px;
-  width: 13px;
-  height: 13px;
-  min-width: 13px;
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
   object-fit: contain;
   box-sizing: border-box;
   padding: 1px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, .92);
+  border: 0;
+  border-radius: 4px;
+  background: rgba(142, 226, 219, .12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
 }
 html body.live-view-page .live-header .header-right #sessionOrganizerStat .session-organizer-icon[hidden] {
   display: none !important;
@@ -4364,20 +4371,20 @@ html body.live-view-page .live-header .header-right #sessionOrganizerName {
 }
 @media (max-width: 560px) {
   html body.live-view-page .live-header .header-right #sessionOrganizerStat {
-    gap: 5px;
+    gap: 4px;
     height: 25px;
     max-width: 42vw;
-    padding: 6px 7px;
+    padding: 0 7px;
     font-size: 9px;
     overflow: hidden;
   }
   html body.live-view-page .live-header .header-right #sessionOrganizerStat .session-organizer-icon {
-    flex-basis: 9px;
-    width: 9px;
-    height: 9px;
-    min-width: 9px;
+    flex-basis: 11px;
+    width: 11px;
+    height: 11px;
+    min-width: 11px;
     padding: 0;
-    border-radius: 2px;
+    border-radius: 3px;
   }
 }
 @media (max-width: 380px) {

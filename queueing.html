@@ -7,15 +7,20 @@
   <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
   <title>Pickle Point Match — Queueing</title>
 <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=queue-header-glass-20261023-3&mzoom=20261024-1&organizer-stats=20261024-1">
+  <link rel="stylesheet" href="style.css?v=queue-header-glass-20261023-3&mzoom=20261024-1&organizer-stats=20261024-1&qr-logo-assignment=20261024-2&organizer-share-glass=20261024-1">
   <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261022-1&mzoom=20261024-1">
+  <link rel="stylesheet" href="network-skeleton.css?v=network-skeleton-20261024-1">
+  <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
 </head>
 <body data-page="queueing">
 <header class="topbar">
   <button type="button" class="topbar-back-btn" id="topbarBackToStartBtn" aria-label="Back to Live Queue start screen" title="Back to Live Queue start screen">く</button>
   <div class="topbar-logo" role="img" aria-label="Pickleball"><img class="topbar-logo-img" src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div>
   <div class="event-info">
-    <div class="event-title" id="eventTitle" aria-label="Event title">(DUPR MATCH) @PICKLE WORLD DOWNTOWN | 7PM - 11PM</div>
+    <div class="event-title-row">
+      <span id="eventOrganizerStat" class="organizer-event-stat" hidden><img id="eventOrganizerLogo" class="organizer-event-icon" alt="" aria-hidden="true" hidden><span id="eventOrganizerName" class="organizer-event-name"></span></span>
+      <div class="event-title" id="eventTitle" aria-label="Event title">(DUPR MATCH) @PICKLE WORLD DOWNTOWN | 7PM - 11PM</div>
+    </div>
     <div class="event-stats" id="topStats"><span class="event-stat-text">0 players</span><span class="event-stat-sep">•</span><span class="event-stat-text">0 courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn">Race to 11</button><span class="event-stat-sep">•</span><span class="event-stat-text">Doubles</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn">Win by 1</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventMatchingModeBtn" title="Change matching mode">Balance</button></div>
   </div>
   <div class="top-actions">
@@ -327,7 +332,7 @@ Maria Santos,Female"></textarea>
       <button type="button" class="live-view-qr-close" onclick="closeLiveViewQrModal()" aria-label="Close QR code">Close</button>
     </div>
     <div class="live-view-qr-content">
-      <div class="live-view-qr-image-wrap" id="liveViewQrImageWrap"><img id="liveViewQrImage" alt="QR code for Pickle Point Match Live View"><span id="liveViewQrUnavailable" hidden>QR code will appear when opened through a web server.</span><div id="liveViewQrOfflineLoader" class="live-view-qr-offline-loader" hidden role="status" aria-label="Live View QR unavailable while offline"><img src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div></div>
+      <div class="live-view-qr-image-wrap" id="liveViewQrImageWrap"><img id="liveViewQrImage" alt="QR code for Pickle Point Match Live View"><img id="liveViewOrganizerQrLogo" class="live-view-qr-center-logo" src="pickleball-p-emblem.png" alt="Organizer logo" hidden><span id="liveViewQrUnavailable" hidden>QR code will appear when opened through a web server.</span><div id="liveViewQrOfflineLoader" class="live-view-qr-offline-loader" hidden role="status" aria-label="Live View QR unavailable while offline"><img src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div></div>
       <div class="live-view-qr-details">
         <strong id="liveViewQrStatusTitle">Ready to share</strong>
         <p id="liveViewQrStatusNote">Anyone with this link can watch the live queue from a phone or browser.</p>
@@ -354,7 +359,7 @@ Maria Santos,Female"></textarea>
       <button type="button" class="live-view-qr-close" onclick="closeRegistrationQrModal()" aria-label="Close registration QR code">Close</button>
     </div>
     <div class="live-view-qr-content">
-      <div class="live-view-qr-image-wrap" id="registrationQrImageWrap"><img id="registrationQrImage" alt="QR code for player registration"><span id="registrationQrUnavailable" hidden>QR code will appear when opened through a web server.</span><div id="registrationQrLoader" class="live-view-qr-offline-loader" hidden role="status" aria-label="Registration QR unavailable while offline"><img src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div></div>
+      <div class="live-view-qr-image-wrap" id="registrationQrImageWrap"><img id="registrationQrImage" alt="QR code for player registration"><img id="registrationQrBrandLogo" class="live-view-qr-center-logo" src="pickleball-p-emblem.png" alt="Pickle Point Match brand logo" hidden><span id="registrationQrUnavailable" hidden>QR code will appear when opened through a web server.</span><div id="registrationQrLoader" class="live-view-qr-offline-loader" hidden role="status" aria-label="Registration QR unavailable while offline"><img src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div></div>
       <div class="live-view-qr-details">
         <strong id="registrationQrStatusTitle">Ready to register</strong>
         <p id="registrationQrStatusNote">Players can complete their details, then they are saved to Registered Player Cloud and added to the queue automatically.</p>
@@ -372,7 +377,7 @@ Maria Santos,Female"></textarea>
 
 <div class="toast" id="toast"></div>
 <script src="auth-session.js?v=organizer-display-name-20261024-1"></script>
-<script src="queueing-app-loader.js?v=organizer-name-qr-scope-20261024-2" defer></script>
+<script src="queueing-app-loader.js?v=organizer-name-qr-scope-20261024-3" defer></script>
 
 
 
