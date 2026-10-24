@@ -4314,3 +4314,44 @@ html body .live-page-pinned .event-heading #sessionTitleToggle .session-organize
 html body .live-page-pinned .event-heading #sessionTitleToggle #sessionOrganizerSeparator[hidden] {
   display: none !important;
 }
+
+
+/* Organizer name sits beneath the brand words; keep the rest of the header unchanged. */
+html body.live-view-page .live-header .brand-words .session-organizer-stat {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+  max-width: min(240px, 36vw);
+  margin-top: 2px;
+  color: #b58aff;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .15px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html body.live-view-page .live-header .brand-words .session-organizer-stat[hidden] {
+  display: none !important;
+}
+html body.live-view-page .live-header .brand-words .session-organizer-icon {
+  display: block;
+  flex: 0 0 11px;
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+html body.live-view-page .live-header .brand-words .session-organizer-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html[data-theme="light"] body.live-view-page .live-header .brand-words .session-organizer-stat {
+  color: #b58aff;
+}

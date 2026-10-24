@@ -611,15 +611,14 @@
       const data = await response.json();
       const organizerName = String(data?.organizerName || '').trim();
       const organizerStat = $('sessionOrganizerStat');
-      const organizerSeparator = $('sessionOrganizerSeparator');
-      setTextIfChanged(organizerStat, organizerName);
+      const organizerNameLabel = $('sessionOrganizerName');
+      setTextIfChanged(organizerNameLabel, organizerName);
       if (organizerStat) {
         organizerStat.hidden = !organizerName;
         organizerStat.title = organizerName;
         if (organizerName) organizerStat.setAttribute('aria-label', organizerName);
         else organizerStat.removeAttribute('aria-label');
       }
-      if (organizerSeparator) organizerSeparator.hidden = !organizerName;
       // Do not let a slower HTTP response overwrite a newer SSE or storage update.
       if (stateSequenceAtStart === acceptedStateSequence) {
         if (data && data.state && typeof data.state === 'object') {
