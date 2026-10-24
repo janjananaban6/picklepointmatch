@@ -787,7 +787,7 @@ async function handle(req, res) {
     const organizerId = requestedScope ? (accountById(requestedScope)?.id || null) : resolveOrganizerId(req,url,null,true);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     const organizer = organizerId ? accountById(organizerId) : null;
-    return sendJson(res, 200, {ok:true,state:getOrganizerLiveState(organizerId),organizerId,organizerName:organizer ? String(organizer.displayName || organizer.username) : null});
+    return sendJson(res, 200, {ok:true,state:getOrganizerLiveState(organizerId),organizerId,organizerName:organizer ? String(organizer.displayName || organizer.username) : null,organizerLogo:organizer ? organizerLogoFor(organizer) : null});
   }
   if (url.pathname === '/api/live-state' && req.method === 'POST') {
     try {

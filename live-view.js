@@ -610,9 +610,26 @@
       if (!response.ok) throw new Error(`Live API returned ${response.status}`);
       const data = await response.json();
       const organizerName = String(data?.organizerName || '').trim();
+      const organizerLogo = String(data?.organizerLogo || '').trim();
       const organizerStat = $('sessionOrganizerStat');
       const organizerNameLabel = $('sessionOrganizerName');
+      const organizerLogoImage = $('sessionOrganizerLogo');
       setTextIfChanged(organizerNameLabel, organizerName);
+      if (organizerLogoImage) {
+        // The server only returns validated organizer profile-logo data URLs.
+        // Hide the image when no custom logo exists so no generic person icon
+        // is shown in its place.
+        if (organizerLogo && organizerLogoImage.getAttribute('src') !== organizerLogo) {
+          organizerLogoImage.src = organizerLogo;
+        } else if (!organizerLogo) {
+          organizerLogoImage.removeAttribute('src');
+        }
+        organizerLogoImage.hidden = !organizerLogo;
+        organizerLogoImage.onerror = () => {
+          organizerLogoImage.hidden = true;
+          organizerLogoImage.removeAttribute('src');
+        };
+      }
       if (organizerStat) {
         organizerStat.hidden = !organizerName;
         organizerStat.title = organizerName;
