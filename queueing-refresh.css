@@ -1,0 +1,250 @@
+/* Queueing-only refresh stability.
+   Keep the title row and organizer badge geometry independent of content/loading state. */
+html body[data-page="queueing"] header.topbar .event-info {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  flex: 1 1 0% !important;
+}
+html body[data-page="queueing"] header.topbar .event-title-row {
+  display: grid !important;
+  grid-template-columns: clamp(104px, 17vw, 176px) minmax(0, 1fr) !important;
+  grid-template-rows: 22px !important;
+  align-items: center !important;
+  justify-content: stretch !important;
+  column-gap: 8px !important;
+  row-gap: 0 !important;
+  flex: 0 0 22px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  overflow: hidden !important;
+  contain: layout !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] header.topbar .event-title-row > #eventOrganizerStat {
+  display: inline-flex !important;
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: center !important;
+  justify-self: stretch !important;
+  flex: 0 0 100% !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] header.topbar .event-title-row > #eventOrganizerStat[hidden] {
+  /* The badge remains a hidden, fixed-size grid item rather than collapsing its column. */
+  display: inline-flex !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+html body[data-page="queueing"] header.topbar .event-title-row > #eventTitle {
+  display: block !important;
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  flex: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  margin: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 22px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  -webkit-line-clamp: unset !important;
+  -webkit-box-orient: initial !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #queueMainArea .selected-court-note.show {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  animation: none !important;
+  transform: none !important;
+}
+html body[data-page="queueing"] #queueList > .queue-modern-item {
+  animation: none !important;
+  scroll-margin-block: 0 !important;
+}
+@media (max-width: 600px) {
+  /* The event-info stays in the actual second mobile grid column. */
+  html body[data-page="queueing"] header.topbar .event-info {
+    grid-column: 2 !important;
+    grid-row: 1 / span 2 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex: none !important;
+    align-self: center !important;
+    justify-self: stretch !important;
+    margin: 0 !important;
+  }
+  html body[data-page="queueing"] header.topbar .event-title-row {
+    grid-template-columns: clamp(72px, 28vw, 120px) minmax(0, 1fr) !important;
+    column-gap: 6px !important;
+  }
+  html body[data-page="queueing"] header.topbar .event-title-row > #eventOrganizerStat {
+    height: 21px !important;
+    min-height: 21px !important;
+    max-height: 21px !important;
+    gap: 4px !important;
+    padding-left: 7px !important;
+    padding-right: 7px !important;
+    font-size: 9px !important;
+  }
+  html body[data-page="queueing"] header.topbar #eventOrganizerStat .organizer-event-icon {
+    flex-basis: 11px !important;
+    width: 11px !important;
+    height: 11px !important;
+    min-width: 11px !important;
+    padding: 0 !important;
+    border-radius: 3px !important;
+  }
+}
+@media (max-width: 380px) {
+  html body[data-page="queueing"] header.topbar .event-title-row {
+    grid-template-columns: clamp(66px, 27vw, 100px) minmax(0, 1fr) !important;
+  }
+}
+
+
+/* QUEUEING PAGE — DUPR visibility text button beside Cloud Records.
+   Match event-rule-btn text-only styling; amber in both enabled and disabled states. */
+html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern > .queue-header-title {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern > .queue-header-title h2 {
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern > .queue-header-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 4px !important;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+}
+html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern .queue-dupr-header-toggle,
+html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern .queue-dupr-header-toggle:hover,
+html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern .queue-dupr-header-toggle:active,
+html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern .queue-dupr-header-toggle.is-off {
+  appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #d97706 !important;
+  font: inherit !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern .queue-dupr-header-toggle:focus-visible {
+  outline: 1px solid #d97706 !important;
+  outline-offset: 3px !important;
+  border-radius: 2px !important;
+}
+@media (max-width: 420px) {
+  html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern { gap: 3px !important; }
+  html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern > .queue-header-actions { gap: 3px !important; }
+  html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern .queue-dupr-header-toggle { font-size: 9px !important; }
+  html body[data-page="queueing"] .workspace > .queue-panel > .queue-header-modern .import-btn { padding-left: 5px !important; padding-right: 5px !important; font-size: 9px !important; }
+}
+
+
+/* QUEUEING PAGE — compact amber text-only DUPR label toggle beside Win By in event stats. */
+html body[data-page="queueing"] header.topbar .event-stats > .queue-dupr-header-toggle,
+html body[data-page="queueing"] header.topbar .event-stats > .queue-dupr-header-toggle:hover,
+html body[data-page="queueing"] header.topbar .event-stats > .queue-dupr-header-toggle:active,
+html body[data-page="queueing"] header.topbar .event-stats > .queue-dupr-header-toggle.is-off {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #d97706 !important;
+  font: inherit !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transform: none !important;
+  translate: none !important;
+  animation: none !important;
+}
+html body[data-page="queueing"] header.topbar .event-stats > .queue-dupr-header-toggle:focus-visible {
+  outline: 1px solid #d97706 !important;
+  outline-offset: 2px !important;
+  border-radius: 2px !important;
+  color: #d97706 !important;
+}

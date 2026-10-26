@@ -24,6 +24,8 @@
   const registerUsernameInput = document.getElementById('registerUsername');
   const registerPasswordInput = document.getElementById('registerPassword');
   const registerPasswordConfirmInput = document.getElementById('registerPasswordConfirm');
+  const duprIdInput = document.getElementById('organizerDuprId');
+  const duprSlotInputs = Array.from(document.querySelectorAll('.dupr-id-slot'));
   const organizerLogoInput = document.getElementById('organizerLogoInput');
   const organizerLogoPreview = document.getElementById('organizerLogoPreview');
   const organizerLogoPlaceholder = document.getElementById('organizerLogoPlaceholder');
@@ -32,6 +34,7 @@
 
   let loginPending = false;
   let registerPending = false;
+  let registrationSubmitted = false;
   let logoProcessing = false;
   let organizerLogoData = '';
   let loginAccounts = [];
@@ -55,6 +58,28 @@
     element.textContent = messageText;
     element.classList.toggle('is-info', kind === 'info');
     element.classList.toggle('has-message', messageText.length > 0);
+  }
+
+  // Keep organizer names readable as they are entered: capitalize the first
+  // letter of each word while preserving the user's remaining letter casing.
+  function capitalizeOrganizerName(value) {
+    return String(value || '').replace(/(^|[\s\-’'])([a-zà-öø-ÿ])/giu, (match, separator, letter) =>
+      separator + letter.toLocaleUpperCase()
+    );
+  }
+
+  function applyInputTransform(input, transform) {
+    if (!input) return;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const transformed = transform(input.value);
+    if (transformed === input.value) return;
+    input.value = transformed;
+    // Case changes normally preserve length; restoring the caret avoids jumps
+    // when editing in the middle of a name or username on mobile/tablet.
+    if (typeof start === 'number' && typeof end === 'number') {
+      try { input.setSelectionRange(start, end); } catch (_) { /* ignore unsupported input types */ }
+    }
   }
 
   function isSafeLogoData(value) {
@@ -184,7 +209,11 @@
         throw new Error('Unable to load organizer accounts.');
       }
       loginAccounts = result.organizers
-        .filter(account => account && typeof account.username === 'string' && account.username.trim())
+        .filter(account => account
+          && typeof account.username === 'string'
+          && account.username.trim()
+          && account.active === true
+          && String(account.approvalStatus || '').trim().toLowerCase() === 'approved')
         .map(account => ({...account, role: 'organizer'}));
       // Keep the administrator account available for direct sign-in, but never list it as an organizer option.
       panelLoginAccount = result.panelAccount && typeof result.panelAccount.username === 'string' && result.panelAccount.username.trim()
@@ -263,6 +292,20 @@
     if (!accountPicker.contains(event.target)) closeOrganizerOptions();
   });
 
+  function resetRegistrationState() {
+    // Treat each visit to Become an Organizer as a fresh form, including after a successful application.
+    registrationForm.reset();
+    registrationSubmitted = false;
+    registerPending = false;
+    logoProcessing = false;
+    organizerLogoInput.value = '';
+    registrationForm.querySelectorAll('input, button').forEach(control => { control.disabled = false; });
+    showLogoPreview('');
+    registerSubmit.querySelector('span').textContent = 'Become an Organizer';
+    registerSubmit.removeAttribute('aria-busy');
+    setMessage(registerMessage, '');
+  }
+
   function showLogin() {
     loginFormPanel.classList.remove('is-registering');
     loginForm.hidden = false;
@@ -270,36 +313,96 @@
     loginTitle.textContent = 'Organizer Login';
     loginDescription.textContent = 'Sign in with your organizer credentials to open your dashboard.';
     modePrompt.textContent = 'New host?';
-    showRegistration.textContent = 'Create an organizer account';
+    showRegistration.textContent = 'Become an Organizer';
     setMessage(message, '');
     setMessage(registerMessage, '');
     // Avoid auto-focusing credential fields; browser account/password prompts are browser-controlled.
   }
 
   function showRegister() {
+    // Refresh the form state whenever the user returns from Sign In.
+    resetRegistrationState();
     loginFormPanel.classList.add('is-registering');
     loginForm.hidden = true;
     registrationForm.hidden = false;
-    loginTitle.textContent = 'Create organizer account';
-    loginDescription.textContent = 'Create an organizer account to manage a separate Pickle Point Match live queue.';
+    loginTitle.textContent = 'Become an Organizer';
+    loginDescription.textContent = 'Submit your organizer application for review by Pickle Point Match.';
     modePrompt.textContent = 'Already have an account?';
     showRegistration.textContent = 'Back to sign in';
     setMessage(message, '');
-    setMessage(registerMessage, '');
     updateRegisterSubmitState();
     // Avoid forced focus so the page does not jump or auto-scroll on mobile.
   }
 
+  function normalizeDuprId(value) {
+    return String(value || '').trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  }
+
+  function syncDuprSlotsToInput() {
+    duprIdInput.value = duprSlotInputs.map(slot => slot.value).join('').slice(0, 6);
+    // Reuse the existing form-state validation and submission wiring.
+    duprIdInput.dispatchEvent(new Event('input', {bubbles: true}));
+  }
+
+  function fillDuprSlots(value, focusIndex = null) {
+    const normalized = normalizeDuprId(value);
+    duprSlotInputs.forEach((slot, index) => { slot.value = normalized[index] || ''; });
+    syncDuprSlotsToInput();
+    if (Number.isInteger(focusIndex) && duprSlotInputs.length) {
+      duprSlotInputs[Math.max(0, Math.min(focusIndex, duprSlotInputs.length - 1))]?.focus();
+    }
+  }
+
+  duprSlotInputs.forEach((slot, index) => {
+    slot.addEventListener('input', () => {
+      const raw = String(slot.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (raw.length > 1) {
+        // Some mobile keyboards insert several characters at once. Treat that
+        // as a pasted DUPR ID and distribute it across the six visible cards.
+        fillDuprSlots(raw, Math.min(raw.length, duprSlotInputs.length - 1));
+        return;
+      }
+      slot.value = raw.slice(0, 1);
+      syncDuprSlotsToInput();
+      if (slot.value && index < duprSlotInputs.length - 1) duprSlotInputs[index + 1].focus();
+    });
+
+    slot.addEventListener('paste', event => {
+      const pastedText = event.clipboardData?.getData('text') || '';
+      const normalized = normalizeDuprId(pastedText);
+      if (!normalized) return;
+      event.preventDefault();
+      fillDuprSlots(normalized, Math.min(normalized.length, duprSlotInputs.length - 1));
+    });
+
+    slot.addEventListener('keydown', event => {
+      if (event.key === 'Backspace' && !slot.value && index > 0) {
+        event.preventDefault();
+        duprSlotInputs[index - 1].value = '';
+        duprSlotInputs[index - 1].focus();
+        syncDuprSlotsToInput();
+      } else if (event.key === 'ArrowLeft' && index > 0) {
+        event.preventDefault();
+        duprSlotInputs[index - 1].focus();
+      } else if (event.key === 'ArrowRight' && index < duprSlotInputs.length - 1) {
+        event.preventDefault();
+        duprSlotInputs[index + 1].focus();
+      }
+    });
+  });
+
   function updateRegisterSubmitState() {
+    const logoComplete = !!organizerLogoData;
     const displayNameComplete = !!displayNameInput.value.trim();
     const usernameComplete = !!registerUsernameInput.value.trim();
     const password = registerPasswordInput.value;
     const confirm = registerPasswordConfirmInput.value;
-    const credentialsValid = displayNameComplete && usernameComplete &&
+    const credentialsValid = logoComplete && displayNameComplete && usernameComplete &&
       registerUsernameInput.validity.valid && registerPasswordInput.validity.valid &&
       registerPasswordConfirmInput.validity.valid && password.length >= 8 && password === confirm;
-    registerSubmit.disabled = !credentialsValid || registerPending || logoProcessing || !registrationForm.checkValidity();
+    registerSubmit.disabled = registrationSubmitted || !credentialsValid || registerPending || logoProcessing || !registrationForm.checkValidity();
     registerSubmit.setAttribute('aria-busy', String(registerPending || logoProcessing));
+    if (registrationSubmitted) registerSubmit.querySelector('span').textContent = 'Application submitted';
 
     if (confirm && password && password !== confirm && !registerPending) {
       setMessage(registerMessage, 'The passwords do not match.');
@@ -395,10 +498,31 @@
     togglePassword.classList.toggle('is-visible', show);
   });
 
-  showRegistration.addEventListener('click', () => registrationForm.hidden ? showRegister() : showLogin());
+  showRegistration.addEventListener('click', () => {
+    if (registerPending || logoProcessing || loginPending) return;
+    if (registrationForm.hidden) showRegister();
+    else showLogin();
+  });
 
-  [displayNameInput, registerUsernameInput, registerPasswordInput, registerPasswordConfirmInput].forEach(input => {
+  displayNameInput.addEventListener('input', () => {
+    applyInputTransform(displayNameInput, capitalizeOrganizerName);
+  });
+  displayNameInput.addEventListener('change', () => {
+    applyInputTransform(displayNameInput, capitalizeOrganizerName);
+  });
+  registerUsernameInput.addEventListener('input', () => {
+    applyInputTransform(registerUsernameInput, value => value.toLocaleLowerCase());
+  });
+  registerUsernameInput.addEventListener('change', () => {
+    applyInputTransform(registerUsernameInput, value => value.toLocaleLowerCase());
+  });
+
+  [displayNameInput, registerUsernameInput, registerPasswordInput, registerPasswordConfirmInput, duprIdInput].forEach(input => {
     input.addEventListener('input', () => {
+      if (input === duprIdInput) {
+        const normalized = normalizeDuprId(duprIdInput.value);
+        if (duprIdInput.value !== normalized) duprIdInput.value = normalized;
+      }
       if (registerMessage.textContent && registerMessage.textContent !== 'The passwords do not match.') {
         setMessage(registerMessage, '');
       }
@@ -524,15 +648,28 @@
   registrationForm.addEventListener('submit', async event => {
     event.preventDefault();
     if (registerPending || logoProcessing) return;
+    // Normalize before validation and submission so stored values match what
+    // the registration fields display, even when text was pasted or autofilled.
+    displayNameInput.value = capitalizeOrganizerName(displayNameInput.value.trim());
+    registerUsernameInput.value = registerUsernameInput.value.trim().toLocaleLowerCase();
     setMessage(registerMessage, '');
     updateRegisterSubmitState();
     if (!registrationForm.reportValidity()) return;
 
     const displayName = displayNameInput.value.trim();
-    const username = registerUsernameInput.value.trim();
+    const username = registerUsernameInput.value.trim().toLocaleLowerCase();
     const password = registerPasswordInput.value;
     const confirm = registerPasswordConfirmInput.value;
+    const duprId = normalizeDuprId(duprIdInput.value);
+    duprIdInput.value = duprId;
+    if (!/^[A-Z0-9]{6}$/.test(duprId)) {
+      setMessage(registerMessage, 'Enter all 6 characters of the organizer’s DUPR ID.');
+      (duprSlotInputs.find(slot => !slot.value) || duprSlotInputs[0])?.focus();
+      return;
+    }
+    if (!organizerLogoData) return setMessage(registerMessage, 'Choose an organizer logo before submitting your application.');
     if (!displayName) return setMessage(registerMessage, 'Enter the organizer or venue name.');
+    if (!username || !registerUsernameInput.validity.valid) return setMessage(registerMessage, 'Enter a valid username (3–40 letters, numbers, dots, underscores, or hyphens).');
     if (password.length < 8) return setMessage(registerMessage, 'Use a password with at least 8 characters.');
     if (password !== confirm) {
       setMessage(registerMessage, 'The passwords do not match.');
@@ -543,14 +680,14 @@
     registerPending = true;
     registerSubmit.disabled = true;
     registerSubmit.setAttribute('aria-busy', 'true');
-    registerSubmit.querySelector('span').textContent = 'Creating account…';
+    registerSubmit.querySelector('span').textContent = 'Submitting application…';
     try {
       const response = await fetch('/api/register-organizer', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         cache: 'no-store',
         credentials: 'same-origin',
-        body: JSON.stringify({displayName, username, password, profileImage: organizerLogoData})
+        body: JSON.stringify({displayName, username, password, profileImage: organizerLogoData, duprId})
       });
       const result = await response.json().catch(() => null);
       if (!response.ok || !result || !result.ok) {
@@ -563,7 +700,16 @@
         if (!result) throw new Error(`The registration service returned an unexpected response (HTTP ${response.status}). Please refresh and try again.`);
         throw new Error(result.error || `Unable to create organizer account (HTTP ${response.status}).`);
       }
-      window.location.replace('/session.html');
+      registrationSubmitted = true;
+      // Clear the registration fields and logo immediately, while keeping the result message visible.
+      registrationForm.reset();
+      showLogoPreview('');
+      organizerLogoInput.value = '';
+      registrationForm.querySelectorAll('input, button').forEach(control => { control.disabled = true; });
+      registerSubmit.querySelector('span').textContent = 'Application submitted';
+      setMessage(registerMessage, 'Application submitted successfully. Your information is now under review by Pickle Point Match. For account security, organizer access will remain disabled until an administrator approves your application. Please return to sign in after approval.', 'info');
+      showRegistration.textContent = 'Back to sign in';
+      modePrompt.textContent = 'Application received';
     } catch (error) {
       const detail = String(error?.message || '');
       const userMessage = /failed to fetch|networkerror|load failed|fetch failed/i.test(detail)
@@ -572,7 +718,7 @@
       setMessage(registerMessage, userMessage);
     } finally {
       registerPending = false;
-      registerSubmit.querySelector('span').textContent = 'Create organizer account';
+      if (!registrationSubmitted) registerSubmit.querySelector('span').textContent = 'Become an Organizer';
       updateRegisterSubmitState();
     }
   });

@@ -4,9 +4,9 @@
 
 - The app's `/` and `/index.html` routes display one sign-in form with **Username** and **Password** only.
 - The server determines the destination from the credentials: organizer accounts open the existing `session.html` / queueing workspace, while the panel administrator opens `panel.html`.
-- **New organizer? Create an account** on the same login page registers an organizer account. Each account receives a separate live queue and live view.
+- **Become an Organizer** on the login page submits an organizer application for review. New applications remain pending and cannot sign in until a panel administrator approves them. The applicant sees a confirmation message after submitting. Once approved, the account receives a separate live queue and live view.
 - **Registered Player Cloud remains global**. Players registered into the cloud are shared by all organizers; queue/session state is isolated by organizer account.
-- The admin panel is only for organizer-account management: listing, creating, editing display names, resetting passwords, activating/deactivating, and deleting accounts. It does not replace the organizer queue workspace.
+- The admin panel is for organizer-account management: reviewing and approving or rejecting applications, listing, creating, editing display names, resetting passwords, activating/deactivating, and deleting accounts. Approving a pending application activates the account. It does not replace the organizer queue workspace.
 
 ## Render environment variables
 
@@ -24,7 +24,7 @@ After updating environment variables, save and deploy/restart the service. To si
 
 Organizer account records and their password hashes are stored in the same persistent PostgreSQL storage layer as the application. If `DATABASE_URL` is not configured, local development falls back to the `data/` JSON files. Passwords are hashed using Node.js `scrypt`; plaintext passwords are not stored or returned by the API.
 
-If an organizer is deactivated, their session is rejected on the next server request. Deleting an account also deletes that organizer's server-side queue and live snapshot. The shared Registered Player Cloud is not deleted when an organizer account is removed.
+Pending and rejected applications cannot sign in. If an approved organizer is deactivated, their session is rejected on the next server request. Deleting an account also deletes that organizer's server-side queue and live snapshot. The shared Registered Player Cloud is not deleted when an organizer account is removed.
 
 ## Existing data migration
 

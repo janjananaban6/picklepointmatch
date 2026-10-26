@@ -8,8 +8,8 @@
   <meta name="description" content="Secure sign-in and organizer registration for Pickle Point Match.">
   <title>Organizer Login — Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="login.css?v=organizer-picker-20261024-1">
-  <script src="login.js?v=organizer-picker-20261024-1" defer></script>
+  <link rel="stylesheet" href="login.css?v=organizer-dupr-six-boxes-placeholder-20261026-6">
+  <script src="login.js?v=organizer-dupr-six-boxes-placeholder-20261026-6" defer></script>
   <link rel="stylesheet" href="network-skeleton.css?v=network-skeleton-20261024-1">
   <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
 </head>
@@ -68,24 +68,24 @@
             <img id="organizerLogoPlaceholder" src="pickleball-p-emblem.png" alt="Pickle Point Match logo">
           </div>
           <div class="organizer-logo-copy">
-            <strong>Organizer logo <span class="label-note">Optional</span></strong>
-            <p>Add a logo for your organizer profile. Most image formats supported by your browser; automatically resized and compressed before saving.</p>
+            <strong>Organizer logo <span class="label-note">Required</span></strong>
+            <p>A logo is required for your organizer profile. Most image formats are supported; the image is resized and compressed automatically before saving.</p>
             <div class="organizer-logo-actions">
               <label for="organizerLogoInput" class="organizer-logo-upload">Choose logo</label>
               <button type="button" id="removeOrganizerLogo" class="organizer-logo-remove" disabled>Remove</button>
             </div>
-            <input id="organizerLogoInput" class="visually-hidden-login-input" type="file" accept="image/*">
+            <input id="organizerLogoInput" class="visually-hidden-login-input" type="file" accept="image/*" aria-required="true" aria-label="Required organizer logo">
           </div>
         </div>
         <label for="organizerDisplayName">Club or organizer name</label>
         <div class="input-wrap">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V5l7-2 7 2v16M9 9h1M14 9h1M9 13h1M14 13h1M10 21v-4h4v4"/></svg>
-          <input id="organizerDisplayName" name="displayName" type="text" placeholder="e.g. Gensan Open Play" autocomplete="off" required maxlength="80">
+          <input id="organizerDisplayName" name="displayName" type="text" placeholder="e.g. Gensan Open Play" autocomplete="off" autocapitalize="words" spellcheck="false" required maxlength="80">
         </div>
         <label for="registerUsername">Username</label>
         <div class="input-wrap">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>
-          <input id="registerUsername" name="username" type="text" placeholder="Your Club" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" required minlength="3" maxlength="40" pattern="[A-Za-z0-9][A-Za-z0-9_.-]{2,39}">
+          <input id="registerUsername" name="username" type="text" placeholder="Your Club" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" required minlength="3" maxlength="40" pattern="[A-Za-z0-9][A-Za-z0-9_.-]{2,39}">
         </div>
         <label for="registerPassword">Password <span class="label-note">8 characters minimum</span></label>
         <div class="input-wrap password-wrap">
@@ -97,14 +97,28 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3M9 15l2 2 4-4"/></svg>
           <input id="registerPasswordConfirm" name="passwordConfirm" type="password" placeholder="Repeat your password" autocomplete="new-password" required minlength="8" maxlength="200">
         </div>
+        <label id="organizerDuprLabel" for="organizerDuprSlot1" class="organizer-dupr-label">DUPR ID <span class="label-note">Required · 6 characters</span></label>
+        <div class="registration-dupr-row">
+          <svg class="dupr-logo-mark" viewBox="0 0 64 32" role="img" aria-label="DUPR logo"><rect width="64" height="32" rx="4" fill="#021861"/><text x="32" y="22" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="900" letter-spacing="-0.7" fill="#ffffff">DUPR</text></svg>
+          <div class="dupr-id-slots" role="group" aria-labelledby="organizerDuprLabel" aria-describedby="organizerDuprHint">
+            <input id="organizerDuprSlot1" class="dupr-id-slot" type="text" placeholder="1" aria-label="DUPR ID character 1 of 6" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" maxlength="1" pattern="[A-Za-z0-9]" required>
+            <input id="organizerDuprSlot2" class="dupr-id-slot" type="text" placeholder="A" aria-label="DUPR ID character 2 of 6" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" maxlength="1" pattern="[A-Za-z0-9]" required>
+            <input id="organizerDuprSlot3" class="dupr-id-slot" type="text" placeholder="2" aria-label="DUPR ID character 3 of 6" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" maxlength="1" pattern="[A-Za-z0-9]" required>
+            <input id="organizerDuprSlot4" class="dupr-id-slot" type="text" placeholder="B" aria-label="DUPR ID character 4 of 6" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" maxlength="1" pattern="[A-Za-z0-9]" required>
+            <input id="organizerDuprSlot5" class="dupr-id-slot" type="text" placeholder="3" aria-label="DUPR ID character 5 of 6" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" maxlength="1" pattern="[A-Za-z0-9]" required>
+            <input id="organizerDuprSlot6" class="dupr-id-slot" type="text" placeholder="C" aria-label="DUPR ID character 6 of 6" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" maxlength="1" pattern="[A-Za-z0-9]" required>
+          </div>
+          <input id="organizerDuprId" class="visually-hidden-login-input" name="duprId" type="text" tabindex="-1" aria-hidden="true" autocomplete="off" readonly>
+        </div>
+        <p id="organizerDuprHint" class="dupr-id-hint">Enter all 6 characters of your DUPR ID, for example 1A2B3C.</p>
         <p id="registerMessage" class="login-message" role="alert" aria-live="polite"></p>
-        <button id="registerSubmit" class="login-submit" type="submit" disabled><span>Create organizer account</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-        <p class="registration-note">Your organizer account has its own dashboard and live queue. Registered player records remain shared across organizers.</p>
+        <button id="registerSubmit" class="login-submit" type="submit" disabled><span>Become an Organizer</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <p class="registration-note">Submit your application for review. Once approved by Pickle Point Match, you can sign in to manage your own live queue. Registered player records remain shared across organizers.</p>
       </form>
 
       <div class="mode-switch" id="modeSwitch">
         <span id="modePrompt">New host?</span>
-        <button type="button" id="showRegistration">Create an organizer account</button>
+        <button type="button" id="showRegistration">Become an Organizer</button>
       </div>
     </section>
   </main>

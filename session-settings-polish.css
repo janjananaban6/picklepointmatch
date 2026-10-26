@@ -1,0 +1,244 @@
+/* Session start settings: restrained, no-jump interactions and monochrome mode icons. */
+
+#liveQueueStartScreen .live-queue-start-card,
+#liveQueueStartScreen .live-queue-start-panel,
+#liveQueueStartScreen .existing-live-queue,
+#liveQueueStartScreen .continue-live-queue-btn {
+  transform: none !important;
+  translate: none !important;
+  transition: box-shadow .34s cubic-bezier(.2,.75,.25,1), background-color .34s ease, border-color .34s ease, color .28s ease !important;
+}
+
+#liveQueueStartScreen .live-queue-choice,
+#liveQueueStartScreen .live-queue-game,
+#liveQueueStartScreen .live-queue-matching-option,
+#liveQueueStartScreen .live-queue-toggle-row,
+#liveQueueStartScreen .create-live-queue-btn {
+  transform: none !important;
+  translate: none !important;
+  animation: none !important;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+
+#liveQueueStartScreen .live-queue-start-card,
+#liveQueueStartScreen .live-queue-start-panel,
+#liveQueueStartScreen .existing-live-queue,
+#liveQueueStartScreen .continue-live-queue-btn {
+  transform: none !important;
+  translate: none !important;
+  transition: box-shadow .34s cubic-bezier(.2,.75,.25,1), background-color .34s ease, border-color .34s ease, color .28s ease !important;
+}
+
+#liveQueueStartScreen .live-queue-choice,
+#liveQueueStartScreen .live-queue-game,
+#liveQueueStartScreen .live-queue-matching-option {
+  cursor: pointer;
+  transition:
+    background-color .34s cubic-bezier(.2,.75,.25,1),
+    color .28s ease,
+    border-color .34s cubic-bezier(.2,.75,.25,1),
+    box-shadow .34s cubic-bezier(.2,.75,.25,1),
+    opacity .22s ease !important;
+}
+
+#liveQueueStartScreen .live-queue-choice:hover:not(:disabled),
+#liveQueueStartScreen .live-queue-choice:active:not(:disabled),
+#liveQueueStartScreen .live-queue-game:hover:not(:disabled),
+#liveQueueStartScreen .live-queue-game:active:not(:disabled),
+#liveQueueStartScreen .live-queue-matching-option:hover:not(:disabled),
+#liveQueueStartScreen .live-queue-matching-option:active:not(:disabled),
+#liveQueueStartScreen .create-live-queue-btn:hover:not(:disabled),
+#liveQueueStartScreen .create-live-queue-btn:active:not(:disabled) {
+  transform: none !important;
+  translate: none !important;
+  top: auto !important;
+}
+
+#liveQueueStartScreen .live-queue-choice:active:not(:disabled),
+#liveQueueStartScreen .live-queue-game:active:not(:disabled),
+#liveQueueStartScreen .live-queue-matching-option:active:not(:disabled) {
+  box-shadow: 0 1px 3px rgba(15,23,42,.06) !important;
+}
+
+#liveQueueStartScreen .match-type-icon {
+  display: block !important;
+  flex: 0 0 13px !important;
+  width: 13px !important;
+  height: 13px !important;
+  min-width: 13px !important;
+  min-height: 13px !important;
+  max-width: 13px !important;
+  max-height: 13px !important;
+  margin: 0 !important;
+  overflow: visible;
+  box-sizing: border-box;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: inherit;
+  pointer-events: none;
+}
+
+#liveQueueStartScreen .live-queue-choice span {
+  color: inherit;
+}
+
+#liveQueueStartScreen .live-queue-toggle-row {
+  cursor: pointer !important;
+  opacity: 1 !important;
+  transition: background-color .42s cubic-bezier(.2,.75,.25,1), border-color .42s cubic-bezier(.2,.75,.25,1), box-shadow .34s cubic-bezier(.2,.75,.25,1) !important;
+}
+
+#liveQueueStartScreen .live-queue-toggle-row:has(#liveQueueDupr) {
+  cursor: pointer !important;
+  opacity: 1 !important;
+}
+
+#liveQueueStartScreen .live-queue-toggle-row:has(#liveQueueDupr) .live-queue-toggle {
+  filter: none !important;
+}
+
+#liveQueueStartScreen .live-queue-toggle {
+  transition: background-color .52s cubic-bezier(.22,.68,0,1), box-shadow .42s ease !important;
+}
+
+#liveQueueStartScreen .live-queue-toggle::after {
+  transition: transform .52s cubic-bezier(.22,.68,0,1), background-color .42s ease, box-shadow .42s ease !important;
+}
+
+#liveQueueStartScreen .live-queue-toggle-row input:disabled + .live-queue-toggle {
+  opacity: .62;
+}
+
+#liveQueueStartScreen .create-live-queue-btn {
+  transition: box-shadow .34s cubic-bezier(.2,.75,.25,1), background-color .34s ease, opacity .24s ease !important;
+  cursor: pointer;
+}
+
+#liveQueueStartScreen .create-live-queue-btn:disabled,
+#liveQueueStartScreen .live-queue-choice:disabled,
+#liveQueueStartScreen .live-queue-game:disabled,
+#liveQueueStartScreen .live-queue-matching-option:disabled,
+#liveQueueStartScreen .live-queue-toggle-row input:disabled {
+  cursor: not-allowed !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  
+#liveQueueStartScreen .live-queue-start-card,
+#liveQueueStartScreen .live-queue-start-panel,
+#liveQueueStartScreen .existing-live-queue,
+#liveQueueStartScreen .continue-live-queue-btn {
+  transform: none !important;
+  translate: none !important;
+  transition: box-shadow .34s cubic-bezier(.2,.75,.25,1), background-color .34s ease, border-color .34s ease, color .28s ease !important;
+}
+
+#liveQueueStartScreen .live-queue-choice,
+  #liveQueueStartScreen .live-queue-game,
+  #liveQueueStartScreen .live-queue-matching-option,
+  #liveQueueStartScreen .live-queue-toggle-row,
+  #liveQueueStartScreen .live-queue-toggle,
+  #liveQueueStartScreen .live-queue-toggle::after,
+  #liveQueueStartScreen .create-live-queue-btn {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}
+
+
+/* Compact, cache-busted match type controls: avoid default 300x150 SVG sizing. */
+#liveQueueStartScreen #liveQueueMatchType .live-queue-choice {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 0 12px !important;
+  white-space: nowrap !important;
+  line-height: 1 !important;
+  font-size: 12px !important;
+}
+#liveQueueStartScreen #liveQueueMatchType .live-queue-choice .match-type-icon {
+  display: inline-block !important;
+  flex: 0 0 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  margin: 0 !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.7 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  pointer-events: none !important;
+}
+#liveQueueStartScreen #liveQueueMatchType .live-queue-choice span {
+  display: inline-block !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+}
+
+
+/* Independent DUPR label visibility toggle (separate from the DUPR match-type toggle). */
+#liveQueueStartScreen .dupr-labels-toggle-row {
+  border-color: #d4e2e4;
+}
+#liveQueueStartScreen .dupr-labels-toggle-row #liveQueueDuprLabelsStatus {
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+#liveQueueStartScreen .dupr-labels-toggle-row.is-dupr-off #liveQueueDuprLabelsStatus {
+  color: #8a5a36;
+}
+
+
+/* DUPR session location used by the CSV export. Visibility is controlled by the DUPR Match toggle. */
+#liveQueueStartScreen .live-queue-dupr-location-field {
+  display: grid;
+  gap: 0;
+  margin: 3px 0 2px;
+  padding: 0 1px 2px;
+  min-width: 0;
+}
+#liveQueueStartScreen .live-queue-dupr-location-field[hidden],
+#liveQueueStartScreen .live-queue-dupr-location-field.hidden {
+  display: none !important;
+}
+#liveQueueStartScreen .live-queue-dupr-location-field .live-queue-field-label {
+  margin-top: 9px;
+  margin-bottom: 6px;
+}
+#liveQueueStartScreen .live-queue-dupr-location-help {
+  display: block;
+  margin-top: 5px;
+  color: rgba(15,23,42,.58);
+  font-size: 10px;
+  line-height: 1.4;
+}
+#liveQueueStartScreen #liveQueueDuprLocation:disabled {
+  opacity: .72;
+  cursor: not-allowed;
+  background: #f1f4f3;
+}
+
+
+#liveQueueStartScreen .live-queue-dupr-location-field.is-required .live-queue-field-label::after {
+  content: " *";
+  color: #b42318;
+}

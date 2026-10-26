@@ -10,8 +10,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=queue-responsive-all-devices-20261022-1&mzoom=20261024-2&sessionfooter=20261024-1&sessionpolish=20261024-3&sessionbrand=20261024-8&sessionscrollbar=20261024-6&brandalign=20261024-1&sessionbg=20261024-1&brandcopy=20261024-1">
+  <link rel="stylesheet" href="style.css?v=queue-responsive-all-devices-20261022-1&mzoom=20261024-2&sessionfooter=20261024-1&sessionpolish=20261024-3&sessionbrand=20261024-8&sessionscrollbar=20261024-6&brandalign=20261024-1&sessionbg=20261024-1&brandcopy=20261024-1&duprfont=20261026-4">
   <link rel="stylesheet" href="session-brand.css?v=20261024-2">
+  <link rel="stylesheet" href="session-settings-polish.css?v=dupr-location-fontfix-20261026-4">
   <link rel="stylesheet" href="network-skeleton.css?v=network-skeleton-20261024-1">
   <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
 </head>
@@ -58,26 +59,35 @@
 
       <div class="live-queue-form-section">
         <label class="live-queue-field-label">SESSION NAME</label>
-        <input id="liveQueueSessionName" class="live-queue-input" type="text" value="(NON DUPR MATCH) Open Play" autocomplete="off" aria-label="Session name. Match type prefix is automatic and cannot be removed.">
+        <div class="live-queue-session-name-wrap">
+          <div id="liveQueueSessionNamePreview" class="live-queue-session-name-preview" aria-hidden="true"></div>
+          <input id="liveQueueSessionName" class="live-queue-input" type="text" value="(NON DUPR MATCH) Open Play" autocomplete="off" aria-label="Session name. Match type prefix is automatic and cannot be removed.">
+        </div>
 
         <label class="live-queue-field-label">MATCH TYPE</label>
         <div class="live-queue-choice-row two" id="liveQueueMatchType">
-          <button type="button" class="live-queue-choice active" data-value="Doubles">👥 <span>Doubles</span></button>
-          <button type="button" class="live-queue-choice" data-value="Singles" disabled aria-disabled="true">👤 <span>Singles</span></button>
+          <button type="button" class="live-queue-choice active" data-value="Doubles" aria-pressed="true">
+            <svg class="match-type-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="8.2" cy="7.2" r="3"/><circle cx="16.2" cy="8.1" r="2.5"/><path d="M2.8 19.1v-1.4a5.4 5.4 0 0 1 10.8 0v1.4z"/><path d="M14.1 13.7a4.5 4.5 0 0 1 7.1 3.6v1.8h-5.4"/></svg>
+            <span>Doubles</span>
+          </button>
+          <button type="button" class="live-queue-choice" data-value="Singles" aria-pressed="false">
+            <svg class="match-type-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="7.2" r="3.2"/><path d="M4.8 20v-1.8a7.2 7.2 0 0 1 14.4 0V20z"/></svg>
+            <span>Singles</span>
+          </button>
         </div>
 
         <label class="live-queue-field-label">GAME MODE</label>
         <div class="live-queue-game-list" id="liveQueueGameMode">
-          <button type="button" class="live-queue-game active" data-target="11"><b>Race to 11</b><span>Standard open play</span></button>
-          <button type="button" class="live-queue-game" data-target="15"><b>Race to 15</b><span>Extended play</span></button>
-          <button type="button" class="live-queue-game" data-target="21" disabled aria-disabled="true"><b>Rally to 21</b><span>MLP/PPA format</span></button>
+          <button type="button" class="live-queue-game active" data-target="11" aria-pressed="true"><b>Race to 11</b><span>Standard open play</span></button>
+          <button type="button" class="live-queue-game" data-target="15" aria-pressed="false"><b>Race to 15</b><span>Extended play</span></button>
+          <button type="button" class="live-queue-game" data-target="21" aria-pressed="false"><b>Rally to 21</b><span>MLP/PPA format</span></button>
         </div>
 
         <label class="live-queue-field-label">WIN BY</label>
         <div class="live-queue-choice-row three" id="liveQueueWinBy">
-          <button type="button" class="live-queue-choice active" data-value="1">Win by 1</button>
-          <button type="button" class="live-queue-choice" data-value="2">Win by 2</button>
-          <button type="button" class="live-queue-choice" data-value="3">Win by 3</button>
+          <button type="button" class="live-queue-choice active" data-value="1" aria-pressed="true">Win by 1</button>
+          <button type="button" class="live-queue-choice" data-value="2" aria-pressed="false">Win by 2</button>
+          <button type="button" class="live-queue-choice" data-value="3" aria-pressed="false">Win by 3</button>
         </div>
       </div>
     </section>
@@ -110,10 +120,16 @@
       </label>
 
       <label class="live-queue-toggle-row">
-        <span class="live-queue-toggle-copy"><strong>DUPR Match</strong><small>Results will be uploaded to DUPR.com</small></span>
-        <input id="liveQueueDupr" type="checkbox" disabled aria-disabled="true">
+        <span class="live-queue-toggle-copy"><strong>DUPR Match</strong><small>Mark this session as a DUPR match.</small></span>
+        <input id="liveQueueDupr" type="checkbox" aria-label="Mark this as a DUPR match">
         <span class="live-queue-toggle" aria-hidden="true"></span>
       </label>
+
+      <div id="liveQueueDuprLocationField" class="live-queue-dupr-location-field hidden">
+        <label class="live-queue-field-label" for="liveQueueDuprLocation">CSV LOCATION</label>
+        <input id="liveQueueDuprLocation" class="live-queue-input" type="text" maxlength="120" autocomplete="street-address" placeholder="e.g. GenSan, Philippines" aria-describedby="liveQueueDuprLocationHelp">
+        <small id="liveQueueDuprLocationHelp" class="live-queue-dupr-location-help">Used as the location in your DUPR CSV export.</small>
+      </div>
 
       <button type="button" id="createLiveQueueBtn" class="create-live-queue-btn">Create Live Queue</button>
     </section>
@@ -121,6 +137,6 @@
   <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
 </div>
 <script src="auth-session.js?v=organizer-login-rework-20261024-1"></script>
-<script>window.PPM_AUTH_READY?.then(status=>{if(!status||status.role!=='organizer')return;const app=document.createElement('script');app.src='start-page.js?v=organizer-scoped-start-page-20261023-1';app.onerror=()=>console.error('Pickle Point Match could not load the organizer start screen.');document.body.appendChild(app);});</script>
+<script>window.PPM_AUTH_READY?.then(status=>{if(!status||status.role!=='organizer')return;const app=document.createElement('script');app.src='start-page.js?v=dupr-location-20261026-3';app.onerror=()=>console.error('Pickle Point Match could not load the organizer start screen.');document.body.appendChild(app);});</script>
 </body>
 </html>

@@ -49,7 +49,9 @@
       return `${header}<main class="ppm-skeleton-content"><div class="ppm-skeleton-grid cols-2"><section class="ppm-skeleton-card tall"><div class="ppm-skeleton-stack"><div class="ppm-skeleton-heading"></div>${line('w70')}<div class="ppm-skeleton-input"></div>${line('w30','sm')}<div class="ppm-skeleton-input"></div>${line('w30','sm')}<div class="ppm-skeleton-input"></div><div class="ppm-skeleton-button"></div></div></section><section class="ppm-skeleton-card tall"><div class="ppm-skeleton-stack">${line('w50','lg')}${line('w80')}${line('w60')}${line('w100')}${line('w70')}${line('w40')}</div></section></div></main>`;
     }
     if (type === 'queueing') {
-      return `${header}<main class="ppm-skeleton-content"><div class="ppm-skeleton-title"><div class="ppm-skeleton-heading"></div>${line('w60')}</div><div class="ppm-skeleton-grid cols-4">${card('short',`${line('w50','sm')}${line('w30','lg')}`)}${card('short',`${line('w50','sm')}${line('w30','lg')}`)}${card('short',`${line('w50','sm')}${line('w30','lg')}`)}${card('short',`${line('w50','sm')}${line('w30','lg')}`)}</div><div class="ppm-skeleton-grid cols-2" style="margin-top:14px">${card('tall',`<div class="ppm-skeleton-stack">${line('w40','lg')}${Array.from({length:5},row).join('')}</div>`)}${card('tall',`<div class="ppm-skeleton-stack">${line('w40','lg')}<div class="ppm-skeleton-courts">${card('medium',`${line('w50','sm')}${line('w70','lg')}${line('w60')}`)}${card('medium',`${line('w50','sm')}${line('w70','lg')}${line('w60')}`)}</div>${line('w50')}</div>`)}</div></main>`;
+      // Keep the real topbar (including eventOrganizerStat) visible during a slow
+      // startup fetch. Only the workspace gets a skeleton overlay on this page.
+      return `<main class="ppm-skeleton-content"><div class="ppm-skeleton-title"><div class="ppm-skeleton-heading"></div>${line('w60')}</div><div class="ppm-skeleton-grid cols-4">${card('short',`${line('w50','sm')}${line('w30','lg')}`)}${card('short',`${line('w50','sm')}${line('w30','lg')}`)}${card('short',`${line('w50','sm')}${line('w30','lg')}`)}${card('short',`${line('w50','sm')}${line('w30','lg')}`)}</div><div class="ppm-skeleton-grid cols-2" style="margin-top:14px">${card('tall',`<div class="ppm-skeleton-stack">${line('w40','lg')}${Array.from({length:5},row).join('')}</div>`)}${card('tall',`<div class="ppm-skeleton-stack">${line('w40','lg')}<div class="ppm-skeleton-courts">${card('medium',`${line('w50','sm')}${line('w70','lg')}${line('w60')}`)}${card('medium',`${line('w50','sm')}${line('w70','lg')}${line('w60')}`)}</div>${line('w50')}</div>`)}</div></main>`;
     }
     if (type === 'registration') {
       return `${header}<main class="ppm-skeleton-content"><div class="ppm-skeleton-grid cols-2"><section class="ppm-skeleton-card tall"><div class="ppm-skeleton-stack"><div class="ppm-skeleton-heading"></div>${line('w70')}<div class="ppm-skeleton-input"></div>${line('w30','sm')}<div class="ppm-skeleton-input"></div>${line('w30','sm')}<div class="ppm-skeleton-input"></div><div class="ppm-skeleton-button"></div></div></section><section class="ppm-skeleton-card tall"><div class="ppm-skeleton-stack">${line('w50','lg')}${Array.from({length:4},row).join('')}</div></section></div></main>`;
@@ -66,7 +68,9 @@
     overlay.setAttribute('role', 'status');
     overlay.setAttribute('aria-live', 'polite');
     overlay.setAttribute('aria-label', 'Loading page content');
-    overlay.innerHTML = `<div class="ppm-skeleton-shell">${pageMarkup(screenType())}</div>`;
+    const type = screenType();
+    if (type === 'queueing') overlay.classList.add('ppm-network-skeleton-queueing');
+    overlay.innerHTML = `<div class="ppm-skeleton-shell">${pageMarkup(type)}</div>`;
     document.body.appendChild(overlay);
     return overlay;
   }
@@ -75,6 +79,17 @@
     const el = ensureOverlay();
     if (!el) return;
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    if (screenType() === 'queueing') {
+      // Measure the real header so the loading overlay starts below it and can
+      // never replace or visually resize the queueing topbar.
+      const topbar = document.querySelector('body[data-page="queueing"] header.topbar');
+      const bottom = topbar ? Math.max(0, Math.ceil(topbar.getBoundingClientRect().bottom)) : 0;
+      el.style.top = `${bottom}px`;
+      el.style.paddingTop = '10px';
+    } else {
+      el.style.top = '0px';
+      el.style.paddingTop = '';
+    }
     if (el.hidden) el.hidden = false;
   }
 

@@ -84,13 +84,9 @@
     if (text) text.textContent = label || (connected ? 'Connected' : 'Offline');
   }
 
-  function setPageStatus(message, type = 'loading') {
-    const status = $('registrationPageStatus');
-    if (!status) return;
-    status.textContent = message;
-    status.classList.toggle('is-loading', type === 'loading');
-    status.classList.toggle('is-error', type === 'error');
-    status.classList.toggle('is-success', type === 'success');
+  function showRegistrationError(message) {
+    // Keep actionable errors visible in the existing result panel instead of a status banner.
+    showResult('Please check your registration', message, true);
   }
 
   function updateAppPlayers(state) {
@@ -205,7 +201,8 @@
   function updateSubmitButton() {
     const fullname = String($('registerFullname')?.value || '').trim();
     const duplicate = updateDuplicateMessage();
-    const complete = fullname.length > 0 && !!selectedGender && SKILLS.has(selectedSkill);
+    const duprId = String($('registerDuprId')?.value || '').trim();
+    const complete = fullname.length > 0 && duprId.length > 0 && !!selectedGender && SKILLS.has(selectedSkill);
     const button = $('registerSaveBtn');
     if (button) button.disabled = !(serviceReady && complete && !duplicate && !submitting);
     return {fullname, duplicate, complete};
@@ -246,14 +243,13 @@
       updateAppPlayers(appStateData?.state);
       serviceReady = true;
       setConnection(true, 'Connected');
-      setPageStatus('Connected to Registered Player Cloud. New players will be saved and added to the waiting queue automatically.', 'success');
       updateSubmitButton();
       bindCloudEvents();
       return true;
     } catch (error) {
       serviceReady = false;
       setConnection(false, 'Offline');
-      setPageStatus('Registration needs the Pickle Point Match server. Open this page using the hosted app link, then try again.', 'error');
+      showRegistrationError('Registration needs the Pickle Point Match server. Open this page using the hosted app link, then try again.');
       updateSubmitButton();
       return false;
     }
@@ -288,6 +284,8 @@
   function resetForm() {
     $('registerFullname').value = '';
     $('registerNickname').value = '';
+    $('registerDuprId').value = '';
+    $('registerSelfRating').value = '';
     selectedGender = '';
     selectedSkill = '';
     document.querySelectorAll('.gender-choice').forEach(button => {
@@ -320,9 +318,14 @@
       showResult('This user is already registered', `${duplicate.name} is already saved in Registered Player Cloud. No duplicate profile was created.`, true);
       return;
     }
-    if (!fullname) { setPageStatus('Please enter the player’s full name.', 'error'); $('registerFullname').focus(); return; }
-    if (!selectedGender) { setPageStatus('Please select Male or Female.', 'error'); return; }
-    if (!SKILLS.has(selectedSkill)) { setPageStatus('Please select a skill level.', 'error'); return; }
+    if (!fullname) { showRegistrationError('Please enter the player’s full name.'); $('registerFullname').focus(); return; }
+    const duprId = String($('registerDuprId')?.value || '').trim().toUpperCase();
+    const selfRating = String($('registerSelfRating')?.value || '').trim();
+    if (!duprId) { showRegistrationError('Please enter the player’s DUPR ID.'); $('registerDuprId').focus(); return; }
+    if (!/^[A-Z0-9]{1,20}$/.test(duprId)) { showRegistrationError('DUPR ID must contain uppercase letters and numbers only.'); $('registerDuprId').focus(); return; }
+    if (selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) { showRegistrationError('Enter self rating as a number, such as 2.5, or a range such as 2.5/4.0.'); $('registerSelfRating').focus(); return; }
+    if (!selectedGender) { showRegistrationError('Please select Male or Female.'); return; }
+    if (!SKILLS.has(selectedSkill)) { showRegistrationError('Please select a skill level.'); return; }
     if (!serviceReady || !complete) {
       await loadCloudRecords();
       if (!serviceReady) return;
@@ -332,36 +335,31 @@
     const button = $('registerSaveBtn');
     if (button) button.textContent = 'Registering…';
     updateSubmitButton();
-    setPageStatus('Saving player to the shared queue and Registered Player Cloud…', 'loading');
     try {
       const response = await fetch('/api/register-player', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         cache: 'no-store',
-        body: JSON.stringify({name: fullname, nickname: $('registerNickname').value.trim(), gender: selectedGender, category: selectedSkill, ...(organizerScope ? {organizerId:organizerScope} : {})})
+        body: JSON.stringify({name: fullname, nickname: $('registerNickname').value.trim(), gender: selectedGender, category: selectedSkill, duprId, selfRating, ...(organizerScope ? {organizerId:organizerScope} : {})})
       });
       const data = await response.json().catch(() => ({}));
       if (response.status === 409 && data.duplicate) {
         const player = data.player || {name: fullname};
         if (!duplicatePlayer(player.name)) cloudPlayers.push(player);
         updateDuplicateMessage();
-        setPageStatus(data.error || 'This user is already registered.', 'error');
         showResult('This user is already registered', `${player.name} is already saved in Registered Player Cloud. No duplicate profile was created.`, true);
         return;
       }
       if (!response.ok || !data.ok) throw new Error(data.error || 'Unable to register this player. Please try again.');
 
       cloudPlayers.push(data.player);
-      setPageStatus('Registration saved successfully.', 'success');
       if (data.queued) notifyPlayerAdded(data.player.name);
       resetForm();
       $('registerFullname').focus();
     } catch (error) {
       if (error instanceof TypeError) {
-        setPageStatus('Could not reach the registration server. Check your connection and try again.', 'error');
         showResult('Registration not completed', 'The server did not confirm the save. Please retry before closing this page.', true);
       } else {
-        setPageStatus(error.message || 'Unable to register player.', 'error');
         showResult('Registration not completed', error.message || 'Please try again.', true);
       }
     } finally {
@@ -402,6 +400,26 @@
   document.querySelectorAll('.registration-skill-btn').forEach(button => button.addEventListener('click', () => selectSkill(button.dataset.skill)));
   $('registerSaveBtn').addEventListener('click', submitRegistration);
   $('registerFullname').addEventListener('keydown', event => { if (event.key === 'Enter') submitRegistration(); });
+  $('registerDuprId').addEventListener('input', () => {
+    const input = $('registerDuprId');
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? start;
+    input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
+    try { input.setSelectionRange(Math.min(start, input.value.length), Math.min(end, input.value.length)); } catch (_) {}
+    updateSubmitButton();
+    const result = $('registrationPageResult');
+    if (result && !result.hidden) result.hidden = true;
+  });
+  $('registerSelfRating').addEventListener('input', () => {
+    const input = $('registerSelfRating');
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? start;
+    input.value = input.value.replace(/[^0-9./]/g, '').slice(0, 20);
+    try { input.setSelectionRange(Math.min(start, input.value.length), Math.min(end, input.value.length)); } catch (_) {}
+    updateSubmitButton();
+    const result = $('registrationPageResult');
+    if (result && !result.hidden) result.hidden = true;
+  });
   bindNameHelpers();
   syncRegistrationEyebrowTheme();
   loadCloudRecords();

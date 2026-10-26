@@ -11,6 +11,7 @@ const THEME_FILE = path.join(DATA_DIR, 'live-theme.json');
 const APP_STATE_FILE = path.join(DATA_DIR, 'app-state.json');
 const CLOUD_RECORDS_FILE = path.join(DATA_DIR, 'registered-player-cloud.json');
 const ORGANIZERS_FILE = path.join(DATA_DIR, 'organizer-accounts.json');
+const CLUB_ID_SEQUENCE_FILE = path.join(DATA_DIR, 'club-id-sequence.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
@@ -31,6 +32,7 @@ const sharedSubscribers = new Set();
 const sharedSubscriberScopes = new Map();
 let dbPool = null;
 let organizerAccounts = [];
+let nextClubIdSequence = 1;
 const organizerAppStates = new Map();
 const organizerLiveStates = new Map();
 
@@ -42,8 +44,53 @@ const PANEL_PASSWORD = String(process.env.PANEL_PASSWORD || '');
 const SESSION_SECRET = String(process.env.SESSION_SECRET || '');
 const AUTH_COOKIE = 'ppm_organizer_session';
 const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
+// Organizer approval was enabled at 2026-10-26 00:00 Asia/Manila (2026-10-25 16:00 UTC).
+// This cutoff lets us safely migrate applications created by an older deployment while
+// preserving organizer accounts that already existed before approval was introduced.
+const ORGANIZER_APPROVAL_CUTOVER_MS = Date.parse('2026-10-25T16:00:00.000Z');
+function organizerCreatedBy(account) {
+  return String(account?.createdBy || 'registration').trim().toLowerCase();
+}
+function isAdminCreatedAccount(account) {
+  const source = organizerCreatedBy(account);
+  return source === 'panel' || source === 'legacy-environment';
+}
+function isLegacyPreApprovalAccount(account) {
+  if (!account || isAdminCreatedAccount(account) || account.applicationSubmittedAt) return false;
+  const createdAt = Date.parse(account.createdAt || '');
+  return Number.isFinite(createdAt) && createdAt < ORGANIZER_APPROVAL_CUTOVER_MS;
+}
+function isRecentUnapprovedSelfRegistration(account) {
+  if (!account || String(account.approvalStatus || '').trim().toLowerCase() === 'rejected') return false;
+  if (isAdminCreatedAccount(account) || account.adminApproved === true) return false;
+  const status = String(account.approvalStatus || '').trim().toLowerCase();
+  // Keep legitimate approvals from the previous build, whose confirmation
+  // action recorded approvedAt. Startup migration turns this into adminApproved.
+  if (status === 'approved' && account.approvedAt) return false;
+  // New application records remain pending regardless of active=true or a stale
+  // default approvalStatus value written by an older deployment.
+  if (account.applicationSubmittedAt) return true;
+  const createdAt = Date.parse(account.createdAt || '');
+  // Missing timestamps are ambiguous: fail closed and require admin approval.
+  return !Number.isFinite(createdAt) || createdAt >= ORGANIZER_APPROVAL_CUTOVER_MS;
+}
+function effectiveApprovalStatus(account) {
+  const status = String(account?.approvalStatus || '').trim().toLowerCase();
+  if (status === 'rejected') return 'rejected';
+  if (status === 'pending') return 'pending';
+  if (isAdminCreatedAccount(account)) return 'approved';
+  if (account?.adminApproved === true) return 'approved';
+  // A timestamp created by the previous admin-confirmation endpoint is a valid
+  // legacy confirmation. Startup migration persists it as adminApproved=true.
+  if (status === 'approved' && account?.approvedAt) return 'approved';
+  if (isLegacyPreApprovalAccount(account)) return 'approved';
+  // Crucially, unknown/new self-registrations fail closed; they never become
+  // approved merely because active=true or approvalStatus was omitted.
+  if (isRecentUnapprovedSelfRegistration(account)) return 'pending';
+  return 'pending';
+}
 function authIsConfigured() {
-  return !!(SESSION_SECRET && ((PANEL_USERNAME && PANEL_PASSWORD) || organizerAccounts.some(a => a.active)));
+  return !!(SESSION_SECRET && ((PANEL_USERNAME && PANEL_PASSWORD) || organizerAccounts.some(a => a.active === true && effectiveApprovalStatus(a) === 'approved')));
 }
 function panelIsConfigured() { return !!(PANEL_USERNAME && PANEL_PASSWORD && SESSION_SECRET); }
 function safeEqual(a, b) {
@@ -64,7 +111,7 @@ function getCookieValue(req, name) {
   return '';
 }
 function accountById(id) {
-  return organizerAccounts.find(account => account && account.id === String(id || '') && account.active !== false) || null;
+  return organizerAccounts.find(account => account && account.id === String(id || '') && account.active === true && effectiveApprovalStatus(account) === 'approved') || null;
 }
 function accountByUsername(username) {
   const normalized = String(username || '').trim().toLocaleLowerCase();
@@ -132,6 +179,96 @@ function verifyPassword(password, storedHash) {
     return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
   } catch (_) { return false; }
 }
+
+// The login hash remains the source of truth for authentication. An encrypted
+// copy is kept only so an authenticated panel administrator can view/reset the
+// organizer password. Older hash-only accounts cannot be decrypted and must
+// have their password reset once before it can be shown in the panel.
+function organizerPasswordVaultKey() {
+  if (!SESSION_SECRET) return null;
+  return crypto.createHash('sha256').update(`pick-point-match:organizer-password-vault:v1:${SESSION_SECRET}`).digest();
+}
+function encryptOrganizerPassword(password) {
+  const key = organizerPasswordVaultKey();
+  if (!key) return null;
+  try {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const encrypted = Buffer.concat([cipher.update(String(password), 'utf8'), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    return `v1:${iv.toString('base64url')}:${tag.toString('base64url')}:${encrypted.toString('base64url')}`;
+  } catch (_) { return null; }
+}
+function decryptOrganizerPassword(envelope) {
+  const key = organizerPasswordVaultKey();
+  if (!key || typeof envelope !== 'string') return null;
+  const parts = envelope.split(':');
+  if (parts.length !== 4 || parts[0] !== 'v1') return null;
+  try {
+    const iv = Buffer.from(parts[1], 'base64url');
+    const tag = Buffer.from(parts[2], 'base64url');
+    const ciphertext = Buffer.from(parts[3], 'base64url');
+    if (iv.length !== 12 || tag.length !== 16) return null;
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+  } catch (_) { return null; }
+}
+function normalizeOrganizerDuprId(value) {
+  return String(value || '').trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
+}
+function formatClubId(sequence) {
+  return String(sequence).padStart(4, '0');
+}
+function numericClubId(value) {
+  const text = String(value || '').trim();
+  return /^\d{4,}$/.test(text) ? Number(text) : null;
+}
+function allocateClubId() {
+  const used = new Set(organizerAccounts.map(account => String(account?.clubId || '').trim()).filter(Boolean));
+  let sequence = Math.max(1, Number(nextClubIdSequence) || 1);
+  let clubId = formatClubId(sequence);
+  while (used.has(clubId)) {
+    sequence += 1;
+    clubId = formatClubId(sequence);
+  }
+  nextClubIdSequence = sequence + 1;
+  return clubId;
+}
+function ensureOrganizerClubIds() {
+  let changed = false;
+  const seen = new Set();
+  // Preserve the first occurrence of each valid generated ID; repair blanks,
+  // malformed IDs, and duplicates without allowing admin edits to override IDs.
+  for (const account of organizerAccounts) {
+    const clubId = String(account?.clubId || '').trim();
+    if (numericClubId(clubId) !== null && !seen.has(clubId)) {
+      account.clubId = clubId;
+      seen.add(clubId);
+    } else {
+      if (clubId) changed = true;
+      account.clubId = null;
+    }
+  }
+  const largest = [...seen].map(numericClubId).filter(Number.isSafeInteger).reduce((max, value) => Math.max(max, value), 0);
+  nextClubIdSequence = Math.max(1, Number(nextClubIdSequence) || 1, largest + 1);
+  for (const account of organizerAccounts) {
+    if (account.clubId) continue;
+    let clubId = formatClubId(nextClubIdSequence);
+    while (seen.has(clubId)) {
+      nextClubIdSequence += 1;
+      clubId = formatClubId(nextClubIdSequence);
+    }
+    account.clubId = clubId;
+    seen.add(clubId);
+    nextClubIdSequence += 1;
+    changed = true;
+  }
+  return changed;
+}
+function clubIdSequenceRecord() {
+  return {next:Math.max(1, Number(nextClubIdSequence) || 1)};
+}
 function safeOrganizerLogo(value) {
   return typeof value === 'string' && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/i.test(value.trim()) ? value.trim() : null;
 }
@@ -139,14 +276,49 @@ function organizerLogoFor(account) {
   return safeOrganizerLogo(account?.profileImage) || safeOrganizerLogo(account?.organizerLogo) || safeOrganizerLogo(account?.logoData) || safeOrganizerLogo(account?.logo);
 }
 function organizerPublicRecord(account) {
-  return {id:account.id,username:account.username,displayName:account.displayName || account.username,profileImage:organizerLogoFor(account),active:account.active !== false,createdAt:account.createdAt || null,lastLoginAt:account.lastLoginAt || null,createdBy:account.createdBy || 'registration'};
+  const approvalStatus = effectiveApprovalStatus(account);
+  const active = account.active !== false && approvalStatus === 'approved';
+  return {
+    id:account.id,
+    clubId:String(account.clubId || '').trim() || null,
+    username:account.username,
+    displayName:account.displayName || account.username,
+    profileImage:organizerLogoFor(account),
+    duprId:String(account.duprId || '').trim() || null,
+    active,
+    approvalStatus,
+    adminApproved:account.adminApproved === true,
+    createdAt:account.createdAt || null,
+    applicationSubmittedAt:account.applicationSubmittedAt || null,
+    approvedAt:account.approvedAt || null,
+    lastLoginAt:account.lastLoginAt || null,
+    createdBy:account.createdBy || 'registration'
+  };
+}
+function organizerPanelRecord(account) {
+  const passwordDisplay = decryptOrganizerPassword(account.passwordEncrypted);
+  return {
+    ...organizerPublicRecord(account),
+    duprId:normalizeOrganizerDuprId(account.duprId || account.personalDuprId || account.duprID || account.dupr_id) || null,
+    duprOrganizerId:String(account.duprOrganizerId || account.dupr_organizer_id || '').trim() || null,
+    passwordDisplay,
+    passwordAvailable:typeof passwordDisplay === 'string' && passwordDisplay.length > 0
+  };
 }
 function makeOrganizerRecord(username, password, displayName, createdBy = 'registration') {
   const now = new Date().toISOString();
-  return {id:crypto.randomUUID(),username,displayName:displayName || username,profileImage:null,passwordHash:hashPassword(password),active:true,createdAt:now,lastLoginAt:null,createdBy};
+  const requiresApproval = !['panel','legacy-environment'].includes(String(createdBy || '').trim().toLowerCase());
+  return {
+    id:crypto.randomUUID(), clubId:allocateClubId(), username, displayName:displayName || username, profileImage:null,
+    passwordHash:hashPassword(password), passwordEncrypted:encryptOrganizerPassword(password), active:!requiresApproval,
+    approvalStatus:requiresApproval ? 'pending' : 'approved',
+    adminApproved:!requiresApproval,
+    ...(requiresApproval ? {applicationSubmittedAt:now} : {approvedAt:now, approvalConfirmedBy:'panel'}),
+    createdAt:now, lastLoginAt:null, createdBy
+  };
 }
 function getDefaultOrganizer() {
-  return organizerAccounts.find(account => account && account.active !== false) || null;
+  return organizerAccounts.find(account => account && account.active === true && effectiveApprovalStatus(account) === 'approved') || null;
 }
 function resolveOrganizerId(req, url, body = null, allowDefault = false) {
   const auth = getAuthSession(req);
@@ -264,7 +436,7 @@ function normalizePlayerName(value) {
   return String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
 function createDefaultSharedAppState() {
-  return {schemaVersion:12,players:[],left:[],queue:[],lockedPartners:[],courts:[],logs:[],nextPlayer:1,nextCourt:1,nextWaitingCourt:1,nextLog:1,sessionMetrics:{cloudCheckins:0,newRegistered:0},sessionActive:false,sessionEndedAt:null,sessionName:'Open Play',duprMatch:false,recordScores:false,liveRankingEnabled:false,liveMatchesEnabled:false,eventRules:{target:11,winBy:1,type:'Doubles'},matchingMode:'balanced',winnersLosersNextGroup:'winners'};
+  return {schemaVersion:12,players:[],left:[],queue:[],lockedPartners:[],courts:[],logs:[],nextPlayer:1,nextCourt:1,nextWaitingCourt:1,nextLog:1,sessionMetrics:{cloudCheckins:0,newRegistered:0},sessionActive:false,sessionEndedAt:null,sessionName:'Open Play',duprMatch:false,duprLocation:'',duprLabelsEnabled:true,recordScores:false,liveRankingEnabled:false,liveMatchesEnabled:false,eventRules:{target:11,winBy:1,type:'Doubles'},matchingMode:'balanced',winnersLosersNextGroup:'winners'};
 }
 function normalizeTimestamp(value) {
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
@@ -383,12 +555,15 @@ async function handle(req, res) {
     // This endpoint intentionally exposes only what the public sign-in picker needs.
     // Never include password hashes, login timestamps, or admin-only account metadata.
     const organizers = organizerAccounts
-      .filter(account => account && account.active !== false && account.username)
+      .filter(account => account && account.active === true && effectiveApprovalStatus(account) === 'approved' && account.username)
       .map(account => ({
         id: String(account.id),
         username: String(account.username),
         displayName: String(account.displayName || account.username),
-        profileImage: organizerLogoFor(account)
+        profileImage: organizerLogoFor(account),
+        active: account.active === true,
+        approvalStatus: effectiveApprovalStatus(account),
+        adminApproved: account.adminApproved === true
       }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, {sensitivity:'base'}));
     const panelAccount = panelIsConfigured()
@@ -398,7 +573,7 @@ async function handle(req, res) {
   }
 
   if (url.pathname === '/api/login' && req.method === 'POST') {
-    if (!SESSION_SECRET || (!panelIsConfigured() && !organizerAccounts.some(account => account.active !== false))) {
+    if (!SESSION_SECRET || (!panelIsConfigured() && !organizerAccounts.some(account => account.active === true && effectiveApprovalStatus(account) === 'approved'))) {
       return sendJson(res, 503, {ok:false,error:'Login is not configured yet. Configure PANEL_USERNAME, PANEL_PASSWORD, SESSION_SECRET, or register an organizer after setup.'});
     }
     // Login attempts are not counted or locked out. A failed sign-in returns a normal
@@ -413,13 +588,14 @@ async function handle(req, res) {
         role = 'panel';
       } else {
         account = accountByUsername(username);
-        if (account && account.active !== false && verifyPassword(password, account.passwordHash)) role = 'organizer';
+        if (account && account.active === true && effectiveApprovalStatus(account) === 'approved' && verifyPassword(password, account.passwordHash)) role = 'organizer';
       }
       if (!role) {
         return sendJson(res, 401, {ok:false,error:'Incorrect username or password, or this account is inactive.'});
       }
       if (role === 'organizer') {
         account.lastLoginAt = new Date().toISOString();
+        if (!account.passwordEncrypted) account.passwordEncrypted = encryptOrganizerPassword(password);
         await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
       }
       const authUsername = role === 'panel' ? PANEL_USERNAME : account.username;
@@ -451,7 +627,9 @@ async function handle(req, res) {
       const body = await readBody(req, 16 * 1024 * 1024);
       const username = String(body?.username || '').trim();
       const displayName = String(body?.displayName || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+      const duprId = String(body?.duprId || '').trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase().slice(0, 40);
       const password = String(body?.password || '');
+      if (!/^[A-Z0-9]{6}$/.test(duprId)) return sendJson(res, 400, {ok:false,error:'DUPR ID is required and must contain exactly 6 letters or numbers.'});
       if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{2,39}$/.test(username)) return sendJson(res, 400, {ok:false,error:'Username must be 3–40 characters and use letters, numbers, dot, underscore, or hyphen.'});
       if (password.length < 8 || password.length > 200) return sendJson(res, 400, {ok:false,error:'Password must be at least 8 characters long.'});
       if (!displayName) return sendJson(res, 400, {ok:false,error:'Enter the organizer or venue name.'});
@@ -464,15 +642,22 @@ async function handle(req, res) {
       }
       const account = makeOrganizerRecord(username,password,displayName,'self-registration');
       account.profileImage = profileImage || null;
+      account.duprId = duprId;
+      account.active = false;
+      account.approvalStatus = 'pending';
+      account.adminApproved = false;
+      account.approvedAt = null;
+      account.approvalConfirmedBy = null;
+      account.applicationSubmittedAt = new Date().toISOString();
       organizerAccounts.push(account);
-      await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
-      res.writeHead(201, {
-        'Content-Type':'application/json; charset=utf-8',
-        'Cache-Control':'no-store',
-        'Set-Cookie':`${AUTH_COOKIE}=${makeSessionToken(account.username,'organizer',account.id)}; ${cookieOptions(req, SESSION_MAX_AGE_SECONDS)}`,
-        'X-Content-Type-Options':'nosniff'
+      await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts},{key:'club-id-sequence',filePath:CLUB_ID_SEQUENCE_FILE,value:clubIdSequenceRecord()}]);
+      return sendJson(res, 201, {
+        ok:true,
+        status:'pending',
+        message:'Your organizer application has been submitted and is awaiting review. You can sign in after Pickle Point Match approves your account.',
+        username:account.username,
+        organizerId:account.id
       });
-      return res.end(JSON.stringify({ok:true,role:'organizer',username:account.username,organizerId:account.id}));
     } catch (err) {
       const statusCode = err.statusCode || 503;
       const errorText = err.statusCode === 413
@@ -487,7 +672,7 @@ async function handle(req, res) {
 
   if (url.pathname === '/api/panel/organizers' && req.method === 'GET') {
     if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
-    return sendJson(res, 200, {ok:true,organizers:organizerAccounts.map(organizerPublicRecord)});
+    return sendJson(res, 200, {ok:true,organizers:organizerAccounts.map(organizerPanelRecord)});
   }
   if (url.pathname === '/api/panel/organizers' && req.method === 'POST') {
     if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
@@ -502,8 +687,8 @@ async function handle(req, res) {
       if (username.toLocaleLowerCase() === PANEL_USERNAME.toLocaleLowerCase() || accountByUsername(username)) return sendJson(res, 409, {ok:false,error:'That username is already in use.'});
       const account = makeOrganizerRecord(username,password,displayName,'panel');
       organizerAccounts.push(account);
-      await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
-      return sendJson(res, 201, {ok:true,organizer:organizerPublicRecord(account)});
+      await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts},{key:'club-id-sequence',filePath:CLUB_ID_SEQUENCE_FILE,value:clubIdSequenceRecord()}]);
+      return sendJson(res, 201, {ok:true,organizer:organizerPanelRecord(account)});
     } catch (err) { return sendJson(res, err.statusCode || 400, {ok:false,error:err.statusCode === 413 ? 'Payload too large' : 'Unable to create organizer account.'}); }
   }
   const organizerAdminMatch = url.pathname.match(/^\/api\/panel\/organizers\/([a-f0-9-]{20,})$/i);
@@ -513,6 +698,12 @@ async function handle(req, res) {
       const body = await readBody(req, 4 * 1024 * 1024);
       const account = organizerAccounts.find(item => item.id === organizerAdminMatch[1]);
       if (!account) return sendJson(res, 404, {ok:false,error:'Organizer account not found.'});
+      const requestedApprovalStatus = body.approvalStatus !== undefined
+        ? String(body.approvalStatus || '').trim().toLowerCase()
+        : effectiveApprovalStatus(account);
+      if (body.active === true && requestedApprovalStatus !== 'approved') {
+        return sendJson(res, 400, {ok:false,error:'Confirm and approve this organizer application before activating the account.'});
+      }
       if (body.displayName !== undefined) {
         const displayName = String(body.displayName || '').trim().replace(/\s+/g, ' ').slice(0, 80);
         if (!displayName) return sendJson(res, 400, {ok:false,error:'Display name cannot be blank.'});
@@ -527,11 +718,49 @@ async function handle(req, res) {
         }
         account.username = username;
       }
-      if (body.active !== undefined) account.active = !!body.active;
+      if (body.duprId !== undefined || body.personalDuprId !== undefined || body.dupr_id !== undefined) {
+        const duprId = normalizeOrganizerDuprId(body.duprId ?? body.personalDuprId ?? body.dupr_id);
+        if (duprId && !/^[A-Z0-9_-]{1,40}$/.test(duprId)) return sendJson(res, 400, {ok:false,error:'DUPR ID must use letters, numbers, hyphens, or underscores (up to 40 characters), or be left blank.'});
+        account.duprId = duprId || null;
+        delete account.personalDuprId;
+        delete account.duprID;
+        delete account.dupr_id;
+      }
+      if (body.duprOrganizerId !== undefined) {
+        const duprOrganizerId = String(body.duprOrganizerId || '').trim();
+        if (duprOrganizerId.length > 100) return sendJson(res, 400, {ok:false,error:'DUPR Organizer ID must be 100 characters or fewer.'});
+        account.duprOrganizerId = duprOrganizerId || null;
+      }
+      if (body.approvalStatus !== undefined) {
+        const approvalStatus = String(body.approvalStatus || '').trim().toLowerCase();
+        if (!['approved','rejected'].includes(approvalStatus)) {
+          return sendJson(res, 400, {ok:false,error:'Approval status must be approved or rejected.'});
+        }
+        account.approvalStatus = approvalStatus;
+        account.active = approvalStatus === 'approved';
+        account.adminApproved = approvalStatus === 'approved';
+        if (approvalStatus === 'approved') {
+          account.approvedAt = new Date().toISOString();
+          account.approvalConfirmedAt = account.approvedAt;
+          account.approvalConfirmedBy = PANEL_USERNAME;
+          account.rejectedAt = null;
+        } else {
+          account.rejectedAt = new Date().toISOString();
+          account.approvalConfirmedAt = null;
+          account.approvalConfirmedBy = null;
+        }
+      }
+      if (body.active !== undefined) {
+        if (body.active === true && effectiveApprovalStatus(account) !== 'approved') {
+          return sendJson(res, 400, {ok:false,error:'This organizer is still awaiting administrator confirmation. Use Confirm organizer first.'});
+        }
+        account.active = !!body.active;
+      }
       if (body.password !== undefined && String(body.password)) {
         const password = String(body.password);
-        if (password.length < 8 || password.length > 200) return sendJson(res, 400, {ok:false,error:'New password must be at least 8 characters long.'});
+        if (password.length < 8 || password.length > 200) return sendJson(res, 400, {ok:false,error:'Password must be 8–200 characters long.'});
         account.passwordHash = hashPassword(password);
+        account.passwordEncrypted = encryptOrganizerPassword(password);
       }
       if (body.profileImage !== undefined) {
         const profileImage = String(body.profileImage || '').trim();
@@ -541,7 +770,7 @@ async function handle(req, res) {
         account.profileImage = profileImage || null;
       }
       await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
-      return sendJson(res, 200, {ok:true,organizer:organizerPublicRecord(account)});
+      return sendJson(res, 200, {ok:true,organizer:organizerPanelRecord(account)});
     } catch (err) { return sendJson(res, err.statusCode || 400, {ok:false,error:err.statusCode === 413 ? 'Payload too large' : 'Unable to update organizer account.'}); }
   }
   if (organizerAdminMatch && req.method === 'DELETE') {
@@ -685,9 +914,13 @@ async function handle(req, res) {
       const nickname = String(body?.nickname || '').normalize('NFC').trim().replace(/\s+/g, ' ').slice(0, 80);
       const gender = String(body?.gender || '');
       const category = String(body?.category || '').toUpperCase();
+      const duprId = String(body?.duprId || '').trim().toUpperCase();
+      const selfRating = String(body?.selfRating || '').trim();
       if (!name || name.length > 120) return sendJson(res, 400, {ok:false,error:'Please enter a name (maximum 120 characters).'});
       if (!['Male','Female'].includes(gender)) return sendJson(res, 400, {ok:false,error:'Please select Male or Female.'});
       if (!['BEG','NOV','INT','ADV','EXP'].includes(category)) return sendJson(res, 400, {ok:false,error:'Please select a skill level.'});
+      if (!/^[A-Z0-9]{1,20}$/.test(duprId)) return sendJson(res, 400, {ok:false,error:'Please enter a DUPR ID using uppercase letters and numbers only.'});
+      if (selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) return sendJson(res, 400, {ok:false,error:'Enter self rating as a number or a numeric range, such as 2.5/4.0.'});
 
       const requestedScope = String(url.searchParams.get('organizer') || body?.organizerId || '').trim();
       const organizerId = resolveOrganizerId(req,url,body,true);
@@ -719,9 +952,11 @@ async function handle(req, res) {
         player.nickname = nickname;
         player.gender = gender;
         player.category = category;
+        player.duprId = duprId;
+        player.selfRating = selfRating;
         player.court = player.court ?? null;
       } else {
-        player = {id:appState.nextPlayer++,name,nickname,wins:0,court:null,gender,category,queuedAt:now,waitingSince:now};
+        player = {id:appState.nextPlayer++,name,nickname,wins:0,court:null,gender,category,duprId,selfRating,queuedAt:now,waitingSince:now};
         appState.players.push(player);
       }
       const playingOnCourt = !!player.court || appState.courts.some(c => Array.isArray(c?.players) && c.players.includes(player.id));
@@ -733,7 +968,7 @@ async function handle(req, res) {
       if (isNewQueuePlayer) appState.sessionMetrics.newRegistered = (Number(appState.sessionMetrics.newRegistered) || 0) + 1;
 
       const cloudId = Date.now() + Math.floor(Math.random() * 100000);
-      const cloudPlayer = {cloudId,name,nickname,gender,category,opgId:'',matches:0,wins:0,losses:0};
+      const cloudPlayer = {cloudId,name,nickname,gender,category,duprId,selfRating,opgId:'',matches:0,wins:0,losses:0};
       records.players.push(cloudPlayer);
 
       const updatedAt = new Date().toISOString();
@@ -938,13 +1173,81 @@ async function handle(req, res) {
     await initializeStorage();
 
     const savedAccounts = await loadStored('organizer-accounts', ORGANIZERS_FILE);
+    const savedClubSequence = await loadStored('club-id-sequence', CLUB_ID_SEQUENCE_FILE);
+    nextClubIdSequence = Math.max(1, Number(savedClubSequence?.next) || 1);
     organizerAccounts = Array.isArray(savedAccounts) ? savedAccounts.filter(account => account && typeof account === 'object' && account.id && account.username && account.passwordHash) : [];
     let accountsChanged = !Array.isArray(savedAccounts);
+    if (ensureOrganizerClubIds()) accountsChanged = true;
+    for (const account of organizerAccounts) {
+      const status = String(account.approvalStatus || '').trim().toLowerCase();
+      const source = organizerCreatedBy(account);
+      const legacyPreCutover = isLegacyPreApprovalAccount(account);
+
+      // Older versions recorded approvedAt only when an administrator used the
+      // confirmation action. Preserve those real approvals as an explicit marker.
+      if (status === 'approved' && account.approvedAt && account.adminApproved !== true) {
+        account.adminApproved = true;
+        account.approvalConfirmedAt = account.approvalConfirmedAt || account.approvedAt;
+        account.approvalConfirmedBy = account.approvalConfirmedBy || 'previous-admin-confirmation';
+        accountsChanged = true;
+      }
+
+      if (status === 'rejected') {
+        if (account.active !== false || account.adminApproved !== false) accountsChanged = true;
+        account.active = false;
+        account.adminApproved = false;
+        continue;
+      }
+      if (status === 'pending') {
+        if (account.active !== false || account.adminApproved !== false) accountsChanged = true;
+        account.active = false;
+        account.adminApproved = false;
+        account.applicationSubmittedAt = account.applicationSubmittedAt || account.createdAt || new Date().toISOString();
+        continue;
+      }
+      if (isAdminCreatedAccount(account)) {
+        if (!status) { account.approvalStatus = 'approved'; accountsChanged = true; }
+        account.adminApproved = true;
+        if (account.active === undefined) { account.active = true; accountsChanged = true; }
+        continue;
+      }
+      if (account.adminApproved === true) {
+        if (status !== 'approved') { account.approvalStatus = 'approved'; accountsChanged = true; }
+        continue;
+      }
+      if (legacyPreCutover) {
+        // Preserve existing accounts that predate the approval feature, but make
+        // their grandfathered status explicit so future requests cannot infer it.
+        account.approvalStatus = 'approved';
+        account.adminApproved = true;
+        account.approvedAt = account.approvedAt || account.createdAt || new Date().toISOString();
+        account.approvalConfirmedAt = account.approvalConfirmedAt || account.approvedAt;
+        account.approvalConfirmedBy = account.approvalConfirmedBy || 'legacy-account-migration';
+        accountsChanged = true;
+        continue;
+      }
+
+      // Every self-registration after the cutover (or with ambiguous date data)
+      // remains pending until this panel writes adminApproved=true explicitly.
+      if (account.approvalStatus !== 'pending' || account.active !== false || account.adminApproved !== false || !account.applicationSubmittedAt) accountsChanged = true;
+      account.approvalStatus = 'pending';
+      account.active = false;
+      account.adminApproved = false;
+      account.approvedAt = null;
+      account.approvalConfirmedAt = null;
+      account.approvalConfirmedBy = null;
+      account.applicationSubmittedAt = account.applicationSubmittedAt || account.createdAt || new Date().toISOString();
+    }
     if (AUTH_USERNAME && AUTH_PASSWORD && !accountByUsername(AUTH_USERNAME)) {
       organizerAccounts.push(makeOrganizerRecord(AUTH_USERNAME,AUTH_PASSWORD,AUTH_USERNAME,'legacy-environment'));
       accountsChanged = true;
     }
-    if (accountsChanged) await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
+    const accountEntries = [];
+    if (accountsChanged) accountEntries.push({key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts});
+    if (accountsChanged || Number(savedClubSequence?.next) !== Number(nextClubIdSequence)) {
+      accountEntries.push({key:'club-id-sequence',filePath:CLUB_ID_SEQUENCE_FILE,value:clubIdSequenceRecord()});
+    }
+    if (accountEntries.length) await saveStoredBatch(accountEntries);
 
     latestState = await loadStored('live-state', DATA_FILE);
     const savedTheme = await loadStored('live-theme', THEME_FILE);

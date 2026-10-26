@@ -202,8 +202,13 @@
     // waiting-court slots are labeled Up Next.
     const status = c.waitingOnly ? 'UP NEXT' : (c.playing ? 'PLAYING' : 'READY');
     const statusClass = c.waitingOnly ? 'is-up-next' : (c.playing ? 'is-playing' : 'is-ready');
-    const t1 = Array.isArray(c.team1) ? c.team1 : [];
-    const t2 = Array.isArray(c.team2) ? c.team2 : [];
+    const rawT1 = Array.isArray(c.team1) ? c.team1 : [];
+    const rawT2 = Array.isArray(c.team2) ? c.team2 : [];
+    const singlesMode = String(c.type || currentState?.eventRules?.type || 'Doubles').trim().toLowerCase() === 'singles';
+    // Older cached snapshots may place both Singles players in team1. Normalize
+    // them here as a fallback until the next correctly-shaped live snapshot arrives.
+    const t1 = singlesMode ? [rawT1[0] || rawT1[1] || null] : rawT1;
+    const t2 = singlesMode ? [rawT2[0] || rawT2[1] || rawT1[1] || null] : rawT2;
     const hasPlayers = [...t1, ...t2].some(Boolean);
     // Empty courts show a simple message instead of an empty diagram or guide line.
     const shortPlayerName = player => {
@@ -238,8 +243,11 @@
       ? `<div class="court-visual-score" aria-label="Score ${Number(c.scores?.[0]) || 0} to ${Number(c.scores?.[1]) || 0}"><b>${Number(c.scores?.[0]) || 0}</b><span>–</span><b>${Number(c.scores?.[1]) || 0}</b></div>`
       : '';
     const diagramLabel = `${courtName}: ${teamLabel(t1)} versus ${teamLabel(t2)}`;
+    const singlesMarkers = singlesMode
+      ? `${marker(t1[0], 'marker-single-left')}${marker(t2[0], 'marker-single-right')}`
+      : `${marker(t1[0], 'marker-top-left')}${marker(t1[1], 'marker-bottom-left')}${marker(t2[0], 'marker-top-right')}${marker(t2[1], 'marker-bottom-right')}`;
     const diagramContent = hasPlayers
-      ? `<div class="court-diagram pickleball-court" role="img" aria-label="Pickleball court — ${escapeHTML(diagramLabel)}">
+      ? `<div class="court-diagram pickleball-court${singlesMode ? ' is-singles' : ''}" role="img" aria-label="Pickleball court — ${escapeHTML(diagramLabel)}">
           <span class="pickleball-kitchen pickleball-kitchen-left" aria-hidden="true"></span>
           <span class="pickleball-kitchen pickleball-kitchen-right" aria-hidden="true"></span>
           <span class="pickleball-court-line pickleball-kitchen-line pickleball-kitchen-line-left" aria-hidden="true"></span>
@@ -247,10 +255,7 @@
           <span class="pickleball-court-line pickleball-service-line pickleball-service-line-left" aria-hidden="true"></span>
           <span class="pickleball-court-line pickleball-service-line pickleball-service-line-right" aria-hidden="true"></span>
           <span class="pickleball-net" aria-hidden="true"></span>
-          ${marker(t1[0], 'marker-top-left')}
-          ${marker(t1[1], 'marker-bottom-left')}
-          ${marker(t2[0], 'marker-top-right')}
-          ${marker(t2[1], 'marker-bottom-right')}
+          ${singlesMarkers}
         </div>`
       : '<div class="court-diagram-empty-message" role="status">No players assigned yet</div>';
     return `<article class="court-card court-visual-card${c.playing ? ' playing' : ''}${c.waitingOnly ? ' waiting-only' : ''}${hasPlayers ? '' : ' is-empty-court'}">

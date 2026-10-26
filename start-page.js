@@ -50,6 +50,35 @@
     return dupr ? '(DUPR MATCH)' : '(NON DUPR MATCH)';
   }
 
+  function escapeSessionNamePreviewText(value) {
+    return String(value).replace(/[&<>\"']/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;'
+    }[character]));
+  }
+
+  function renderSessionNamePreview() {
+    const input = $('liveQueueSessionName');
+    const preview = $('liveQueueSessionNamePreview');
+    if (!input || !preview) return;
+
+    const value = String(input.value || '');
+    const match = value.match(/^(\s*)(\((?:NON\s+)?DUPR\s+(?:RATED|MATCH)\))/i);
+    const content = match
+      ? `${escapeSessionNamePreviewText(match[1])}<span class="live-queue-session-name-prefix">${escapeSessionNamePreviewText(match[2])}</span>${escapeSessionNamePreviewText(value.slice(match[0].length))}`
+      : escapeSessionNamePreviewText(value);
+    preview.innerHTML = `<span class="live-queue-session-name-preview-content">${content}</span>`;
+
+    const inputStyle = window.getComputedStyle(input);
+    preview.style.font = inputStyle.font;
+    preview.style.letterSpacing = inputStyle.letterSpacing;
+    preview.style.textTransform = inputStyle.textTransform;
+    preview.style.color = "#18383e";
+    preview.style.paddingLeft = inputStyle.paddingLeft;
+    preview.style.paddingRight = inputStyle.paddingRight;
+    const previewContent = preview.firstElementChild;
+    if (previewContent) previewContent.style.transform = `translateX(${-input.scrollLeft}px)`;
+  }
+
   function syncSessionName() {
     const input = $('liveQueueSessionName');
     if (!input) return;
@@ -61,12 +90,7 @@
     const nextSuffix = autoName ? `Open Play — ${today}` : suffix;
     input.value = `${prefix} ${nextSuffix}`;
     input.dataset.lastValidSuffix = nextSuffix;
-    const dupr = $('liveQueueDupr');
-    if (dupr) {
-      dupr.checked = false;
-      dupr.disabled = true;
-      dupr.setAttribute('aria-disabled', 'true');
-    }
+    renderSessionNamePreview();
   }
 
   function enforceSessionPrefix() {
@@ -86,10 +110,68 @@
       } catch (_) {}
     }
     input.dataset.lastValidSuffix = suffix || input.dataset.lastValidSuffix || 'Open Play';
+    renderSessionNamePreview();
   }
 
   function setGroupActive(selector, button) {
-    document.querySelectorAll(selector).forEach(item => item.classList.toggle('active', item === button));
+    document.querySelectorAll(selector).forEach(item => {
+      const active = item === button;
+      item.classList.toggle('active', active);
+      item.setAttribute('aria-pressed', String(active));
+    });
+  }
+
+  function syncDuprLocationVisibility() {
+    const toggle = $('liveQueueDupr');
+    const field = $('liveQueueDuprLocationField');
+    const input = $('liveQueueDuprLocation');
+    const enabled = !!toggle?.checked;
+    if (field) {
+      field.classList.toggle('hidden', !enabled);
+      field.classList.toggle('is-required', enabled);
+    }
+    if (input) {
+      input.disabled = hasExistingQueue(currentState);
+      input.required = enabled;
+      input.setAttribute('aria-required', String(enabled));
+      if (!enabled || String(input.value || '').trim()) input.setCustomValidity('');
+    }
+  }
+
+  function syncDuprRecordingResults() {
+    const duprToggle = $('liveQueueDupr');
+    const recordToggle = $('liveQueueRecordResults');
+    if (!recordToggle) return;
+
+    const duprEnabled = !!duprToggle?.checked;
+    const existing = hasExistingQueue(currentState);
+    if (duprEnabled) recordToggle.checked = true;
+
+    recordToggle.required = duprEnabled;
+    recordToggle.setAttribute('aria-required', String(duprEnabled));
+    recordToggle.setAttribute('aria-label', duprEnabled
+      ? 'Record game scores (required for DUPR matches)'
+      : 'Record game scores');
+    recordToggle.disabled = existing || duprEnabled || recordToggle.dataset.originallyDisabled === 'true';
+    recordToggle.setAttribute('aria-disabled', String(recordToggle.disabled));
+
+    const row = recordToggle.closest('.record-results-toggle-row');
+    if (row) {
+      row.classList.toggle('is-required-by-dupr', duprEnabled);
+      row.title = duprEnabled
+        ? 'Recording results is required for DUPR matches'
+        : 'Choose whether to record numeric game scores';
+    }
+  }
+
+  function syncDuprLabelToggleText() {
+    const toggle = $('liveQueueDuprLabels');
+    const row = toggle?.closest('.dupr-labels-toggle-row');
+    const status = $('liveQueueDuprLabelsStatus');
+    const enabled = toggle ? !!toggle.checked : true;
+    if (status) status.textContent = enabled ? 'DUPR ON · Show labels in Queueing' : 'DUPR OFF · Hide labels in Queueing';
+    row?.classList.toggle('is-dupr-off', !enabled);
+    if (toggle) toggle.setAttribute('aria-label', enabled ? 'DUPR ON — show labels in Queueing' : 'DUPR OFF — hide labels in Queueing');
   }
 
   function applyQueueAvailability() {
@@ -108,16 +190,26 @@
         $('liveQueueSessionName').disabled = true;
       }
       if ($('liveQueueRecordResults')) $('liveQueueRecordResults').checked = !!currentState.recordScores;
+      if ($('liveQueueDupr')) $('liveQueueDupr').checked = !!currentState.duprMatch;
+      if ($('liveQueueDuprLocation')) $('liveQueueDuprLocation').value = String(currentState.duprLocation || '');
+      if ($('liveQueueDuprLabels')) $('liveQueueDuprLabels').checked = currentState.duprLabelsEnabled !== false;
+      syncDuprLabelToggleText();
+      syncDuprLocationVisibility();
+      renderSessionNamePreview();
     } else {
       $('liveQueueStartSubtitle').textContent = 'Create a live queue session before entering the queueing workspace.';
       if ($('liveQueueSessionName')) $('liveQueueSessionName').disabled = false;
     }
 
+    syncDuprLabelToggleText();
+    syncDuprLocationVisibility();
     document.querySelectorAll('#liveQueueMatchType button, #liveQueueWinBy button, #liveQueueGameMode button, #liveQueueMatchingMode button, #liveQueueStartScreen .live-queue-toggle-row input').forEach(control => {
-      if (control.id === 'liveQueueDupr' || control.matches('[data-value="Singles"], [data-target="21"]')) return;
       control.disabled = existing || control.dataset.originallyDisabled === 'true';
       control.setAttribute('aria-disabled', control.disabled ? 'true' : 'false');
     });
+    syncDuprRecordingResults();
+    const recordResults = $('liveQueueRecordResults');
+    if (recordResults) recordResults.setAttribute('aria-disabled', recordResults.disabled ? 'true' : 'false');
     const create = $('createLiveQueueBtn');
     if (create) {
       create.disabled = !stateCheckComplete || existing || isNavigating;
@@ -155,18 +247,37 @@
   function collectStartConfig() {
     enforceSessionPrefix();
     return {
-      sessionName: String($('liveQueueSessionName')?.value || '').trim() || getPrefix(false) + ' Open Play',
-      duprMatch: false,
+      sessionName: String($('liveQueueSessionName')?.value || '').trim() || getPrefix(!!$('liveQueueDupr')?.checked) + ' Open Play',
+      duprMatch: !!$('liveQueueDupr')?.checked,
       type: document.querySelector('#liveQueueMatchType .live-queue-choice.active')?.dataset.value || 'Doubles',
       target: Number(document.querySelector('#liveQueueGameMode .live-queue-game.active')?.dataset.target) || 11,
       winBy: Number(document.querySelector('#liveQueueWinBy .live-queue-choice.active')?.dataset.value) || 1,
       matchingMode: document.querySelector('#liveQueueMatchingMode .live-queue-matching-option.active')?.dataset.mode || 'balanced',
-      recordScores: !!$('liveQueueRecordResults')?.checked
+      recordScores: !!$('liveQueueDupr')?.checked || !!$('liveQueueRecordResults')?.checked,
+      duprLocation: String($('liveQueueDuprLocation')?.value || '').trim(),
+      duprLabelsEnabled: $('liveQueueDuprLabels') ? !!$('liveQueueDuprLabels').checked : true
     };
   }
 
   async function createQueue() {
     if (isNavigating || !stateCheckComplete || hasExistingQueue(currentState)) return;
+
+    // A DUPR session must have a real location before its queue can be created.
+    const duprLocationInput = $('liveQueueDuprLocation');
+    const duprEnabled = !!$('liveQueueDupr')?.checked;
+    const duprLocation = String(duprLocationInput?.value || '').trim();
+    if (duprLocationInput) {
+      duprLocationInput.required = duprEnabled;
+      duprLocationInput.setAttribute('aria-required', String(duprEnabled));
+      if (duprEnabled && !duprLocation) {
+        duprLocationInput.setCustomValidity('Enter the CSV location before creating a DUPR session.');
+        duprLocationInput.reportValidity();
+        duprLocationInput.focus();
+        return;
+      }
+      duprLocationInput.setCustomValidity('');
+    }
+
     isNavigating = true;
     applyQueueAvailability();
 
@@ -210,11 +321,18 @@
       option.setAttribute('aria-pressed', String(active));
     });
   }));
+  $('liveQueueDupr')?.addEventListener('change', () => { syncSessionName(); syncDuprLocationVisibility(); syncDuprRecordingResults(); });
+  $('liveQueueDuprLocation')?.addEventListener('input', event => {
+    const input = event.currentTarget;
+    if (!$('liveQueueDupr')?.checked || String(input.value || '').trim()) input.setCustomValidity('');
+  });
+  $('liveQueueDuprLabels')?.addEventListener('change', syncDuprLabelToggleText);
   $('liveQueueSessionName')?.addEventListener('input', enforceSessionPrefix);
   $('liveQueueSessionName')?.addEventListener('focus', enforceSessionPrefix);
+  $('liveQueueSessionName')?.addEventListener('scroll', renderSessionNamePreview);
   $('liveQueueSessionName')?.addEventListener('keydown', event => {
     const input = event.currentTarget;
-    const prefixLength = getPrefix(false).length + 1;
+    const prefixLength = getPrefix(!!$('liveQueueDupr')?.checked).length + 1;
     if ((input.selectionStart || 0) < prefixLength && !['Tab', 'Shift', 'Control', 'Alt', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
       event.preventDefault();
       try { input.setSelectionRange(prefixLength, prefixLength); } catch (_) {}
@@ -228,6 +346,8 @@
   });
 
   syncSessionName();
+  syncDuprLabelToggleText();
+  syncDuprLocationVisibility();
   applyQueueAvailability();
   refreshSharedState().catch(() => {
     stateCheckComplete = true;

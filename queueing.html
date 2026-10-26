@@ -3,16 +3,149 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <script>
+    // Queue management is supported on iPad and desktop only. Keep this check
+    // scoped to queueing.html so the other pages remain available on phones.
+    (function () {
+      var userAgent = navigator.userAgent || "";
+      var isIPad = /iPad/i.test(userAgent) || (/Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1);
+      var isPhone = (navigator.userAgentData && navigator.userAgentData.mobile === true) ||
+        /iPhone|iPod|Android.*Mobile|Windows Phone|IEMobile|BlackBerry|webOS/i.test(userAgent);
+
+      function updateQueueingDeviceAccess() {
+        var isSmallScreen = window.matchMedia && window.matchMedia("(max-width: 767px)").matches;
+        document.documentElement.classList.toggle("queueing-mobile-blocked", !isIPad && (isPhone || isSmallScreen));
+      }
+
+      updateQueueingDeviceAccess();
+      window.addEventListener("resize", updateQueueingDeviceAccess, { passive: true });
+    })();
+  </script>
   <meta name="description" content="Pickle Point Match helps organizers manage pickleball players, waiting queues, courts, and matches.">
   <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
   <title>Pickle Point Match — Queueing</title>
 <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=queue-header-glass-20261023-3&mzoom=20261024-1&organizer-stats=20261024-1&qr-logo-assignment=20261024-2&organizer-share-glass=20261024-1">
+  <link rel="stylesheet" href="style.css?v=queue-header-glass-20261023-3&dupr-csv-export=20261026-2&mzoom=20261024-1&organizer-stats=20261024-1&qr-logo-assignment=20261024-2&organizer-share-glass=20261024-1&event-rules-amber-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&lock-partner-gender-minimal-20261026-1&court-player-inline-meta-20261026-1&court-dupr-editor-touch-size-20261026-1&dupr-label-toggle-20261026-1">
   <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261022-1&mzoom=20261024-1">
   <link rel="stylesheet" href="network-skeleton.css?v=network-skeleton-20261024-1">
-  <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
+  <link rel="stylesheet" href="queueing-refresh.css?v=queueing-refresh-stability-20261026-7&court-dupr-editor-touch-size-20261026-1&queue-dupr-event-rule-text-btn=20261026-3&queue-dupr-compact-all-devices=20261026-2&queue-dupr-event-stats-placement=20261026-1">
+  <script src="network-skeleton.js?v=network-skeleton-20261026-3"></script>
+  <style>
+    /* Queueing-only mobile access notice; no styles are applied to other pages. */
+    #queueingMobileBlock { display: none; }
+    html.queueing-mobile-blocked body[data-page="queueing"] { overflow: hidden !important; }
+    html.queueing-mobile-blocked body[data-page="queueing"] > :not(#queueingMobileBlock) {
+      display: none !important;
+    }
+    html.queueing-mobile-blocked body[data-page="queueing"] > #queueingMobileBlock {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 100dvh;
+      padding: 24px;
+      overflow: auto;
+      background: radial-gradient(ellipse at 50% 0%, rgba(13,59,38,.42) 0%, rgba(13,59,38,0) 48%), #0f172a;
+      color: #eefafa;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      text-align: center;
+    }
+    #queueingMobileBlock .queueing-mobile-block-card {
+      width: 100%;
+      max-width: 420px;
+      box-sizing: border-box;
+      padding: 8px 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    #queueingMobileBlock .queueing-mobile-block-icon {
+      display: grid;
+      place-items: center;
+      width: 82px;
+      height: 82px;
+      margin: 0 auto 22px;
+      border-radius: 0;
+      background: transparent;
+      color: inherit;
+      font-size: 0;
+    }
+    #queueingMobileBlock .queueing-mobile-block-icon img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    #queueingMobileBlock h1 {
+      margin: 0 0 12px;
+      color: #eefafa;
+      font-size: clamp(22px, 6vw, 28px);
+      line-height: 1.2;
+      font-weight: 800;
+      letter-spacing: -0.035em;
+    }
+    #queueingMobileBlock p {
+      margin: 0;
+      color: #a9bdc8;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    #queueingMobileBlock .queueing-mobile-block-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      max-width: 360px;
+      margin: 24px auto 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: #a9bdc8;
+      text-align: left;
+    }
+    #queueingMobileBlock .queueing-mobile-note-icon {
+      display: grid;
+      flex: 0 0 20px;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      margin-top: 1px;
+      border: 1px solid rgba(0, 201, 169, .35);
+      border-radius: 50%;
+      background: rgba(0, 201, 169, .12);
+      color: #00d6b7;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    #queueingMobileBlock .queueing-mobile-block-note p {
+      color: inherit;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    #queueingMobileBlock .queueing-mobile-block-note strong {
+      display: inline-block;
+      margin-bottom: 3px;
+      color: #eaf7f7;
+      font-size: 13px;
+      font-weight: 750;
+    }
+  </style>
 </head>
 <body data-page="queueing">
+<div id="queueingMobileBlock" role="alert" aria-live="polite">
+  <div class="queueing-mobile-block-card">
+    <div class="queueing-mobile-block-icon" aria-hidden="true"><img src="pickleball-p-emblem.png" alt=""></div>
+    <h1>Queueing Requires a Larger Screen</h1>
+    <p>To manage players, courts, and matches, please open the Queueing page on an iPad or desktop.</p>
+    <div class="queueing-mobile-block-note"><span class="queueing-mobile-note-icon" aria-hidden="true">i</span><p><strong>Good to know</strong><br>This restriction applies only to Queueing. Player Registration and Live View remain available on your phone.</p></div>
+  </div>
+</div>
 <header class="topbar">
   <button type="button" class="topbar-back-btn" id="topbarBackToStartBtn" aria-label="Back to Live Queue start screen" title="Back to Live Queue start screen">く</button>
   <div class="topbar-logo" role="img" aria-label="Pickleball"><img class="topbar-logo-img" src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div>
@@ -21,7 +154,7 @@
       <span id="eventOrganizerStat" class="organizer-event-stat" hidden><img id="eventOrganizerLogo" class="organizer-event-icon" alt="" aria-hidden="true" hidden><span id="eventOrganizerName" class="organizer-event-name"></span></span>
       <div class="event-title" id="eventTitle" aria-label="Event title">(DUPR MATCH) @PICKLE WORLD DOWNTOWN | 7PM - 11PM</div>
     </div>
-    <div class="event-stats" id="topStats"><span class="event-stat-text">0 players</span><span class="event-stat-sep">•</span><span class="event-stat-text">0 courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn">Race to 11</button><span class="event-stat-sep">•</span><span class="event-stat-text">Doubles</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn">Win by 1</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventMatchingModeBtn" title="Change matching mode">Balance</button></div>
+    <div class="event-stats" id="topStats"><span class="event-stat-text">0 players</span><span class="event-stat-sep">•</span><span class="event-stat-text">0 courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn">Race to 11</button><span class="event-stat-sep">•</span><button type="button" class="event-stat-text event-match-type-btn" id="eventMatchTypeBtn" title="Switch between Singles and Doubles" aria-disabled="false">Doubles</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn">Win by 1</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn queue-dupr-header-toggle" id="queueDuprLabelsToggle" aria-pressed="true" aria-label="Dupr on — click to hide labels" title="Dupr on — click to hide labels">Dupr on</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventMatchingModeBtn" title="Change matching mode">Balance</button></div>
   </div>
   <div class="top-actions">
     <button type="button" id="liveViewQrOpenBtn" class="live-view-qr-open-btn" title="Show QR code and share link for the Live View"><svg class="live-view-qr-button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><g stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.1H4.2A3.1 3.1 0 0 0 1.1 4.2V8"/><path d="M16 1.1h3.8a3.1 3.1 0 0 1 3.1 3.1V8"/><path d="M8 22.9H4.2a3.1 3.1 0 0 1-3.1-3.1V16"/><path d="M16 22.9h3.8a3.1 3.1 0 0 0 3.1-3.1V16"/><rect x="4.3" y="4.3" width="6.1" height="6.1" rx="1.1"/><rect x="13.6" y="4.3" width="6.1" height="6.1" rx="1.1"/><rect x="4.3" y="13.6" width="6.1" height="6.1" rx="1.1"/></g><g fill="currentColor"><rect x="13.1" y="13.1" width="2.1" height="4.2" rx="1.05"/><rect x="16.4" y="13.1" width="3.5" height="2.1" rx="1.05"/><rect x="14.2" y="17.5" width="5.7" height="2.1" rx="1.05"/></g></svg><span>Share</span></button>
@@ -36,10 +169,12 @@
   <!-- QUEUE -->
   <aside class="panel queue-panel">
     <div class="panel-title queue-header-modern">
-      <div>
+      <div class="queue-header-title">
         <h2>📚 Paddle Stack <span id="queueCountBadge" class="panel-count">(0)</span></h2>
       </div>
-      <button class="import-btn" id="importPlayersBtn">☁ Cloud Records</button>
+      <div class="queue-header-actions">
+        <button class="import-btn" id="importPlayersBtn">☁ Cloud Records</button>
+      </div>
     </div>
 
     <div class="queue-mode-buttons mode-buttons-shared" id="queueModeButtons">
@@ -61,13 +196,13 @@
         </div>
       </div>
 
-      <div class="selected-court-note" id="selectedCourtNote"></div>
+      <div class="selected-court-note show" id="selectedCourtNote">Select an empty court slot to choose a player.</div>
 
 
       <div class="queue-list" id="queueList"></div>
       <div class="empty queue-empty-state" id="queueEmpty"><span class="queue-empty-paddle" aria-hidden="true">🏓</span><span>No players in queue. Add players to get started.</span></div>
 
-      <div class="left-section" id="leftSection">
+      <div class="left-section collapsed" id="leftSection">
       <div class="left-title left-title-modern">
         <div class="left-title-main">LEFT PLAYER <span id="leftCount">(0)</span></div>
         <div class="left-title-actions">
@@ -158,7 +293,10 @@
     </section>
 
     <section id="historyView" class="hidden history-view">
-      <h2>📜 Match History <span id="historyCount" class="history-count">(0)</span></h2>
+      <div class="history-heading-row">
+        <h2>📜 Match History <span id="historyCount" class="history-count">(0)</span></h2>
+        <button type="button" class="dupr-csv-download-btn" id="downloadDuprCsvBtn" hidden onclick="downloadDuprCsv()" title="Download scored matches from this DUPR session as CSV"><span aria-hidden="true">↓</span> Download DUPR CSV</button>
+      </div>
       <div id="historySearchWrap" class="history-search-wrap">
         <span class="history-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span>
         <input id="historySearchInput" class="history-search-input" type="search" placeholder="Search player name..." aria-label="Search match history by player name" autocomplete="off">
@@ -241,8 +379,33 @@
     </div>
     <div class="modal-actions end-session-modal-actions">
       <button id="endSessionCancel" type="button">Cancel</button>
+      <button type="button" class="dupr-csv-download-btn end-session-dupr-export-btn" id="endSessionDuprCsvBtn" onclick="downloadDuprCsv()" hidden><span aria-hidden="true">↓</span> Download DUPR CSV</button>
       <button class="end-session-confirm-btn" id="endSessionConfirm" type="button">End Session</button>
     </div>
+  </div>
+</div>
+
+<!-- DUPR CSV EVENT DETAILS -->
+<div class="modal hidden dupr-csv-export-modal" id="duprCsvExportModal" role="presentation" onclick="if(event.target===this)closeDuprCsvExportModal()">
+  <div class="modal-box dupr-csv-export-modal-box" role="dialog" aria-modal="true" aria-labelledby="duprCsvExportTitle" aria-describedby="duprCsvExportDescription">
+    <div class="dupr-csv-export-kicker"><span aria-hidden="true">↓</span> DUPR MATCH IMPORT</div>
+    <h2 id="duprCsvExportTitle">Export Match Results</h2>
+    <p class="modal-note" id="duprCsvExportDescription">Provide the event name and location to be included in every match row of your DUPR CSV export.</p>
+    <form id="duprCsvExportForm" class="dupr-csv-export-form">
+      <label class="dupr-csv-export-field" for="duprCsvEventNameInput">
+        <span>Event Name <b aria-hidden="true">*</b></span>
+        <input id="duprCsvEventNameInput" name="eventName" type="text" maxlength="120" required autocomplete="organization-title" placeholder="e.g. Pickle World Open Play">
+      </label>
+      <label class="dupr-csv-export-field" for="duprCsvLocationInput">
+        <span>Location <b aria-hidden="true">*</b></span>
+        <input id="duprCsvLocationInput" name="location" type="text" maxlength="120" required autocomplete="street-address" placeholder="e.g. Cagayan de Oro, Philippines">
+      </label>
+      <p class="dupr-csv-export-help">These values will populate the <code>event</code> and <code>location</code> columns in the downloaded CSV file.</p>
+      <div class="modal-actions dupr-csv-export-actions">
+        <button type="button" id="duprCsvExportCancelBtn" onclick="closeDuprCsvExportModal()">Cancel</button>
+        <button type="submit" class="dupr-csv-export-confirm-btn"><span aria-hidden="true">↓</span> Download CSV</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -316,7 +479,7 @@ Maria Santos,Female"></textarea>
     <div class="modal-actions"><button id="importCancel">Cancel</button><button class="blue" id="importSave">Import</button></div>
   </div>
 </div>
-<div class="modal hidden" id="cloudRecordsModal"><div class="modal-box cloud-records-modal-box"><div class="cloud-records-head"><div class="cloud-records-title"><h2>☁ Registered Player Cloud <span id="cloudRecordsCount" class="history-count">(0)</span></h2><p>Saved player profiles and match records stay here when a live queue ends.</p></div><button id="cloudImportPlayersBtn" class="cloud-import-btn" type="button">＋ Import Players</button></div><div class="cloud-search-summary"><label class="cloud-search-wrap"><span class="cloud-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="cloudRecordsSearch" type="search" placeholder="Search registered players or match logs..."></label><div class="cloud-records-summary" id="cloudRecordsSummary"></div></div><div class="cloud-records-content" id="cloudRecordsContent"></div><div class="cloud-records-actions"><button type="button" id="cloudRecordsDone">Close</button></div></div></div>
+<div class="modal hidden" id="cloudRecordsModal"><div class="modal-box cloud-records-modal-box"><div class="cloud-records-head"><div class="cloud-records-title"><h2>☁ Registered Player Cloud <span id="cloudRecordsCount" class="history-count">(0)</span></h2><p>Saved player profiles stay here when a live queue ends.</p></div></div><div class="cloud-search-summary"><label class="cloud-search-wrap"><span class="cloud-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="cloudRecordsSearch" type="search" placeholder="Search registered players..."></label></div><div class="cloud-records-content" id="cloudRecordsContent"></div><div class="cloud-records-actions"><button type="button" id="cloudRecordsDone">Close</button></div></div></div>
 <div class="modal hidden" id="cloudMatchActionModal" onclick="if(event.target===this)closeCloudMatchModal()">
   <div class="modal-box cloud-match-action-box" role="dialog" aria-modal="true" aria-labelledby="cloudMatchActionTitle">
     <h2 id="cloudMatchActionTitle"></h2>
@@ -377,7 +540,7 @@ Maria Santos,Female"></textarea>
 
 <div class="toast" id="toast"></div>
 <script src="auth-session.js?v=organizer-display-name-20261024-1"></script>
-<script src="queueing-app-loader.js?v=organizer-name-qr-scope-20261024-3" defer></script>
+<script src="queueing-app-loader.js?v=queueing-refresh-stability-20261026-5&dupr-csv-export=20261026-3&dupr-location=20261026-1&organizer-logo-cache-20261026-1&event-rules-enabled-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&dupr-label-toggle-20261026-1&queue-dupr-toggle-header=20261026-2&queue-dupr-text-only=20261026-1" defer></script>
 
 
 

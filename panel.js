@@ -3,10 +3,9 @@
 
   const $ = id => document.getElementById(id);
   const rows = $('organizerRows');
-  const createForm = $('createOrganizerForm');
-  const createButton = $('createOrganizerButton');
-  const managerModal = $('panelContentModal');
-  const managerDialog = managerModal.querySelector('.panel-content-dialog');
+  const pendingApplicationsSection = $('pendingApplicationsSection');
+  const pendingApplicationRows = $('pendingApplicationRows');
+  const pendingApplicationsBadge = $('pendingApplicationsBadge');
   const modal = $('accountModal');
   const modalDialog = modal.querySelector('.panel-modal-dialog');
   const logoutModal = $('panelLogoutModal');
@@ -24,7 +23,6 @@
   let selectedAccount = null;
   let pendingAction = null;
   let returnFocusTo = null;
-  let managerReturnFocusTo = null;
   let logoutReturnFocusTo = null;
   let toastTimer = null;
   const statusToast = document.createElement('div');
@@ -44,7 +42,6 @@
     if (toastTimer) window.clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => statusToast.classList.remove('is-visible'), 4200);
   }
-  function setCreateMessage(message) { $('createMessage').textContent = message || ''; }
   function safeText(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   }
@@ -76,28 +73,96 @@
     return data;
   }
 
+  const organizerApprovalCutover = Date.parse('2026-10-25T16:00:00.000Z');
+  function isPendingApproval(account) {
+    const status = String(account?.approvalStatus || '').trim().toLowerCase();
+    if (status === 'rejected') return false;
+
+    // The submission timestamp is retained for audit/history after approval.
+    // It must never override the explicit administrator approval marker.
+    if (status === 'pending') return true;
+    const source = String(account?.createdBy || 'registration').trim().toLowerCase();
+    if (source === 'panel' || source === 'legacy-environment' || account?.adminApproved === true) return false;
+    if (status === 'approved' && account?.approvedAt) return false;
+
+    // Only an unapproved application is pending because it has a submission time.
+    if (account?.applicationSubmittedAt) return true;
+    const createdAt = Date.parse(account?.createdAt || '');
+    return !Number.isFinite(createdAt) || createdAt >= organizerApprovalCutover;
+  }
+
   function renderAccounts() {
+    // Defense in depth: recent/ambiguous self-registrations must show as pending
+    // even if an older API payload accidentally reports active/approved.
+    accounts = accounts.map(account => {
+      if (isPendingApproval(account)) return {...account, active:false, approvalStatus:'pending', adminApproved:false};
+      return account;
+    });
     $('totalAccounts').textContent = String(accounts.length);
     $('activeAccounts').textContent = String(accounts.filter(account => account.active).length);
-    $('inactiveAccounts').textContent = String(accounts.filter(account => !account.active).length);
+    $('inactiveAccounts').textContent = String(accounts.filter(account => !account.active && (account.approvalStatus || 'approved') !== 'pending').length);
+    const pendingAccounts = accounts.filter(isPendingApproval);
+    $('pendingAccounts').textContent = String(pendingAccounts.length);
+    // Keep the approval area visible even when empty, so admins always have
+    // a clear place to review new signups and can distinguish an empty queue.
+    pendingApplicationsSection.hidden = false;
+    pendingApplicationsBadge.textContent = `${pendingAccounts.length} pending`;
+    pendingApplicationRows.innerHTML = pendingAccounts.length ? pendingAccounts.map(account => {
+      const image = safeProfileImage(account.profileImage);
+      const avatar = image
+        ? `<img class="pending-organizer-avatar" src="${safeText(image)}" alt="${safeText(account.displayName || account.username)} logo" loading="lazy">`
+        : `<span class="pending-organizer-avatar pending-organizer-initials" aria-hidden="true">${safeText(initials(account))}</span>`;
+      const appliedAt = formatDate(account.applicationSubmittedAt || account.createdAt);
+      const clubLine = `<small class="pending-organizer-club-id">Club ID: ${safeText(account.clubId || 'Assigning…')}</small>`;
+      const duprLine = account.duprId ? `<small class="pending-organizer-dupr">DUPR: ${safeText(account.duprId)}</small>` : '';
+      return `<article class="pending-application-card" data-id="${safeText(account.id)}">
+        <div class="pending-application-identity">${avatar}<div class="pending-application-copy"><strong>${safeText(account.displayName || account.username)}</strong><span>@${safeText(account.username)}</span>${clubLine}${duprLine}<small>Submitted ${safeText(appliedAt)}</small></div></div>
+        <div class="pending-application-status"><span class="status-pill pending">Pending approval</span></div>
+        <div class="pending-application-actions"><button class="row-action approve-action pending-confirm-button" type="button" data-action="approve">Confirm organizer</button><button class="row-action danger pending-reject-button" type="button" data-action="reject">Reject application</button></div>
+      </article>`;
+    }).join('') : '<div class="pending-application-empty" role="status"><span class="pending-application-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></svg></span><span class="pending-application-empty-copy"><strong>No pending applications</strong><span>There are no organizer applications waiting for approval. New registrations will appear here.</span></span></div>';
     if (!accounts.length) {
-      rows.innerHTML = '<tr><td colspan="6" class="empty-row">No organizer accounts yet. Create one using the form.</td></tr>';
+      rows.innerHTML = '<tr><td colspan="7" class="empty-row">No organizer accounts yet. Organizer applications will appear here.</td></tr>';
       return;
     }
     rows.innerHTML = accounts.map(account => {
-      const status = account.active ? '<span class="status-pill active">Active</span>' : '<span class="status-pill inactive">Inactive</span>';
-      const actionLabel = account.active ? 'Deactivate' : 'Activate';
+      const approvalStatus = isPendingApproval(account) ? 'pending' : (account.approvalStatus || 'approved');
+      const status = approvalStatus === 'pending'
+        ? '<span class="status-pill pending">Pending approval</span>'
+        : approvalStatus === 'rejected'
+          ? '<span class="status-pill rejected">Rejected</span>'
+          : account.active
+            ? '<span class="status-pill active">Active</span>'
+            : '<span class="status-pill inactive">Inactive</span>';
+      const actionButton = approvalStatus === 'pending'
+        ? '<button class="row-action approve-action" type="button" data-action="approve"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.2 4.2L19 7"/></svg><span>Approve</span></button><button class="row-action danger" type="button" data-action="reject"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg><span>Reject</span></button>'
+        : `<button class="row-action ${account.active ? 'deactivate-action' : 'activate-action'}" type="button" data-action="toggle"><svg viewBox="0 0 24 24" aria-hidden="true">${account.active ? '<path d="M8 5v14M16 5v14"/>' : '<path d="m8 5 11 7-11 7Z"/>'}</svg><span>${account.active ? 'Deactivate' : (approvalStatus === 'rejected' ? 'Re-approve' : 'Activate')}</span></button>`;
       const image = safeProfileImage(account.profileImage);
       const avatar = image
         ? `<img class="organizer-avatar" src="${safeText(image)}" alt="${safeText(account.displayName || account.username)} profile photo" loading="lazy">`
         : `<span class="organizer-avatar" aria-hidden="true">${safeText(initials(account))}</span>`;
+      const requestDate = account.applicationSubmittedAt || account.createdAt;
+      const systemClubId = String(account.clubId || '').trim();
+      const clubIdLine = `<span class="organizer-sub club-id-sub"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M8 9h8M8 12h8M8 15h4"/></svg> Club ID: ${safeText(systemClubId || 'Assigning…')}</span>`;
+      const duprOrganizerLine = account.duprOrganizerId
+        ? `<span class="organizer-sub dupr-organizer-id-sub">External DUPR Organizer ID: ${safeText(account.duprOrganizerId)}</span>`
+        : '';
+      const personalDupr = String(account.duprId || account.personalDuprId || account.duprID || account.dupr_id || '').trim();
+      const duprCell = personalDupr
+        ? `<span class="dupr-id-chip" title="Personal DUPR ID"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12h7M12 8.5v7"/></svg><span>${safeText(personalDupr)}</span></span>`
+        : '<span class="dupr-id-empty">Not set</span>';
+      const currentPassword = String(account.passwordDisplay || '');
+      const passwordCell = currentPassword
+        ? `<div class="password-row-cell"><code class="password-visible-text" title="Current organizer password">${safeText(currentPassword)}</code></div>`
+        : `<div class="password-row-cell"><span class="password-unavailable" title="This older account has only a one-way password hash">Reset once</span><button type="button" class="row-action password-reset-action" data-action="edit" aria-label="Set a viewable password" title="Set a new password to make it viewable"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8 2 2-2 2 2 2-3 3-2-2-3 3"/></svg><span>Set</span></button></div>`;
       return `<tr data-id="${safeText(account.id)}">
-        <td data-label="Organizer"><div class="organizer-cell">${avatar}<span class="organizer-cell-copy"><span class="organizer-name">${safeText(account.displayName || account.username)}</span><span class="organizer-sub">Added ${safeText(formatDate(account.createdAt))}</span></span></div></td>
+        <td data-label="Organizer"><div class="organizer-cell">${avatar}<span class="organizer-cell-copy"><span class="organizer-name">${safeText(account.displayName || account.username)}</span><span class="organizer-sub">${approvalStatus === 'pending' ? 'Applied ' : 'Added '}${safeText(formatDate(requestDate))}</span>${clubIdLine}${duprOrganizerLine}</span></div></td>
         <td data-label="Username"><span class="username-text">${safeText(account.username)}</span></td>
-        <td data-label="Password"><span class="password-mask" data-password-mask>••••••••</span><button type="button" class="password-visibility-toggle" data-password-visibility aria-label="Password cannot be revealed; click for details" title="Passwords are stored securely and cannot be viewed">◉</button></td>
+        <td data-label="DUPR ID">${duprCell}</td>
+        <td data-label="Password">${passwordCell}</td>
         <td data-label="Status">${status}</td>
         <td data-label="Last sign in">${safeText(formatDate(account.lastLoginAt))}</td>
-        <td data-label="Actions"><div class="action-wrap"><button class="row-action" type="button" data-action="edit">Edit profile</button><button class="row-action" type="button" data-action="toggle">${actionLabel}</button><button class="row-action danger" type="button" data-action="delete">Delete</button></div></td>
+        <td data-label="Actions"><div class="action-wrap"><button class="row-action edit-action" type="button" data-action="edit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4.2-.8L19 8.4 15.6 5 4.8 15.8 4 20Z"/></svg><span>Edit</span></button>${actionButton}<button class="row-action danger" type="button" data-action="delete"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5M14 11v5"/></svg><span>Delete</span></button></div></td>
       </tr>`;
     }).join('');
   }
@@ -108,6 +173,12 @@
       accounts = Array.isArray(data.organizers) ? data.organizers : [];
       renderAccounts();
     } catch (error) {
+      // Replace the perpetual loading placeholder with a visible error state.
+      // This also makes it clear when the empty-state data could not be fetched.
+      pendingApplicationsSection.hidden = false;
+      pendingApplicationsBadge.textContent = 'Unavailable';
+      pendingApplicationRows.innerHTML = `<div class="pending-application-empty pending-application-error" role="alert"><span class="pending-application-empty-icon" aria-hidden="true">!</span><span class="pending-application-empty-copy"><strong>Could not load applications</strong><span>${safeText(error.message || 'Check the connection and refresh the panel.')}</span></span></div>`;
+      rows.innerHTML = '<tr><td colspan="7" class="empty-row">Unable to load organizer accounts. Check the connection and refresh the panel.</td></tr>';
       setNotice(error.message || 'Unable to load organizer accounts.', true);
     }
   }
@@ -238,7 +309,7 @@
   }
 
   function syncModalLock() {
-    const open = [managerModal, modal, logoutModal, settingsModal].some(element => element && !element.hidden);
+    const open = [modal, logoutModal, settingsModal].some(element => element && !element.hidden);
     document.body.classList.toggle('modal-open', open);
   }
   let settingsReturnFocusTo = null;
@@ -265,7 +336,7 @@
       connectors: 'Connectors', plugins: 'Plugins'
     };
     const messages = {
-      account: 'Organizer accounts are managed from the Panel page. Use the organizer controls to create, edit, activate, or deactivate accounts.',
+      account: 'Organizer accounts are managed from the Panel page. Use the Edit, Reset, activate, or deactivate controls available on each account row.',
       privacy: 'This panel uses your current administrator session and saves appearance preferences in this browser. It does not connect to a third-party account.',
       billing: 'Billing settings are not configured for Pickle Point Match.',
       capabilities: 'This panel is designed for organizer account management. Additional capabilities can be added without changing your current queueing setup.',
@@ -295,21 +366,6 @@
     else { savePanelSettings(); applyPanelSettings(); }
   }
 
-  function openManagerModal() {
-    if (!managerModal.hidden) return;
-    managerReturnFocusTo = document.activeElement;
-    managerModal.hidden = false;
-    syncModalLock();
-    window.requestAnimationFrame(() => managerDialog.focus({preventScroll:true}));
-  }
-  function closeManagerModal() {
-    if (managerModal.hidden || !modal.hidden) return;
-    managerModal.hidden = true;
-    syncModalLock();
-    const target = managerReturnFocusTo;
-    managerReturnFocusTo = null;
-    if (target && target.isConnected && typeof target.focus === 'function') target.focus({preventScroll:true});
-  }
   function openModal() {
     returnFocusTo = document.activeElement;
     modal.hidden = false;
@@ -357,10 +413,19 @@
     configureModal({title:'Edit organizer profile', description:'Update the account details and profile photo.', icon:'✎', mode:'edit'});
     $('editDisplayName').value = account.displayName || account.username || '';
     $('editUsername').value = account.username || '';
-    $('editPassword').value = '';
+    $('editClubId').value = account.clubId || ''; 
+    $('editDuprId').value = account.duprId || account.personalDuprId || account.duprID || account.dupr_id || '';
+    $('editDuprOrganizerId').value = account.duprOrganizerId || account.dupr_organizer_id || '';
+    const currentPassword = typeof account.passwordDisplay === 'string' ? account.passwordDisplay : '';
+    $('editPassword').value = currentPassword;
     $('organizerProfileImage').value = '';
-    $('toggleEditPassword').textContent = 'Show';
-    $('editPassword').type = 'password';
+    $('toggleEditPassword').textContent = 'Hide';
+    $('toggleEditPassword').setAttribute('aria-label', 'Hide password');
+    $('editPassword').type = 'text';
+    $('editPassword').placeholder = currentPassword ? 'Current password' : 'Password unavailable — enter a replacement';
+    $('passwordEditHint').textContent = currentPassword
+      ? 'Current password is shown. Change this field only to replace the password.'
+      : 'This older account has only a one-way hash, so its original password cannot be recovered. Set a replacement once to show it here and on the row.';
     showAvatarPreview();
     openModal();
     $('editDisplayName').focus({preventScroll:true});
@@ -369,20 +434,30 @@
     selectedAccount = account;
     pendingAction = action;
     const isDelete = action === 'delete';
+    const isApprove = action === 'approve' || (action === 'toggle' && account.approvalStatus === 'rejected');
+    const isReject = action === 'reject';
     const willDeactivate = action === 'toggle' && account.active;
-    const title = isDelete ? 'Delete organizer?' : (willDeactivate ? 'Deactivate organizer?' : 'Activate organizer?');
-    const actionName = isDelete ? 'delete' : (willDeactivate ? 'deactivate' : 'activate');
-    configureModal({title, description: isDelete ? 'This action cannot be undone.' : 'Confirm this account status change.', icon: isDelete ? '!' : (willDeactivate ? 'Ⅱ' : '✓'), mode:'confirm'});
+    const title = isDelete ? 'Delete organizer?' : isApprove ? 'Confirm organizer activation?' : isReject ? 'Reject organizer application?' : (willDeactivate ? 'Deactivate organizer?' : 'Activate organizer?');
+    const actionName = isDelete ? 'delete' : isApprove ? 'approve' : isReject ? 'reject' : (willDeactivate ? 'deactivate' : 'activate');
+    configureModal({title, description: isDelete ? 'This action cannot be undone.' : isApprove ? 'Administrator confirmation is required before organizer access is activated.' : isReject ? 'The application will remain unable to sign in.' : 'Confirm this account status change.', icon: isDelete || isReject || willDeactivate ? '!' : '✓', mode:'confirm'});
     $('confirmModalText').textContent = isDelete
       ? `Delete ${account.displayName || account.username} (@${account.username})?`
-      : `Are you sure you want to ${actionName} ${account.displayName || account.username}?`;
+      : isApprove
+        ? `Approve ${account.displayName || account.username} (@${account.username}) as a Pickle Point Match organizer?`
+        : isReject
+          ? `Reject the organizer application from ${account.displayName || account.username} (@${account.username})?`
+          : `Are you sure you want to ${actionName} ${account.displayName || account.username}?`;
     $('confirmModalDetail').textContent = isDelete
       ? 'The organizer account and its separate queue/session state will be removed. The shared Registered Player Cloud remains shared.'
-      : (willDeactivate
-        ? 'This organizer will no longer be able to sign in. Existing requests will be blocked when the account is checked again.'
-        : 'This organizer will be able to sign in and manage their own live queue again.');
-    confirmButton.textContent = isDelete ? 'Delete account' : (willDeactivate ? 'Deactivate account' : 'Activate account');
-    confirmButton.classList.toggle('danger-confirm', isDelete || willDeactivate);
+      : isApprove
+        ? 'This approval will activate the account and allow the organizer to sign in and manage their own live queue.'
+        : isReject
+          ? 'This application will be marked as rejected. The applicant will not be able to sign in unless you approve the account later.'
+          : (willDeactivate
+            ? 'This organizer will no longer be able to sign in. Existing requests will be blocked when the account is checked again.'
+            : 'This organizer will be able to sign in and manage their own live queue again.');
+    confirmButton.textContent = isDelete ? 'Delete account' : isApprove ? 'Confirm & activate organizer' : isReject ? 'Confirm rejection' : (willDeactivate ? 'Deactivate account' : 'Activate account');
+    confirmButton.classList.toggle('danger-confirm', isDelete || isReject || willDeactivate);
     openModal();
     confirmButton.focus({preventScroll:true});
   }
@@ -392,7 +467,7 @@
     const account = selectedAccount;
     const action = pendingAction;
     confirmButton.disabled = true;
-    confirmButton.textContent = action === 'delete' ? 'Deleting…' : 'Updating…';
+    confirmButton.textContent = action === 'delete' ? 'Deleting…' : action === 'approve' ? 'Approving…' : action === 'reject' ? 'Rejecting…' : 'Updating…';
     $('confirmModalError').textContent = '';
     try {
       const endpoint = `/api/panel/organizers/${encodeURIComponent(account.id)}`;
@@ -400,6 +475,29 @@
         await request(endpoint, {method:'DELETE'});
         closeModal();
         setNotice(`Deleted organizer account ${account.username}.`);
+      } else if (action === 'approve' || (action === 'toggle' && account.approvalStatus === 'rejected')) {
+        const result = await request(endpoint, {method:'PATCH', body:JSON.stringify({approvalStatus:'approved'})});
+        const approved = result?.organizer;
+        if (!approved || approved.approvalStatus !== 'approved' || approved.active !== true || approved.adminApproved !== true) {
+          throw new Error('The server did not confirm organizer activation. Please try again.');
+        }
+
+        // Verify the saved status from the panel API before closing the dialog or
+        // reporting success. The submission timestamp remains for audit purposes.
+        const refreshed = await request('/api/panel/organizers');
+        const latestAccounts = Array.isArray(refreshed.organizers) ? refreshed.organizers : [];
+        const savedApproval = latestAccounts.find(item => String(item.id) === String(account.id));
+        if (!savedApproval || savedApproval.approvalStatus !== 'approved' || savedApproval.active !== true || savedApproval.adminApproved !== true) {
+          throw new Error('Approval was submitted, but the saved account status could not be verified. Refresh the panel and try again.');
+        }
+        accounts = latestAccounts;
+        renderAccounts();
+        closeModal();
+        setNotice(`Approved ${account.username}. The organizer is now active and can sign in.`);
+      } else if (action === 'reject') {
+        await request(endpoint, {method:'PATCH', body:JSON.stringify({approvalStatus:'rejected'})});
+        closeModal();
+        setNotice(`Rejected the application from ${account.username}.`);
       } else {
         await request(endpoint, {method:'PATCH', body:JSON.stringify({active:!account.active})});
         closeModal();
@@ -411,7 +509,9 @@
     } finally {
       confirmButton.disabled = false;
       if (pendingAction === 'delete') confirmButton.textContent = 'Delete account';
-      else if (selectedAccount && pendingAction === 'toggle') confirmButton.textContent = selectedAccount.active ? 'Deactivate account' : 'Activate account';
+      else if (pendingAction === 'approve') confirmButton.textContent = 'Confirm & activate organizer';
+      else if (pendingAction === 'reject') confirmButton.textContent = 'Confirm rejection';
+      else if (selectedAccount && pendingAction === 'toggle') confirmButton.textContent = selectedAccount.active ? 'Deactivate account' : (selectedAccount.approvalStatus === 'rejected' ? 'Re-approve' : 'Activate account');
     }
   }
 
@@ -461,15 +561,19 @@
     throw new Error('This image could not be compressed for upload. Please try a PNG, JPG, or WebP image.');
   }
 
-  rows.addEventListener('click', event => {
+  function handleOrganizerActionClick(event) {
     const button = event.target.closest('button[data-action]');
     if (!button) return;
-    const row = button.closest('tr');
+    const row = button.closest('[data-id]');
     const account = accounts.find(item => item.id === row?.dataset.id);
     if (!account) return;
-    if (button.dataset.action === 'edit') openEditModal(account);
-    else openConfirmModal(account, button.dataset.action);
-  });
+    if (button.dataset.action === 'edit') {
+      openEditModal(account);
+      if (button.classList.contains('password-reset-action')) window.requestAnimationFrame(() => $('editPassword').focus({preventScroll:true}));
+    } else openConfirmModal(account, button.dataset.action);
+  }
+  rows.addEventListener('click', handleOrganizerActionClick);
+  pendingApplicationRows.addEventListener('click', handleOrganizerActionClick);
 
   editForm.addEventListener('submit', async event => {
     event.preventDefault();
@@ -477,26 +581,38 @@
     const account = selectedAccount;
     const displayName = $('editDisplayName').value.trim();
     const username = $('editUsername').value.trim();
+    const duprId = $('editDuprId').value.trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
+    const duprOrganizerId = $('editDuprOrganizerId').value.trim();
     const password = $('editPassword').value;
     const errorNode = $('editModalError');
     errorNode.textContent = '';
     if (!displayName) { errorNode.textContent = 'Organizer name cannot be blank.'; return; }
     if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{2,39}$/.test(username)) { errorNode.textContent = 'Username must be 3–40 characters and use letters, numbers, dot, underscore, or hyphen.'; return; }
-    if (password && password.length < 8) { errorNode.textContent = 'New password must be at least 8 characters long.'; return; }
+    if (duprId && !/^[A-Z0-9_-]{1,40}$/.test(duprId)) { errorNode.textContent = 'DUPR ID must use letters, numbers, hyphens, or underscores (up to 40 characters).'; return; }
+    if (password && password !== String(account.passwordDisplay || '') && password.length < 8) { errorNode.textContent = 'Password must be at least 8 characters long.'; return; }
     const saveButton = $('saveOrganizerChanges');
     isSavingProfile = true;
     saveButton.disabled = true;
     saveButton.setAttribute('aria-busy', 'true');
     saveButton.textContent = 'Saving…';
     try {
-      const payload = {displayName, username};
-      if (password) payload.password = password;
+      const payload = {displayName, username, duprId, duprOrganizerId};
+      if (password && password !== String(account.passwordDisplay || '')) payload.password = password;
       if (avatarChanged) payload.profileImage = avatarData || '';
-      await request(`/api/panel/organizers/${encodeURIComponent(account.id)}`, {method:'PATCH', body:JSON.stringify(payload)});
+      const saveResult = await request(`/api/panel/organizers/${encodeURIComponent(account.id)}`, {method:'PATCH', body:JSON.stringify(payload)});
+      const returnedDuprId = String(saveResult?.organizer?.duprId || '').trim().toUpperCase();
+      if (returnedDuprId !== duprId) throw new Error('The server did not confirm the saved DUPR ID. Your changes were not closed; please check the ID and save again.');
+      const refreshed = await request('/api/panel/organizers');
+      const latestAccounts = Array.isArray(refreshed.organizers) ? refreshed.organizers : [];
+      const verifiedAccount = latestAccounts.find(item => String(item.id) === String(account.id));
+      if (!verifiedAccount || String(verifiedAccount.duprId || '').trim().toUpperCase() !== duprId) {
+        throw new Error('The DUPR ID could not be verified after saving. Keep this modal open and try again.');
+      }
+      accounts = latestAccounts;
+      renderAccounts();
       isSavingProfile = false;
       closeModal();
       setNotice(`Updated organizer profile ${username}.`);
-      await loadAccounts();
     } catch (error) {
       errorNode.textContent = error.message || 'Unable to save organizer details.';
     } finally {
@@ -535,37 +651,9 @@
     const show = input.type === 'password';
     input.type = show ? 'text' : 'password';
     $('toggleEditPassword').textContent = show ? 'Hide' : 'Show';
-    $('toggleEditPassword').setAttribute('aria-label', show ? 'Hide new password' : 'Show new password');
+    $('toggleEditPassword').setAttribute('aria-label', show ? 'Hide password' : 'Show password');
   });
 
-  createForm.addEventListener('submit', async event => {
-    event.preventDefault();
-    setCreateMessage('');
-    createButton.disabled = true;
-    createButton.textContent = 'Creating account…';
-    try {
-      const data = await request('/api/panel/organizers', {
-        method:'POST',
-        body:JSON.stringify({displayName:$('newDisplayName').value.trim(), username:$('newUsername').value.trim(), password:$('newPassword').value})
-      });
-      createForm.reset();
-      setNotice(`Created organizer account ${data.organizer?.username || ''}.`);
-      await loadAccounts();
-    } catch (error) {
-      setCreateMessage(error.message || 'Unable to create organizer account.');
-    } finally {
-      createButton.disabled = false;
-      createButton.innerHTML = 'Create organizer account <span aria-hidden="true">→</span>';
-    }
-  });
-  $('toggleNewPassword').addEventListener('click', () => {
-    const input = $('newPassword');
-    const show = input.type === 'password';
-    input.type = show ? 'text' : 'password';
-    $('toggleNewPassword').textContent = show ? 'Hide' : 'Show';
-    $('toggleNewPassword').setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-  });
-  $('panelOpenManager').addEventListener('click', openManagerModal);
   $('panelOpenSettings').addEventListener('click', openSettingsModal);
   $('closePanelSettings').addEventListener('click', closeSettingsModal);
   settingsModal.querySelectorAll('[data-close-settings]').forEach(button => button.addEventListener('click', closeSettingsModal));
@@ -686,28 +774,15 @@
     window.location.replace('/index.html');
   });
   modal.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', closeModal));
-  rows.addEventListener('click', event => {
-    const toggle = event.target.closest('[data-password-visibility]');
-    if (!toggle) return;
-    const cell = toggle.closest('td');
-    const mask = cell?.querySelector('[data-password-mask]');
-    if (!mask) return;
-    const showingNote = mask.dataset.noteVisible === 'true';
-    mask.textContent = showingNote ? '••••••••' : 'Not viewable';
-    mask.dataset.noteVisible = String(!showingNote);
-    toggle.setAttribute('aria-label', showingNote ? 'Password hidden' : 'Password cannot be revealed');
-    toggle.title = 'Passwords are stored securely. Use Edit profile to set a new password.';
-  });
   $('confirmAccountAction').addEventListener('click', confirmPendingAction);
   modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
   document.addEventListener('keydown', event => {
-    const activeModal = !logoutModal.hidden ? logoutModal : (!modal.hidden ? modal : (!managerModal.hidden ? managerModal : (!settingsModal.hidden ? settingsModal : null)));
+    const activeModal = !logoutModal.hidden ? logoutModal : (!modal.hidden ? modal : (!settingsModal.hidden ? settingsModal : null));
     if (!activeModal) return;
     if (event.key === 'Escape') {
       event.preventDefault();
       if (activeModal === logoutModal) closeLogoutModal();
       else if (activeModal === modal) closeModal();
-      else if (activeModal === managerModal) closeManagerModal();
       else {
         const openFontDropdown = settingsModal.querySelector('.panel-settings-dropdown.is-open');
         if (openFontDropdown) closeFontDropdown(openFontDropdown, true);
@@ -716,7 +791,7 @@
       return;
     }
     if (event.key !== 'Tab') return;
-    const dialog = activeModal === logoutModal ? logoutDialog : (activeModal === modal ? modalDialog : (activeModal === managerModal ? managerDialog : settingsDialog));
+    const dialog = activeModal === logoutModal ? logoutDialog : (activeModal === modal ? modalDialog : settingsDialog);
     const focusables = [...dialog.querySelectorAll('button:not(:disabled):not([hidden]), input:not(:disabled):not([hidden]), select:not(:disabled):not([hidden]), [tabindex="0"]')]
       .filter(element => element.getClientRects().length > 0);
     if (!focusables.length) return;

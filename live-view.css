@@ -975,13 +975,7 @@ html[data-theme="light"] body #waitingCourtsList .court-card.court-visual-card.p
 html[data-theme="light"] body #courtsList .court-visual-name,
 html[data-theme="light"] body #waitingCourtsList .court-visual-name {
   color: #587274 !important;
-}
-html[data-theme="light"] body #courtsList .court-mini-timer,
-html[data-theme="light"] body #waitingCourtsList .court-mini-timer {
-  background: #eaf2f2 !important;
-  color: #536c70 !important;
-}
-html[data-theme="light"] body #courtsList .court-mini-timer.timer-amber,
+}html[data-theme="light"] body #courtsList .court-mini-timer.timer-amber,
 html[data-theme="light"] body #waitingCourtsList .court-mini-timer.timer-amber { color: #986000 !important; }
 html[data-theme="light"] body #courtsList .court-mini-timer.timer-red,
 html[data-theme="light"] body #waitingCourtsList .court-mini-timer.timer-red { color: #bd2935 !important; }
@@ -1010,14 +1004,7 @@ html[data-theme="light"] body #waitingCourtsList .court-player-marker {
   border-color: #ffffff !important;
   color: #18332d !important;
   box-shadow: 0 1px 3px rgba(23, 60, 54, .18) !important;
-}
-html[data-theme="light"] body #courtsList .court-player-marker.is-empty,
-html[data-theme="light"] body #waitingCourtsList .court-player-marker.is-empty {
-  border-color: #b6cbc5 !important;
-  background: #e3eeea !important;
-  color: #48655d !important;
-}
-html[data-theme="light"] body #courtsList .court-player-category,
+}html[data-theme="light"] body #courtsList .court-player-category,
 html[data-theme="light"] body #waitingCourtsList .court-player-category {
   border-color: #ffffff !important;
 }
@@ -4191,14 +4178,6 @@ html[data-theme="light"] body.live-view-page .live-page-pinned > nav.live-tabs {
   padding: 0 !important;
   margin: 0 !important;
 }
-html body.live-view-page .live-page-pinned > nav.live-tabs::before,
-html body.live-view-page .live-page-pinned > nav.live-tabs::after,
-html[data-theme="light"] body.live-view-page .live-page-pinned > nav.live-tabs::before,
-html[data-theme="light"] body.live-view-page .live-page-pinned > nav.live-tabs::after {
-  content: none !important;
-  display: none !important;
-}
-
 /* LIVE VIEW TABS — separate the tabs from the session-title divider and remove the outer fill. */
 html body.live-view-page .live-page-pinned,
 html[data-theme="light"] body.live-view-page .live-page-pinned {
@@ -4392,3 +4371,27 @@ html body.live-view-page .live-header .header-right #sessionOrganizerName {
     max-width: 38vw;
   }
 }
+
+/* Singles Live View: one centered player marker on each side of the court. */
+html body #courtsList .court-diagram.pickleball-court.is-singles .court-player-marker.marker-single-left,
+html body #waitingCourtsList .court-diagram.pickleball-court.is-singles .court-player-marker.marker-single-left {
+  top: 50%;
+  left: 16%;
+  background: #ffb919;
+}
+html body #courtsList .court-diagram.pickleball-court.is-singles .court-player-marker.marker-single-right,
+html body #waitingCourtsList .court-diagram.pickleball-court.is-singles .court-player-marker.marker-single-right {
+  top: 50%;
+  left: 84%;
+  background: #4c9df8;
+}
+html body #courtsList .court-diagram.pickleball-court.is-singles .court-player-marker.marker-single-left.is-empty,
+html body #courtsList .court-diagram.pickleball-court.is-singles .court-player-marker.marker-single-right.is-empty,
+html body #waitingCourtsList .court-diagram.pickleball-court.is-singles .court-player-marker.marker-single-left.is-empty,
+html body #waitingCourtsList .court-diagram.pickleball-court.is-singles .court-player-marker.marker-single-right.is-empty {
+  border-color: #71827a;
+  background: #34453c;
+  color: #c4d0c8;
+  box-shadow: none;
+}
+
