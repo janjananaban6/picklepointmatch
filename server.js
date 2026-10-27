@@ -10,12 +10,13 @@ const DATA_FILE = path.join(DATA_DIR, 'live-state.json');
 const THEME_FILE = path.join(DATA_DIR, 'live-theme.json');
 const APP_STATE_FILE = path.join(DATA_DIR, 'app-state.json');
 const CLOUD_RECORDS_FILE = path.join(DATA_DIR, 'registered-player-cloud.json');
+const REGISTERED_PLAYERS_CSV_FILE = path.join(DATA_DIR, 'registered-players.csv');
 const ORGANIZERS_FILE = path.join(DATA_DIR, 'organizer-accounts.json');
 const CLUB_ID_SEQUENCE_FILE = path.join(DATA_DIR, 'club-id-sequence.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
-const allowedFiles = new Set(['index.html','panel.html','panel.css','panel.js','session.html','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js']);
+const allowedFiles = new Set(['index.html','panel.html','panel.css','panel.js','session.html','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js','network-validation.js']);
 let latestState = null;
 let sharedAppState = null;
 let sharedAppRevision = 0;
@@ -25,6 +26,7 @@ let sharedCloudRecords = null;
 let sharedCloudRevision = 0;
 let sharedCloudUpdatedAt = null;
 let sharedCloudClientId = null;
+let sharedCloudPersistenceQueue = Promise.resolve();
 let liveTheme = 'night';
 const subscribers = new Set();
 const liveSubscriberScopes = new Map();
@@ -428,6 +430,191 @@ async function loadStored(key, filePath) {
   }
 }
 
+const REGISTERED_PLAYER_CSV_FIELDS = ['cloudId','name','nickname','gender','category','duprId','selfRating','matches','wins','losses'];
+function isRemovedOpgField(key) {
+  const normalized = String(key || '').replace(/[ _-]/g, '').toLowerCase();
+  return normalized === 'opg' || normalized === 'opgid';
+}
+function withoutOpgFields(value) {
+  if (Array.isArray(value)) return value.map(withoutOpgFields);
+  if (!value || typeof value !== 'object') return value;
+  const clean = {};
+  for (const [key, nestedValue] of Object.entries(value)) {
+    if (isRemovedOpgField(key)) continue;
+    clean[key] = withoutOpgFields(nestedValue);
+  }
+  return clean;
+}
+const REGISTERED_PLAYER_NUMBER_FIELDS = new Set(['cloudId','matches','wins','losses']);
+
+function csvEscape(value) {
+  let text;
+  if (value === null || value === undefined) text = '';
+  else if (typeof value === 'object') text = JSON.stringify(value);
+  else text = String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function parseCsvRows(input) {
+  const text = String(input || '').replace(/^\uFEFF/, '');
+  const rows = [];
+  let row = [];
+  let field = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') { field += '"'; i += 1; }
+      else if (ch === '"') quoted = false;
+      else field += ch;
+    } else if (ch === '"' && field.length === 0) {
+      quoted = true;
+    } else if (ch === ',') {
+      row.push(field); field = '';
+    } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i += 1;
+      row.push(field); field = '';
+      if (row.some(value => value !== '')) rows.push(row);
+      row = [];
+    } else {
+      field += ch;
+    }
+  }
+  if (field !== '' || row.length) {
+    row.push(field);
+    if (row.some(value => value !== '')) rows.push(row);
+  }
+  return rows;
+}
+
+function serializeRegisteredPlayersCsv(players) {
+  const safePlayers = (Array.isArray(players) ? players : []).filter(player => player && typeof player === 'object' && !Array.isArray(player));
+  const seen = new Set(REGISTERED_PLAYER_CSV_FIELDS);
+  const extraFields = [];
+  safePlayers.forEach(player => Object.keys(player).forEach(key => {
+    if (isRemovedOpgField(key)) return;
+    if (!seen.has(key)) { seen.add(key); extraFields.push(key); }
+  }));
+  const fields = [...REGISTERED_PLAYER_CSV_FIELDS, ...extraFields];
+  const lines = [fields.map(csvEscape).join(',')];
+  for (const player of safePlayers) {
+    lines.push(fields.map(field => csvEscape(player[field])).join(','));
+  }
+  return `${lines.join('\r\n')}\r\n`;
+}
+
+function parseRegisteredPlayersCsv(csvText) {
+  if (typeof csvText !== 'string' || !csvText.trim()) return null;
+  const rows = parseCsvRows(csvText);
+  if (!rows.length) return null;
+  const fields = rows.shift().map(field => String(field || '').trim());
+  if (!fields.includes('name')) return null;
+  return rows.map(row => {
+    const player = {};
+    fields.forEach((field, index) => {
+      if (!field || isRemovedOpgField(field)) return;
+      const value = row[index] === undefined ? '' : row[index];
+      if (REGISTERED_PLAYER_NUMBER_FIELDS.has(field) && value.trim() !== '' && Number.isFinite(Number(value))) {
+        player[field] = Number(value);
+      } else if (value && (value[0] === '{' || value[0] === '[')) {
+        try { player[field] = JSON.parse(value); } catch (_) { player[field] = value; }
+      } else {
+        player[field] = value;
+      }
+    });
+    return player;
+  }).filter(player => String(player.name || '').trim());
+}
+
+async function writeFileAtomic(filePath, contents) {
+  await fs.promises.mkdir(path.dirname(filePath), {recursive:true});
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString('hex')}.tmp`;
+  try {
+    await fs.promises.writeFile(tempPath, contents, 'utf8');
+    await fs.promises.rename(tempPath, filePath);
+  } catch (err) {
+    try { await fs.promises.unlink(tempPath); } catch (_) {}
+    throw err;
+  }
+}
+
+async function loadRegisteredPlayersCsv() {
+  if (dbPool) {
+    const result = await dbPool.query('SELECT payload FROM pickle_point_storage WHERE storage_key = $1', ['registered-player-csv']);
+    if (result.rows.length) {
+      const payload = result.rows[0].payload;
+      if (payload && typeof payload.csv === 'string') return parseRegisteredPlayersCsv(payload.csv);
+      if (typeof payload === 'string') return parseRegisteredPlayersCsv(payload);
+    }
+    // On a database-backed host, prefer importing legacy cloud records during
+    // startup instead of seeding from a possibly stale CSV shipped in the code.
+    return null;
+  }
+  try {
+    return parseRegisteredPlayersCsv(await fs.promises.readFile(REGISTERED_PLAYERS_CSV_FILE, 'utf8'));
+  } catch (_) {
+    return null;
+  }
+}
+
+function persistSharedCloudRecords() {
+  const current = sharedCloudRecords || {players:[],logs:[],sessions:[]};
+  const snapshot = JSON.parse(JSON.stringify({
+    players:Array.isArray(current.players) ? current.players : [],
+    logs:Array.isArray(current.logs) ? current.logs : [],
+    sessions:Array.isArray(current.sessions) ? current.sessions : []
+  }));
+  const csv = serializeRegisteredPlayersCsv(snapshot.players);
+  const snapshotUpdatedAt = sharedCloudUpdatedAt;
+  const cloudEnvelope = {
+    revision:sharedCloudRevision,
+    updatedAt:snapshotUpdatedAt,
+    clientId:sharedCloudClientId,
+    // Player profile details live in registered-players.csv. Keep the legacy
+    // cloud envelope for match logs/session history and sync metadata only.
+    records:{players:[],logs:snapshot.logs,sessions:snapshot.sessions}
+  };
+  const job = async () => {
+    await fs.promises.mkdir(DATA_DIR, {recursive:true});
+    if (dbPool) {
+      const client = await dbPool.connect();
+      try {
+        await client.query('BEGIN');
+        for (const entry of [
+          {key:'registered-player-csv', value:{csv,updatedAt:snapshotUpdatedAt}},
+          {key:'cloud-records', value:cloudEnvelope}
+        ]) {
+          await client.query(
+            `INSERT INTO pickle_point_storage (storage_key, payload, updated_at)
+             VALUES ($1, $2::jsonb, NOW())
+             ON CONFLICT (storage_key) DO UPDATE
+             SET payload = EXCLUDED.payload, updated_at = NOW()`,
+            [entry.key, JSON.stringify(entry.value)]
+          );
+        }
+        await client.query('COMMIT');
+      } catch (err) {
+        try { await client.query('ROLLBACK'); } catch (_) {}
+        throw err;
+      } finally {
+        client.release();
+      }
+      // The database row above is durable on hosted deployments. Keep a real
+      // CSV file on the instance as an easy-to-inspect/export mirror; it is
+      // regenerated from the durable CSV payload after a restart/deploy.
+      try { await writeFileAtomic(REGISTERED_PLAYERS_CSV_FILE, csv); }
+      catch (err) { console.warn('Could not refresh registered-players.csv mirror:', err.message); }
+      return;
+    }
+    await Promise.all([
+      writeFileAtomic(REGISTERED_PLAYERS_CSV_FILE, csv),
+      writeFileAtomic(CLOUD_RECORDS_FILE, JSON.stringify(cloudEnvelope))
+    ]);
+  };
+  sharedCloudPersistenceQueue = sharedCloudPersistenceQueue.catch(() => {}).then(job);
+  return sharedCloudPersistenceQueue;
+}
+
 function sendJson(res, status, data) {
   res.writeHead(status, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
   res.end(JSON.stringify(data));
@@ -670,6 +857,47 @@ async function handle(req, res) {
     }
   }
 
+  if (url.pathname === '/api/panel/registered-players' && req.method === 'GET') {
+    if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
+    try {
+      // Read the canonical CSV payload when available so the modal reflects the durable
+      // player store, not the small example CSV shipped with the project files.
+      const savedPlayers = await loadRegisteredPlayersCsv();
+      const players = Array.isArray(savedPlayers)
+        ? savedPlayers
+        : (Array.isArray(sharedCloudRecords?.players) ? sharedCloudRecords.players : []);
+      if (url.searchParams.get('summary') === '1') {
+        return sendJson(res, 200, {ok:true,count:players.length,updatedAt:sharedCloudUpdatedAt});
+      }
+      return sendJson(res, 200, {ok:true,count:players.length,players,updatedAt:sharedCloudUpdatedAt});
+    } catch (err) {
+      console.error('Unable to load registered players for panel:', err.message);
+      return sendJson(res, 500, {ok:false,error:'Unable to load registered players from storage.'});
+    }
+  }
+  if (url.pathname === '/api/panel/registered-players.csv' && req.method === 'GET') {
+    if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
+    try {
+      const savedPlayers = await loadRegisteredPlayersCsv();
+      const players = Array.isArray(savedPlayers)
+        ? savedPlayers
+        : (Array.isArray(sharedCloudRecords?.players) ? sharedCloudRecords.players : []);
+      const csv = `\uFEFF${serializeRegisteredPlayersCsv(players)}`;
+      const filename = `registered-players-${new Date().toISOString().slice(0,10)}.csv`;
+      res.writeHead(200, {
+        'Content-Type':'text/csv; charset=utf-8',
+        'Content-Disposition':`attachment; filename="${filename}"`,
+        'Content-Length':Buffer.byteLength(csv,'utf8'),
+        'Cache-Control':'private, no-store, max-age=0',
+        'X-Content-Type-Options':'nosniff'
+      });
+      return res.end(csv);
+    } catch (err) {
+      console.error('Unable to export registered players CSV:', err.message);
+      return sendJson(res, 500, {ok:false,error:'Unable to export registered players. Please check the database connection and try again.'});
+    }
+  }
+
   if (url.pathname === '/api/panel/organizers' && req.method === 'GET') {
     if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
     return sendJson(res, 200, {ok:true,organizers:organizerAccounts.map(organizerPanelRecord)});
@@ -864,7 +1092,7 @@ async function handle(req, res) {
       if (!body.onlyIfEmpty && Number.isFinite(Number(body.baseRevision)) && Number(body.baseRevision) !== currentEntry.revision) {
         return sendJson(res, 409, {ok:false,conflict:true,error:'Queue state changed on another device',revision:currentEntry.revision,state:currentEntry.state,updatedAt:currentEntry.updatedAt});
       }
-      const snapshot = JSON.parse(JSON.stringify(incoming));
+      const snapshot = withoutOpgFields(JSON.parse(JSON.stringify(incoming)));
       let entry = currentEntry;
       if (JSON.stringify(currentEntry.state) !== JSON.stringify(snapshot)) {
         entry = {revision:currentEntry.revision+1,updatedAt:new Date().toISOString(),clientId:String(body.clientId||'').slice(0,100)||null,state:snapshot};
@@ -893,13 +1121,13 @@ async function handle(req, res) {
       if (!body.onlyIfEmpty && Number.isFinite(Number(body.baseRevision)) && Number(body.baseRevision) !== sharedCloudRevision) {
         return sendJson(res, 409, {ok:false,conflict:true,error:'Registered Player Cloud changed on another device',revision:sharedCloudRevision,records:sharedCloudRecords,updatedAt:sharedCloudUpdatedAt});
       }
-      const records = {players:incoming.players.slice(0,50000),logs:incoming.logs.slice(0,100000),sessions:incoming.sessions.slice(0,50000)};
+      const records = {players:incoming.players.slice(0,50000).map(withoutOpgFields).filter(player => player && typeof player === 'object' && !Array.isArray(player)),logs:incoming.logs.slice(0,100000),sessions:incoming.sessions.slice(0,50000)};
       if (JSON.stringify(sharedCloudRecords) !== JSON.stringify(records)) {
         sharedCloudRecords = JSON.parse(JSON.stringify(records));
         sharedCloudRevision += 1;
         sharedCloudUpdatedAt = new Date().toISOString();
         sharedCloudClientId = String(body.clientId || '').slice(0,100) || null;
-        await saveStoredBatch([{key:'cloud-records', filePath:CLOUD_RECORDS_FILE, value:{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords}}]);
+        await persistSharedCloudRecords();
         broadcastNamedEvent('cloud-records', {revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
       }
       return sendJson(res, 200, {ok:true,accepted:true,revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,unchanged:JSON.stringify(sharedCloudRecords)===JSON.stringify(records)});
@@ -919,7 +1147,7 @@ async function handle(req, res) {
       if (!name || name.length > 120) return sendJson(res, 400, {ok:false,error:'Please enter a name (maximum 120 characters).'});
       if (!['Male','Female'].includes(gender)) return sendJson(res, 400, {ok:false,error:'Please select Male or Female.'});
       if (!['BEG','NOV','INT','ADV','EXP'].includes(category)) return sendJson(res, 400, {ok:false,error:'Please select a skill level.'});
-      if (!/^[A-Z0-9]{1,20}$/.test(duprId)) return sendJson(res, 400, {ok:false,error:'Please enter a DUPR ID using uppercase letters and numbers only.'});
+      if (!/^[A-Z0-9]{6}$/.test(duprId)) return sendJson(res, 400, {ok:false,error:'DUPR ID must contain exactly 6 letters or numbers (for example, 1A2B3C).'});
       if (selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) return sendJson(res, 400, {ok:false,error:'Enter self rating as a number or a numeric range, such as 2.5/4.0.'});
 
       const requestedScope = String(url.searchParams.get('organizer') || body?.organizerId || '').trim();
@@ -968,7 +1196,7 @@ async function handle(req, res) {
       if (isNewQueuePlayer) appState.sessionMetrics.newRegistered = (Number(appState.sessionMetrics.newRegistered) || 0) + 1;
 
       const cloudId = Date.now() + Math.floor(Math.random() * 100000);
-      const cloudPlayer = {cloudId,name,nickname,gender,category,duprId,selfRating,opgId:'',matches:0,wins:0,losses:0};
+      const cloudPlayer = {cloudId,name,nickname,gender,category,duprId,selfRating,matches:0,wins:0,losses:0};
       records.players.push(cloudPlayer);
 
       const updatedAt = new Date().toISOString();
@@ -997,7 +1225,7 @@ async function handle(req, res) {
         broadcast(liveSnapshot,null);
         broadcastNamedEvent('app-state',{revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState},null);
       }
-      await saveStoredBatch([{key:'cloud-records',filePath:CLOUD_RECORDS_FILE,value:{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords}}]);
+      await persistSharedCloudRecords();
       broadcastNamedEvent('cloud-records',{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
       return sendJson(res, 200, {ok:true,player:cloudPlayer,queued:!playingOnCourt,queueCount:appState.queue.length,cloudCount:sharedCloudRecords.players.length,appRevision:organizerId?getOrganizerAppEntry(organizerId).revision:sharedAppRevision,cloudRevision:sharedCloudRevision,liveViewUpdated:true,organizerId});
     } catch (err) {
@@ -1249,13 +1477,21 @@ async function handle(req, res) {
     }
     if (accountEntries.length) await saveStoredBatch(accountEntries);
 
-    latestState = await loadStored('live-state', DATA_FILE);
+    const loadedLiveState = await loadStored('live-state', DATA_FILE);
+    latestState = withoutOpgFields(loadedLiveState);
+    if (loadedLiveState && JSON.stringify(latestState) !== JSON.stringify(loadedLiveState)) {
+      await saveStoredBatch([{key:'live-state',filePath:DATA_FILE,value:latestState}]);
+    }
     const savedTheme = await loadStored('live-theme', THEME_FILE);
     if (savedTheme && (savedTheme.theme === 'light' || savedTheme.theme === 'night')) liveTheme = savedTheme.theme;
 
     const savedApp = await loadStored('app-state', APP_STATE_FILE);
     if (savedApp && savedApp.state && typeof savedApp.state === 'object') {
-      sharedAppState = savedApp.state;
+      const cleanedSavedApp = {...savedApp,state:withoutOpgFields(savedApp.state)};
+      if (JSON.stringify(cleanedSavedApp) !== JSON.stringify(savedApp)) {
+        await saveStoredBatch([{key:'app-state',filePath:APP_STATE_FILE,value:cleanedSavedApp}]);
+      }
+      sharedAppState = cleanedSavedApp.state;
       if (typeof sharedAppState.liveRankingEnabled !== 'boolean') sharedAppState.liveRankingEnabled = latestState?.liveRankingEnabled !== false;
       if (typeof sharedAppState.liveMatchesEnabled !== 'boolean') sharedAppState.liveMatchesEnabled = latestState?.liveMatchesEnabled !== false;
       sharedAppRevision = Math.max(0, Number(savedApp.revision) || 1);
@@ -1265,13 +1501,21 @@ async function handle(req, res) {
 
     for (const account of organizerAccounts) {
       const orgApp = await loadStored(`app-state:${account.id}`,organizerDataPath('app-state',account.id));
-      if (orgApp && typeof orgApp === 'object' && orgApp.state && typeof orgApp.state === 'object') organizerAppStates.set(account.id,orgApp);
+      if (orgApp && typeof orgApp === 'object' && orgApp.state && typeof orgApp.state === 'object') {
+        const cleanedOrgApp = {...orgApp,state:withoutOpgFields(orgApp.state)};
+        if (JSON.stringify(cleanedOrgApp) !== JSON.stringify(orgApp)) await saveOrganizerAppState(account.id,cleanedOrgApp);
+        else organizerAppStates.set(account.id,cleanedOrgApp);
+      }
       const orgLive = await loadStored(`live-state:${account.id}`,organizerDataPath('live-state',account.id));
-      if (orgLive && typeof orgLive === 'object') organizerLiveStates.set(account.id,orgLive);
+      if (orgLive && typeof orgLive === 'object') {
+        const cleanedOrgLive = withoutOpgFields(orgLive);
+        if (JSON.stringify(cleanedOrgLive) !== JSON.stringify(orgLive)) await saveOrganizerLiveState(account.id,cleanedOrgLive);
+        else organizerLiveStates.set(account.id,cleanedOrgLive);
+      }
     }
     const migrationTarget = (AUTH_USERNAME && accountByUsername(AUTH_USERNAME)) || getDefaultOrganizer();
     if (migrationTarget && !organizerAppStates.has(migrationTarget.id) && savedApp?.state && typeof savedApp.state === 'object') {
-      const migrated = {revision:Math.max(0,Number(savedApp.revision)||1),updatedAt:savedApp.updatedAt||new Date().toISOString(),clientId:savedApp.clientId||'legacy-migration',state:savedApp.state};
+      const migrated = {revision:Math.max(0,Number(savedApp.revision)||1),updatedAt:savedApp.updatedAt||new Date().toISOString(),clientId:savedApp.clientId||'legacy-migration',state:sharedAppState || withoutOpgFields(savedApp.state)};
       organizerAppStates.set(migrationTarget.id,migrated);
       await saveOrganizerAppState(migrationTarget.id,migrated);
     }
@@ -1281,11 +1525,21 @@ async function handle(req, res) {
     }
 
     const savedCloud = await loadStored('cloud-records', CLOUD_RECORDS_FILE);
-    if (savedCloud && savedCloud.records && typeof savedCloud.records === 'object') {
-      sharedCloudRecords = savedCloud.records;
-      sharedCloudRevision = Math.max(0, Number(savedCloud.revision) || 1);
-      sharedCloudUpdatedAt = savedCloud.updatedAt || null;
-      sharedCloudClientId = savedCloud.clientId || null;
+    const savedCsvPlayers = await loadRegisteredPlayersCsv();
+    const hasSavedCloudRecords = !!(savedCloud && savedCloud.records && typeof savedCloud.records === 'object');
+    if (hasSavedCloudRecords || savedCsvPlayers !== null) {
+      const legacyRecords = hasSavedCloudRecords ? savedCloud.records : {};
+      sharedCloudRecords = {
+        players:(savedCsvPlayers !== null ? savedCsvPlayers : (Array.isArray(legacyRecords.players) ? legacyRecords.players : [])).map(withoutOpgFields),
+        logs:Array.isArray(legacyRecords.logs) ? legacyRecords.logs : [],
+        sessions:Array.isArray(legacyRecords.sessions) ? legacyRecords.sessions : []
+      };
+      sharedCloudRevision = Math.max(0, Number(savedCloud?.revision) || 1);
+      sharedCloudUpdatedAt = savedCloud?.updatedAt || null;
+      sharedCloudClientId = savedCloud?.clientId || null;
+      // Migrate legacy player details from JSON/PostgreSQL into CSV and remove
+      // them from the legacy cloud envelope. CSV becomes the canonical profile store.
+      await persistSharedCloudRecords();
     }
   } catch (err) {
     console.error('Unable to initialize persistent storage:', err);

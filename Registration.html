@@ -13,8 +13,9 @@
   <link rel="stylesheet" href="live-view.css?v=panel-count-light-transparent-20261022-10&mzoom=20261024-1">
   <link rel="stylesheet" href="style.css?v=registration-area-shared-20261020-1&mzoom=20261024-1">
   <link rel="stylesheet" href="registration-page.css?v=registration-dupr-self-rating-20261026-3&mzoom=20261024-1">
-  <link rel="stylesheet" href="network-skeleton.css?v=network-skeleton-20261024-1">
+  <link rel="stylesheet" href="network-skeleton.css?v=network-validation-20261027-1">
   <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
+  <script src="network-validation.js?v=network-validation-20261027-1"></script>
 </head>
 <body class="registration-page-body">
   <div class="registration-queue-toast" id="registrationQueueAddedToast" role="status" aria-live="polite" aria-atomic="true" hidden>
@@ -84,7 +85,7 @@
               <div class="registration-extra-field">
                 <label class="registration-field-label" for="registerDuprId">DUPR ID <span class="registration-required-star" aria-hidden="true">*</span></label>
                 <div class="registration-extra-input-wrap">
-                  <input id="registerDuprId" type="text" inputmode="text" maxlength="20" placeholder="e.g. 1A2B3C4D" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="registrationDuplicateMessage" required>
+                  <input id="registerDuprId" type="text" inputmode="text" maxlength="6" minlength="6" pattern="[A-Za-z0-9]{6}" placeholder="e.g. 1A2B3C" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="registrationDuplicateMessage" title="Enter exactly 6 letters or numbers" required>
                 </div>
               </div>
               <div class="registration-extra-field">
@@ -105,6 +106,6 @@
     <span id="registrationConnectionStatus" class="connection-status registration-connection-footer" role="status" aria-live="polite"><i aria-hidden="true"></i><span>Connecting</span></span>
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
   </main>
-  <script src="registration-app.js?v=registration-dupr-self-rating-20261026-1" defer></script>
+  <script src="registration-app.js?v=registration-csv-dupr-six-20261027-1" defer></script>
 </body>
 </html>

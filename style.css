@@ -2808,9 +2808,6 @@ body{overflow-y:auto;}
 #queueMainArea .queue-modern-item .queue-id-line{
   min-height:13px!important;margin:0 0 1px!important;padding:0!important;
 }
-#queueMainArea .queue-modern-item .queue-opg-id{
-  font-size:8px!important;line-height:13px!important;font-weight:700!important;
-}
 #queueMainArea .queue-modern-item .queue-badges-line{
   display:flex!important;align-items:center!important;flex-wrap:wrap!important;
   gap:5px!important;min-height:18px!important;margin:1px 0 4px!important;

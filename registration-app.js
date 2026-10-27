@@ -202,7 +202,7 @@
     const fullname = String($('registerFullname')?.value || '').trim();
     const duplicate = updateDuplicateMessage();
     const duprId = String($('registerDuprId')?.value || '').trim();
-    const complete = fullname.length > 0 && duprId.length > 0 && !!selectedGender && SKILLS.has(selectedSkill);
+    const complete = fullname.length > 0 && /^[A-Z0-9]{6}$/.test(duprId.toUpperCase()) && !!selectedGender && SKILLS.has(selectedSkill);
     const button = $('registerSaveBtn');
     if (button) button.disabled = !(serviceReady && complete && !duplicate && !submitting);
     return {fullname, duplicate, complete};
@@ -322,7 +322,7 @@
     const duprId = String($('registerDuprId')?.value || '').trim().toUpperCase();
     const selfRating = String($('registerSelfRating')?.value || '').trim();
     if (!duprId) { showRegistrationError('Please enter the player’s DUPR ID.'); $('registerDuprId').focus(); return; }
-    if (!/^[A-Z0-9]{1,20}$/.test(duprId)) { showRegistrationError('DUPR ID must contain uppercase letters and numbers only.'); $('registerDuprId').focus(); return; }
+    if (!/^[A-Z0-9]{6}$/.test(duprId)) { showRegistrationError('DUPR ID must contain exactly 6 letters or numbers (for example, 1A2B3C).'); $('registerDuprId').focus(); return; }
     if (selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) { showRegistrationError('Enter self rating as a number, such as 2.5, or a range such as 2.5/4.0.'); $('registerSelfRating').focus(); return; }
     if (!selectedGender) { showRegistrationError('Please select Male or Female.'); return; }
     if (!SKILLS.has(selectedSkill)) { showRegistrationError('Please select a skill level.'); return; }
@@ -404,7 +404,7 @@
     const input = $('registerDuprId');
     const start = input.selectionStart ?? input.value.length;
     const end = input.selectionEnd ?? start;
-    input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
+    input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     try { input.setSelectionRange(Math.min(start, input.value.length), Math.min(end, input.value.length)); } catch (_) {}
     updateSubmitButton();
     const result = $('registrationPageResult');

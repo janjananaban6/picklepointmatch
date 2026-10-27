@@ -10,6 +10,8 @@
   const modalDialog = modal.querySelector('.panel-modal-dialog');
   const logoutModal = $('panelLogoutModal');
   const logoutDialog = logoutModal.querySelector('.logout-confirm-dialog');
+  const registeredPlayersModal = $('registeredPlayersModal');
+  const registeredPlayersDialog = registeredPlayersModal.querySelector('.registered-players-dialog');
   const settingsModal = $('panelSettingsModal');
   const settingsDialog = settingsModal.querySelector('.panel-settings-dialog');
   const editForm = $('editOrganizerForm');
@@ -33,6 +35,13 @@
   let avatarData = '';
   let avatarChanged = false;
   let isSavingProfile = false;
+  let registeredPlayers = [];
+  let registeredPlayersFiltered = [];
+  let registeredPlayersShown = 50;
+  let registeredPlayersLoading = false;
+  let registeredPlayersReturnFocusTo = null;
+  const registeredPlayersPageSize = 50;
+  let registeredPlayersLoadRequest = 0;
 
   function setNotice(message, error = false) {
     if (!message) return;
@@ -183,6 +192,161 @@
     }
   }
 
+  function registeredPlayerValue(player, key, aliases = []) {
+    for (const candidate of [key, ...aliases]) {
+      const value = player && player[candidate];
+      if (value !== undefined && value !== null && String(value).trim() !== '') return value;
+    }
+    return '';
+  }
+  function formatPlayerCount(value) {
+    return new Intl.NumberFormat().format(Math.max(0, Number(value) || 0));
+  }
+  function registeredPlayerSearchText(player) {
+    return [
+      registeredPlayerValue(player, 'name'),
+      registeredPlayerValue(player, 'nickname'),
+      registeredPlayerValue(player, 'gender'),
+      registeredPlayerValue(player, 'category'),
+      registeredPlayerValue(player, 'duprId', ['dupr_id','duprID']),
+      registeredPlayerValue(player, 'selfRating', ['self_rating']),
+      registeredPlayerValue(player, 'cloudId', ['id'])
+    ].join(' ').toLocaleLowerCase();
+  }
+  function renderRegisteredPlayers() {
+    const query = $('registeredPlayersSearch').value.trim().toLocaleLowerCase();
+    registeredPlayersFiltered = query
+      ? registeredPlayers.filter(player => registeredPlayerSearchText(player).includes(query))
+      : registeredPlayers.slice();
+    const visible = registeredPlayersFiltered.slice(0, registeredPlayersShown);
+    $('registeredPlayersCountLabel').textContent = query
+      ? `${formatPlayerCount(registeredPlayersFiltered.length)} match${registeredPlayersFiltered.length === 1 ? '' : 'es'}`
+      : `${formatPlayerCount(registeredPlayers.length)} registered player${registeredPlayers.length === 1 ? '' : 's'}`;
+    $('registeredPlayersShowingLabel').textContent = registeredPlayersFiltered.length
+      ? `Showing ${formatPlayerCount(visible.length)} of ${formatPlayerCount(registeredPlayersFiltered.length)}${query ? ' results' : ' players'}`
+      : 'No players to show';
+    const rows = $('registeredPlayersRows');
+    if (!registeredPlayersFiltered.length) {
+      rows.innerHTML = `<tr><td colspan="9" class="empty-row">${query ? 'No registered players match your search.' : 'No registered players have been added yet.'}</td></tr>`;
+    } else {
+      rows.innerHTML = visible.map(player => {
+        const cloudId = registeredPlayerValue(player, 'cloudId', ['id']);
+        const name = registeredPlayerValue(player, 'name') || 'Unnamed player';
+        const nickname = registeredPlayerValue(player, 'nickname');
+        const gender = registeredPlayerValue(player, 'gender');
+        const category = registeredPlayerValue(player, 'category');
+        const duprId = registeredPlayerValue(player, 'duprId', ['dupr_id','duprID']);
+        const selfRating = registeredPlayerValue(player, 'selfRating', ['self_rating']);
+          const matches = registeredPlayerValue(player, 'matches');
+        const wins = registeredPlayerValue(player, 'wins');
+        const losses = registeredPlayerValue(player, 'losses');
+        return `<tr>
+          <td data-label="Player"><span class="registered-player-name">${safeText(name)}</span>${cloudId !== '' ? `<small class="registered-player-cloud-id">ID ${safeText(cloudId)}</small>` : ''}</td>
+          <td data-label="Nickname">${safeText(nickname || '—')}</td>
+          <td data-label="Gender">${safeText(gender || '—')}</td>
+          <td data-label="Category"><span class="registered-player-category">${safeText(category || '—')}</span></td>
+          <td data-label="DUPR ID">${safeText(duprId || '—')}</td>
+          <td data-label="Self rating">${safeText(selfRating || '—')}</td>
+          <td data-label="Matches">${safeText(matches === '' ? '0' : matches)}</td>
+          <td data-label="Wins">${safeText(wins === '' ? '0' : wins)}</td>
+          <td data-label="Losses">${safeText(losses === '' ? '0' : losses)}</td>
+        </tr>`;
+      }).join('');
+    }
+    $('registeredPlayersLoadMore').hidden = visible.length >= registeredPlayersFiltered.length;
+    $('registeredPlayersLoadMore').disabled = visible.length >= registeredPlayersFiltered.length;
+  }
+  async function loadRegisteredPlayerSummary() {
+    try {
+      const data = await request('/api/panel/registered-players?summary=1');
+      $('registeredPlayersPageCount').textContent = `${formatPlayerCount(data.count)} registered player${Number(data.count) === 1 ? '' : 's'}`;
+    } catch (error) {
+      $('registeredPlayersPageCount').textContent = 'Player count unavailable';
+    }
+  }
+  async function loadRegisteredPlayers() {
+    if (registeredPlayersLoading) return;
+    registeredPlayersLoading = true;
+    const loadRequest = ++registeredPlayersLoadRequest;
+    $('registeredPlayersRows').innerHTML = '<tr><td colspan="9" class="empty-row">Loading registered players from the server…</td></tr>';
+    $('registeredPlayersCountLabel').textContent = 'Loading players…';
+    $('registeredPlayersShowingLabel').textContent = 'Please wait…';
+    try {
+      const data = await request('/api/panel/registered-players');
+      if (loadRequest !== registeredPlayersLoadRequest) return;
+      registeredPlayers = Array.isArray(data.players) ? data.players : [];
+      registeredPlayersShown = registeredPlayersPageSize;
+      const count = formatPlayerCount(registeredPlayers.length);
+      $('registeredPlayersPageCount').textContent = `${count} registered player${registeredPlayers.length === 1 ? '' : 's'}`;
+      $('registeredPlayersUpdatedLabel').textContent = data.updatedAt ? `Last cloud update: ${formatDate(data.updatedAt)}` : 'Cloud player directory';
+      renderRegisteredPlayers();
+    } catch (error) {
+      if (loadRequest !== registeredPlayersLoadRequest) return;
+      $('registeredPlayersRows').innerHTML = `<tr><td colspan="9" class="empty-row registered-players-error">${safeText(error.message || 'Unable to load registered players.')}</td></tr>`;
+      $('registeredPlayersCountLabel').textContent = 'Unable to load players';
+      $('registeredPlayersShowingLabel').textContent = 'Check the connection and try again.';
+      setNotice(error.message || 'Unable to load registered players.', true);
+    } finally {
+      if (loadRequest === registeredPlayersLoadRequest) registeredPlayersLoading = false;
+    }
+  }
+  function openRegisteredPlayersModal() {
+    if (!registeredPlayersModal.hidden) return;
+    registeredPlayersReturnFocusTo = document.activeElement;
+    registeredPlayersModal.hidden = false;
+    $('registeredPlayersSearch').value = '';
+    registeredPlayersShown = registeredPlayersPageSize;
+    syncModalLock();
+    window.requestAnimationFrame(() => $('registeredPlayersSearch').focus({preventScroll:true}));
+    // Always refresh when opened so the modal reflects current server-side records.
+    loadRegisteredPlayers();
+  }
+  function closeRegisteredPlayersModal() {
+    if (registeredPlayersModal.hidden) return;
+    registeredPlayersModal.hidden = true;
+    syncModalLock();
+    const target = registeredPlayersReturnFocusTo;
+    registeredPlayersReturnFocusTo = null;
+    if (target && target.isConnected && typeof target.focus === 'function') target.focus({preventScroll:true});
+  }
+  async function downloadRegisteredPlayersCsv(button) {
+    if (!button || button.disabled) return;
+    const originalHtml = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span aria-hidden="true">↓</span> Preparing CSV…';
+    try {
+      const response = await fetch('/api/panel/registered-players.csv', {cache:'no-store', credentials:'same-origin'});
+      if (response.status === 401) {
+        window.location.replace('/index.html');
+        throw new Error('Your administrator session has expired. Please sign in again.');
+      }
+      if (!response.ok) {
+        let message = 'Unable to download registered players CSV.';
+        try { const data = await response.clone().json(); if (data.error) message = data.error; } catch (_) {}
+        throw new Error(message);
+      }
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('Content-Disposition') || '';
+      const fileMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+      const filename = fileMatch ? fileMatch[1] : `registered-players-${new Date().toISOString().slice(0,10)}.csv`;
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      link.hidden = true;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+      setNotice(`Downloaded ${filename}. Keep this CSV somewhere safe as a player backup.`);
+    } catch (error) {
+      setNotice(error.message || 'Unable to download registered players CSV.', true);
+    } finally {
+      button.disabled = false;
+      button.innerHTML = originalHtml;
+    }
+  }
+
   // Panel appearance and UI preferences are local to this panel page.
   function loadPanelSettings() {
     const loaded = {...defaultPanelSettings};
@@ -309,7 +473,7 @@
   }
 
   function syncModalLock() {
-    const open = [modal, logoutModal, settingsModal].some(element => element && !element.hidden);
+    const open = [modal, logoutModal, registeredPlayersModal, settingsModal].some(element => element && !element.hidden);
     document.body.classList.toggle('modal-open', open);
   }
   let settingsReturnFocusTo = null;
@@ -756,6 +920,21 @@
     if (typeof motionPreference.addEventListener === 'function') motionPreference.addEventListener('change', updateSystemMotion);
     else if (typeof motionPreference.addListener === 'function') motionPreference.addListener(updateSystemMotion);
   }
+  $('openRegisteredPlayersModal').addEventListener('click', openRegisteredPlayersModal);
+  $('closeRegisteredPlayersModal').addEventListener('click', closeRegisteredPlayersModal);
+  registeredPlayersModal.querySelectorAll('[data-close-registered-players]').forEach(button => button.addEventListener('click', closeRegisteredPlayersModal));
+  registeredPlayersModal.addEventListener('click', event => { if (event.target === registeredPlayersModal) closeRegisteredPlayersModal(); });
+  $('registeredPlayersSearch').addEventListener('input', () => {
+    registeredPlayersShown = registeredPlayersPageSize;
+    if (!registeredPlayersLoading) renderRegisteredPlayers();
+  });
+  $('registeredPlayersLoadMore').addEventListener('click', () => {
+    registeredPlayersShown += registeredPlayersPageSize;
+    renderRegisteredPlayers();
+  });
+  $('downloadRegisteredPlayersCsv').addEventListener('click', event => downloadRegisteredPlayersCsv(event.currentTarget));
+  $('downloadRegisteredPlayersCsvModal').addEventListener('click', event => downloadRegisteredPlayersCsv(event.currentTarget));
+
   $('panelLogout').addEventListener('click', openLogoutModal);
   $('closeLogoutConfirm').addEventListener('click', closeLogoutModal);
   $('cancelPanelLogout').addEventListener('click', closeLogoutModal);
@@ -777,12 +956,13 @@
   $('confirmAccountAction').addEventListener('click', confirmPendingAction);
   modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
   document.addEventListener('keydown', event => {
-    const activeModal = !logoutModal.hidden ? logoutModal : (!modal.hidden ? modal : (!settingsModal.hidden ? settingsModal : null));
+    const activeModal = !logoutModal.hidden ? logoutModal : (!modal.hidden ? modal : (!registeredPlayersModal.hidden ? registeredPlayersModal : (!settingsModal.hidden ? settingsModal : null)));
     if (!activeModal) return;
     if (event.key === 'Escape') {
       event.preventDefault();
       if (activeModal === logoutModal) closeLogoutModal();
       else if (activeModal === modal) closeModal();
+      else if (activeModal === registeredPlayersModal) closeRegisteredPlayersModal();
       else {
         const openFontDropdown = settingsModal.querySelector('.panel-settings-dropdown.is-open');
         if (openFontDropdown) closeFontDropdown(openFontDropdown, true);
@@ -791,7 +971,7 @@
       return;
     }
     if (event.key !== 'Tab') return;
-    const dialog = activeModal === logoutModal ? logoutDialog : (activeModal === modal ? modalDialog : settingsDialog);
+    const dialog = activeModal === logoutModal ? logoutDialog : (activeModal === modal ? modalDialog : (activeModal === registeredPlayersModal ? registeredPlayersDialog : settingsDialog));
     const focusables = [...dialog.querySelectorAll('button:not(:disabled):not([hidden]), input:not(:disabled):not([hidden]), select:not(:disabled):not([hidden]), [tabindex="0"]')]
       .filter(element => element.getClientRects().length > 0);
     if (!focusables.length) return;
@@ -815,6 +995,7 @@
     .then(status => {
       if (!status.authenticated || status.role !== 'panel') { window.location.replace('/index.html'); return; }
       loadAccounts();
+      loadRegisteredPlayerSummary();
     })
     .catch(() => window.location.replace('/index.html'));
 })();

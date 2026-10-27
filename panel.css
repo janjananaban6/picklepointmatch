@@ -1201,3 +1201,76 @@ body[data-theme="dark"] .password-unavailable { border-color: #765b2b; backgroun
   .account-modal .avatar-editor-row { margin-bottom: 8px; }
   .account-modal .edit-field-grid { gap: 7px 10px; }
 }
+
+
+/* Registered Player Cloud summary and admin export modal. */
+.registered-cloud-section { display:flex; align-items:center; justify-content:space-between; gap:22px; margin:0 0 22px; padding:20px 22px; }
+.registered-cloud-copy { display:flex; align-items:flex-start; gap:14px; min-width:0; }
+.registered-cloud-icon { display:grid; place-items:center; flex:0 0 44px; width:44px; height:44px; border:1px solid #cdece1; border-radius:13px; background:#e8f8f1; color:#09846b; }
+.registered-cloud-icon svg { width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.registered-cloud-copy h2 { margin:0 0 5px; color:var(--text-strong); font-family:'Manrope',sans-serif; font-size:16px; font-weight:850; letter-spacing:-.02em; }
+.registered-cloud-copy p { margin:0; max-width:590px; color:var(--muted); font-size:11px; line-height:1.6; }
+.registered-cloud-count { display:inline-flex; margin-top:8px; padding:4px 8px; border:1px solid #cdece1; border-radius:999px; background:#f0fbf6; color:#0b866b; font-size:10px; font-weight:850; }
+.registered-cloud-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex:0 0 auto; }
+.registered-cloud-actions .secondary-button, .registered-cloud-actions .primary-button { min-height:40px; padding-inline:13px; white-space:nowrap; }
+.registered-cloud-download { box-shadow:0 5px 12px rgba(8,126,112,.13); }
+.registered-players-modal .registered-players-dialog { width:min(1180px, calc(100vw - 32px)); max-width:1180px; max-height:min(92dvh, 920px); padding:clamp(16px, 2vw, 24px); }
+.registered-players-modal-heading { align-items:center; margin-bottom:16px; }
+.registered-players-modal-heading .modal-heading-icon svg { width:23px; height:23px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.registered-players-modal-heading .modal-heading-copy { padding-top:0; }
+.registered-players-modal-heading .modal-close { flex:0 0 32px; margin-left:auto; }
+.registered-players-toolbar { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:12px; }
+.registered-players-search { display:flex; align-items:center; gap:9px; width:min(430px, 100%); min-height:41px; padding:0 12px; border:1px solid var(--border); border-radius:11px; background:var(--field); color:var(--muted); }
+.registered-players-search svg { width:17px; height:17px; flex:0 0 17px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.registered-players-search input { width:100%; min-width:0; min-height:38px; border:0; outline:0; background:transparent; color:var(--text-strong); font-size:12px; }
+.registered-players-search input::placeholder { color:#91a1aa; }
+.registered-players-search:focus-within { border-color:var(--teal); box-shadow:0 0 0 3px rgba(12,157,134,.1); }
+.registered-players-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; min-width:0; color:var(--muted); font-size:10px; text-align:right; }
+.registered-players-meta strong { color:var(--text-strong); font-size:11px; font-weight:850; }
+.registered-players-meta span { font-size:9px; }
+.registered-players-table-wrap { width:100%; max-height:min(54dvh, 520px); overflow:auto; border:1px solid var(--border); border-radius:12px; overscroll-behavior:contain; }
+.registered-players-table { width:100%; min-width:890px; border-collapse:separate; border-spacing:0; }
+.registered-players-table thead { position:sticky; top:0; z-index:1; }
+.registered-players-table thead th { padding:11px 10px; border-bottom:1px solid var(--border); background:var(--card-soft); color:var(--muted); font-size:9px; letter-spacing:.055em; white-space:nowrap; }
+.registered-players-table tbody td { padding:10px; background:var(--card); color:var(--text-soft); font-size:10px; white-space:nowrap; }
+.registered-player-name { display:block; max-width:210px; overflow:hidden; color:var(--text-strong); font-size:11px; font-weight:850; text-overflow:ellipsis; }
+.registered-player-cloud-id { display:block; margin-top:3px; color:var(--muted); font-size:9px; }
+.registered-player-category { display:inline-flex; padding:4px 6px; border-radius:6px; background:var(--card-soft); color:var(--text-strong); font-size:9px; font-weight:800; }
+.registered-players-error { color:var(--red) !important; }
+.registered-players-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; color:var(--muted); font-size:10px; }
+.registered-players-pagination .secondary-button { min-height:31px; padding-inline:12px; font-size:10px; }
+.registered-players-modal-footer { display:flex; align-items:center; justify-content:space-between; gap:14px; padding-top:14px; border-top:1px solid var(--row-border); }
+.registered-players-modal-footer > span { color:var(--muted); font-size:10px; line-height:1.5; }
+.registered-players-modal-footer .modal-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+.registered-players-modal-footer .secondary-button, .registered-players-modal-footer .primary-button { min-height:39px; padding-inline:13px; white-space:nowrap; }
+body[data-theme="dark"] .registered-cloud-icon { border-color:#28594f; background:#16392f; color:#87e1bd; }
+body[data-theme="dark"] .registered-cloud-count { border-color:#28594f; background:#16392f; color:#87e1bd; }
+@media (max-width: 760px) {
+  .registered-cloud-section { align-items:flex-start; flex-direction:column; gap:16px; padding:17px; }
+  .registered-cloud-actions { width:100%; justify-content:flex-start; flex-wrap:wrap; }
+  .registered-cloud-actions .secondary-button, .registered-cloud-actions .primary-button { flex:1 1 160px; }
+  .registered-players-toolbar { align-items:stretch; flex-direction:column; }
+  .registered-players-search { width:100%; }
+  .registered-players-meta { align-items:flex-start; text-align:left; }
+  .registered-players-modal-footer { align-items:flex-start; flex-direction:column; }
+  .registered-players-modal-footer .modal-actions { width:100%; }
+  .registered-players-modal-footer .modal-actions > button { flex:1 1 auto; }
+}
+@media (max-width: 440px) {
+  .registered-cloud-section { padding:14px 12px; }
+  .registered-cloud-copy { gap:10px; }
+  .registered-cloud-icon { width:36px; height:36px; flex-basis:36px; border-radius:10px; }
+  .registered-cloud-icon svg { width:20px; height:20px; }
+  .registered-cloud-copy h2 { font-size:15px; }
+  .registered-cloud-copy p { font-size:10px; }
+  .registered-cloud-actions { display:grid; grid-template-columns:1fr; }
+  .registered-cloud-actions .secondary-button, .registered-cloud-actions .primary-button { width:100%; }
+  .registered-players-modal .registered-players-dialog { width:calc(100vw - 16px); max-height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); padding:12px; border-radius:15px; }
+  .registered-players-modal-heading { gap:9px; }
+  .registered-players-modal-heading .modal-heading-icon { width:34px; height:34px; flex-basis:34px; }
+  .registered-players-modal-heading .modal-heading-copy h2 { font-size:15px; }
+  .registered-players-modal-heading .modal-heading-copy p { font-size:9px; }
+  .registered-players-table-wrap { max-height:48dvh; }
+  .registered-players-modal-footer .modal-actions { gap:6px; }
+  .registered-players-modal-footer .secondary-button, .registered-players-modal-footer .primary-button { padding-inline:9px; font-size:10px; }
+}

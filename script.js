@@ -63,9 +63,10 @@ function toTimestamp(value){if(typeof value==='number'&&Number.isFinite(value)&&
 function hasFreshLocalPending(savedAtKey,pendingKey,remoteUpdatedAt){const savedAt=readLocalTimestamp(savedAtKey),pendingAt=readLocalTimestamp(pendingKey);return pendingAt>0&&pendingAt===savedAt&&savedAt>toTimestamp(remoteUpdatedAt);}
 function clearLocalPendingSync(pendingKey,savedAtKey,expectedSavedAt){try{if(Number(localStorage.getItem(pendingKey))===Number(expectedSavedAt)&&Number(localStorage.getItem(savedAtKey))===Number(expectedSavedAt))localStorage.removeItem(pendingKey);}catch(e){}}
 function stampRemoteSave(savedAtKey,pendingKey,updatedAt){try{localStorage.setItem(savedAtKey,String(toTimestamp(updatedAt)||Date.now()));localStorage.removeItem(pendingKey);}catch(e){}}
-function loadCloudRecords(){try{const d=JSON.parse(localStorage.getItem(CLOUD_RECORDS_KEY)||'null');if(d)cloudRecords={players:Array.isArray(d.players)?d.players:[],logs:Array.isArray(d.logs)?d.logs:[],sessions:Array.isArray(d.sessions)?d.sessions:[]};}catch(e){}}
+function removeOpgFields(record){if(!record||typeof record!=='object'||Array.isArray(record))return record;const copy={...record};Object.keys(copy).forEach(key=>{if(['opg','opgid'].includes(String(key).replace(/[ _-]/g,'').toLowerCase()))delete copy[key];});return copy;}
+function loadCloudRecords(){try{const d=JSON.parse(localStorage.getItem(CLOUD_RECORDS_KEY)||'null');if(d)cloudRecords={players:Array.isArray(d.players)?d.players.map(removeOpgFields):[],logs:Array.isArray(d.logs)?d.logs:[],sessions:Array.isArray(d.sessions)?d.sessions:[]};}catch(e){}}
 function queueCloudRecordsSync(){if(applyingRemoteAppState)return;cloudSyncPending=cloneSharedData(cloudRecords);flushCloudRecordsSync();}
-function saveCloudRecords(){const savedAt=Date.now();try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));localStorage.setItem(CLOUD_RECORDS_SAVED_AT_KEY,String(savedAt));if(isHttpApp())localStorage.setItem(CLOUD_RECORDS_PENDING_SYNC_KEY,String(savedAt));else localStorage.removeItem(CLOUD_RECORDS_PENDING_SYNC_KEY);}catch(e){}queueCloudRecordsSync();}
+function saveCloudRecords(){cloudRecords.players=(Array.isArray(cloudRecords.players)?cloudRecords.players:[]).map(removeOpgFields);const savedAt=Date.now();try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));localStorage.setItem(CLOUD_RECORDS_SAVED_AT_KEY,String(savedAt));if(isHttpApp())localStorage.setItem(CLOUD_RECORDS_PENDING_SYNC_KEY,String(savedAt));else localStorage.removeItem(CLOUD_RECORDS_PENDING_SYNC_KEY);}catch(e){}queueCloudRecordsSync();}
 function flushCloudRecordsSync(){
   if(!sharedSyncAvailable||!sharedSyncReady||cloudSyncInFlight||!cloudSyncPending||!isHttpApp())return;
   const records=cloudSyncPending;cloudSyncPending=null;cloudSyncInFlight=true;
@@ -209,7 +210,7 @@ async function initializeSharedDataSync(){if(!isHttpApp()){sharedSyncReady=true;
   if(remoteCloud.records&&typeof remoteCloud.records==='object'){applySharedCloudRecords({revision:remoteCloud.revision,updatedAt:remoteCloud.updatedAt,clientId:null,records:remoteCloud.records},true);}else{const response=await fetch('/api/cloud-records',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({records:cloneSharedData(cloudRecords),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize Registered Player Cloud');const seeded=await response.json();sharedCloudRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.records)applySharedCloudRecords({revision:seeded.revision,updatedAt:seeded.updatedAt,clientId:null,records:seeded.records},true);}
   sharedSyncAvailable=true;sharedSyncReady=true;sharedEvents=new EventSource('/api/shared-events');sharedEvents.addEventListener('app-state',event=>{try{applySharedAppState(JSON.parse(event.data));}catch(e){}});sharedEvents.addEventListener('cloud-records',event=>{try{applySharedCloudRecords(JSON.parse(event.data));}catch(e){}});publishLiveViewState();flushSharedAppStateSync();flushCloudRecordsSync();
  }catch(error){sharedSyncReady=true;console.warn('Shared device sync is temporarily unavailable:',error);scheduleSharedSyncRetry();}finally{sharedSyncInitializing=false;}}
-function upsertCloudPlayer(p){if(!p||!p.name)return;loadCloudRecords();let a=cloudRecords.players.find(x=>x.name.toLowerCase()===p.name.toLowerCase());if(!a){a={cloudId:Date.now()+Math.floor(Math.random()*100000),name:p.name,matches:0,wins:0,losses:0};cloudRecords.players.push(a);}Object.assign(a,{name:p.name,nickname:p.nickname||a.nickname||'',gender:p.gender||a.gender||'',category:p.category||a.category||'',duprId:p.duprId||p.duprID||p.dupr_id||p.dupr||a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:p.selfRating||p.self_rating||a.selfRating||a.self_rating||'',opgId:p.opgId||a.opgId||''});saveCloudRecords();}
+function upsertCloudPlayer(p){if(!p||!p.name)return;loadCloudRecords();let a=cloudRecords.players.find(x=>x.name.toLowerCase()===p.name.toLowerCase());if(!a){a={cloudId:Date.now()+Math.floor(Math.random()*100000),name:p.name,matches:0,wins:0,losses:0};cloudRecords.players.push(a);}Object.assign(a,{name:p.name,nickname:p.nickname||a.nickname||'',gender:p.gender||a.gender||'',category:p.category||a.category||'',duprId:p.duprId||p.duprID||p.dupr_id||p.dupr||a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:p.selfRating||p.self_rating||a.selfRating||a.self_rating||''});saveCloudRecords();}
 function archiveLiveSession(){
   loadCloudRecords();
   state.players.concat(state.left).forEach(upsertCloudPlayer);
@@ -245,7 +246,7 @@ function renderCloudRecords(){
   const count=$('cloudRecordsCount');
   if(count)count.textContent=`(${cloudRecords.players.length})`;
   const q=($('cloudRecordsSearch')?.value||'').trim().toLowerCase();
-  const players=cloudRecords.players.filter(p=>[p.name,p.nickname,p.gender,p.category,p.opgId,p.duprId,p.duprID,p.dupr_id,p.dupr,p.selfRating,p.self_rating].join(' ').toLowerCase().includes(q));
+  const players=cloudRecords.players.filter(p=>[p.name,p.nickname,p.gender,p.category,p.duprId,p.duprID,p.dupr_id,p.dupr,p.selfRating,p.self_rating].join(' ').toLowerCase().includes(q));
   $('cloudRecordsContent').innerHTML=players.map((p,index)=>{
     const cat=({BEG:'BEG',NOV:'NOV',INT:'INT',ADV:'ADV',EXP:'EXP'})[p.category]||p.category||'—';
     const cls=({BEG:'beg',NOV:'nov',INT:'int',ADV:'adv',EXP:'exp'})[p.category]||'nov';
@@ -2650,13 +2651,13 @@ function renderRegisteredSearch(){
   const normalize=v=>String(v??'').trim().toLowerCase();
   const matches=state.players.filter(p=>{
     const hay=[
-      p.name, p.nickname, p.opgId, p.opgID, p.opg_id, p.playerId, p.playerID, p.id
+      p.name, p.nickname, p.playerId, p.playerID, p.id
     ].map(normalize).join(' ');
     return hay.includes(q);
   }).slice(0,12);
   area.innerHTML=matches.map(p=>{
     const alreadyQueued=state.queue.includes(p.id);
-    return `<button type="button" class="registered-result ${alreadyQueued?'already-queued':''}" onclick="addRegisteredToQueue(${p.id})"><span><b>${highlightSearchMatch(displayPlayerName(p),q)}</b><small>${genderSvgIcon(p.gender)} ${p.gender==='Female'?'Female':'Male'} • ${p.category||'CAT'} • ${p.wins}W${p.opgId?` • OPG ${esc(p.opgId)}`:''}</small></span><strong>${alreadyQueued?'✓ QUEUED':'＋ QUEUE'}</strong></button>`;
+    return `<button type="button" class="registered-result ${alreadyQueued?'already-queued':''}" onclick="addRegisteredToQueue(${p.id})"><span><b>${highlightSearchMatch(displayPlayerName(p),q)}</b><small>${genderSvgIcon(p.gender)} ${p.gender==='Female'?'Female':'Male'} • ${p.category||'CAT'} • ${p.wins}W</small></span><strong>${alreadyQueued?'✓ QUEUED':'＋ QUEUE'}</strong></button>`;
   }).join('')||'<div class="registered-search-hint">No registered player found.</div>';
 }
 function addRegisteredToQueue(id){
@@ -2871,7 +2872,6 @@ function renderQueue(){
     const genderValue=String(p.gender??'').trim().toLowerCase();
     const gender=['female','f','woman','women'].includes(genderValue)?'Female':'Male';
     const st=rankingStats.get(p.id)||{matches:0,wins:0,losses:0};
-    const opgId=p.opgId||p.opgID||p.opg_id||'';
     const matchingCloudDupr=cloudRecords.players.find(cp=>String(cp.name||'').trim().toLowerCase()===String(p.name||'').trim().toLowerCase());
     const rawQueueDuprId=String(p.duprId||p.duprID||p.dupr_id||p.dupr||matchingCloudDupr?.duprId||matchingCloudDupr?.duprID||matchingCloudDupr?.dupr_id||matchingCloudDupr?.dupr||'').trim().toUpperCase();
     const queueDuprId=rawQueueDuprId==='NR'?'':rawQueueDuprId;

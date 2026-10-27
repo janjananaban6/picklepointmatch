@@ -129,3 +129,61 @@ body.panel-page .ppm-network-skeleton {
   .ppm-skeleton-input::after,
   .ppm-skeleton-login-mark::after { animation: none; }
 }
+
+/* Compact connection notice shared by pages that are already open offline. */
+.ppm-network-validation-banner {
+  position: fixed;
+  z-index: 120000;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  padding: 9px 11px;
+  border: 1px solid #f0bd69;
+  border-radius: 999px;
+  background: #fff8e9;
+  color: #75420a;
+  box-shadow: 0 7px 22px rgb(15 23 42 / 15%);
+  font: 600 12px/1.35 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+}
+.ppm-network-validation-banner[hidden] { display: none !important; }
+.ppm-network-validation-dot {
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #d97706;
+  box-shadow: 0 0 0 3px rgb(217 119 6 / 13%);
+}
+.ppm-network-validation-message { overflow-wrap: anywhere; }
+.ppm-network-validation-retry {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #f2d49d;
+  color: #653807;
+  font: inherit;
+  cursor: pointer;
+}
+.ppm-network-validation-retry:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.ppm-network-validation-banner[data-state="unreachable"] .ppm-network-validation-dot {
+  background: #dc2626;
+  box-shadow: 0 0 0 3px rgb(220 38 38 / 12%);
+}
+@media (max-width: 480px) {
+  .ppm-network-validation-banner {
+    max-width: calc(100vw - 16px);
+    gap: 7px;
+    padding: 8px 9px;
+    font-size: 11px;
+  }
+}
