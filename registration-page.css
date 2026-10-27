@@ -68,9 +68,6 @@
 .registration-page-form .registration-duplicate-message{display:block;width:100%;margin-top:8px;font-size:11px;font-weight:700!important;line-height:1.45;overflow-wrap:anywhere;}
 .registration-page-form .registration-duplicate-message[hidden]{display:none!important;}
 .registration-page-form .register-save-btn:disabled{filter:none;}
-.registration-page-result{margin:0 23px 18px;padding:15px 16px;border:1px solid #cde7d6;border-radius:12px;background:#effbf3;color:#226c40;font-size:13px;line-height:1.6;overflow-wrap:anywhere;}
-.registration-page-result.is-error{border-color:#f0cccc;background:#fff4f4;color:#b52f36;}
-.registration-page-result strong{display:block;margin-bottom:3px;font-size:14px;}
 .registration-page-footnote{display:flex;align-items:flex-start;gap:8px;margin:0 23px 22px;padding-top:15px;border-top:1px solid #edf2f3;color:#829297;font-size:10px;line-height:1.6;}
 .registration-page-footnote span{color:#109e95;font-size:15px;line-height:1;flex:0 0 auto;}
 @media(max-width:600px){
@@ -85,7 +82,6 @@
   .registration-page-form .registration-skill-buttons{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px!important;}
   .registration-page-form.registration-area .registration-category-save-row .registration-skill-btn{width:100%!important;height:41px!important;min-height:41px!important;padding:0 3px!important;font-size:11px!important;}
   .registration-page-form.registration-area .registration-category-save-row .register-save-btn{width:100%!important;min-height:48px!important;font-size:12px!important;padding:13px 14px!important;}
-  .registration-page-result{margin:0 14px 15px;}
   .registration-page-footnote{margin:0 14px 18px;}
 }
 @media(max-width:560px){
@@ -130,7 +126,6 @@ html {
 .registration-page-intro,
 .registration-page-panel,
 .registration-page-form,
-.registration-page-result,
 .registration-page-footnote {
   min-width: 0;
   max-width: 100%;
@@ -284,10 +279,6 @@ html {
     padding-inline: 2px !important;
     font-size: 10px !important;
   }
-  .registration-page-result {
-    margin: 0 14px 15px;
-    padding: 12px;
-  }
   .registration-page-footnote {
     margin: 0 14px 18px;
   }
@@ -349,8 +340,7 @@ html {
   .registration-page-form.registration-area .registration-category-save-row .registration-skill-btn {
     font-size: 9px !important;
   }
-.registration-page-result,
-  .registration-page-footnote {
+.registration-page-footnote {
     margin-right: 11px;
     margin-left: 11px;
   }
@@ -774,10 +764,10 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
 }
 
 /* Queue-added toast: content-sized notification positioned just below the fixed 58px live header. */
-.registration-queue-toast[hidden] {
+.registration-feedback-toast[hidden] {
   display: none !important;
 }
-.registration-page-body .registration-queue-toast {
+.registration-page-body .registration-feedback-toast {
   position: fixed;
   top: 66px;
   left: 50%;
@@ -803,11 +793,20 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
   pointer-events: none;
   transition: transform .32s cubic-bezier(.2,.8,.2,1), opacity .24s ease;
 }
-.registration-page-body .registration-queue-toast.is-visible {
+.registration-page-body .registration-feedback-toast.is-visible {
   opacity: 1;
   transform: translate(-50%, 0);
 }
-.registration-page-body .registration-queue-toast-icon {
+.registration-page-body .registration-feedback-toast.is-error {
+  border-color: #5a2c31;
+  background: #271418;
+  color: #fff2f2;
+}
+.registration-page-body .registration-feedback-toast.is-error .registration-feedback-toast-icon {
+  background: #ff7777;
+  color: #330f13;
+}
+.registration-page-body .registration-feedback-toast-icon {
   display: grid;
   place-items: center;
   flex: 0 0 30px;
@@ -818,12 +817,12 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
   background: #a1ed23;
   color: #10251a;
 }
-.registration-page-body .registration-queue-toast-icon svg {
+.registration-page-body .registration-feedback-toast-icon svg {
   display: block;
   width: 20px;
   height: 20px;
 }
-.registration-page-body .registration-queue-toast-copy {
+.registration-page-body .registration-feedback-toast-copy {
   display: flex;
   flex: 0 1 auto;
   flex-direction: column;
@@ -834,7 +833,7 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
   line-height: 1.12;
   overflow-wrap: anywhere;
 }
-.registration-page-body .registration-queue-toast-copy strong {
+.registration-page-body .registration-feedback-toast-copy strong {
   display: block;
   margin: 0;
   color: #edf4ef;
@@ -844,7 +843,7 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
   letter-spacing: -.15px;
   white-space: nowrap;
 }
-.registration-page-body .registration-queue-toast-copy > span {
+.registration-page-body .registration-feedback-toast-copy > span {
   display: block;
   color: #91a79a;
   font-size: 12px;
@@ -853,7 +852,7 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
   overflow-wrap: anywhere;
 }
 @media (max-width: 520px) {
-  .registration-page-body .registration-queue-toast {
+  .registration-page-body .registration-feedback-toast {
     top: 66px;
     gap: 9px;
     min-width: 166px;
@@ -862,24 +861,24 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
     padding: 7px 10px;
     border-radius: 15px;
   }
-  .registration-page-body .registration-queue-toast-icon {
+  .registration-page-body .registration-feedback-toast-icon {
     flex-basis: 28px;
     width: 28px;
     height: 28px;
   }
-  .registration-page-body .registration-queue-toast-icon svg {
+  .registration-page-body .registration-feedback-toast-icon svg {
     width: 19px;
     height: 19px;
   }
-  .registration-page-body .registration-queue-toast-copy strong {
+  .registration-page-body .registration-feedback-toast-copy strong {
     font-size: 14px;
   }
-  .registration-page-body .registration-queue-toast-copy > span {
+  .registration-page-body .registration-feedback-toast-copy > span {
     font-size: 11.5px;
   }
 }
 @media (max-width: 360px) {
-  .registration-page-body .registration-queue-toast {
+  .registration-page-body .registration-feedback-toast {
     min-width: 158px;
     max-width: calc(100vw - 20px);
     min-height: 54px;
@@ -887,28 +886,28 @@ html body.registration-page-body > .live-header #registrationConnectionStatus i:
     gap: 8px;
     border-radius: 14px;
   }
-  .registration-page-body .registration-queue-toast-icon {
+  .registration-page-body .registration-feedback-toast-icon {
     flex-basis: 27px;
     width: 27px;
     height: 27px;
   }
-  .registration-page-body .registration-queue-toast-icon svg {
+  .registration-page-body .registration-feedback-toast-icon svg {
     width: 18px;
     height: 18px;
   }
-  .registration-page-body .registration-queue-toast-copy strong {
+  .registration-page-body .registration-feedback-toast-copy strong {
     font-size: 13.5px;
   }
-  .registration-page-body .registration-queue-toast-copy > span {
+  .registration-page-body .registration-feedback-toast-copy > span {
     font-size: 11px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .registration-page-body .registration-queue-toast {
+  .registration-page-body .registration-feedback-toast {
     transition: opacity .15s ease;
     transform: translate(-50%, calc(-100% - 8px));
   }
-  .registration-page-body .registration-queue-toast.is-visible {
+  .registration-page-body .registration-feedback-toast.is-visible {
     transform: translate(-50%, 0);
   }
 }
@@ -1770,11 +1769,6 @@ html body.registration-page-body .registration-page-form.registration-area .regi
   color: #078b83 !important;
   outline: none !important;
 }
-html body.registration-page-body .registration-page-result {
-  width: 100% !important;
-  margin: 0 0 16px !important;
-  box-sizing: border-box !important;
-}
 
 @media (max-width: 600px) {
   html body.registration-page-body .registration-page-intro {
@@ -1960,7 +1954,6 @@ html body.registration-page-body .registration-page-panel-heading p {
   line-height: 1.45 !important;
   text-align: center !important;
 }
-html body.registration-page-body .registration-page-result,
 html body.registration-page-body .registration-page-form.registration-area,
 html body.registration-page-body #registrationArea.registration-area,
 html body.registration-page-body .registration-page-footnote {
@@ -1968,9 +1961,6 @@ html body.registration-page-body .registration-page-footnote {
   max-width: 340px !important;
   min-width: 0 !important;
   box-sizing: border-box !important;
-}
-html body.registration-page-body .registration-page-result {
-  margin: 0 auto 14px !important;
 }
 html body.registration-page-body .registration-page-form.registration-area,
 html body.registration-page-body #registrationArea.registration-area {

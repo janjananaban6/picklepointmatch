@@ -941,7 +941,7 @@ function syncRegistrationQrNetworkState(){
   if(image.dataset.qrTarget!==target){if(brandLogo)brandLogo.hidden=true;image.dataset.qrTarget=target;image.dataset.qrFallbackAttempted='false';image.onerror=()=>{if(image.dataset.qrFallbackAttempted!=='true'){image.dataset.qrFallbackAttempted='true';image.src='https://quickchart.io/qr?size=280&margin=8&text='+encodeURIComponent(target);return;}image.hidden=true;delete image.dataset.qrTarget;unavailable.textContent='QR preview could not load. Use the registration link below instead.';unavailable.hidden=false;};image.src='https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data='+encodeURIComponent(target);}
   const host=url.hostname;const localHost=host==='localhost'||host==='127.0.0.1'||host==='0.0.0.0'||host==='::1'||/^10\./.test(host)||/^192\.168\./.test(host)||/^172\.(1[6-9]|2[0-9]|3[01])\./.test(host);
   if(title)title.textContent= url.protocol==='https:'&&!localHost?'Registration link ready':'Local / private link';
-  if(note)note.textContent=localHost?'Scan from a phone connected to the same Wi-Fi network, and use the computer’s reachable LAN address if this link contains localhost.':'Players can complete their details, then they are saved to Registered Player Cloud and added to the queue automatically.';
+  if(note)note.textContent=localHost?'Scan from a phone connected to the same Wi-Fi network, and use the computer’s reachable LAN address if this link contains localhost.':'Players can complete their details to save a profile to Registered Player Cloud. Check them in to the waiting queue from the cloud list when ready.';
 }
 function openRegistrationQrModal(){
   const modal=$('registrationQrModal'),field=$('registrationQrUrl');if(!modal||!field)return;
@@ -2621,27 +2621,45 @@ function clearRegistrationSkill(){
 }
 
 function saveRegisteredPlayer(){
-  const fullname=$('registerFullname').value.trim(), nickname=$('registerNickname').value.trim();
+  const fullname=String($('registerFullname')?.value||'').trim().replace(/\s+/g,' ');
+  const nickname=String($('registerNickname')?.value||'').trim().replace(/\s+/g,' ');
   if(!fullname){toast('Enter the full name.');return;}
   if(!registrationGender){toast('Select Male or Female.');return;}
   if(!registrationSkillLevel){toast('Select a skill level.');return;}
+
   loadCloudRecords();
-  const normalizedFullname=fullname.replace(/\s+/g,' ').toLocaleLowerCase();
-  const cloudDuplicate=cloudRecords.players.find(p=>String(p.name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase()===normalizedFullname);
-  if(cloudDuplicate){updateRegistrationSaveButton();toast(`This user is already registered: ${cloudDuplicate.name}`);return;}
-  const existing=state.players.find(p=>p.name.toLowerCase()===fullname.toLowerCase());
-  if(existing){
-    existing.nickname=nickname; existing.gender=registrationGender;
-    if(registrationSkillLevel) existing.category=registrationSkillLevel;
-    if(!existing.court && !state.queue.includes(existing.id)){ existing.queuedAt=existing.queuedAt||Date.now(); existing.waitingSince=Date.now(); state.queue.push(existing.id); }
-    upsertCloudPlayer(existing); saveState(); render(); toast(`${fullname} registered and added to Queue.`); showQueueMain(); return;
-  }
-  const p={id:state.nextPlayer++,name:fullname,nickname,wins:0,court:null,gender:registrationGender,category:registrationSkillLevel||'',queuedAt:Date.now(),waitingSince:Date.now()};
-  state.players.push(p);
-  state.queue.push(p.id);
-  upsertCloudPlayer(p);
-  state.sessionMetrics.newRegistered=(Number(state.sessionMetrics.newRegistered)||0)+1;
-  saveState(); render(); toast(`${fullname} registered and added to Queue.`); showQueueMain();
+  const normalizedFullname=fullname.toLocaleLowerCase();
+  const duplicate=cloudRecords.players.find(p=>String(p.name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase()===normalizedFullname);
+  if(duplicate){updateRegistrationSaveButton();toast(`This user is already registered: ${duplicate.name}`);return;}
+
+  // Registration only creates a profile in Registered Player Cloud. It must not
+  // modify state.players, state.queue, session metrics, or the active queue.
+  cloudRecords.players.push({
+    cloudId:Date.now()+Math.floor(Math.random()*100000),
+    name:fullname,
+    nickname,
+    gender:registrationGender,
+    category:registrationSkillLevel,
+    duprId:'',
+    selfRating:'',
+    matches:0,
+    wins:0,
+    losses:0
+  });
+  saveCloudRecords();
+  if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
+
+  $('registerFullname').value='';
+  $('registerNickname').value='';
+  registrationGender='';
+  clearRegistrationSkill();
+  document.querySelectorAll('.gender-choice').forEach(button=>{
+    button.classList.remove('selected');
+    button.setAttribute('aria-pressed','false');
+  });
+  updateRegistrationSaveButton();
+  showQueueMain();
+  toast(`${fullname} saved to Registered Player Cloud. Use Check in to add the player to the queue.`);
 }
 function renderRegisteredSearch(){
   const area=$('registeredPlayerResults'); if(!area)return;

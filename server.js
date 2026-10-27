@@ -1133,8 +1133,8 @@ async function handle(req, res) {
       return sendJson(res, 200, {ok:true,accepted:true,revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,unchanged:JSON.stringify(sharedCloudRecords)===JSON.stringify(records)});
     } catch (err) { return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to save Registered Player Cloud records'}); }
   }
-  // Register a player into one organizer's queue, while keeping the Registered
-  // Player Cloud global so every organizer sees the same player library.
+  // Register a player profile in the global Registered Player Cloud only.
+  // Queue check-in remains an organizer-controlled action from queueing.html.
   if (url.pathname === '/api/register-player' && req.method === 'POST') {
     try {
       const body = await readBody(req, 16 * 1024);
@@ -1150,84 +1150,41 @@ async function handle(req, res) {
       if (!/^[A-Z0-9]{6}$/.test(duprId)) return sendJson(res, 400, {ok:false,error:'DUPR ID must contain exactly 6 letters or numbers (for example, 1A2B3C).'});
       if (selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) return sendJson(res, 400, {ok:false,error:'Enter self rating as a number or a numeric range, such as 2.5/4.0.'});
 
+      // Keep organizer-scoped registration links validated, but do not modify
+      // that organizer's players, waiting queue, courts, session metrics, or live state.
       const requestedScope = String(url.searchParams.get('organizer') || body?.organizerId || '').trim();
       const organizerId = resolveOrganizerId(req,url,body,true);
       if (requestedScope && !organizerId) return sendJson(res, 400, {ok:false,error:'Organizer link is invalid or inactive. Ask the organizer for an updated registration link.'});
+
       const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
-      const duplicate = (Array.isArray(currentRecords.players) ? currentRecords.players : []).find(p => normalizePlayerName(p?.name) === normalizePlayerName(name));
+      const currentPlayers = Array.isArray(currentRecords.players) ? currentRecords.players : [];
+      const duplicate = currentPlayers.find(p => normalizePlayerName(p?.name) === normalizePlayerName(name));
       if (duplicate) return sendJson(res, 409, {ok:false,duplicate:true,error:'This user is already registered in Registered Player Cloud',player:{name:duplicate.name}});
 
       const records = JSON.parse(JSON.stringify(currentRecords));
       records.players = Array.isArray(records.players) ? records.players : [];
       records.logs = Array.isArray(records.logs) ? records.logs : [];
       records.sessions = Array.isArray(records.sessions) ? records.sessions : [];
-      const entry = organizerId ? getOrganizerAppEntry(organizerId) : getOrganizerAppEntry(null);
-      const appState = JSON.parse(JSON.stringify(entry.state || createDefaultSharedAppState()));
-      appState.players = Array.isArray(appState.players) ? appState.players : [];
-      appState.left = Array.isArray(appState.left) ? appState.left : [];
-      appState.queue = Array.isArray(appState.queue) ? appState.queue : [];
-      appState.courts = Array.isArray(appState.courts) ? appState.courts : [];
-      appState.logs = Array.isArray(appState.logs) ? appState.logs : [];
-      appState.sessionMetrics = appState.sessionMetrics && typeof appState.sessionMetrics === 'object' ? appState.sessionMetrics : {cloudCheckins:0,newRegistered:0};
-      appState.nextPlayer = Math.max(Number(appState.nextPlayer) || 1, appState.players.reduce((max,p)=>Math.max(max,Number(p?.id)||0),0)+1);
-
-      let player = appState.players.find(p => normalizePlayerName(p?.name) === normalizePlayerName(name));
-      const isNewQueuePlayer = !player;
-      const now = Date.now();
-      if (player) {
-        if (player.id == null) player.id = appState.nextPlayer++;
-        player.name = name;
-        player.nickname = nickname;
-        player.gender = gender;
-        player.category = category;
-        player.duprId = duprId;
-        player.selfRating = selfRating;
-        player.court = player.court ?? null;
-      } else {
-        player = {id:appState.nextPlayer++,name,nickname,wins:0,court:null,gender,category,duprId,selfRating,queuedAt:now,waitingSince:now};
-        appState.players.push(player);
-      }
-      const playingOnCourt = !!player.court || appState.courts.some(c => Array.isArray(c?.players) && c.players.includes(player.id));
-      if (!playingOnCourt && !appState.queue.includes(player.id)) {
-        player.queuedAt = now;
-        player.waitingSince = now;
-        appState.queue.push(player.id);
-      }
-      if (isNewQueuePlayer) appState.sessionMetrics.newRegistered = (Number(appState.sessionMetrics.newRegistered) || 0) + 1;
-
       const cloudId = Date.now() + Math.floor(Math.random() * 100000);
       const cloudPlayer = {cloudId,name,nickname,gender,category,duprId,selfRating,matches:0,wins:0,losses:0};
       records.players.push(cloudPlayer);
 
-      const updatedAt = new Date().toISOString();
-      if (organizerId) {
-        const nextEntry = {revision:(Number(entry.revision)||0)+1,updatedAt,clientId:'registration-page',state:appState};
-        await saveOrganizerAppState(organizerId,nextEntry);
-        broadcastNamedEvent('app-state',{revision:nextEntry.revision,updatedAt,clientId:'registration-page',state:appState,organizerId},organizerId);
-      } else {
-        sharedAppState = appState;
-        sharedAppRevision += 1;
-        sharedAppUpdatedAt = updatedAt;
-        sharedAppClientId = 'registration-page';
-      }
       sharedCloudRecords = records;
       sharedCloudRevision += 1;
-      sharedCloudUpdatedAt = updatedAt;
+      sharedCloudUpdatedAt = new Date().toISOString();
       sharedCloudClientId = 'registration-page';
-      const liveSnapshot = buildLiveQueueSnapshot(appState, updatedAt, getOrganizerLiveState(organizerId));
-      if (organizerId) {
-        await saveOrganizerLiveState(organizerId,liveSnapshot);
-        broadcast(liveSnapshot,organizerId);
-      } else {
-        latestState = liveSnapshot;
-        await saveStoredBatch([{key:'app-state',filePath:APP_STATE_FILE,value:{revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState}}]);
-        await saveStoredBatch([{key:'live-state',filePath:DATA_FILE,value:liveSnapshot}]);
-        broadcast(liveSnapshot,null);
-        broadcastNamedEvent('app-state',{revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState},null);
-      }
       await persistSharedCloudRecords();
       broadcastNamedEvent('cloud-records',{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
-      return sendJson(res, 200, {ok:true,player:cloudPlayer,queued:!playingOnCourt,queueCount:appState.queue.length,cloudCount:sharedCloudRecords.players.length,appRevision:organizerId?getOrganizerAppEntry(organizerId).revision:sharedAppRevision,cloudRevision:sharedCloudRevision,liveViewUpdated:true,organizerId});
+
+      return sendJson(res, 200, {
+        ok:true,
+        player:cloudPlayer,
+        queued:false,
+        cloudOnly:true,
+        cloudCount:sharedCloudRecords.players.length,
+        cloudRevision:sharedCloudRevision,
+        organizerId
+      });
     } catch (err) {
       return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to register player'});
     }

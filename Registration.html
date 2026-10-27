@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="Register as a pickleball player for Pickle Point Match events and join the organizer’s live waiting queue.">
+  <meta name="description" content="Register a pickleball player profile in Pickle Point Match Registered Player Cloud.">
   <meta name="theme-color" content="#0f172a">
   <title>Player Registration | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
@@ -12,19 +12,19 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="live-view.css?v=panel-count-light-transparent-20261022-10&mzoom=20261024-1">
   <link rel="stylesheet" href="style.css?v=registration-area-shared-20261020-1&mzoom=20261024-1">
-  <link rel="stylesheet" href="registration-page.css?v=registration-dupr-self-rating-20261026-3&mzoom=20261024-1">
+  <link rel="stylesheet" href="registration-page.css?v=registration-cloud-only-toast-fix-20261027-2&mzoom=20261024-1">
   <link rel="stylesheet" href="network-skeleton.css?v=network-validation-20261027-1">
   <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
   <script src="network-validation.js?v=network-validation-20261027-1"></script>
 </head>
 <body class="registration-page-body">
-  <div class="registration-queue-toast" id="registrationQueueAddedToast" role="status" aria-live="polite" aria-atomic="true" hidden>
-    <span class="registration-queue-toast-icon" aria-hidden="true">
+  <div class="registration-feedback-toast" id="registrationFeedbackToast" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <span class="registration-feedback-toast-icon" aria-hidden="true">
       <svg viewBox="0 0 48 48" focusable="false"><path d="M18.6 32.7 8.8 22.9l5.2-5.2 4.6 4.6L34.4 6.5l5.2 5.2z" fill="currentColor" transform="translate(0 4)"/></svg>
     </span>
-    <span class="registration-queue-toast-copy">
-      <strong>Player added</strong>
-      <span id="registrationQueueAddedName">Player</span>
+    <span class="registration-feedback-toast-copy">
+      <strong id="registrationFeedbackTitle">Registration</strong>
+      <span id="registrationFeedbackMessage"></span>
     </span>
   </div>
 
@@ -39,11 +39,10 @@
     <div class="registration-page-panel-icon registration-page-icon-float" aria-hidden="true"><img src="registration-page-panel-icon.png?v=registration-panel-icon-float-20261026-2" alt=""></div>
     <section class="event-heading registration-page-intro">
       <h1 id="registrationPageTitle">Register as a Player</h1>
-      <p>Complete your player profile to register and join the live queue. Your details will be saved automatically to Registered Player Cloud.</p>
+      <p>Complete your player profile to save it to Registered Player Cloud. An organizer can check you in to the queue when ready.</p>
     </section>
 
     <section class="registration-page-panel" aria-labelledby="registrationPageTitle">
-      <div id="registrationPageResult" class="registration-page-result" hidden><strong></strong><span></span></div>
       <div class="registration-area registration-page-form" id="registrationArea">
         <div class="registration-field registration-fullname-row">
           <label class="registration-field-label" for="registerFullname">FULL NAME <span class="registration-required-star" aria-hidden="true">*</span></label>
@@ -97,15 +96,15 @@
             </div>
             <div id="registrationDuplicateMessage" class="registration-duplicate-message" role="status" aria-live="polite" hidden></div>
           </div>
-          <button type="button" class="register-save-btn" id="registerSaveBtn" disabled>Register &amp; Add to Queue</button>
+          <button type="button" class="register-save-btn" id="registerSaveBtn" disabled>Save to Registered Player Cloud</button>
         </div>
       </div>
 
-      <div class="registration-page-footnote"><span aria-hidden="true">☁</span> Your player profile is saved to Registered Player Cloud and synchronized with the organizer’s live queue.</div>
+      <div class="registration-page-footnote"><span aria-hidden="true">☁</span> Your profile is saved to Registered Player Cloud. Registration does not automatically add you to the waiting queue.</div>
     </section>
     <span id="registrationConnectionStatus" class="connection-status registration-connection-footer" role="status" aria-live="polite"><i aria-hidden="true"></i><span>Connecting</span></span>
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
   </main>
-  <script src="registration-app.js?v=registration-csv-dupr-six-20261027-1" defer></script>
+  <script src="registration-app.js?v=cloud-only-registration-fix-20261027-2" defer></script>
 </body>
 </html>

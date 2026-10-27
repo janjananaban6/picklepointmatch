@@ -17,12 +17,8 @@
   let submitting = false;
   let cloudEvents = null;
   let eyebrowThemeEvents = null;
-  let previousQueueIds = new Set();
-  let queueBaselineReady = false;
-  const addedPlayerToastQueue = [];
-  const recentlyNotifiedPlayers = new Map();
-  let addedPlayerToastActive = false;
-  let addedPlayerToastTimer = null;
+  let feedbackTimer = null;
+  let feedbackHideTimer = null;
 
   const LIVE_THEME_STORAGE_KEY = 'picklepoint_live_view_theme_v1';
 
@@ -85,8 +81,7 @@
   }
 
   function showRegistrationError(message) {
-    // Keep actionable errors visible in the existing result panel instead of a status banner.
-    showResult('Please check your registration', message, true);
+    showFeedback('Please check your registration', message, true);
   }
 
   function updateAppPlayers(state) {
@@ -95,83 +90,39 @@
     appPlayers = players.concat(left).filter(player => player && player.name);
   }
 
-  function primeQueueWatcher(state) {
-    if (queueBaselineReady || !state || !Array.isArray(state.queue)) return;
-    previousQueueIds = new Set(state.queue.map(id => String(id)));
-    queueBaselineReady = true;
+  function hideFeedback() {
+    const toast = $('registrationFeedbackToast');
+    if (!toast) return;
+    window.clearTimeout(feedbackTimer);
+    window.clearTimeout(feedbackHideTimer);
+    toast.classList.remove('is-visible');
+    feedbackHideTimer = window.setTimeout(() => {
+      toast.hidden = true;
+      feedbackHideTimer = null;
+    }, 260);
   }
 
-  function observeQueueState(state) {
-    if (!state || !Array.isArray(state.queue)) return;
-    const currentQueueIds = new Set(state.queue.map(id => String(id)));
-    if (!queueBaselineReady) {
-      previousQueueIds = currentQueueIds;
-      queueBaselineReady = true;
-      return;
-    }
-
-    const newlyQueuedIds = [...currentQueueIds].filter(id => !previousQueueIds.has(id));
-    previousQueueIds = currentQueueIds;
-    if (!newlyQueuedIds.length) return;
-
-    const roster = (Array.isArray(state.players) ? state.players : [])
-      .concat(Array.isArray(state.left) ? state.left : []);
-    newlyQueuedIds.forEach(id => {
-      const player = roster.find(item => item && String(item.id) === id);
-      if (player && player.name) notifyPlayerAdded(player.name);
-    });
-  }
-
-  function notifyPlayerAdded(name) {
-    const cleanName = String(name || '').trim();
-    if (!cleanName) return;
-    const key = normalizedName(cleanName);
-    const now = Date.now();
-    const lastNotified = recentlyNotifiedPlayers.get(key);
-    // A local registration response and its shared app-state event can arrive together.
-    // Suppress that duplicate, while still allowing later queue re-entries to notify again.
-    if (lastNotified && now - lastNotified < 4500) return;
-    recentlyNotifiedPlayers.set(key, now);
-    if (recentlyNotifiedPlayers.size > 100) {
-      for (const [playerKey, timestamp] of recentlyNotifiedPlayers) {
-        if (now - timestamp > 15000) recentlyNotifiedPlayers.delete(playerKey);
-      }
-    }
-    addedPlayerToastQueue.push(cleanName);
-    if (!addedPlayerToastActive) displayNextAddedPlayerToast();
-  }
-
-  function displayNextAddedPlayerToast() {
-    const toast = $('registrationQueueAddedToast');
-    const name = $('registrationQueueAddedName');
-    if (!toast || !name) {
-      addedPlayerToastQueue.length = 0;
-      addedPlayerToastActive = false;
-      return;
-    }
-    const nextName = addedPlayerToastQueue.shift();
-    if (!nextName) {
-      addedPlayerToastActive = false;
-      return;
-    }
-
-    // Keep the toast compact by showing only the player's first name.
-    const firstName = String(nextName).trim().split(/\s+/)[0] || String(nextName).trim();
-    addedPlayerToastActive = true;
-    name.textContent = firstName;
+  function showFeedback(title, detail, error = false) {
+    const toast = $('registrationFeedbackToast');
+    const titleNode = $('registrationFeedbackTitle');
+    const detailNode = $('registrationFeedbackMessage');
+    if (!toast || !titleNode || !detailNode) return;
+    window.clearTimeout(feedbackTimer);
+    window.clearTimeout(feedbackHideTimer);
+    feedbackHideTimer = null;
+    titleNode.textContent = title;
+    detailNode.textContent = detail;
+    toast.classList.toggle('is-error', error);
     toast.hidden = false;
     toast.classList.remove('is-visible');
     window.requestAnimationFrame(() => toast.classList.add('is-visible'));
-
-    window.clearTimeout(addedPlayerToastTimer);
-    addedPlayerToastTimer = window.setTimeout(() => {
+    feedbackTimer = window.setTimeout(() => {
       toast.classList.remove('is-visible');
-      window.setTimeout(() => {
+      feedbackHideTimer = window.setTimeout(() => {
         toast.hidden = true;
-        if (addedPlayerToastQueue.length) displayNextAddedPlayerToast();
-        else addedPlayerToastActive = false;
-      }, 390);
-    }, 2900);
+        feedbackHideTimer = null;
+      }, 260);
+    }, 4200);
   }
 
   function duplicatePlayer(name) {
@@ -239,7 +190,6 @@
       if (!response.ok) throw new Error('Registered Player Cloud is unavailable.');
       const [data, appStateData] = await Promise.all([response.json(), appStateRequest]);
       cloudPlayers = Array.isArray(data.records?.players) ? data.records.players : [];
-      primeQueueWatcher(appStateData?.state);
       updateAppPlayers(appStateData?.state);
       serviceReady = true;
       setConnection(true, 'Connected');
@@ -269,7 +219,6 @@
       cloudEvents.addEventListener('app-state', event => {
         try {
           const payload = JSON.parse(event.data);
-          observeQueueState(payload.state);
           updateAppPlayers(payload.state);
           updateSubmitButton();
         } catch (_) {}
@@ -299,23 +248,12 @@
     updateSubmitButton();
   }
 
-  function showResult(title, detail, error = false) {
-    const result = $('registrationPageResult');
-    if (!result) return;
-    result.classList.toggle('is-error', error);
-    result.innerHTML = `<strong></strong><span></span>`;
-    result.querySelector('strong').textContent = title;
-    result.querySelector('span').textContent = detail;
-    result.hidden = false;
-  }
-
   async function submitRegistration() {
     if (submitting) return;
     const {fullname, duplicate, complete} = updateSubmitButton();
-    const result = $('registrationPageResult');
-    if (result) result.hidden = true;
+    hideFeedback();
     if (duplicate) {
-      showResult('This user is already registered', `${duplicate.name} is already saved in Registered Player Cloud. No duplicate profile was created.`, true);
+      showFeedback('This user is already registered', `${duplicate.name} is already saved in Registered Player Cloud. No duplicate profile was created.`, true);
       return;
     }
     if (!fullname) { showRegistrationError('Please enter the player’s full name.'); $('registerFullname').focus(); return; }
@@ -347,24 +285,26 @@
         const player = data.player || {name: fullname};
         if (!duplicatePlayer(player.name)) cloudPlayers.push(player);
         updateDuplicateMessage();
-        showResult('This user is already registered', `${player.name} is already saved in Registered Player Cloud. No duplicate profile was created.`, true);
+        showFeedback('This user is already registered', `${player.name} is already saved in Registered Player Cloud. No duplicate profile was created.`, true);
         return;
       }
       if (!response.ok || !data.ok) throw new Error(data.error || 'Unable to register this player. Please try again.');
 
-      cloudPlayers.push(data.player);
-      if (data.queued) notifyPlayerAdded(data.player.name);
+      if (!cloudPlayers.some(player => normalizedName(player && player.name) === normalizedName(data.player.name))) {
+        cloudPlayers.push(data.player);
+      }
+      showFeedback('Registered Player', `${data.player.name} was Registered.`);
       resetForm();
       $('registerFullname').focus();
     } catch (error) {
       if (error instanceof TypeError) {
-        showResult('Registration not completed', 'The server did not confirm the save. Please retry before closing this page.', true);
+        showFeedback('Registration not completed', 'The server did not confirm the save. Please retry before closing this page.', true);
       } else {
-        showResult('Registration not completed', error.message || 'Please try again.', true);
+        showFeedback('Registration not completed', error.message || 'Please try again.', true);
       }
     } finally {
       submitting = false;
-      if (button) button.textContent = 'Register & Add to Queue';
+      if (button) button.textContent = 'Save to Registered Player Cloud';
       updateSubmitButton();
     }
   }
@@ -378,8 +318,7 @@
         input.value = formatName(input.value);
         try { input.setSelectionRange(start, end); } catch (_) {}
         updateSubmitButton();
-        const result = $('registrationPageResult');
-        if (result && !result.hidden) result.hidden = true;
+        hideFeedback();
       });
     });
     document.querySelectorAll('.registration-enye-btn').forEach(button => {
@@ -407,8 +346,7 @@
     input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     try { input.setSelectionRange(Math.min(start, input.value.length), Math.min(end, input.value.length)); } catch (_) {}
     updateSubmitButton();
-    const result = $('registrationPageResult');
-    if (result && !result.hidden) result.hidden = true;
+    hideFeedback();
   });
   $('registerSelfRating').addEventListener('input', () => {
     const input = $('registerSelfRating');
@@ -417,8 +355,7 @@
     input.value = input.value.replace(/[^0-9./]/g, '').slice(0, 20);
     try { input.setSelectionRange(Math.min(start, input.value.length), Math.min(end, input.value.length)); } catch (_) {}
     updateSubmitButton();
-    const result = $('registrationPageResult');
-    if (result && !result.hidden) result.hidden = true;
+    hideFeedback();
   });
   bindNameHelpers();
   syncRegistrationEyebrowTheme();
