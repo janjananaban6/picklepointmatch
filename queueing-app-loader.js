@@ -88,7 +88,7 @@
     }
 
     const app = document.createElement('script');
-    app.src = 'script.js?v=cloud-only-registration-fix-20261027-2&qr-logo-assignment=20261024-2&organizer-title-badge=20261024-1&event-rules-enabled-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&court-player-inline-meta-20261026-1&court-dupr-editor-touch-size-20261026-1&dupr-label-toggle-20261026-1&dupr-csv-export=20261026-3&dupr-location=20261026-1&queue-dupr-toggle-header=20261026-2&queue-dupr-text-only=20261026-1';
+    app.src = 'script.js?v=cloud-only-registration-fix-20261027-2&qr-logo-assignment=20261024-2&organizer-title-badge=20261024-1&event-rules-enabled-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&court-player-inline-meta-20261026-1&court-dupr-editor-touch-size-20261026-1&dupr-label-toggle-20261026-1&dupr-csv-export=20261027-1&dupr-location=20261026-1&queue-dupr-toggle-header=20261026-2&queue-dupr-text-only=20261026-1';
     app.onerror = () => console.error('Pickle Point Match could not load script.js.');
     document.body.appendChild(app);
   }

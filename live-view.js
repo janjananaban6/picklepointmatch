@@ -466,22 +466,24 @@
     setTextIfChanged(sessionMatchType, String(s?.eventRules?.type || 'Doubles'));
     const sessionPlayerCount = $('sessionPlayerCount');
     if (sessionPlayerCount) {
-      const reportedPlayerCount = Number(s?.playerCount);
-      const fallbackPlayerIds = new Set();
-      (Array.isArray(s?.queue) ? s.queue : []).forEach(player => {
-        const key = player?.id != null ? String(player.id) : String(player?.name || '');
-        if (key) fallbackPlayerIds.add(key);
-      });
+      // Count only players who are currently queued or assigned to a regular /
+      // waiting court. The server's playerCount is the full roster and includes
+      // players who have left, so it must not be used for this Live View label.
+      const sessionPlayerIds = new Set();
+      const addSessionPlayer = player => {
+        if (!player) return;
+        const key = player?.id != null ? String(player.id).trim() : String(player?.name || '').trim();
+        if (key) sessionPlayerIds.add(key);
+      };
+      (Array.isArray(s?.queue) ? s.queue : []).forEach(addSessionPlayer);
+      // s.courts includes both courts in play / ready and waiting-only courts.
       (Array.isArray(s?.courts) ? s.courts : []).forEach(court => {
-        (Array.isArray(court?.players) ? court.players : [...(court?.team1 || []), ...(court?.team2 || [])]).forEach(player => {
-          if (!player) return;
-          const key = player?.id != null ? String(player.id) : String(player?.name || '');
-          if (key) fallbackPlayerIds.add(key);
-        });
+        const courtPlayers = Array.isArray(court?.players)
+          ? court.players
+          : [...(Array.isArray(court?.team1) ? court.team1 : []), ...(Array.isArray(court?.team2) ? court.team2 : [])];
+        courtPlayers.forEach(addSessionPlayer);
       });
-      const playerCount = Number.isFinite(reportedPlayerCount) && reportedPlayerCount >= 0
-        ? reportedPlayerCount
-        : fallbackPlayerIds.size;
+      const playerCount = sessionPlayerIds.size;
       setTextIfChanged(sessionPlayerCount, `${playerCount} player${playerCount === 1 ? '' : 's'}`);
     }
     $('inactiveNotice').hidden = active;

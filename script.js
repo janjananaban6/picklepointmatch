@@ -3685,7 +3685,10 @@ function showDuprCsvPreExportValidation(){
   return true;
 }
 function isCurrentSessionDupr(){
-  return !!state.duprMatch || isDuprMarkedSessionName(state.sessionName);
+  const sessionName=String(state.sessionName||'').trim();
+  // The explicit NON DUPR label must win over a stale saved DUPR flag.
+  if(/^\(NON\s+DUPR\s+MATCH\)/i.test(sessionName))return false;
+  return !!state.duprMatch || isDuprMarkedSessionName(sessionName);
 }
 function syncDuprCsvDownloadButtons(){
   if(!IS_QUEUEING_PAGE)return;
