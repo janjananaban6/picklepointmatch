@@ -1158,8 +1158,23 @@ async function handle(req, res) {
 
       const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
       const currentPlayers = Array.isArray(currentRecords.players) ? currentRecords.players : [];
+      const duplicateDupr = currentPlayers.find(p => {
+        const registeredId = String(p?.duprId ?? p?.duprID ?? p?.dupr_id ?? '')
+          .trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
+        return registeredId === duprId;
+      });
+      if (duplicateDupr) {
+        const registeredId = String(duplicateDupr.duprId ?? duplicateDupr.duprID ?? duplicateDupr.dupr_id ?? duprId).trim().toUpperCase();
+        return sendJson(res, 409, {
+          ok:false,
+          duplicate:true,
+          duplicateType:'duprId',
+          error:`This DUPR ID: ${duprId} is already registered under the name: ${duplicateDupr.name}.`,
+          player:{name:duplicateDupr.name,duprId:registeredId}
+        });
+      }
       const duplicate = currentPlayers.find(p => normalizePlayerName(p?.name) === normalizePlayerName(name));
-      if (duplicate) return sendJson(res, 409, {ok:false,duplicate:true,error:'This user is already registered in Registered Player Cloud',player:{name:duplicate.name}});
+      if (duplicate) return sendJson(res, 409, {ok:false,duplicate:true,duplicateType:'name',error:'This user is already registered in Registered Player Cloud',player:{name:duplicate.name}});
 
       const records = JSON.parse(JSON.stringify(currentRecords));
       records.players = Array.isArray(records.players) ? records.players : [];

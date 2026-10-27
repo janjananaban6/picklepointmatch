@@ -149,14 +149,41 @@
     return duplicate;
   }
 
+  function duplicateDuprPlayer(duprId) {
+    const normalizedId = String(duprId || '').trim().toUpperCase();
+    if (!normalizedId) return null;
+    return cloudPlayers.find(player => {
+      const registeredId = String(player?.duprId ?? player?.duprID ?? player?.dupr_id ?? '')
+        .trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
+      return registeredId === normalizedId;
+    }) || null;
+  }
+
+  function updateDuprDuplicateMessage() {
+    const input = $('registerDuprId');
+    const message = $('registrationDuprDuplicateMessage');
+    if (!input || !message) return null;
+    const duprId = input.value.trim().toUpperCase();
+    const duplicate = duplicateDuprPlayer(duprId);
+    if (duplicate) {
+      message.textContent = `This DUPR ID: ${duprId} is already registered under the name: ${duplicate.name}.`;
+      message.hidden = false;
+    } else {
+      message.textContent = '';
+      message.hidden = true;
+    }
+    return duplicate;
+  }
+
   function updateSubmitButton() {
     const fullname = String($('registerFullname')?.value || '').trim();
     const duplicate = updateDuplicateMessage();
     const duprId = String($('registerDuprId')?.value || '').trim();
+    const duplicateDupr = updateDuprDuplicateMessage();
     const complete = fullname.length > 0 && /^[A-Z0-9]{6}$/.test(duprId.toUpperCase()) && !!selectedGender && SKILLS.has(selectedSkill);
     const button = $('registerSaveBtn');
-    if (button) button.disabled = !(serviceReady && complete && !duplicate && !submitting);
-    return {fullname, duplicate, complete};
+    if (button) button.disabled = !(serviceReady && complete && !duplicate && !duplicateDupr && !submitting);
+    return {fullname, duplicate, duplicateDupr, complete};
   }
 
   function selectGender(gender) {
@@ -250,8 +277,13 @@
 
   async function submitRegistration() {
     if (submitting) return;
-    const {fullname, duplicate, complete} = updateSubmitButton();
+    const {fullname, duplicate, duplicateDupr, complete} = updateSubmitButton();
     hideFeedback();
+    if (duplicateDupr) {
+      const duprId = String($('registerDuprId')?.value || '').trim().toUpperCase();
+      showFeedback('DUPR ID already registered', `This DUPR ID: ${duprId} is already registered under the name: ${duplicateDupr.name}.`, true);
+      return;
+    }
     if (duplicate) {
       showFeedback('This user is already registered', `${duplicate.name} is already saved in Registered Player Cloud. No duplicate profile was created.`, true);
       return;
@@ -283,9 +315,15 @@
       const data = await response.json().catch(() => ({}));
       if (response.status === 409 && data.duplicate) {
         const player = data.player || {name: fullname};
-        if (!duplicatePlayer(player.name)) cloudPlayers.push(player);
-        updateDuplicateMessage();
-        showFeedback('This user is already registered', `${player.name} is already saved in Registered Player Cloud. No duplicate profile was created.`, true);
+        if (data.duplicateType === 'duprId') {
+          if (!duplicateDuprPlayer(player.duprId || duprId)) cloudPlayers.push({...player, duprId:player.duprId || duprId});
+          updateSubmitButton();
+          showFeedback('DUPR ID already registered', `This DUPR ID: ${duprId} is already registered under the name: ${player.name}.`, true);
+        } else {
+          if (!duplicatePlayer(player.name)) cloudPlayers.push(player);
+          updateDuplicateMessage();
+          showFeedback('This user is already registered', `${player.name} is already saved in Registered Player Cloud. No duplicate profile was created.`, true);
+        }
         return;
       }
       if (!response.ok || !data.ok) throw new Error(data.error || 'Unable to register this player. Please try again.');
