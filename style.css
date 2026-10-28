@@ -2054,7 +2054,7 @@ body{overflow-y:auto;}
   padding:10px 10px 8px!important;
 }
 #rankingView .ranking-heading,
-#historyView > h2{
+#historyView .history-heading-row{
   box-sizing:border-box;
   width:100%;
   min-height:24px;
@@ -2065,14 +2065,14 @@ body{overflow-y:auto;}
   line-height:1.2;
 }
 #rankingView .ranking-heading h2,
-#historyView > h2{
+#historyView .history-heading-row > h2{
   margin:0!important;
   padding:0!important;
   font-size:13px!important;
   font-weight:800!important;
   line-height:1.2;
 }
-#historyView > h2{
+#historyView .history-heading-row > h2{
   gap:5px;
 }
 #historyView .history-count{
@@ -2084,12 +2084,12 @@ body{overflow-y:auto;}
     padding:10px 10px 8px!important;
   }
   #rankingView .ranking-heading,
-  #historyView > h2{
+  #historyView .history-heading-row{
     margin:1px 0 7px!important;
     padding:0 1px!important;
   }
   #rankingView .ranking-heading h2,
-  #historyView > h2{
+  #historyView .history-heading-row > h2{
     font-size:13px!important;
   }
 }
@@ -2224,7 +2224,7 @@ body{overflow-y:auto;}
 
 /* V32 — exact first-card top-line alignment; do not change other layout */
 #rankingView .ranking-heading,
-#historyView > h2{
+#historyView .history-heading-row{
   height:24px!important;
   min-height:24px!important;
   margin-top:1px!important;
@@ -10180,7 +10180,7 @@ body.podium-modal-open{overflow:hidden;}
     flex-direction: column !important;
     overflow: hidden !important;
   }
-  #tabletResultsModal #historyView > h2 {
+  #tabletResultsModal #historyView .history-heading-row {
     flex: 0 0 auto !important;
   }
   #tabletResultsModal #historyView #historyTable {
@@ -10318,7 +10318,7 @@ body.podium-modal-open{overflow:hidden;}
   #tabletResultsModal #rankingView .ranking-heading,
   #tabletResultsModal #rankingView .leaderboard-heading,
   #tabletResultsModal #rankingView #podiumList,
-  #tabletResultsModal #historyView > h2 {
+  #tabletResultsModal #historyView .history-heading-row {
     flex: 0 0 auto !important;
   }
   #tabletResultsModal #rankingView #rankingTable,
@@ -10941,7 +10941,7 @@ body.podium-modal-open .topbar{
   min-height: 0 !important;
   overflow: hidden !important;
 }
-#historyView > h2 { flex: 0 0 auto !important; min-width: 0 !important; }
+#historyView .history-heading-row { flex: 0 0 auto !important; min-width: 0 !important; }
 #historyView #historyTable.history-list {
   flex: 1 1 auto !important; height: auto !important; min-height: 0 !important;
   max-height: none !important; width: 100% !important; min-width: 0 !important;
@@ -22470,7 +22470,6 @@ html body .court-dupr-inline-edit .court-dupr-rating-input {
   max-width: 96px !important;
 }
 
-/* DUPR bulk CSV export — scoped to Match History and End Session confirmation. */
 .history-heading-row {
   display:flex;
   align-items:center;
@@ -22482,149 +22481,6 @@ html body .court-dupr-inline-edit .court-dupr-rating-input {
 .history-heading-row > h2 {
   min-width:0;
   margin:0 !important;
-}
-.dupr-csv-download-btn {
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:5px;
-  min-height:30px;
-  padding:6px 10px;
-  border:1px solid #e5c36e;
-  border-radius:9px;
-  background:#fff8e8;
-  color:#805600;
-  font-size:10px;
-  font-weight:800;
-  line-height:1.2;
-  white-space:nowrap;
-  cursor:pointer;
-  transition:background .15s ease,border-color .15s ease,transform .15s ease;
-}
-.dupr-csv-download-btn:hover {
-  background:#fff0c9;
-  border-color:#d7ad46;
-}
-.dupr-csv-download-btn:active { transform:translateY(1px); }
-.dupr-csv-download-btn:focus-visible {
-  outline:2px solid #d5a52f;
-  outline-offset:2px;
-}
-button.dupr-csv-download-btn[hidden] { display:none !important; }
-.end-session-dupr-export-btn { font-size:11px; }
-@media(max-width:600px) {
-  .history-heading-row { align-items:flex-start; gap:6px; }
-  .history-heading-row > h2 { flex:1 1 130px; }
-  .history-heading-row .dupr-csv-download-btn { min-height:28px; padding:5px 7px; font-size:9px; }
-  .end-session-dupr-export-btn { white-space:normal; }
-}
-
-
-/* DUPR CSV export details modal */
-#duprCsvExportModal.dupr-csv-export-modal {
-  z-index: 1200;
-  padding: 16px;
-  background: rgba(10, 18, 32, .68);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
-}
-#duprCsvExportModal .dupr-csv-export-modal-box {
-  width: min(440px, calc(100vw - 32px));
-  max-width: calc(100vw - 32px);
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 22px;
-  border: 1px solid #f0dfb0;
-  border-radius: 16px;
-  box-shadow: 0 24px 70px rgba(4, 12, 26, .28);
-}
-.dupr-csv-export-kicker {
-  display:flex;
-  align-items:center;
-  gap:7px;
-  margin-bottom:7px;
-  color:#986a0a;
-  font-size:10px;
-  font-weight:900;
-  letter-spacing:.11em;
-}
-.dupr-csv-export-kicker span {
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:24px;
-  height:24px;
-  border-radius:8px;
-  background:#fff3cf;
-  font-size:16px;
-  letter-spacing:0;
-}
-#duprCsvExportTitle { margin:0 0 6px !important; color:#172235; font-size:19px !important; }
-#duprCsvExportDescription { margin:0 0 18px; font-size:12px; }
-.dupr-csv-export-form { display:grid; gap:13px; }
-.dupr-csv-export-field { display:grid; gap:6px; color:#2f3c4f; font-size:11px; font-weight:800; }
-.dupr-csv-export-field > span { display:flex; align-items:center; gap:4px; }
-.dupr-csv-export-field > span b { color:#c63b32; }
-.dupr-csv-export-field input,
-#duprCsvExportModal .dupr-csv-export-field input {
-  width:100%; min-width:0; min-height:42px; box-sizing:border-box;
-  padding:10px 12px; border:1px solid #d5dce5; border-radius:9px;
-  background:#fff; color:#172235; font-size:13px; font-weight:500;
-  outline:none; box-shadow:none; transition:border-color .15s,box-shadow .15s;
-}
-.dupr-csv-export-field input:focus {
-  border-color:#d7ad46; box-shadow:0 0 0 3px rgba(215,173,70,.18);
-}
-.dupr-csv-export-field input::placeholder { color:#98a2b0; }
-.dupr-csv-export-help { margin:0; color:#727e8d; font-size:10px; line-height:1.5; }
-.dupr-csv-export-help code { padding:2px 4px; border-radius:4px; background:#f1f4f7; color:#435169; }
-#duprCsvExportModal .dupr-csv-export-actions {
-  display: grid;
-  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
-  align-items: stretch;
-  width: 100%;
-  min-width: 0;
-  gap: 9px;
-  margin: 8px 0 0;
-  padding-top: 14px;
-  border-top: 1px solid #edf0f4;
-  box-sizing: border-box;
-}
-#duprCsvExportModal .dupr-csv-export-actions button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-width: 0;
-  min-height: 44px;
-  box-sizing: border-box;
-  padding: 10px 8px;
-  border-radius: 9px;
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.25;
-  text-align: center;
-  white-space: normal;
-}
-#duprCsvExportModal .dupr-csv-export-actions button:first-child {
-  border:1px solid #dbe1e8; background:#f3f5f8; color:#475569;
-}
-#duprCsvExportModal .dupr-csv-export-confirm-btn {
-  display:inline-flex; align-items:center; justify-content:center; gap:7px;
-  border:1px solid #d7ad46; background:#fff0c9; color:#805600;
-}
-#duprCsvExportModal .dupr-csv-export-confirm-btn:hover { background:#ffe7a8; }
-@media(max-width:600px) {
-  #duprCsvExportModal.dupr-csv-export-modal { padding:10px; }
-  #duprCsvExportModal .dupr-csv-export-modal-box {
-    width: calc(100vw - 20px);
-    max-width: calc(100vw - 20px);
-    padding: 17px;
-    border-radius: 13px;
-  }
-  #duprCsvExportTitle { font-size:17px !important; }
-  #duprCsvExportModal .dupr-csv-export-actions { gap:8px; padding-top:12px; }
-  #duprCsvExportModal .dupr-csv-export-actions button { min-height:44px; font-size:11.5px; }
 }
 
 
@@ -22647,4 +22503,1914 @@ html body[data-page="start"] #liveQueueStartScreen input#liveQueueDuprLocation.l
   font-weight: 500 !important;
   color: rgba(24, 56, 62, .52) !important;
   opacity: 1 !important;
+}
+
+
+/* Professional End Session confirmation modal — scoped to queueing.html only. */
+html body #endSessionModal.modal:not(.hidden) {
+  padding: 18px !important;
+  background: rgba(9, 24, 31, .64) !important;
+  -webkit-backdrop-filter: blur(7px) !important;
+  backdrop-filter: blur(7px) !important;
+}
+html body #endSessionModal.modal:not(.hidden) .end-session-modal-box {
+  position: relative !important;
+  width: min(540px, calc(100vw - 28px)) !important;
+  max-width: 540px !important;
+  max-height: calc(100dvh - 36px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  padding: 28px !important;
+  color: #18353b !important;
+  background: #fff !important;
+  border: 1px solid #dce8e9 !important;
+  border-radius: 20px !important;
+  box-shadow: 0 28px 80px rgba(3, 20, 25, .3), 0 4px 14px rgba(3, 20, 25, .08) !important;
+  animation: endSessionModalEnter .2s ease-out both;
+}
+html body #endSessionModal .end-session-modal-box::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 4px !important;
+  border-radius: 20px 20px 0 0 !important;
+  background: linear-gradient(90deg, #0f9f9a 0%, #55c7bd 58%, #b7e8dc 100%) !important;
+  pointer-events: none !important;
+}
+#endSessionModal .end-session-modal-kicker {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 0 10px !important;
+  color: #0a8782 !important;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  letter-spacing: .14em !important;
+  line-height: 1.3 !important;
+  text-transform: uppercase !important;
+}
+#endSessionModal .end-session-modal-kicker::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 7px !important;
+  height: 7px !important;
+  flex: 0 0 7px !important;
+  border-radius: 50% !important;
+  background: #12a39d !important;
+  box-shadow: 0 0 0 4px rgba(18, 163, 157, .11) !important;
+}
+html body #endSessionModal .end-session-modal-box h2 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  margin: 0 0 10px !important;
+  color: #17363c !important;
+  font-size: clamp(20px, 3.5vw, 23px) !important;
+  font-weight: 850 !important;
+  letter-spacing: -.045em !important;
+  line-height: 1.22 !important;
+}
+html body #endSessionModal .end-session-modal-box h2 .end-session-live-indicator {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  flex: 0 0 34px !important;
+  margin: 0 !important;
+  padding: 7px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #f3d7d9 !important;
+  border-radius: 11px !important;
+  background: #fff3f3 !important;
+  vertical-align: middle !important;
+}
+html body #endSessionModal .end-session-modal-box h2 .end-session-live-indicator img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+html body #endSessionModal .end-session-modal-box > .modal-note {
+  max-width: 440px !important;
+  margin: 0 !important;
+  color: #6b8084 !important;
+  font-size: 12px !important;
+  font-weight: 450 !important;
+  line-height: 1.65 !important;
+}
+html body #endSessionModal .end-session-confirm-summary-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin: 22px 0 0 !important;
+}
+html body #endSessionModal .end-session-summary-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  min-height: 94px !important;
+  padding: 15px 9px 13px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #e1ecec !important;
+  border-radius: 13px !important;
+  background: linear-gradient(180deg, #fbfefe 0%, #f5fafa 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9) !important;
+}
+html body #endSessionModal .end-session-summary-card strong {
+  display: block !important;
+  color: #0c817d !important;
+  font-size: 27px !important;
+  font-weight: 850 !important;
+  letter-spacing: -.04em !important;
+  line-height: 1 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+html body #endSessionModal .end-session-summary-card span {
+  display: block !important;
+  width: 100% !important;
+  margin: 9px 0 0 !important;
+  color: #6c8084 !important;
+  font-size: 9px !important;
+  font-weight: 750 !important;
+  letter-spacing: .045em !important;
+  line-height: 1.35 !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  gap: 9px !important;
+  width: 100% !important;
+  margin: 22px 0 0 !important;
+  padding: 16px 0 0 !important;
+  border-top: 1px solid #e6eeee !important;
+  background: transparent !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button {
+  display: inline-flex !important;
+  flex: 1 1 0 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  min-height: 44px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 10px 9px !important;
+  box-sizing: border-box !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  text-align: center !important;
+  white-space: normal !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease !important;
+}
+/* The action-row display rule above must never override the native hidden state. */
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionDuprCsvBtn[hidden] {
+  display: none !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionCancel {
+  color: #415b60 !important;
+  background: #f7fafa !important;
+  border-color: #d9e5e6 !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionCancel:hover {
+  color: #203f45 !important;
+  background: #eff6f6 !important;
+  border-color: #c7d9da !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionDuprCsvBtn {
+  color: #76520b !important;
+  background: #fff8e8 !important;
+  border-color: #ead39b !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionDuprCsvBtn:hover {
+  color: #634303 !important;
+  background: #fff0c9 !important;
+  border-color: #d9bc70 !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionConfirm {
+  color: #fff !important;
+  background: #bd414b !important;
+  border-color: #bd414b !important;
+  box-shadow: 0 3px 8px rgba(189, 65, 75, .16) !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionConfirm:hover {
+  color: #fff !important;
+  background: #a9323d !important;
+  border-color: #a9323d !important;
+  box-shadow: 0 4px 10px rgba(169, 50, 61, .2) !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button:focus-visible {
+  outline: 3px solid rgba(15, 159, 154, .28) !important;
+  outline-offset: 2px !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button:active {
+  transform: translateY(1px) !important;
+}
+@keyframes endSessionModalEnter {
+  from { opacity: 0; transform: translateY(8px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (max-width: 560px) {
+  html body #endSessionModal.modal:not(.hidden) .end-session-modal-box {
+    width: calc(100vw - 24px) !important;
+    max-width: 500px !important;
+    padding: 23px 18px 18px !important;
+    border-radius: 16px !important;
+  }
+  html body #endSessionModal .end-session-modal-box h2 {
+    gap: 9px !important;
+    font-size: 20px !important;
+  }
+  html body #endSessionModal .end-session-modal-box h2 .end-session-live-indicator {
+    width: 31px !important;
+    height: 31px !important;
+    flex-basis: 31px !important;
+  }
+  html body #endSessionModal .end-session-confirm-summary-grid {
+    gap: 7px !important;
+    margin-top: 18px !important;
+  }
+  html body #endSessionModal .end-session-summary-card {
+    min-height: 82px !important;
+    padding: 12px 5px 10px !important;
+    border-radius: 11px !important;
+  }
+  html body #endSessionModal .end-session-summary-card strong {
+    font-size: 24px !important;
+  }
+  html body #endSessionModal .end-session-summary-card span {
+    margin-top: 7px !important;
+    font-size: 8px !important;
+    letter-spacing: .02em !important;
+  }
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 8px !important;
+    margin-top: 18px !important;
+    padding-top: 13px !important;
+  }
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionCancel {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionConfirm {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionDuprCsvBtn:not([hidden]) {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+  }
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button {
+    width: 100% !important;
+    min-height: 43px !important;
+    padding: 9px 7px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body #endSessionModal .end-session-modal-box,
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+
+/* Event-details inspired End Session modal: preserve the reference's deep navy surface. */
+html body #endSessionModal.modal:not(.hidden) {
+  padding: 18px !important;
+  background: rgba(4, 5, 14, .48) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  backdrop-filter: blur(6px) !important;
+}
+html body #endSessionModal.modal:not(.hidden) > .modal-box.end-session-modal-box {
+  position: relative !important;
+  display: block !important;
+  width: min(620px, calc(100vw - 30px)) !important;
+  max-width: 620px !important;
+  max-height: calc(100dvh - 36px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  padding: 31px 32px 29px !important;
+  color: #f6f6fb !important;
+  background: #10101f !important;
+  border: 1px solid rgba(161, 163, 193, .10) !important;
+  border-radius: 30px !important;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .42) !important;
+  animation: endSessionModalEnter .2s ease-out both;
+}
+html body #endSessionModal .end-session-modal-box::before { display: none !important; }
+html body #endSessionModal .end-session-event-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  width: 100% !important;
+  margin: 0 0 23px !important;
+}
+html body #endSessionModal .end-session-event-header h2 {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  color: #f7f7fb !important;
+  font-size: clamp(20px, 3vw, 25px) !important;
+  line-height: 1.2 !important;
+  font-weight: 760 !important;
+  letter-spacing: -.045em !important;
+}
+html body #endSessionModal .end-session-header-csv-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  gap: 7px !important;
+  min-height: 39px !important;
+  max-width: 180px !important;
+  padding: 9px 12px !important;
+  border: 1px solid rgba(150, 124, 255, .42) !important;
+  border-radius: 12px !important;
+  background: rgba(121, 83, 255, .13) !important;
+  color: #d6caff !important;
+  font: inherit !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  font-weight: 780 !important;
+  white-space: nowrap !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition: background .16s ease, border-color .16s ease, transform .16s ease !important;
+}
+html body #endSessionModal .end-session-header-csv-btn:hover {
+  background: rgba(121, 83, 255, .24) !important;
+  border-color: rgba(174, 155, 255, .7) !important;
+}
+html body #endSessionModal .end-session-header-csv-btn:active { transform: translateY(1px) !important; }
+html body #endSessionModal .end-session-header-csv-btn[hidden] { display: none !important; }
+html body #endSessionModal .end-session-header-csv-btn > span { font-size: 17px !important; line-height: .8 !important; }
+html body #endSessionModal .end-session-intro {
+  margin: 0 !important;
+  padding: 15px 0 14px 18px !important;
+  border-left: 5px solid #e9478e !important;
+}
+html body #endSessionModal .end-session-intro h3 {
+  margin: 0 0 9px !important;
+  color: #f8f8fc !important;
+  font-size: clamp(23px, 3.5vw, 28px) !important;
+  line-height: 1.18 !important;
+  font-weight: 730 !important;
+  letter-spacing: -.05em !important;
+}
+html body #endSessionModal .end-session-intro p {
+  max-width: 485px !important;
+  margin: 0 !important;
+  color: #b9bbcd !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  font-weight: 430 !important;
+}
+html body #endSessionModal .end-session-details-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 11px !important;
+  margin: 22px 0 0 !important;
+}
+html body #endSessionModal .end-session-detail-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  min-width: 0 !important;
+}
+html body #endSessionModal .end-session-detail-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 54px !important;
+  width: 54px !important;
+  height: 54px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #303146 !important;
+  border-radius: 18px !important;
+  background: #1b1c2c !important;
+  color: #c4c5d8 !important;
+}
+html body #endSessionModal .end-session-detail-icon svg {
+  display: block !important;
+  width: 23px !important;
+  height: 23px !important;
+  stroke: currentColor !important;
+  stroke-width: 1.65 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+html body #endSessionModal .end-session-detail-field {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #bfc0d1 !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+  font-weight: 500 !important;
+}
+html body #endSessionModal .end-session-detail-field > span {
+  display: block !important;
+  color: #bfc0d1 !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+  font-weight: 530 !important;
+}
+html body #endSessionModal .end-session-detail-field input {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 30px !important;
+  margin: 0 !important;
+  padding: 4px 7px !important;
+  box-sizing: border-box !important;
+  border: 1px solid transparent !important;
+  border-radius: 7px !important;
+  outline: none !important;
+  background: transparent !important;
+  color: #fafaff !important;
+  font: inherit !important;
+  font-size: 16px !important;
+  line-height: 1.35 !important;
+  font-weight: 560 !important;
+  letter-spacing: -.02em !important;
+  box-shadow: none !important;
+  transition: background .15s ease, border-color .15s ease !important;
+}
+html body #endSessionModal .end-session-detail-field input::placeholder { color: #73758c !important; opacity: 1 !important; }
+html body #endSessionModal .end-session-detail-field input:hover { border-color: #34354d !important; background: rgba(255, 255, 255, .025) !important; }
+html body #endSessionModal .end-session-detail-field input:focus {
+  border-color: rgba(143, 117, 255, .75) !important;
+  background: rgba(255, 255, 255, .045) !important;
+  box-shadow: 0 0 0 3px rgba(121, 83, 255, .12) !important;
+}
+html body #endSessionModal .end-session-detail-field input[type="date"] {
+  color-scheme: dark !important;
+  max-width: 100% !important;
+}
+html body #endSessionModal .end-session-attendees { margin: 25px 0 0 !important; }
+html body #endSessionModal .end-session-attendees-title {
+  margin: 0 !important;
+  color: #aeb0c4 !important;
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+  font-weight: 760 !important;
+  letter-spacing: .15em !important;
+}
+html body #endSessionModal .end-session-attendees-row {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 20px !important;
+  margin: 18px 0 0 !important;
+  min-width: 0 !important;
+}
+html body #endSessionModal .end-session-avatar-stack {
+  display: inline-flex !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  min-height: 48px !important;
+  padding-left: 2px !important;
+}
+html body #endSessionModal .end-session-avatar {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 48px !important;
+  width: 48px !important;
+  height: 48px !important;
+  box-sizing: border-box !important;
+  margin-left: -8px !important;
+  border: 3px solid #10101f !important;
+  border-radius: 50% !important;
+  background: #e84b83 !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: -.02em !important;
+  box-shadow: none !important;
+}
+html body #endSessionModal .end-session-avatar:first-child { margin-left: 0 !important; }
+html body #endSessionModal .end-session-avatar:nth-child(2) { background: #1dbb8d !important; }
+html body #endSessionModal .end-session-avatar:nth-child(3) { background: #d99722 !important; }
+html body #endSessionModal .end-session-avatar.end-session-avatar-overflow {
+  background: #242537 !important;
+  color: #b9bbcd !important;
+  font-size: 14px !important;
+  font-weight: 730 !important;
+}
+html body #endSessionModal .end-session-attendees-meta {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  color: #bfc0d2 !important;
+  font-size: 15px !important;
+  line-height: 1.45 !important;
+  font-weight: 480 !important;
+  letter-spacing: -.02em !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions {
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  gap: 12px !important;
+  width: 100% !important;
+  margin: 26px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  min-height: 59px !important;
+  margin: 0 !important;
+  padding: 13px 18px !important;
+  box-sizing: border-box !important;
+  border: 1px solid transparent !important;
+  border-radius: 30px !important;
+  font-family: inherit !important;
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  font-weight: 760 !important;
+  letter-spacing: -.02em !important;
+  text-align: center !important;
+  white-space: normal !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: pointer !important;
+  transition: background .16s ease, border-color .16s ease, transform .16s ease !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionCancel {
+  flex: .82 1 0 !important;
+  color: #f0f0f7 !important;
+  background: #1d1e2e !important;
+  border-color: #35364a !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionCancel:hover {
+  background: #27283a !important;
+  border-color: #4a4b63 !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionConfirm {
+  flex: 1.5 1 0 !important;
+  color: #fff !important;
+  background: #7954ff !important;
+  border-color: #7954ff !important;
+  box-shadow: 0 8px 20px rgba(121, 84, 255, .19) !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > #endSessionConfirm:hover {
+  background: #6843f0 !important;
+  border-color: #6843f0 !important;
+  box-shadow: 0 10px 24px rgba(121, 84, 255, .26) !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button:focus-visible,
+html body #endSessionModal .end-session-header-csv-btn:focus-visible {
+  outline: 3px solid rgba(159, 139, 255, .62) !important;
+  outline-offset: 3px !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button:active { transform: translateY(1px) !important; }
+@media (max-width: 560px) {
+  html body #endSessionModal.modal:not(.hidden) > .modal-box.end-session-modal-box {
+    width: calc(100vw - 22px) !important;
+    max-width: 500px !important;
+    padding: 24px 18px 19px !important;
+    border-radius: 23px !important;
+  }
+  html body #endSessionModal .end-session-event-header { gap: 8px !important; margin-bottom: 19px !important; }
+  html body #endSessionModal .end-session-event-header h2 { font-size: 20px !important; }
+  html body #endSessionModal .end-session-header-csv-btn { min-height: 36px !important; padding: 8px 9px !important; font-size: 10px !important; }
+  html body #endSessionModal .end-session-intro { padding-left: 13px !important; }
+  html body #endSessionModal .end-session-intro h3 { font-size: 23px !important; }
+  html body #endSessionModal .end-session-intro p { font-size: 12px !important; }
+  html body #endSessionModal .end-session-details-list { gap: 9px !important; margin-top: 17px !important; }
+  html body #endSessionModal .end-session-detail-row { gap: 10px !important; }
+  html body #endSessionModal .end-session-detail-icon { flex-basis: 44px !important; width: 44px !important; height: 44px !important; border-radius: 14px !important; }
+  html body #endSessionModal .end-session-detail-icon svg { width: 20px !important; height: 20px !important; }
+  html body #endSessionModal .end-session-detail-field input { font-size: 14px !important; min-height: 27px !important; }
+  html body #endSessionModal .end-session-attendees { margin-top: 20px !important; }
+  html body #endSessionModal .end-session-attendees-row { gap: 12px !important; margin-top: 13px !important; }
+  html body #endSessionModal .end-session-avatar-stack { min-height: 39px !important; }
+  html body #endSessionModal .end-session-avatar { flex-basis: 39px !important; width: 39px !important; height: 39px !important; font-size: 11px !important; margin-left: -7px !important; }
+  html body #endSessionModal .end-session-attendees-meta { font-size: 12px !important; }
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions { gap: 9px !important; margin-top: 22px !important; }
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button { min-height: 49px !important; padding: 10px 8px !important; font-size: 13px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body #endSessionModal .end-session-modal-box,
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button,
+  html body #endSessionModal .end-session-header-csv-btn { animation: none !important; transition: none !important; }
+}
+
+/* Compact End Session modal sizing — keep the dark reference design, tune for every viewport. */
+html body #endSessionModal.modal:not(.hidden) {
+  padding: 12px !important;
+}
+html body #endSessionModal.modal:not(.hidden) > .modal-box.end-session-modal-box {
+  width: min(480px, calc(100vw - 24px)) !important;
+  max-width: 480px !important;
+  max-height: calc(100dvh - 24px) !important;
+  padding: 20px 21px 19px !important;
+  border-radius: 23px !important;
+}
+html body #endSessionModal .end-session-event-header {
+  gap: 9px !important;
+  margin-bottom: 15px !important;
+}
+html body #endSessionModal .end-session-event-header h2 {
+  font-size: 19px !important;
+  line-height: 1.2 !important;
+}
+html body #endSessionModal .end-session-header-csv-btn {
+  gap: 5px !important;
+  min-height: 32px !important;
+  max-width: 145px !important;
+  padding: 6px 8px !important;
+  border-radius: 9px !important;
+  font-size: 10px !important;
+}
+html body #endSessionModal .end-session-header-csv-btn > span {
+  font-size: 14px !important;
+}
+html body #endSessionModal .end-session-intro {
+  padding: 10px 0 10px 12px !important;
+  border-left-width: 4px !important;
+}
+html body #endSessionModal .end-session-intro h3 {
+  margin-bottom: 6px !important;
+  font-size: clamp(19px, 4.8vw, 22px) !important;
+  line-height: 1.2 !important;
+}
+html body #endSessionModal .end-session-intro p {
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+}
+html body #endSessionModal .end-session-details-list {
+  gap: 7px !important;
+  margin-top: 14px !important;
+}
+html body #endSessionModal .end-session-detail-row {
+  gap: 10px !important;
+}
+html body #endSessionModal .end-session-detail-icon {
+  flex-basis: 38px !important;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 12px !important;
+}
+html body #endSessionModal .end-session-detail-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+html body #endSessionModal .end-session-detail-field,
+html body #endSessionModal .end-session-detail-field > span {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
+html body #endSessionModal .end-session-detail-field {
+  gap: 2px !important;
+}
+html body #endSessionModal .end-session-detail-field input {
+  min-height: 24px !important;
+  padding: 3px 5px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
+html body #endSessionModal .end-session-attendees {
+  margin-top: 17px !important;
+}
+html body #endSessionModal .end-session-attendees-title {
+  font-size: 10px !important;
+  letter-spacing: .13em !important;
+}
+html body #endSessionModal .end-session-attendees-row {
+  gap: 12px !important;
+  margin-top: 10px !important;
+}
+html body #endSessionModal .end-session-avatar-stack {
+  min-height: 36px !important;
+}
+html body #endSessionModal .end-session-avatar {
+  flex-basis: 36px !important;
+  width: 36px !important;
+  height: 36px !important;
+  margin-left: -7px !important;
+  border-width: 2px !important;
+  font-size: 11px !important;
+}
+html body #endSessionModal .end-session-avatar.end-session-avatar-overflow {
+  font-size: 11px !important;
+}
+html body #endSessionModal .end-session-attendees-meta {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions {
+  gap: 9px !important;
+  margin-top: 18px !important;
+}
+html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button {
+  min-height: 43px !important;
+  padding: 9px 12px !important;
+  border-radius: 24px !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+}
+/* Smaller phones: preserve comfortable touch targets while reducing bulk. */
+@media (max-width: 560px) {
+  html body #endSessionModal.modal:not(.hidden) {
+    padding: 10px !important;
+  }
+  html body #endSessionModal.modal:not(.hidden) > .modal-box.end-session-modal-box {
+    width: calc(100vw - 20px) !important;
+    max-width: 440px !important;
+    max-height: calc(100dvh - 20px) !important;
+    padding: 17px 14px 15px !important;
+    border-radius: 20px !important;
+  }
+  html body #endSessionModal .end-session-event-header {
+    gap: 7px !important;
+    margin-bottom: 13px !important;
+  }
+  html body #endSessionModal .end-session-event-header h2 {
+    font-size: 17px !important;
+  }
+  html body #endSessionModal .end-session-header-csv-btn {
+    min-height: 30px !important;
+    max-width: 132px !important;
+    padding: 5px 7px !important;
+    font-size: 9px !important;
+  }
+  html body #endSessionModal .end-session-intro {
+    padding: 8px 0 8px 10px !important;
+  }
+  html body #endSessionModal .end-session-intro h3 {
+    margin-bottom: 5px !important;
+    font-size: 19px !important;
+  }
+  html body #endSessionModal .end-session-intro p {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+  html body #endSessionModal .end-session-details-list {
+    gap: 6px !important;
+    margin-top: 12px !important;
+  }
+  html body #endSessionModal .end-session-detail-row {
+    gap: 8px !important;
+  }
+  html body #endSessionModal .end-session-detail-icon {
+    flex-basis: 34px !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 10px !important;
+  }
+  html body #endSessionModal .end-session-detail-icon svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  html body #endSessionModal .end-session-detail-field,
+  html body #endSessionModal .end-session-detail-field > span {
+    font-size: 10px !important;
+  }
+  html body #endSessionModal .end-session-detail-field input {
+    min-height: 23px !important;
+    font-size: 12px !important;
+  }
+  html body #endSessionModal .end-session-attendees {
+    margin-top: 14px !important;
+  }
+  html body #endSessionModal .end-session-attendees-row {
+    gap: 9px !important;
+    margin-top: 8px !important;
+  }
+  html body #endSessionModal .end-session-avatar-stack {
+    min-height: 32px !important;
+  }
+  html body #endSessionModal .end-session-avatar {
+    flex-basis: 32px !important;
+    width: 32px !important;
+    height: 32px !important;
+    margin-left: -6px !important;
+    font-size: 10px !important;
+  }
+  html body #endSessionModal .end-session-attendees-meta {
+    font-size: 11px !important;
+  }
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions {
+    gap: 8px !important;
+    margin-top: 15px !important;
+  }
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button {
+    min-height: 40px !important;
+    padding: 8px 7px !important;
+    font-size: 12px !important;
+  }
+}
+@media (max-width: 360px) {
+  html body #endSessionModal.modal:not(.hidden) > .modal-box.end-session-modal-box {
+    padding: 14px 11px 13px !important;
+  }
+  html body #endSessionModal .end-session-event-header h2 {
+    font-size: 16px !important;
+  }
+  html body #endSessionModal .end-session-header-csv-btn {
+    gap: 3px !important;
+    padding: 5px !important;
+    font-size: 8px !important;
+  }
+  html body #endSessionModal .end-session-attendees-row {
+    gap: 7px !important;
+  }
+  html body #endSessionModal .end-session-attendees-meta {
+    font-size: 10px !important;
+  }
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions > button {
+    font-size: 11px !important;
+  }
+}
+@media (max-height: 650px) {
+  html body #endSessionModal.modal:not(.hidden) {
+    align-items: flex-start !important;
+  }
+  html body #endSessionModal.modal:not(.hidden) > .modal-box.end-session-modal-box {
+    max-height: calc(100dvh - 16px) !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 14px !important;
+    padding-bottom: 13px !important;
+  }
+  html body #endSessionModal .end-session-event-header { margin-bottom: 10px !important; }
+  html body #endSessionModal .end-session-details-list { margin-top: 10px !important; }
+  html body #endSessionModal .end-session-attendees { margin-top: 11px !important; }
+  html body #endSessionModal .end-session-modal-box > .end-session-modal-actions { margin-top: 12px !important; }
+}
+
+
+/* Extra-narrow End Session modal width — sizing only; keep all existing behavior unchanged. */
+html body #endSessionModal.modal:not(.hidden) > .modal-box.end-session-modal-box {
+  width: min(400px, calc(100vw - 24px)) !important;
+  max-width: 400px !important;
+}
+@media (max-width: 560px) {
+  html body #endSessionModal.modal:not(.hidden) > .modal-box.end-session-modal-box {
+    width: calc(100vw - 28px) !important;
+    max-width: 400px !important;
+  }
+}
+
+
+/* End Session attendee drawer: searchable roster opened from the +N avatar. */
+html body #endSessionModal .end-session-avatar-stack .end-session-avatar-overflow {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  padding: 0 !important;
+  border: 3px solid #10101f !important;
+  outline: none !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  transform: translateZ(0) !important;
+  transition: background-color .16s ease, color .16s ease, box-shadow .16s ease, transform .18s ease !important;
+}
+html body #endSessionModal .end-session-avatar-stack .end-session-avatar-overflow:hover {
+  background: #34364f !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 3px rgba(143, 117, 255, .13) !important;
+}
+html body #endSessionModal .end-session-avatar-stack .end-session-avatar-overflow:focus-visible {
+  outline: 2px solid #9e8cff !important;
+  outline-offset: 3px !important;
+}
+html body #endSessionModal .end-session-avatar-stack .end-session-avatar-overflow:active {
+  transform: scale(.95) !important;
+}
+html body #endSessionModal .end-session-attendee-panel {
+  position: relative !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 13px !important;
+  overflow: hidden !important;
+  border: 1px solid transparent !important;
+  border-radius: 15px !important;
+  background: rgba(23, 24, 42, .82) !important;
+  opacity: 0 !important;
+  transform: translateX(-20px) !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: margin .28s ease, padding .28s ease, opacity .22s ease, transform .32s cubic-bezier(.22, 1, .36, 1), border-color .22s ease, visibility 0s linear .34s !important;
+}
+html body #endSessionModal .end-session-attendee-panel.is-open {
+  margin: 14px 0 0 !important;
+  padding: 13px !important;
+  border-color: #303149 !important;
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transition: margin .28s ease, padding .28s ease, opacity .22s ease, transform .32s cubic-bezier(.22, 1, .36, 1), border-color .22s ease, visibility 0s linear 0s !important;
+}
+html body #endSessionModal .end-session-attendee-panel-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+  margin: 0 0 12px !important;
+}
+html body #endSessionModal .end-session-attendee-panel-heading {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: baseline !important;
+  gap: 8px 10px !important;
+  min-width: 0 !important;
+}
+html body #endSessionModal .end-session-attendee-panel-heading strong {
+  color: #efeff8 !important;
+  font-size: 10px !important;
+  font-weight: 820 !important;
+  letter-spacing: .12em !important;
+  line-height: 1.4 !important;
+}
+html body #endSessionModal .end-session-attendee-panel-heading span {
+  color: #898ba6 !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  line-height: 1.4 !important;
+  white-space: nowrap !important;
+}
+html body #endSessionModal .end-session-attendee-search-label {
+  display: block !important;
+  margin: 0 0 5px !important;
+  color: #9698b2 !important;
+  font-size: 9px !important;
+  font-weight: 780 !important;
+  letter-spacing: .11em !important;
+  line-height: 1.35 !important;
+}
+html body #endSessionModal .end-session-attendee-search {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 38px !important;
+  margin: 0 0 9px !important;
+  padding: 9px 11px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #34364f !important;
+  border-radius: 9px !important;
+  outline: none !important;
+  background: #111222 !important;
+  color: #f4f4fb !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  box-shadow: none !important;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease !important;
+}
+html body #endSessionModal .end-session-attendee-search::placeholder { color: #72748e !important; opacity: 1 !important; }
+html body #endSessionModal .end-session-attendee-search:focus {
+  border-color: #8876f4 !important;
+  background: #15162a !important;
+  box-shadow: 0 0 0 3px rgba(143, 117, 255, .12) !important;
+}
+html body #endSessionModal .end-session-attendee-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  width: 100% !important;
+  max-height: 190px !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  padding: 1px 3px 1px 1px !important;
+  box-sizing: border-box !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #454761 transparent !important;
+}
+html body #endSessionModal .end-session-attendee-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  min-width: 0 !important;
+  min-height: 40px !important;
+  padding: 6px 9px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #282a42 !important;
+  border-radius: 9px !important;
+  background: rgba(255, 255, 255, .025) !important;
+}
+html body #endSessionModal .end-session-attendee-list-avatar {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 27px !important;
+  width: 27px !important;
+  height: 27px !important;
+  border-radius: 50% !important;
+  background: #292640 !important;
+  color: #d4ccff !important;
+  font-size: 9px !important;
+  font-weight: 820 !important;
+  line-height: 1 !important;
+}
+html body #endSessionModal .end-session-attendee-item:nth-child(3n + 2) .end-session-attendee-list-avatar {
+  background: #173b38 !important;
+  color: #92ead0 !important;
+}
+html body #endSessionModal .end-session-attendee-item:nth-child(3n) .end-session-attendee-list-avatar {
+  background: #44301d !important;
+  color: #f2c779 !important;
+}
+html body #endSessionModal .end-session-attendee-name {
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+  color: #e4e4f0 !important;
+  font-size: 12px !important;
+  font-weight: 560 !important;
+  line-height: 1.4 !important;
+}
+html body #endSessionModal .end-session-attendee-empty {
+  padding: 12px 8px !important;
+  color: #9698b2 !important;
+  font-size: 11px !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+}
+html body #endSessionModal .end-session-attendee-empty[hidden] { display: none !important; }
+@media (max-width: 560px) {
+  html body #endSessionModal .end-session-attendee-panel.is-open { padding: 10px !important; }
+  html body #endSessionModal .end-session-attendee-list { max-height: 155px !important; }
+  html body #endSessionModal .end-session-attendee-item { min-height: 36px !important; padding: 5px 7px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body #endSessionModal .end-session-attendee-panel,
+  html body #endSessionModal .end-session-avatar-stack .end-session-avatar-overflow {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* END SESSION ATTENDEE DRAWER — anchor the searchable roster to the modal's left side.
+   It is a sibling of the modal box so the modal's own overflow cannot clip it. */
+html body #endSessionModal .end-session-attendee-panel {
+  position: absolute !important;
+  left: 12px !important;
+  top: 12px !important;
+  z-index: 1010 !important;
+  box-sizing: border-box !important;
+  width: min(285px, calc(100vw - 24px)) !important;
+  max-width: calc(100vw - 24px) !important;
+  margin: 0 !important;
+  padding: 0 13px !important;
+  overflow: hidden !important;
+  border: 1px solid transparent !important;
+  border-radius: 15px !important;
+  background: #17182a !important;
+  opacity: 0 !important;
+  transform: translateX(18px) !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: padding .28s ease, opacity .22s ease, transform .32s cubic-bezier(.22, 1, .36, 1), border-color .22s ease, visibility 0s linear .34s !important;
+}
+html body #endSessionModal .end-session-attendee-panel.is-open {
+  margin: 0 !important;
+  padding: 13px !important;
+  border-color: #303149 !important;
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transition: padding .28s ease, opacity .22s ease, transform .32s cubic-bezier(.22, 1, .36, 1), border-color .22s ease, visibility 0s linear 0s !important;
+}
+@media (max-width: 560px) {
+  html body #endSessionModal .end-session-attendee-panel.is-open {
+    padding: 10px !important;
+  }
+  html body #endSessionModal .end-session-attendee-list { max-height: 155px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body #endSessionModal .end-session-attendee-panel {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+
+/* FINAL ATTENDEE SIDE-BY-SIDE LAYOUT — center the modal and roster as one group. */
+html body #endSessionModal {
+  --end-session-attendee-panel-width: clamp(120px, calc(100vw - 430px), 280px);
+  --end-session-attendee-gap: 10px;
+}
+html body #endSessionModal > .end-session-modal-box {
+  translate: 0 0 !important;
+  transition: translate .34s cubic-bezier(.22, 1, .36, 1) !important;
+}
+html body #endSessionModal.has-attendee-panel > .end-session-modal-box {
+  width: min(400px, calc(100vw - var(--end-session-attendee-panel-width) - var(--end-session-attendee-gap) - 24px)) !important;
+  max-width: min(400px, calc(100vw - var(--end-session-attendee-panel-width) - var(--end-session-attendee-gap) - 24px)) !important;
+  min-width: 0 !important;
+  translate: calc((var(--end-session-attendee-panel-width) + var(--end-session-attendee-gap)) / 2) 0 !important;
+}
+html body #endSessionModal .end-session-attendee-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  position: absolute !important;
+  z-index: 1010 !important;
+  box-sizing: border-box !important;
+  width: var(--end-session-attendee-panel-width) !important;
+  max-width: var(--end-session-attendee-panel-width) !important;
+  height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 13px !important;
+  overflow: hidden !important;
+  border: 1px solid transparent !important;
+  border-radius: 15px !important;
+  background: #17182a !important;
+  opacity: 0 !important;
+  transform: translateX(-18px) !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: padding .28s ease, opacity .22s ease, transform .32s cubic-bezier(.22, 1, .36, 1), border-color .22s ease, visibility 0s linear .34s !important;
+}
+html body #endSessionModal .end-session-attendee-panel.is-open {
+  height: var(--end-session-attendee-panel-height, 0px) !important;
+  max-height: none !important;
+  padding: 13px !important;
+  border-color: #303149 !important;
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transition: padding .28s ease, opacity .22s ease, transform .32s cubic-bezier(.22, 1, .36, 1), border-color .22s ease, visibility 0s linear 0s !important;
+}
+html body #endSessionModal .end-session-attendee-list {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+@media (max-width: 560px) {
+  html body #endSessionModal .end-session-attendee-panel.is-open { padding: 10px !important; }
+  html body #endSessionModal .end-session-attendee-list { max-height: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body #endSessionModal > .end-session-modal-box,
+  html body #endSessionModal .end-session-attendee-panel {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+
+/* RESPONSIVE END SESSION ATTENDEE GROUP — phone, tablet, desktop. */
+html body #endSessionModal {
+  --end-session-attendee-gap: 10px;
+  --end-session-attendee-panel-width: clamp(88px, 30vw, 280px);
+}
+html body #endSessionModal.has-attendee-panel > .end-session-modal-box {
+  box-sizing: border-box !important;
+  width: min(400px, calc(100vw - var(--end-session-attendee-panel-width) - var(--end-session-attendee-gap) - 24px)) !important;
+  max-width: min(400px, calc(100vw - var(--end-session-attendee-panel-width) - var(--end-session-attendee-gap) - 24px)) !important;
+  min-width: 0 !important;
+  max-height: calc(100dvh - 24px) !important;
+  overflow-x: hidden !important;
+}
+html body #endSessionModal .end-session-attendee-panel {
+  min-width: 0 !important;
+  max-width: var(--end-session-attendee-panel-width) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+html body #endSessionModal .end-session-attendee-panel-header,
+html body #endSessionModal .end-session-attendee-panel-heading {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+html body #endSessionModal .end-session-attendee-panel-heading strong,
+html body #endSessionModal .end-session-attendee-panel-heading span,
+html body #endSessionModal .end-session-attendee-search-label {
+  overflow-wrap: anywhere !important;
+}
+
+/* Tablets and compact laptops: keep a readable roster beside the modal. */
+@media (min-width: 561px) and (max-width: 900px) {
+  html body #endSessionModal.has-attendee-panel > .end-session-modal-box {
+    padding: 17px 16px 15px !important;
+  }
+  html body #endSessionModal .end-session-attendee-panel.is-open {
+    padding: 11px !important;
+  }
+  html body #endSessionModal .end-session-attendee-panel-heading strong {
+    font-size: 9px !important;
+    letter-spacing: .08em !important;
+  }
+  html body #endSessionModal .end-session-attendee-panel-heading span {
+    font-size: 9px !important;
+  }
+}
+
+/* Phones: preserve the left-side panel, but give the End Session form enough width. */
+@media (max-width: 560px) {
+  html body #endSessionModal {
+    --end-session-attendee-gap: 6px;
+  }
+  html body #endSessionModal.has-attendee-panel > .end-session-modal-box {
+    padding: 14px 12px 13px !important;
+    border-radius: 16px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-event-header {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    gap: 7px !important;
+    margin-bottom: 11px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-event-header h2 {
+    font-size: clamp(15px, 4.2vw, 19px) !important;
+    line-height: 1.2 !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-header-csv-btn {
+    max-width: 100% !important;
+    min-height: 30px !important;
+    padding: 6px 7px !important;
+    font-size: 9px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-intro {
+    padding: 8px 0 8px 9px !important;
+    border-left-width: 3px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-intro h3 {
+    font-size: clamp(16px, 4.7vw, 20px) !important;
+    line-height: 1.18 !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-intro p {
+    font-size: 10px !important;
+    line-height: 1.4 !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-details-list {
+    gap: 7px !important;
+    margin-top: 10px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-detail-row {
+    gap: 7px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-detail-icon {
+    flex-basis: 31px !important;
+    width: 31px !important;
+    height: 31px !important;
+    border-radius: 9px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-detail-icon svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-detail-field,
+  html body #endSessionModal.has-attendee-panel .end-session-detail-field > span {
+    font-size: 10px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-detail-field input {
+    min-height: 25px !important;
+    padding: 3px 5px !important;
+    font-size: 11px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-attendees {
+    margin-top: 12px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-attendees-title {
+    font-size: 9px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-attendees-row {
+    gap: 8px !important;
+    margin-top: 9px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-avatar-stack {
+    min-height: 29px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-avatar {
+    flex-basis: 29px !important;
+    width: 29px !important;
+    height: 29px !important;
+    margin-left: -6px !important;
+    font-size: 9px !important;
+    border-width: 2px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-attendees-meta {
+    font-size: 10px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-modal-box > .end-session-modal-actions {
+    gap: 6px !important;
+    margin-top: 13px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-modal-box > .end-session-modal-actions > button {
+    min-height: 36px !important;
+    padding: 7px 5px !important;
+    border-radius: 10px !important;
+    font-size: 10px !important;
+  }
+  html body #endSessionModal .end-session-attendee-panel.is-open {
+    padding: 9px !important;
+    border-radius: 12px !important;
+  }
+  html body #endSessionModal .end-session-attendee-panel-header {
+    display: block !important;
+    margin-bottom: 8px !important;
+  }
+  html body #endSessionModal .end-session-attendee-panel-heading {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 3px !important;
+  }
+  html body #endSessionModal .end-session-attendee-panel-heading strong {
+    font-size: 8px !important;
+    letter-spacing: .04em !important;
+    line-height: 1.25 !important;
+  }
+  html body #endSessionModal .end-session-attendee-panel-heading span {
+    font-size: 8px !important;
+    white-space: normal !important;
+  }
+  html body #endSessionModal .end-session-attendee-search-label {
+    margin-bottom: 4px !important;
+    font-size: 7px !important;
+    letter-spacing: .04em !important;
+    line-height: 1.25 !important;
+  }
+  html body #endSessionModal .end-session-attendee-search {
+    min-height: 32px !important;
+    margin-bottom: 7px !important;
+    padding: 6px 6px !important;
+    font-size: 10px !important;
+  }
+  html body #endSessionModal .end-session-attendee-list {
+    gap: 4px !important;
+  }
+  html body #endSessionModal .end-session-attendee-item {
+    min-height: 31px !important;
+    gap: 5px !important;
+    padding: 4px 5px !important;
+  }
+  html body #endSessionModal .end-session-attendee-list-avatar {
+    flex-basis: 21px !important;
+    width: 21px !important;
+    height: 21px !important;
+    font-size: 8px !important;
+  }
+  html body #endSessionModal .end-session-attendee-name {
+    font-size: 10px !important;
+    line-height: 1.25 !important;
+  }
+}
+
+/* Extra-narrow phones: make both sides compact without moving the roster under the modal. */
+@media (max-width: 360px) {
+  html body #endSessionModal.has-attendee-panel > .end-session-modal-box {
+    padding: 11px 9px 10px !important;
+    border-radius: 13px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-header-csv-btn {
+    font-size: 8px !important;
+  }
+  html body #endSessionModal.has-attendee-panel .end-session-intro p {
+    font-size: 9px !important;
+  }
+  html body #endSessionModal .end-session-attendee-panel.is-open {
+    padding: 7px !important;
+  }
+  html body #endSessionModal .end-session-attendee-panel-heading strong {
+    font-size: 7px !important;
+    letter-spacing: .02em !important;
+  }
+  html body #endSessionModal .end-session-attendee-search {
+    padding: 5px 4px !important;
+    font-size: 9px !important;
+  }
+  html body #endSessionModal .end-session-attendee-item {
+    gap: 4px !important;
+    padding: 4px !important;
+  }
+  html body #endSessionModal .end-session-attendee-name {
+    font-size: 9px !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  html body #endSessionModal.modal:not(.hidden) {
+    align-items: flex-start !important;
+    overflow-y: auto !important;
+  }
+  html body #endSessionModal.has-attendee-panel > .end-session-modal-box {
+    max-height: calc(100dvh - 16px) !important;
+  }
+  /* The panel height is matched to the modal dynamically; no independent cap. */
+}
+
+/* Animate width and position together as the side-by-side group opens/closes. */
+html body #endSessionModal > .end-session-modal-box {
+  transition: width .34s cubic-bezier(.22, 1, .36, 1), max-width .34s cubic-bezier(.22, 1, .36, 1), translate .34s cubic-bezier(.22, 1, .36, 1) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html body #endSessionModal > .end-session-modal-box,
+  html body #endSessionModal .end-session-attendee-panel {
+    transition: none !important;
+  }
+}
+
+
+/* SLOW ATTENDEE DRAWER MOTION — slide only, never fade.
+   Opening moves the panel left; closing moves it right. JS hides it only after
+   the closing transform has finished, so its opacity stays fully opaque. */
+html body #endSessionModal .end-session-attendee-panel {
+  transform: translateX(32px) !important;
+  opacity: 1 !important;
+  /* Height is synced to the dialog's live border box by ResizeObserver.
+     Do not transition height: it makes the drawer lag behind the modal. */
+  transition:
+    padding .62s cubic-bezier(.65, 0, .35, 1),
+    transform .72s cubic-bezier(.65, 0, .35, 1),
+    border-color .48s ease,
+    visibility 0s linear .72s !important;
+  will-change: transform;
+}
+html body #endSessionModal .end-session-attendee-panel.is-open {
+  transform: translateX(0) !important;
+  opacity: 1 !important;
+  transition:
+    padding .62s cubic-bezier(.65, 0, .35, 1),
+    transform .72s cubic-bezier(.65, 0, .35, 1),
+    border-color .48s ease,
+    visibility 0s linear 0s !important;
+}
+html body #endSessionModal .end-session-attendee-panel[data-animation-state="closing"] {
+  /* Keep the drawer fully visible and opaque while it slides right. */
+  height: var(--end-session-attendee-panel-height, 0px) !important;
+  max-height: none !important;
+  transform: translateX(32px) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+}
+html body #endSessionModal .end-session-attendee-panel[data-animation-state="closed"] {
+  visibility: hidden !important;
+  transition-delay: 0s !important;
+  pointer-events: none !important;
+}
+html body #endSessionModal > .end-session-modal-box {
+  transition:
+    width .70s cubic-bezier(.65, 0, .35, 1),
+    max-width .70s cubic-bezier(.65, 0, .35, 1),
+    translate .70s cubic-bezier(.65, 0, .35, 1) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html body #endSessionModal > .end-session-modal-box,
+  html body #endSessionModal .end-session-attendee-panel {
+    transition: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+}
+
+
+/* FINAL HEIGHT LOCK — sync height without changing the slide-only animation. */
+html body #endSessionModal .end-session-attendee-panel,
+html body #endSessionModal .end-session-attendee-panel.is-open,
+html body #endSessionModal .end-session-attendee-panel[data-animation-state="closing"] {
+  box-sizing: border-box !important;
+  max-height: none !important;
+  opacity: 1 !important;
+  transition-property: padding, transform, border-color, visibility !important;
+}
+
+
+/* END SESSION ATTENDEE POLISH — native smooth scrolling, quiet counter, inline player meta. */
+html body #endSessionModal .end-session-attendee-list {
+  scroll-behavior: smooth !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #5b5f80 rgba(255, 255, 255, .035) !important;
+}
+html body #endSessionModal .end-session-attendee-list::-webkit-scrollbar {
+  width: 6px !important;
+}
+html body #endSessionModal .end-session-attendee-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, .035) !important;
+  border-radius: 10px !important;
+}
+html body #endSessionModal .end-session-attendee-list::-webkit-scrollbar-thumb {
+  background: #5b5f80 !important;
+  border: 1px solid #17182a !important;
+  border-radius: 10px !important;
+}
+html body #endSessionModal .end-session-attendee-list::-webkit-scrollbar-thumb:hover {
+  background: #8185ad !important;
+}
+html body #endSessionModal .end-session-attendee-info {
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+html body #endSessionModal .end-session-attendee-name-line {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 4px 6px !important;
+  min-width: 0 !important;
+}
+html body #endSessionModal .end-session-attendee-name {
+  display: inline !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  color: #e4e4f0 !important;
+  font-size: 12px !important;
+  font-weight: 560 !important;
+  line-height: 1.4 !important;
+  overflow-wrap: anywhere !important;
+}
+html body #endSessionModal .end-session-attendee-gender {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 13px !important;
+  width: 13px !important;
+  height: 13px !important;
+  color: #82b7f8 !important;
+  line-height: 1 !important;
+}
+html body #endSessionModal .end-session-attendee-gender.gender-female {
+  color: #f07daf !important;
+}
+html body #endSessionModal .end-session-attendee-gender .gender-symbol {
+  display: block !important;
+  width: 13px !important;
+  height: 13px !important;
+}
+html body #endSessionModal .end-session-attendee-category {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  min-height: 17px !important;
+  padding: 2px 5px !important;
+  border-radius: 5px !important;
+  background: #2b2d43 !important;
+  color: #c9cbe0 !important;
+  font-size: 8px !important;
+  font-weight: 820 !important;
+  letter-spacing: .04em !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-beg { background: #2b2d43 !important; color: #c9cbe0 !important; }
+html body #endSessionModal .end-session-attendee-category.skill-nov { background: #233b38 !important; color: #93e4ce !important; }
+html body #endSessionModal .end-session-attendee-category.skill-int { background: #302c4f !important; color: #c4b8ff !important; }
+html body #endSessionModal .end-session-attendee-category.skill-adv { background: #49331f !important; color: #f2c47e !important; }
+html body #endSessionModal .end-session-attendee-category.skill-exp { background: #48263a !important; color: #f3a4cc !important; }
+html body #endSessionModal .end-session-attendee-panel-heading #endSessionAttendeePanelCount {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #a0a9b5 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 20px !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+}
+@media (max-width: 560px) {
+  html body #endSessionModal .end-session-attendee-name { font-size: 10px !important; }
+  html body #endSessionModal .end-session-attendee-category { font-size: 7px !important; padding: 2px 4px !important; }
+  html body #endSessionModal .end-session-attendee-panel-heading #endSessionAttendeePanelCount { font-size: 9px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body #endSessionModal .end-session-attendee-list { scroll-behavior: auto !important; }
+}
+
+
+/* END SESSION CATEGORY CHIP REDESIGN — compact, color-coded skill tags for the dark attendee drawer. */
+html body #endSessionModal .end-session-attendee-category {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  min-height: 19px !important;
+  box-sizing: border-box !important;
+  padding: 2px 7px !important;
+  border: 1px solid rgba(159, 166, 204, .26) !important;
+  border-radius: 999px !important;
+  background: linear-gradient(180deg, rgba(49, 52, 77, .96), rgba(35, 37, 57, .96)) !important;
+  color: #d8daeb !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .055), 0 1px 2px rgba(0, 0, 0, .14) !important;
+  font-size: 9px !important;
+  font-weight: 850 !important;
+  letter-spacing: .065em !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+}
+html body #endSessionModal .end-session-attendee-category::before {
+  content: "" !important;
+  display: inline-block !important;
+  flex: 0 0 4px !important;
+  width: 4px !important;
+  height: 4px !important;
+  margin: 0 !important;
+  border-radius: 50% !important;
+  background: currentColor !important;
+  box-shadow: 0 0 5px currentColor !important;
+  opacity: .95 !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-beg {
+  background: linear-gradient(180deg, rgba(45, 77, 119, .62), rgba(31, 49, 78, .88)) !important;
+  border-color: rgba(105, 168, 255, .42) !important;
+  color: #aed3ff !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-nov {
+  background: linear-gradient(180deg, rgba(35, 91, 78, .58), rgba(26, 58, 53, .9)) !important;
+  border-color: rgba(87, 205, 170, .4) !important;
+  color: #9cebd4 !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-int {
+  background: linear-gradient(180deg, rgba(81, 64, 129, .58), rgba(48, 39, 77, .92)) !important;
+  border-color: rgba(174, 147, 255, .42) !important;
+  color: #d1c3ff !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-adv {
+  background: linear-gradient(180deg, rgba(112, 76, 35, .58), rgba(65, 46, 27, .92)) !important;
+  border-color: rgba(241, 180, 91, .42) !important;
+  color: #ffd28e !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-exp {
+  background: linear-gradient(180deg, rgba(112, 52, 86, .6), rgba(66, 35, 56, .92)) !important;
+  border-color: rgba(244, 133, 183, .42) !important;
+  color: #ffb9d8 !important;
+}
+@media (max-width: 560px) {
+  html body #endSessionModal .end-session-attendee-category {
+    min-height: 17px !important;
+    padding: 2px 6px !important;
+    gap: 3px !important;
+    font-size: 8px !important;
+    letter-spacing: .045em !important;
+  }
+  html body #endSessionModal .end-session-attendee-category::before {
+    flex-basis: 3px !important;
+    width: 3px !important;
+    height: 3px !important;
+  }
+}
+
+
+/* END SESSION ATTENDEE ROW — compact category and ellipsis-safe name layout. */
+html body #endSessionModal .end-session-attendee-info {
+  display: block !important;
+  flex: 1 1 0% !important;
+  width: 0 !important;
+  min-width: 0 !important;
+}
+html body #endSessionModal .end-session-attendee-name-line {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+html body #endSessionModal .end-session-attendee-name {
+  display: block !important;
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+html body #endSessionModal .end-session-attendee-gender {
+  flex: 0 0 13px !important;
+  width: 13px !important;
+  min-width: 13px !important;
+}
+html body #endSessionModal .end-session-attendee-category {
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  min-height: 15px !important;
+  padding: 2px 5px !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: #2b2d43 !important;
+  box-shadow: none !important;
+  font-size: 8px !important;
+  font-weight: 750 !important;
+  letter-spacing: .025em !important;
+  line-height: 1 !important;
+  gap: 0 !important;
+}
+html body #endSessionModal .end-session-attendee-category::before {
+  content: none !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-beg { background: #2b3448 !important; color: #c9d9f6 !important; }
+html body #endSessionModal .end-session-attendee-category.skill-nov { background: #243b36 !important; color: #9ce3d0 !important; }
+html body #endSessionModal .end-session-attendee-category.skill-int { background: #302c4b !important; color: #c9bdff !important; }
+html body #endSessionModal .end-session-attendee-category.skill-adv { background: #44331f !important; color: #f2c887 !important; }
+html body #endSessionModal .end-session-attendee-category.skill-exp { background: #43283a !important; color: #f0a9cb !important; }
+@media (max-width: 560px) {
+  html body #endSessionModal .end-session-attendee-name-line { gap: 4px !important; }
+  html body #endSessionModal .end-session-attendee-name { font-size: 10px !important; }
+  html body #endSessionModal .end-session-attendee-gender,
+  html body #endSessionModal .end-session-attendee-gender .gender-symbol {
+    width: 12px !important;
+    min-width: 12px !important;
+    height: 12px !important;
+  }
+  html body #endSessionModal .end-session-attendee-category {
+    min-height: 14px !important;
+    padding: 2px 4px !important;
+    font-size: 7px !important;
+  }
+}
+
+
+/* END SESSION ATTENDEE CATEGORY + INLINE META POLISH — 2026-10-28 */
+html body #endSessionModal .end-session-attendee-name-line {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+  gap: 5px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+html body #endSessionModal .end-session-attendee-name {
+  display: block !important;
+  flex: 0 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+html body #endSessionModal .end-session-attendee-gender {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 13px !important;
+  width: 13px !important;
+  min-width: 13px !important;
+  height: 13px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+html body #endSessionModal .end-session-attendee-category {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  min-height: 15px !important;
+  margin: 0 !important;
+  padding: 2px 6px !important;
+  box-sizing: border-box !important;
+  border: 1px solid transparent !important;
+  border-radius: 40px !important;
+  box-shadow: none !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: .025em !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+  gap: 0 !important;
+}
+html body #endSessionModal .end-session-attendee-category::before {
+  content: none !important;
+  display: none !important;
+}
+/* Color coding follows the registered skill level. */
+html body #endSessionModal .end-session-attendee-category.skill-beg {
+  background: #243a57 !important;
+  border-color: #4779b2 !important;
+  color: #c7e0ff !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-nov {
+  background: #1d4038 !important;
+  border-color: #347d6b !important;
+  color: #a8f0dc !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-int {
+  background: #342b52 !important;
+  border-color: #6956a7 !important;
+  color: #d8ccff !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-adv {
+  background: #4b351c !important;
+  border-color: #95672e !important;
+  color: #ffdaa0 !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-exp {
+  background: #4a2639 !important;
+  border-color: #9b4b73 !important;
+  color: #ffc0dc !important;
+}
+@media (max-width: 560px) {
+  html body #endSessionModal .end-session-attendee-name-line { gap: 4px !important; }
+  html body #endSessionModal .end-session-attendee-gender,
+  html body #endSessionModal .end-session-attendee-gender .gender-symbol {
+    width: 12px !important;
+    min-width: 12px !important;
+    height: 12px !important;
+  }
+  html body #endSessionModal .end-session-attendee-category {
+    min-height: 14px !important;
+    padding: 2px 5px !important;
+    font-size: 7px !important;
+  }
+}
+
+
+/* END SESSION ATTENDEE CATEGORY COLORS — match the supplied reference swatches. */
+html body #endSessionModal .end-session-attendee-category.skill-beg {
+  background: #E8F3FF !important;
+  border-color: #BCE0FD !important;
+  color: #2B6CB0 !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-nov {
+  background: #E0F8F3 !important;
+  border-color: #A2F0DF !important;
+  color: #227A68 !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-int {
+  background: #FFF6D6 !important;
+  border-color: #FCE38A !important;
+  color: #B76E00 !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-adv {
+  background: #FFF0E1 !important;
+  border-color: #FCD6B4 !important;
+  color: #C05621 !important;
+}
+html body #endSessionModal .end-session-attendee-category.skill-exp {
+  background: #FDE8E8 !important;
+  border-color: #F8B4B4 !important;
+  color: #9B1C1C !important;
 }

@@ -1,12 +1,59 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const organizerScope = String(new URLSearchParams(window.location.search).get('organizer') || '').trim();
+  const registrationParams = new URLSearchParams(window.location.search);
+  const organizerScope = String(registrationParams.get('organizer') || '').trim();
+  const registrationDuprSession = ['1', 'true', 'dupr'].includes(String(registrationParams.get('dupr') || '').trim().toLowerCase());
+  let organizerValidated = false;
   function scopedApiUrl(path, params = {}) {
     const url = new URL(path, window.location.origin);
     if (organizerScope) url.searchParams.set('organizer', organizerScope);
     Object.entries(params).forEach(([key,value]) => url.searchParams.set(key, String(value)));
     return url.pathname + url.search;
+  }
+
+  function showRegistrationLinkNotice(message) {
+    const notice = $('registrationLinkNotice');
+    if (notice) { notice.textContent = message; notice.hidden = false; }
+    const panel = $('registrationPagePanel');
+    if (panel) panel.hidden = true;
+    setConnection(false, 'Organizer link required');
+  }
+
+  async function validateOrganizerRegistrationLink() {
+    if (!organizerScope) {
+      showRegistrationLinkNotice('This registration page is organizer-specific. Please scan the registration QR code or open the link provided by your organizer.');
+      return false;
+    }
+    try {
+      const response = await fetch(`/api/live-state?organizer=${encodeURIComponent(organizerScope)}`, {cache:'no-store',credentials:'same-origin'});
+      const data = response.ok ? await response.json() : null;
+      if (!data || String(data.organizerId || '') !== organizerScope) {
+        showRegistrationLinkNotice('This organizer registration link is invalid or inactive. Please ask the organizer for an updated QR code or link.');
+        return false;
+      }
+      organizerValidated = true;
+      return true;
+    } catch (_) {
+      setConnection(false, 'Offline');
+      showRegistrationError('Unable to verify this organizer link. Reconnect to the internet and try again.');
+      return false;
+    }
+  }
+
+  function syncDuprRegistrationFields() {
+    const extras = $('registrationExtraFields');
+    const duprId = $('registerDuprId');
+    const rating = $('registerSelfRating');
+    if (extras) extras.hidden = !registrationDuprSession;
+    if (duprId) {
+      duprId.required = registrationDuprSession;
+      duprId.disabled = !registrationDuprSession;
+      duprId.setAttribute('aria-required', String(registrationDuprSession));
+    }
+    if (rating) rating.disabled = !registrationDuprSession;
+    const duprMessage = $('registrationDuprDuplicateMessage');
+    if (duprMessage && !registrationDuprSession) { duprMessage.hidden = true; duprMessage.textContent = ''; }
   }
   const SKILLS = new Set(['BEG', 'NOV', 'INT', 'ADV', 'EXP']);
   let selectedGender = '';
@@ -161,6 +208,11 @@
 
   function updateDuprDuplicateMessage() {
     const input = $('registerDuprId');
+    if (!registrationDuprSession) {
+      const hiddenMessage = $('registrationDuprDuplicateMessage');
+      if (hiddenMessage) { hiddenMessage.textContent = ''; hiddenMessage.hidden = true; }
+      return null;
+    }
     const message = $('registrationDuprDuplicateMessage');
     if (!input || !message) return null;
     const duprId = input.value.trim().toUpperCase();
@@ -180,9 +232,10 @@
     const duplicate = updateDuplicateMessage();
     const duprId = String($('registerDuprId')?.value || '').trim();
     const duplicateDupr = updateDuprDuplicateMessage();
-    const complete = fullname.length > 0 && /^[A-Z0-9]{6}$/.test(duprId.toUpperCase()) && !!selectedGender && SKILLS.has(selectedSkill);
+    const duprComplete = !registrationDuprSession || /^[A-Z0-9]{6}$/.test(duprId.toUpperCase());
+    const complete = fullname.length > 0 && duprComplete && !!selectedGender && SKILLS.has(selectedSkill);
     const button = $('registerSaveBtn');
-    if (button) button.disabled = !(serviceReady && complete && !duplicate && !duplicateDupr && !submitting);
+    if (button) button.disabled = !(serviceReady && organizerValidated && complete && !duplicate && !duplicateDupr && !submitting);
     return {fullname, duplicate, duplicateDupr, complete};
   }
 
@@ -209,11 +262,16 @@
   }
 
   async function loadCloudRecords() {
+    if (!organizerValidated && !(await validateOrganizerRegistrationLink())) {
+      serviceReady = false;
+      updateSubmitButton();
+      return false;
+    }
     try {
-      const appStateRequest = fetch(scopedApiUrl('/api/app-state',{_:Date.now()}), {cache: 'no-store'})
+      const appStateRequest = fetch(scopedApiUrl('/api/app-state',{_:Date.now()}), {cache: 'no-store',credentials:'same-origin'})
         .then(response => response.ok ? response.json() : null)
         .catch(() => null);
-      const response = await fetch(`/api/cloud-records?_=${Date.now()}`, {cache: 'no-store'});
+      const response = await fetch(scopedApiUrl('/api/cloud-records',{_:Date.now()}), {cache: 'no-store',credentials:'same-origin'});
       if (!response.ok) throw new Error('Registered Player Cloud is unavailable.');
       const [data, appStateData] = await Promise.all([response.json(), appStateRequest]);
       cloudPlayers = Array.isArray(data.records?.players) ? data.records.players : [];
@@ -289,11 +347,11 @@
       return;
     }
     if (!fullname) { showRegistrationError('Please enter the player’s full name.'); $('registerFullname').focus(); return; }
-    const duprId = String($('registerDuprId')?.value || '').trim().toUpperCase();
-    const selfRating = String($('registerSelfRating')?.value || '').trim();
-    if (!duprId) { showRegistrationError('Please enter the player’s DUPR ID.'); $('registerDuprId').focus(); return; }
-    if (!/^[A-Z0-9]{6}$/.test(duprId)) { showRegistrationError('DUPR ID must contain exactly 6 letters or numbers (for example, 1A2B3C).'); $('registerDuprId').focus(); return; }
-    if (selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) { showRegistrationError('Enter self rating as a number, such as 2.5, or a range such as 2.5/4.0.'); $('registerSelfRating').focus(); return; }
+    const duprId = registrationDuprSession ? String($('registerDuprId')?.value || '').trim().toUpperCase() : '';
+    const selfRating = registrationDuprSession ? String($('registerSelfRating')?.value || '').trim() : '';
+    if (registrationDuprSession && !duprId) { showRegistrationError('Please enter the player’s DUPR ID.'); $('registerDuprId').focus(); return; }
+    if (registrationDuprSession && !/^[A-Z0-9]{6}$/.test(duprId)) { showRegistrationError('DUPR ID must contain exactly 6 letters or numbers (for example, 1A2B3C).'); $('registerDuprId').focus(); return; }
+    if (registrationDuprSession && selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) { showRegistrationError('Enter self rating as a number, such as 2.5, or a range such as 2.5/4.0.'); $('registerSelfRating').focus(); return; }
     if (!selectedGender) { showRegistrationError('Please select Male or Female.'); return; }
     if (!SKILLS.has(selectedSkill)) { showRegistrationError('Please select a skill level.'); return; }
     if (!serviceReady || !complete) {
@@ -306,11 +364,11 @@
     if (button) button.textContent = 'Registering…';
     updateSubmitButton();
     try {
-      const response = await fetch('/api/register-player', {
+      const response = await fetch(scopedApiUrl('/api/register-player', {dupr:registrationDuprSession?'1':'0'}), {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         cache: 'no-store',
-        body: JSON.stringify({name: fullname, nickname: $('registerNickname').value.trim(), gender: selectedGender, category: selectedSkill, duprId, selfRating, ...(organizerScope ? {organizerId:organizerScope} : {})})
+        body: JSON.stringify({name: fullname, nickname: $('registerNickname').value.trim(), gender: selectedGender, category: selectedSkill, duprId, selfRating, duprMatch:registrationDuprSession, organizerId:organizerScope})
       });
       const data = await response.json().catch(() => ({}));
       if (response.status === 409 && data.duplicate) {
@@ -396,6 +454,7 @@
     hideFeedback();
   });
   bindNameHelpers();
+  syncDuprRegistrationFields();
   syncRegistrationEyebrowTheme();
   loadCloudRecords();
 })();

@@ -2658,3 +2658,25 @@ html body.registration-page-body .registration-page-form.registration-area #regi
   text-align: center !important;
   box-sizing: border-box !important;
 }
+
+
+/* Organizer-scoped registration: the DUPR-only inputs are genuinely hidden for non-DUPR sessions. */
+html body.registration-page-body .registration-page-form.registration-area .registration-extra-fields[hidden] {
+  display: none !important;
+}
+html body.registration-page-body .registration-link-notice {
+  width: min(760px, 100%);
+  box-sizing: border-box;
+  margin: 0 auto 20px;
+  padding: 15px 17px;
+  border: 1px solid #e3c8aa;
+  border-radius: 13px;
+  background: #fff8f0;
+  color: #78502b;
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 700;
+}
+html body.registration-page-body .registration-link-notice[hidden] {
+  display: none !important;
+}

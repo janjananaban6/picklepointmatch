@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="live-view.css?v=panel-count-light-transparent-20261022-10&mzoom=20261024-1">
   <link rel="stylesheet" href="style.css?v=registration-area-shared-20261020-1&mzoom=20261024-1">
-  <link rel="stylesheet" href="registration-page.css?v=dupr-duplicate-message-below-fields-20261027-1&mzoom=20261024-1">
+  <link rel="stylesheet" href="registration-page.css?v=organizer-scoped-dupr-registration-20261028-1&mzoom=20261024-1">
   <link rel="stylesheet" href="network-skeleton.css?v=network-validation-20261027-1">
   <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
   <script src="network-validation.js?v=network-validation-20261027-1"></script>
@@ -42,7 +42,9 @@
       <p>Complete your player profile to save it to Registered Player Cloud. An organizer can check you in to the queue when ready.</p>
     </section>
 
-    <section class="registration-page-panel" aria-labelledby="registrationPageTitle">
+    <div id="registrationLinkNotice" class="registration-link-notice" role="alert" hidden></div>
+
+    <section class="registration-page-panel" id="registrationPagePanel" aria-labelledby="registrationPageTitle">
       <div class="registration-area registration-page-form" id="registrationArea">
         <div class="registration-field registration-fullname-row">
           <label class="registration-field-label" for="registerFullname">FULL NAME <span class="registration-required-star" aria-hidden="true">*</span></label>
@@ -80,7 +82,7 @@
               <button type="button" class="registration-skill-btn skill-adv" data-skill="ADV" aria-pressed="false">ADV</button>
               <button type="button" class="registration-skill-btn skill-exp" data-skill="EXP" aria-pressed="false">EXP</button>
             </div>
-            <div class="registration-extra-fields" aria-label="Player rating details">
+            <div class="registration-extra-fields" id="registrationExtraFields" aria-label="Player rating details" hidden>
               <div class="registration-extra-field">
                 <label class="registration-field-label" for="registerDuprId">DUPR ID <span class="registration-required-star" aria-hidden="true">*</span></label>
                 <div class="registration-extra-input-wrap">
@@ -106,6 +108,6 @@
     <span id="registrationConnectionStatus" class="connection-status registration-connection-footer" role="status" aria-live="polite"><i aria-hidden="true"></i><span>Connecting</span></span>
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
   </main>
-  <script src="registration-app.js?v=dupr-duplicate-id-cloud-note-20261027-1" defer></script>
+  <script src="registration-app.js?v=organizer-scoped-dupr-registration-20261028-1" defer></script>
 </body>
 </html>

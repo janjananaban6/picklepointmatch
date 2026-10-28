@@ -1024,8 +1024,8 @@ async function handle(req, res) {
     return res.end(JSON.stringify({ok:true}));
   }
 
-  // Keep public player registration and public Live View reads available, while
-  // requiring organizer auth for the app's write APIs.
+  // Organizer write APIs require login. Player registration is handled separately
+  // and requires a valid organizer-scoped share link.
   if (req.method === 'POST' && ['/api/app-state','/api/cloud-records','/api/live-state','/api/live-theme'].includes(url.pathname) && !isAuthenticated(req)) {
     return sendJson(res, 401, {ok:false,error:'Organizer login required.'});
   }
@@ -1040,10 +1040,10 @@ async function handle(req, res) {
     let body;
     let contentType;
     if (url.pathname === '/robots.txt') {
-      body = `User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${origin}/sitemap.xml\n`;
+      body = `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /Registration.html\nSitemap: ${origin}/sitemap.xml\n`;
       contentType = 'text/plain; charset=utf-8';
     } else {
-      const pages = ['/', '/live.html', '/Registration.html'];
+      const pages = ['/', '/live.html'];
       const xmlEscape = value => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
       body = `<?xml version="1.0" encoding="UTF-8"?>\n` +
         `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
@@ -1061,17 +1061,20 @@ async function handle(req, res) {
   });
   if (url.pathname === '/api/live-theme' && req.method === 'GET') return sendJson(res, 200, {ok:true,theme:liveTheme});
 
-  // The app state is scoped to the signed-in organizer. Public registration and
-  // public Live View may read a specific organizer using its shared organizer id.
+  // Organizer app state is available to the signed-in organizer or through a
+  // valid organizer-scoped registration link; generic public reads are blocked.
   if (url.pathname === '/api/app-state' && req.method === 'GET') {
     const requestedScope = String(url.searchParams.get('organizer') || '').trim();
-    const organizerId = resolveOrganizerId(req,url,null,true);
+    const auth = getAuthSession(req);
+    // Scoped links stay tied to their organizer even if the visitor has a
+    // different organizer cookie. An unscoped public request is not allowed.
+    const organizerId = requestedScope
+      ? (accountById(requestedScope)?.id || null)
+      : (auth?.role === 'organizer' ? auth.organizerId : null);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
-    if (organizerId) {
-      const entry = getOrganizerAppEntry(organizerId);
-      return sendJson(res, 200, {ok:true,revision:entry.revision,state:entry.state,updatedAt:entry.updatedAt,organizerId});
-    }
-    return sendJson(res, 200, {ok:true,revision:sharedAppRevision,state:sharedAppState,updatedAt:sharedAppUpdatedAt});
+    if (!organizerId) return sendJson(res,401,{ok:false,error:'An organizer-specific registration link or organizer login is required.'});
+    const entry = getOrganizerAppEntry(organizerId);
+    return sendJson(res, 200, {ok:true,revision:entry.revision,state:entry.state,updatedAt:entry.updatedAt,organizerId});
   }
   if (url.pathname === '/api/app-state' && req.method === 'POST') {
     try {
@@ -1105,6 +1108,14 @@ async function handle(req, res) {
 
   // Registered Player Cloud is stored on the server, not in each browser only.
   if (url.pathname === '/api/cloud-records' && req.method === 'GET') {
+    const requestedScope = String(url.searchParams.get('organizer') || '').trim();
+    const auth = getAuthSession(req);
+    const organizerId = requestedScope
+      ? (accountById(requestedScope)?.id || null)
+      : (auth?.role === 'organizer' ? auth.organizerId : null);
+    if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
+    if (!organizerId) return sendJson(res,401,{ok:false,error:'An organizer-specific registration link or organizer login is required.'});
+    // The organizer scope authorizes the link; records remain in one shared cloud.
     return sendJson(res, 200, {ok:true, revision:sharedCloudRevision, records:sharedCloudRecords, updatedAt:sharedCloudUpdatedAt});
   }
   if (url.pathname === '/api/cloud-records' && req.method === 'POST') {
@@ -1142,27 +1153,32 @@ async function handle(req, res) {
       const nickname = String(body?.nickname || '').normalize('NFC').trim().replace(/\s+/g, ' ').slice(0, 80);
       const gender = String(body?.gender || '');
       const category = String(body?.category || '').toUpperCase();
-      const duprId = String(body?.duprId || '').trim().toUpperCase();
-      const selfRating = String(body?.selfRating || '').trim();
+      const requestedScope = String(url.searchParams.get('organizer') || body?.organizerId || '').trim();
+      if (!requestedScope) return sendJson(res, 400, {ok:false,error:'Organizer-specific registration link required. Please scan the QR code or use the link provided by your organizer.'});
+      const organizerId = accountById(requestedScope)?.id || null;
+      if (!organizerId) return sendJson(res, 400, {ok:false,error:'Organizer link is invalid or inactive. Ask the organizer for an updated registration link.'});
+
+      const requestedDuprMode = url.searchParams.get('dupr');
+      const isDuprSession = requestedDuprMode === null
+        ? body?.duprMatch === true
+        : ['1','true','dupr'].includes(String(requestedDuprMode).trim().toLowerCase());
+      const duprId = isDuprSession ? String(body?.duprId || '').trim().toUpperCase() : '';
+      const selfRating = isDuprSession ? String(body?.selfRating || '').trim() : '';
       if (!name || name.length > 120) return sendJson(res, 400, {ok:false,error:'Please enter a name (maximum 120 characters).'});
       if (!['Male','Female'].includes(gender)) return sendJson(res, 400, {ok:false,error:'Please select Male or Female.'});
       if (!['BEG','NOV','INT','ADV','EXP'].includes(category)) return sendJson(res, 400, {ok:false,error:'Please select a skill level.'});
-      if (!/^[A-Z0-9]{6}$/.test(duprId)) return sendJson(res, 400, {ok:false,error:'DUPR ID must contain exactly 6 letters or numbers (for example, 1A2B3C).'});
-      if (selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) return sendJson(res, 400, {ok:false,error:'Enter self rating as a number or a numeric range, such as 2.5/4.0.'});
+      if (isDuprSession && !/^[A-Z0-9]{6}$/.test(duprId)) return sendJson(res, 400, {ok:false,error:'DUPR ID must contain exactly 6 letters or numbers (for example, 1A2B3C).'});
+      if (isDuprSession && selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) return sendJson(res, 400, {ok:false,error:'Enter self rating as a number or a numeric range, such as 2.5/4.0.'});
 
-      // Keep organizer-scoped registration links validated, but do not modify
-      // that organizer's players, waiting queue, courts, session metrics, or live state.
-      const requestedScope = String(url.searchParams.get('organizer') || body?.organizerId || '').trim();
-      const organizerId = resolveOrganizerId(req,url,body,true);
-      if (requestedScope && !organizerId) return sendJson(res, 400, {ok:false,error:'Organizer link is invalid or inactive. Ask the organizer for an updated registration link.'});
-
+      // Registration is reachable only through an organizer-specific link.
+      // Its records intentionally remain in the single shared Registered Player Cloud.
       const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
       const currentPlayers = Array.isArray(currentRecords.players) ? currentRecords.players : [];
-      const duplicateDupr = currentPlayers.find(p => {
+      const duplicateDupr = isDuprSession && duprId ? currentPlayers.find(p => {
         const registeredId = String(p?.duprId ?? p?.duprID ?? p?.dupr_id ?? '')
           .trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
         return registeredId === duprId;
-      });
+      }) : null;
       if (duplicateDupr) {
         const registeredId = String(duplicateDupr.duprId ?? duplicateDupr.duprID ?? duplicateDupr.dupr_id ?? duprId).trim().toUpperCase();
         return sendJson(res, 409, {
@@ -1301,11 +1317,15 @@ async function handle(req, res) {
   }
   if (url.pathname === '/api/shared-events' && req.method === 'GET') {
     const requestedScope = String(url.searchParams.get('organizer') || '').trim();
-    const organizerId = resolveOrganizerId(req,url,null,true);
+    const auth = getAuthSession(req);
+    const organizerId = requestedScope
+      ? (accountById(requestedScope)?.id || null)
+      : (auth?.role === 'organizer' ? auth.organizerId : null);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
+    if (!organizerId) return sendJson(res,401,{ok:false,error:'An organizer-specific registration link or organizer login is required.'});
     res.writeHead(200, {'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
     res.write('retry: 2000\n\n');
-    const appEntry = organizerId ? getOrganizerAppEntry(organizerId) : getOrganizerAppEntry(null);
+    const appEntry = getOrganizerAppEntry(organizerId);
     if (appEntry.state) res.write(`event: app-state\ndata: ${JSON.stringify({...appEntry,organizerId})}\n\n`);
     if (sharedCloudRecords) res.write(`event: cloud-records\ndata: ${JSON.stringify({revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords})}\n\n`);
     sharedSubscribers.add(res);

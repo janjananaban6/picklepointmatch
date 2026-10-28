@@ -25,7 +25,7 @@
   <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
   <title>Pickle Point Match — Queueing</title>
 <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=queue-header-glass-20261023-3&dupr-csv-export=20261026-2&mzoom=20261024-1&organizer-stats=20261024-1&qr-logo-assignment=20261024-2&organizer-share-glass=20261024-1&event-rules-amber-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&lock-partner-gender-minimal-20261026-1&court-player-inline-meta-20261026-1&court-dupr-editor-touch-size-20261026-1&dupr-label-toggle-20261026-1">
+  <link rel="stylesheet" href="style.css?v=queue-header-glass-20261023-3&dupr-csv-export=20261028-3&mzoom=20261024-1&organizer-stats=20261024-1&qr-logo-assignment=20261024-2&organizer-share-glass=20261024-1&event-rules-amber-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&lock-partner-gender-minimal-20261026-1&court-player-inline-meta-20261026-1&court-dupr-editor-touch-size-20261026-1&dupr-label-toggle-20261026-1&end-session-modal-details=20261028-2&end-session-compact=20261028-1&end-session-attendee-panel=20261028-13-reference-colors-no-auto-open">
   <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261022-1&mzoom=20261024-1">
   <link rel="stylesheet" href="network-skeleton.css?v=network-skeleton-20261024-1">
   <link rel="stylesheet" href="queueing-refresh.css?v=queueing-refresh-stability-20261026-7&court-dupr-editor-touch-size-20261026-1&queue-dupr-event-rule-text-btn=20261026-3&queue-dupr-compact-all-devices=20261026-2&queue-dupr-event-stats-placement=20261026-1">
@@ -295,7 +295,6 @@
     <section id="historyView" class="hidden history-view">
       <div class="history-heading-row">
         <h2>📜 Match History <span id="historyCount" class="history-count">(0)</span></h2>
-        <button type="button" class="dupr-csv-download-btn" id="downloadDuprCsvBtn" hidden onclick="downloadDuprCsv()" title="Download scored matches from this DUPR session as CSV"><span aria-hidden="true">↓</span> Download DUPR CSV</button>
       </div>
       <div id="historySearchWrap" class="history-search-wrap">
         <span class="history-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span>
@@ -360,53 +359,71 @@
 
 <!-- END LIVE QUEUE CONFIRMATION -->
 <div class="modal hidden" id="endSessionModal">
-  <div class="modal-box end-session-modal-box">
-    <h2><span class="end-session-live-indicator" aria-hidden="true"><img src="live-session-indicator.png" alt=""></span>End Live Queue Session?</h2>
-    <p class="modal-note">This will end the current live queue session and save its records to the Registered Player Cloud.</p>
-    <div class="end-session-summary-grid end-session-confirm-summary-grid">
-      <div class="end-session-summary-card">
-        <strong id="endSummaryCheckins">0</strong>
-        <span>Players Checked In</span>
+  <div class="modal-box end-session-modal-box" role="dialog" aria-modal="true" aria-labelledby="endSessionEventDetailsTitle" aria-describedby="endSessionModalDescription">
+    <div class="end-session-event-header">
+      <h2 id="endSessionEventDetailsTitle">Event details</h2>
+      <button type="button" class="end-session-header-csv-btn" id="endSessionDuprCsvBtn" onclick="downloadDuprCsvFromEndSession()" hidden aria-hidden="true" tabindex="-1" title="Download this session's DUPR matches as CSV"><span aria-hidden="true">↓</span> Download CSV</button>
+    </div>
+
+    <section class="end-session-intro" aria-labelledby="endSessionModalTitle">
+      <h3 id="endSessionModalTitle">Session ended?</h3>
+      <p id="endSessionModalDescription">This will end the current live queue session and save its records to the Registered Player Cloud.</p>
+    </section>
+
+    <div class="end-session-details-list" aria-label="Session details for DUPR CSV export">
+      <div class="end-session-detail-row">
+        <span class="end-session-detail-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
+        <label class="end-session-detail-field" for="endSessionCsvEventNameInput">
+          <span>Session name</span>
+          <input id="endSessionCsvEventNameInput" type="text" maxlength="120" autocomplete="organization-title" placeholder="Enter session name for CSV">
+        </label>
       </div>
-      <div class="end-session-summary-card">
-        <strong id="endSummaryRegistered">0</strong>
-        <span>New Registered Players</span>
+      <div class="end-session-detail-row">
+        <span class="end-session-detail-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+        </span>
+        <label class="end-session-detail-field" for="endSessionCsvDateInput">
+          <span>Date</span>
+          <input id="endSessionCsvDateInput" type="date" aria-label="CSV match date">
+        </label>
       </div>
-      <div class="end-session-summary-card">
-        <strong id="endSummaryMatches">0</strong>
-        <span>Total Matches</span>
+      <div class="end-session-detail-row">
+        <span class="end-session-detail-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 0 0 7.07 0l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15"/><path d="M14 11a5 5 0 0 0-7.07 0l-2 2A5 5 0 0 0 12 20.07l1.15-1.15"/></svg>
+        </span>
+        <label class="end-session-detail-field" for="endSessionCsvLocationInput">
+          <span>Location</span>
+          <input id="endSessionCsvLocationInput" type="text" maxlength="120" autocomplete="street-address" placeholder="Enter location for CSV">
+        </label>
       </div>
     </div>
+
+    <section class="end-session-attendees" aria-labelledby="endSessionAttendeesTitle">
+      <div class="end-session-attendees-title" id="endSessionAttendeesTitle">ATTENDEES</div>
+      <div class="end-session-attendees-row">
+        <div class="end-session-avatar-stack" id="endSessionAttendeeAvatars" aria-label="Session players"></div>
+        <div class="end-session-attendees-meta" id="endSessionAttendeeMeta">0 matches · 0 players checked in</div>
+      </div>
+    </section>
+
     <div class="modal-actions end-session-modal-actions">
       <button id="endSessionCancel" type="button">Cancel</button>
-      <button type="button" class="dupr-csv-download-btn end-session-dupr-export-btn" id="endSessionDuprCsvBtn" onclick="downloadDuprCsv()" hidden><span aria-hidden="true">↓</span> Download DUPR CSV</button>
       <button class="end-session-confirm-btn" id="endSessionConfirm" type="button">End Session</button>
     </div>
   </div>
-</div>
-
-<!-- DUPR CSV EVENT DETAILS -->
-<div class="modal hidden dupr-csv-export-modal" id="duprCsvExportModal" role="presentation" onclick="if(event.target===this)closeDuprCsvExportModal()">
-  <div class="modal-box dupr-csv-export-modal-box" role="dialog" aria-modal="true" aria-labelledby="duprCsvExportTitle" aria-describedby="duprCsvExportDescription">
-    <div class="dupr-csv-export-kicker"><span aria-hidden="true">↓</span> DUPR MATCH IMPORT</div>
-    <h2 id="duprCsvExportTitle">Export Match Results</h2>
-    <p class="modal-note" id="duprCsvExportDescription">Provide the event name and location to be included in every match row of your DUPR CSV export.</p>
-    <form id="duprCsvExportForm" class="dupr-csv-export-form">
-      <label class="dupr-csv-export-field" for="duprCsvEventNameInput">
-        <span>Event Name <b aria-hidden="true">*</b></span>
-        <input id="duprCsvEventNameInput" name="eventName" type="text" maxlength="120" required autocomplete="organization-title" placeholder="e.g. Pickle World Open Play">
-      </label>
-      <label class="dupr-csv-export-field" for="duprCsvLocationInput">
-        <span>Location <b aria-hidden="true">*</b></span>
-        <input id="duprCsvLocationInput" name="location" type="text" maxlength="120" required autocomplete="street-address" placeholder="e.g. Cagayan de Oro, Philippines">
-      </label>
-      <p class="dupr-csv-export-help">These values will populate the <code>event</code> and <code>location</code> columns in the downloaded CSV file.</p>
-      <div class="modal-actions dupr-csv-export-actions">
-        <button type="button" id="duprCsvExportCancelBtn" onclick="closeDuprCsvExportModal()">Cancel</button>
-        <button type="submit" class="dupr-csv-export-confirm-btn"><span aria-hidden="true">↓</span> Download CSV</button>
-      </div>
-    </form>
-  </div>
+        <div class="end-session-attendee-panel" id="endSessionAttendeePanel" aria-hidden="true" inert>
+          <div class="end-session-attendee-panel-header">
+            <div class="end-session-attendee-panel-heading">
+              <strong>SESSION ATTENDEES</strong>
+              <span id="endSessionAttendeePanelCount" class="panel-count">(0)</span>
+            </div>
+          </div>
+          <input class="end-session-attendee-search" id="endSessionAttendeeSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search player names…" aria-label="Search attendee names">
+          <div class="end-session-attendee-list" id="endSessionAttendeeList" role="list" aria-label="Session attendee names"></div>
+          <div class="end-session-attendee-empty" id="endSessionAttendeeEmpty" hidden>No attendee names found.</div>
+        </div>
 </div>
 
 <!-- ADD COURT MODAL -->
@@ -522,7 +539,7 @@ Maria Santos,Female"></textarea>
       <button type="button" class="live-view-qr-close" onclick="closeRegistrationQrModal()" aria-label="Close registration QR code">Close</button>
     </div>
     <div class="live-view-qr-content">
-      <div class="live-view-qr-image-wrap" id="registrationQrImageWrap"><img id="registrationQrImage" alt="QR code for player registration"><img id="registrationQrBrandLogo" class="live-view-qr-center-logo" src="pickleball-p-emblem.png" alt="Pickle Point Match brand logo" hidden><span id="registrationQrUnavailable" hidden>QR code will appear when opened through a web server.</span><div id="registrationQrLoader" class="live-view-qr-offline-loader" hidden role="status" aria-label="Registration QR unavailable while offline"><img src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div></div>
+      <div class="live-view-qr-image-wrap" id="registrationQrImageWrap"><img id="registrationQrImage" alt="QR code for player registration"><img id="registrationQrBrandLogo" class="live-view-qr-center-logo" src="pickleball-p-emblem.png" alt="Organizer logo" hidden><span id="registrationQrUnavailable" hidden>QR code will appear when opened through a web server.</span><div id="registrationQrLoader" class="live-view-qr-offline-loader" hidden role="status" aria-label="Registration QR unavailable while offline"><img src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div></div>
       <div class="live-view-qr-details">
         <strong id="registrationQrStatusTitle">Ready to register</strong>
         <p id="registrationQrStatusNote">Players can complete their details to save a profile to Registered Player Cloud. Check them in to the waiting queue from the cloud list when ready.</p>
@@ -540,7 +557,7 @@ Maria Santos,Female"></textarea>
 
 <div class="toast" id="toast"></div>
 <script src="auth-session.js?v=organizer-display-name-20261024-1"></script>
-<script src="queueing-app-loader.js?v=queueing-refresh-stability-20261027-1&dupr-csv-export=20261026-3&dupr-location=20261026-1&organizer-logo-cache-20261026-1&event-rules-enabled-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&dupr-label-toggle-20261026-1&queue-dupr-toggle-header=20261026-2&queue-dupr-text-only=20261026-1" defer></script>
+<script src="queueing-app-loader.js?v=queueing-refresh-stability-20261027-1&attendee-panel-no-auto-open=20261028-1&dupr-csv-export=20261028-3&dupr-location=20261026-1&organizer-logo-cache-20261026-1&event-rules-enabled-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&dupr-label-toggle-20261026-1&queue-dupr-toggle-header=20261026-2&queue-dupr-text-only=20261026-1&organizer-scoped-dupr-registration=20261028-1&end-session-attendee-panel=20261028-13-reference-colors-no-auto-open" defer></script>
 
 
 

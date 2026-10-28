@@ -348,6 +348,12 @@ function initQueueNetworkStatus(){
 }
 
 const endSessionCountTimers={};
+let endSessionAttendeePeople=[];
+let endSessionAttendeePanelOpen=false;
+let endSessionAttendeeAnimationTimer=null;
+let endSessionAttendeeResizeObserver=null;
+let endSessionAttendeePositionFrame=null;
+const END_SESSION_ATTENDEE_ANIMATION_MS=720;
 function animateEndSessionCount(id,target){
   const el=$(id);
   if(!el)return;
@@ -369,20 +375,283 @@ function animateEndSessionCount(id,target){
   },70);
 }
 
+function renderEndSessionAttendees(checkins, matches){
+  const avatarStack=$('endSessionAttendeeAvatars');
+  const meta=$('endSessionAttendeeMeta');
+  const candidates=[...(Array.isArray(state.players)?state.players:[]),...(Array.isArray(state.left)?state.left:[])];
+  const people=[];
+  const peopleByKey=new Map();
+  candidates.forEach(player=>{
+    if(!player||typeof player!=='object')return;
+    const name=String(player.name||player.nickname||player.displayName||'').trim();
+    const id=player.id!==undefined&&player.id!==null?String(player.id).trim():'';
+    const key=id?`id:${id}`:`name:${name.toLocaleLowerCase()}`;
+    if(!name)return;
+    const gender=String(player.gender||'').trim();
+    const category=String(player.category||'').trim().toUpperCase();
+    const existing=peopleByKey.get(key);
+    if(existing){
+      if(!existing.gender&&gender)existing.gender=gender;
+      if(!existing.category&&category)existing.category=category;
+      return;
+    }
+    const person={name,id,gender,category};
+    peopleByKey.set(key,person);
+    people.push(person);
+  });
+  endSessionAttendeePeople=people;
+  const total=Math.max(people.length,Math.max(0,Number(checkins)||0));
+  if(avatarStack){
+    avatarStack.replaceChildren();
+    const visibleCount=Math.min(3,total);
+    for(let index=0;index<visibleCount;index++){
+      const person=people[index];
+      const avatar=document.createElement('span');
+      avatar.className='end-session-avatar';
+      const name=person?.name||'Player';
+      const initials=name.split(/\s+/).filter(Boolean).slice(0,2).map(part=>part.charAt(0)).join('').toLocaleUpperCase()||'P';
+      avatar.textContent=initials;
+      avatar.title=person?.name||'Checked-in player';
+      avatar.setAttribute('aria-label',person?.name||'Checked-in player');
+      avatarStack.appendChild(avatar);
+    }
+    if(total>3){
+      const more=document.createElement('button');
+      more.type='button';
+      more.className='end-session-avatar end-session-avatar-overflow';
+      more.textContent=`+${total-3}`;
+      more.setAttribute('aria-label',`Show attendee list; ${total-3} more players`);
+      more.setAttribute('aria-controls','endSessionAttendeePanel');
+      more.setAttribute('aria-expanded',String(endSessionAttendeePanelOpen));
+      more.title='Show all session attendees';
+      more.addEventListener('click',toggleEndSessionAttendeePanel);
+      avatarStack.appendChild(more);
+    }
+    avatarStack.setAttribute('aria-label',`${total} session players`);
+  }
+  if(meta){
+    const matchLabel=matches===1?'match':'matches';
+    const playerLabel=checkins===1?'player':'players';
+    meta.textContent=`${matches} ${matchLabel} · ${checkins} ${playerLabel} checked in`;
+  }
+}
+
+function renderEndSessionAttendeeList(){
+  const list=$('endSessionAttendeeList');
+  const count=$('endSessionAttendeePanelCount');
+  const empty=$('endSessionAttendeeEmpty');
+  if(!list)return;
+
+  const query=String($('endSessionAttendeeSearch')?.value||'').trim().toLocaleLowerCase();
+  const filtered=endSessionAttendeePeople.filter(person=>person.name.toLocaleLowerCase().includes(query));
+  list.replaceChildren();
+
+  filtered.forEach(person=>{
+    const item=document.createElement('div');
+    item.className='end-session-attendee-item';
+    item.setAttribute('role','listitem');
+
+    const initials=document.createElement('span');
+    initials.className='end-session-attendee-list-avatar';
+    initials.setAttribute('aria-hidden','true');
+    initials.textContent=person.name.split(/\s+/).filter(Boolean).slice(0,2).map(part=>part.charAt(0)).join('').toLocaleUpperCase()||'P';
+
+    const info=document.createElement('div');
+    info.className='end-session-attendee-info';
+
+    const nameLine=document.createElement('div');
+    nameLine.className='end-session-attendee-name-line';
+
+    const name=document.createElement('span');
+    name.className='end-session-attendee-name';
+    name.textContent=person.name;
+    nameLine.appendChild(name);
+
+    if(person.gender){
+      const gender=document.createElement('span');
+      const isFemale=['female','f','woman','women'].includes(String(person.gender).trim().toLowerCase());
+      gender.className=`end-session-attendee-gender ${isFemale?'gender-female':'gender-male'}`;
+      gender.innerHTML=genderSvgIcon(person.gender);
+      gender.title=`${person.gender} player`;
+      gender.setAttribute('role','img');
+      gender.setAttribute('aria-label',`${person.gender} player`);
+      nameLine.appendChild(gender);
+    }
+
+    if(person.category){
+      const category=document.createElement('span');
+      const categoryCode=String(person.category).trim().toUpperCase();
+      const validCategories=['BEG','NOV','INT','ADV','EXP'];
+      category.className=`end-session-attendee-category${validCategories.includes(categoryCode)?` skill-${categoryCode.toLowerCase()}`:''}`;
+      category.textContent=categoryCode;
+      category.title=`${categoryCode} skill category`;
+      category.setAttribute('aria-label',`${categoryCode} skill category`);
+      nameLine.appendChild(category);
+    }
+
+    info.appendChild(nameLine);
+    item.append(initials,info);
+    list.appendChild(item);
+  });
+
+  // Match Paddle Stack's plain counter format, independent of the current search.
+  if(count)count.textContent=`(${endSessionAttendeePeople.length})`;
+  if(empty){
+    empty.hidden=filtered.length>0;
+    empty.textContent=query?'No attendee names match your search.':(endSessionAttendeePeople.length?'No attendee names found.':'No attendee names are available in this session.');
+  }
+}
+
+function positionEndSessionAttendeePanel(){
+  const modal=$('endSessionModal');
+  const box=modal?.querySelector('.end-session-modal-box');
+  const panel=$('endSessionAttendeePanel');
+  if(!modal||!box||!panel)return;
+
+  // The open/close handler owns the state class. Do not re-open the layout from
+  // inside this measurement function while the drawer is closing.
+  const viewportWidth=Math.max(280,Math.round(document.documentElement.clientWidth||window.innerWidth||280));
+  const gap=viewportWidth<=560?6:(viewportWidth<=900?8:10);
+  const panelWidth=Math.max(88,Math.min(280,Math.round(viewportWidth*0.30),viewportWidth-220));
+  modal.style.setProperty('--end-session-attendee-panel-width',`${panelWidth}px`);
+  modal.style.setProperty('--end-session-attendee-gap',`${gap}px`);
+  panel.style.setProperty('width',`${panelWidth}px`,'important');
+  panel.style.setProperty('max-width',`${panelWidth}px`,'important');
+
+  // Re-read the live modal rectangle on every layout change. The modal's width
+  // animates when the attendee drawer opens, which can also change its height
+  // as the text wraps. The ResizeObserver below keeps both edges locked together.
+  const modalRect=modal.getBoundingClientRect();
+  const boxRect=box.getBoundingClientRect();
+  const groupShift=(panelWidth+gap)/2;
+  const centeredModalLeft=modalRect.left+(modalRect.width-boxRect.width)/2;
+  const panelLeft=centeredModalLeft-groupShift;
+
+  panel.style.setProperty('left',`${panelLeft-modalRect.left+modal.scrollLeft}px`,'important');
+  panel.style.setProperty('top',`${boxRect.top-modalRect.top+modal.scrollTop}px`,'important');
+  panel.style.setProperty('--end-session-attendee-panel-height',`${boxRect.height}px`);
+}
+
+function observeEndSessionAttendeeModalSize(){
+  const modal=$('endSessionModal');
+  const box=modal?.querySelector('.end-session-modal-box');
+  if(!box||typeof ResizeObserver==='undefined')return;
+  if(!endSessionAttendeeResizeObserver){
+    endSessionAttendeeResizeObserver=new ResizeObserver(()=>{
+      const panel=$('endSessionAttendeePanel');
+      const shouldTrack=endSessionAttendeePanelOpen||panel?.dataset.animationState==='closing';
+      if(!shouldTrack||!panel)return;
+      if(endSessionAttendeePositionFrame!==null){
+        cancelAnimationFrame(endSessionAttendeePositionFrame);
+      }
+      endSessionAttendeePositionFrame=requestAnimationFrame(()=>{
+        endSessionAttendeePositionFrame=null;
+        const stillTracking=endSessionAttendeePanelOpen||panel.dataset.animationState==='closing';
+        if(stillTracking)positionEndSessionAttendeePanel();
+      });
+    });
+  }
+  endSessionAttendeeResizeObserver.disconnect();
+  endSessionAttendeeResizeObserver.observe(box);
+}
+
+function setEndSessionAttendeePanelOpen(shouldOpen, options={}){
+  const panel=$('endSessionAttendeePanel');
+  if(!panel)return;
+  const opening=Boolean(shouldOpen);
+  const modal=$('endSessionModal');
+  const search=$('endSessionAttendeeSearch');
+  const wasOpen=endSessionAttendeePanelOpen||panel.classList.contains('is-open')||
+    panel.dataset.animationState==='opening'||panel.dataset.animationState==='open';
+  endSessionAttendeePanelOpen=opening;
+  if(endSessionAttendeeAnimationTimer){
+    clearTimeout(endSessionAttendeeAnimationTimer);
+    endSessionAttendeeAnimationTimer=null;
+  }
+
+  const toggle=$('endSessionAttendeeAvatars')?.querySelector('.end-session-avatar-overflow');
+  if(toggle)toggle.setAttribute('aria-expanded',String(opening));
+
+  // A closed drawer must stay fully closed when the End Session modal first
+  // opens. Previously every call with `false` entered the closing animation
+  // state, whose CSS intentionally makes the panel visible for the slide-out.
+  // That made the attendee list flash/show even when +N had never been clicked.
+  const resetImmediately=!opening&&(options.immediate===true||!wasOpen||modal?.classList.contains('hidden'));
+  if(resetImmediately){
+    if(modal)modal.classList.remove('has-attendee-panel');
+    panel.classList.remove('is-open');
+    panel.dataset.animationState='closed';
+    panel.setAttribute('aria-hidden','true');
+    panel.inert=true;
+    if(search)search.value='';
+    if(endSessionAttendeePositionFrame!==null){
+      cancelAnimationFrame(endSessionAttendeePositionFrame);
+      endSessionAttendeePositionFrame=null;
+    }
+    return;
+  }
+
+  // Let CSS animate the state change while JS tracks direction so a quick
+  // re-click reverses smoothly from the current position instead of jumping.
+  panel.dataset.animationState=opening?'opening':'closing';
+  if(modal)modal.classList.toggle('has-attendee-panel',opening);
+  panel.classList.toggle('is-open',opening);
+  panel.setAttribute('aria-hidden',String(!opening));
+  panel.inert=!opening;
+
+  if(opening){
+    const viewportWidth=Math.max(280,document.documentElement.clientWidth||window.innerWidth||280);
+    if(search)search.placeholder=viewportWidth<=360?'Search…':(viewportWidth<=560?'Search names…':'Search player names…');
+    observeEndSessionAttendeeModalSize();
+    positionEndSessionAttendeePanel();
+    renderEndSessionAttendeeList();
+    requestAnimationFrame(()=>{
+      if(endSessionAttendeePanelOpen){
+        positionEndSessionAttendeePanel();
+        panel.dataset.animationState='open';
+        // Keep focus on the +N trigger; opening the drawer must not jump into search.
+      }
+    });
+  }else{
+    if(search)search.value='';
+    // Keep the closing direction active until the slow rightward slide ends.
+    endSessionAttendeeAnimationTimer=window.setTimeout(()=>{
+      if(!endSessionAttendeePanelOpen){
+        panel.dataset.animationState='closed';
+      }
+      endSessionAttendeeAnimationTimer=null;
+    },END_SESSION_ATTENDEE_ANIMATION_MS+80);
+  }
+}
+
+function toggleEndSessionAttendeePanel(){
+  setEndSessionAttendeePanelOpen(!endSessionAttendeePanelOpen);
+}
+
 function openEndSessionConfirmation(){
   const modal=$('endSessionModal');
   if(!modal)return;
+  // Reset without animating a close that may have been interrupted while the
+  // modal was hidden; the roster should only appear after the +N trigger.
+  setEndSessionAttendeePanelOpen(false,{immediate:true});
   const checkins=Number(state.sessionMetrics?.cloudCheckins)||0;
-  const registered=Number(state.sessionMetrics?.newRegistered)||0;
   const matches=Array.isArray(state.logs)?state.logs.length:0;
+  const eventNameInput=$('endSessionCsvEventNameInput');
+  const dateInput=$('endSessionCsvDateInput');
+  const locationInput=$('endSessionCsvLocationInput');
+  if(eventNameInput)eventNameInput.value=duprCsvDefaultEventName();
+  if(locationInput)locationInput.value=String(state.duprLocation||'').trim();
+  if(dateInput){
+    const latestLog=Array.isArray(state.logs)?[...state.logs].reverse().find(log=>log&&(log.endedAt||log.startedAt)):null;
+    dateInput.value=duprCsvDate(latestLog?.endedAt||latestLog?.startedAt||new Date());
+  }
+  renderEndSessionAttendees(checkins,matches);
   modal.classList.remove('hidden');
-  animateEndSessionCount('endSummaryCheckins',checkins);
-  animateEndSessionCount('endSummaryRegistered',registered);
-  animateEndSessionCount('endSummaryMatches',matches);
   syncDuprCsvDownloadButtons();
 }
 
 function closeEndSessionConfirmation(){
+  setEndSessionAttendeePanelOpen(false,{immediate:true});
   const modal=$('endSessionModal');
   if(modal)modal.classList.add('hidden');
 }
@@ -921,13 +1190,61 @@ async function copyLiveViewQrLink(){
   try{await navigator.clipboard.writeText(field.value);toast('Live View link copied.');}
   catch(e){field.focus();field.select();let copied=false;try{copied=document.execCommand('copy');}catch(err){}toast(copied?'Live View link copied.':'Select and copy the Live View link.');}
 }
-function getRegistrationPageUrl(){const url=new URL('Registration.html',window.location.href);if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);return url;}
+function getRegistrationPageUrl(){const url=new URL('Registration.html',window.location.href);if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);url.searchParams.set('dupr',isCurrentSessionDupr()?'1':'0');return url;}
+function syncRegistrationQrOrganizerLogo(forceRefresh=false){
+  const logo=$('registrationQrBrandLogo');
+  if(!logo)return;
+  const organizerId=String(window.PPM_ORGANIZER_ID||'').trim();
+  if(!organizerId){
+    logo.onerror=null;
+    logo.src='pickleball-p-emblem.png';
+    logo.dataset.organizerLogoReady='true';
+    logo.dataset.hasCustomOrganizerLogo='false';
+    return;
+  }
+  if(!forceRefresh&&logo.dataset.organizerLogoId===organizerId&&['loading','true'].includes(logo.dataset.organizerLogoReady||''))return;
+  logo.dataset.organizerLogoId=organizerId;
+  logo.dataset.organizerLogoReady='loading';
+  logo.hidden=true;
+  fetch(`/api/live-state?organizer=${encodeURIComponent(organizerId)}`,{cache:'no-store',credentials:'same-origin'})
+    .then(response=>response.ok?response.json():null)
+    .then(data=>{
+      if(logo.dataset.organizerLogoId!==organizerId)return;
+      const organizerLogo=typeof data?.organizerLogo==='string'?data.organizerLogo.trim():'';
+      logo.onerror=null;
+      logo.src=organizerLogo||'pickleball-p-emblem.png';
+      logo.dataset.hasCustomOrganizerLogo=organizerLogo?'true':'false';
+      logo.onerror=()=>{
+        logo.onerror=null;
+        logo.src='pickleball-p-emblem.png';
+        logo.dataset.hasCustomOrganizerLogo='false';
+        logo.dataset.organizerLogoReady='true';
+        const qr=$('registrationQrImage');
+        logo.hidden=!(navigator.onLine!==false&&qr&&qr.complete&&qr.naturalWidth>0);
+      };
+      logo.dataset.organizerLogoReady='true';
+      const qr=$('registrationQrImage');
+      logo.hidden=!(navigator.onLine!==false&&qr&&qr.complete&&qr.naturalWidth>0);
+    })
+    .catch(()=>{
+      if(logo.dataset.organizerLogoId!==organizerId)return;
+      logo.onerror=null;
+      logo.src='pickleball-p-emblem.png';
+      logo.dataset.hasCustomOrganizerLogo='false';
+      logo.dataset.organizerLogoReady='true';
+      const qr=$('registrationQrImage');
+      logo.hidden=!(navigator.onLine!==false&&qr&&qr.complete&&qr.naturalWidth>0);
+    });
+}
 function syncRegistrationQrNetworkState(){
   const modal=$('registrationQrModal'),wrap=$('registrationQrImageWrap'),image=$('registrationQrImage'),unavailable=$('registrationQrUnavailable'),loader=$('registrationQrLoader'),title=$('registrationQrStatusTitle'),note=$('registrationQrStatusNote'),brandLogo=$('registrationQrBrandLogo');
   if(!modal||!wrap||!image||!unavailable||!loader)return;
+  syncRegistrationQrOrganizerLogo();
   if(!image.dataset.brandLogoEventsBound){
     image.dataset.brandLogoEventsBound='true';
-    image.addEventListener('load',()=>{if(navigator.onLine!==false&&brandLogo)brandLogo.hidden=false;});
+    image.addEventListener('load',()=>{
+      if(navigator.onLine!==false&&brandLogo&&brandLogo.dataset.organizerLogoReady==='true')brandLogo.hidden=false;
+    });
     image.addEventListener('error',()=>{if(brandLogo)brandLogo.hidden=true;});
   }
   const url=getRegistrationPageUrl();
@@ -960,12 +1277,20 @@ window.addEventListener('offline',()=>{if($('registrationQrModal')&&!$('registra
 function syncQueueDuprLabelsToggle(){
   const toggle=$('queueDuprLabelsToggle');
   if(!toggle)return;
-  const enabled=state.duprLabelsEnabled!==false;
+  const duprSession=isCurrentSessionDupr();
+  // DUPR labels are unavailable in a non-DUPR session. A DUPR session starts
+  // with them enabled; organizers may still hide them during that session.
+  if(!duprSession)state.duprLabelsEnabled=false;
+  const enabled=duprSession&&state.duprLabelsEnabled!==false;
   toggle.textContent=enabled?'Dupr on':'Dupr off';
   toggle.classList.toggle('is-off',!enabled);
-  toggle.title=enabled?'Dupr on — click to hide labels':'Dupr off — click to show labels';
+  toggle.title=duprSession
+    ? (enabled?'DUPR session — click to hide labels':'DUPR session — click to show labels')
+    : 'Non-DUPR session — DUPR labels are off';
   toggle.setAttribute('aria-pressed',String(enabled));
-  toggle.setAttribute('aria-label',enabled?'Dupr on — click to hide labels':'Dupr off — click to show labels');
+  toggle.setAttribute('aria-label',toggle.title);
+  toggle.disabled=!duprSession;
+  toggle.setAttribute('aria-disabled',String(!duprSession));
 }
 
 function saveState(){
@@ -1012,7 +1337,7 @@ function loadState(){
     state.sessionName=String(data.sessionName||'Open Play — Oct 6, 2026');
     state.duprMatch=!!data.duprMatch;
     state.duprLocation=String(data.duprLocation||'').trim();
-    state.duprLabelsEnabled=typeof data.duprLabelsEnabled==='boolean'?data.duprLabelsEnabled:true;
+    state.duprLabelsEnabled=isCurrentSessionDupr();
     state.recordScores=typeof data.recordScores==='boolean'?data.recordScores:false;
     state.liveRankingEnabled=typeof data.liveRankingEnabled==='boolean'?data.liveRankingEnabled:isLiveRankingEnabled();
     state.liveMatchesEnabled=typeof data.liveMatchesEnabled==='boolean'?data.liveMatchesEnabled:isLiveMatchesEnabled();
@@ -3693,61 +4018,42 @@ function isCurrentSessionDupr(){
 function syncDuprCsvDownloadButtons(){
   if(!IS_QUEUEING_PAGE)return;
   const visible=isCurrentSessionDupr();
-  const historyButton=$('downloadDuprCsvBtn');
   const endSessionButton=$('endSessionDuprCsvBtn');
-  if(historyButton)historyButton.hidden=!visible;
-  if(endSessionButton)endSessionButton.hidden=!visible;
-}
-function downloadDuprCsv(){
-  if(!isCurrentSessionDupr()){
-    syncDuprCsvDownloadButtons();
-    alert('DUPR CSV download is available only for DUPR sessions.');
-    return;
+  if(endSessionButton){
+    endSessionButton.hidden=!visible;
+    endSessionButton.setAttribute('aria-hidden',visible?'false':'true');
+    endSessionButton.tabIndex=visible?0:-1;
   }
-  if(!showDuprCsvPreExportValidation())return;
-  const modal=$('duprCsvExportModal');
-  const eventInput=$('duprCsvEventNameInput');
-  const locationInput=$('duprCsvLocationInput');
-  if(!modal||!eventInput||!locationInput){
-    alert('Hindi mabuksan ang DUPR CSV details form. Pakisubukang i-refresh ang page.');
-    return;
-  }
-  eventInput.value=duprCsvDefaultEventName();
-  locationInput.value=String(state.duprLocation||'').trim();
-  modal.classList.remove('hidden');
-  eventInput.focus();
 }
-function closeDuprCsvExportModal(){
-  const modal=$('duprCsvExportModal');
-  if(modal)modal.classList.add('hidden');
-}
-function confirmDuprCsvDownload(){
-  const eventInput=$('duprCsvEventNameInput');
-  const locationInput=$('duprCsvLocationInput');
-  const eventName=String(eventInput?.value||'').trim();
-  const locationName=String(locationInput?.value||'').trim();
+function exportDuprCsvWithDetails(eventName,locationName,dateOverride=''){
+  eventName=String(eventName||'').trim();
+  locationName=String(locationName||'').trim();
+  dateOverride=String(dateOverride||'').trim();
   if(!eventName){
-    alert('Ilagay muna ang Event Name.');
-    eventInput?.focus();
-    return;
+    alert('Ilagay muna ang Session Name.');
+    return false;
   }
   if(!locationName){
     alert('Ilagay muna ang Location.');
-    locationInput?.focus();
-    return;
+    return false;
+  }
+  if(dateOverride&&!/^\d{4}-\d{2}-\d{2}$/.test(dateOverride)){
+    alert('Pumili ng valid na date para sa CSV.');
+    return false;
   }
   const {rows,markedCount,skipped}=getDuprCsvRows();
   if(!markedCount||!rows.length){
-    closeDuprCsvExportModal();
     showDuprCsvPreExportValidation();
-    return;
+    return false;
   }
   const eventColumnIndex=DUPR_CSV_COLUMNS.indexOf('event');
+  const dateColumnIndex=DUPR_CSV_COLUMNS.indexOf('date');
   const locationColumnIndex=DUPR_CSV_COLUMNS.indexOf('location');
   const exportRows=rows.map(row=>{
     const output=row.slice();
     output[eventColumnIndex]=eventName;
     output[locationColumnIndex]=locationName;
+    if(dateOverride&&dateColumnIndex>=0)output[dateColumnIndex]=dateOverride;
     return output;
   });
   state.duprLocation=locationName;
@@ -3760,7 +4066,6 @@ function confirmDuprCsvDownload(){
   anchor.href=url;
   anchor.download=`${duprCsvDate(new Date())}-${safeEvent}-DUPR-Matches.csv`;
   document.body.appendChild(anchor);anchor.click();anchor.remove();URL.revokeObjectURL(url);
-  closeDuprCsvExportModal();
   const skippedCount=markedCount-exportRows.length;
   const skippedText=skippedCount?` ${skippedCount} match(es) skipped because score, player details, or DUPR IDs are incomplete.`:'';
   toast(`${exportRows.length} DUPR match(es) exported.${skippedText}`);
@@ -3772,15 +4077,24 @@ function confirmDuprCsvDownload(){
     if(skipped.format)reasons.push(`${skipped.format} unknown match type`);
     alert(`Na-download ang ${exportRows.length} match(es).\n\nHindi isinama: ${reasons.join(', ')||skippedCount+' incomplete match(es)'}.\n\nAyusin ang mga missing score o DUPR ID para maisama ang mga ito sa susunod na export.`);
   }
+  return true;
 }
-$('duprCsvExportForm')?.addEventListener('submit',event=>{
-  event.preventDefault();
-  confirmDuprCsvDownload();
-});
-document.addEventListener('keydown',event=>{
-  if(event.key==='Escape'&&!$('duprCsvExportModal')?.classList.contains('hidden'))closeDuprCsvExportModal();
-});
-
+function downloadDuprCsvFromEndSession(){
+  if(!isCurrentSessionDupr()){
+    syncDuprCsvDownloadButtons();
+    alert('DUPR CSV download is available only for DUPR sessions.');
+    return;
+  }
+  const eventName=$('endSessionCsvEventNameInput')?.value||'';
+  const dateValue=$('endSessionCsvDateInput')?.value||'';
+  const locationName=$('endSessionCsvLocationInput')?.value||'';
+  if(!dateValue){
+    alert('Pumili muna ng date para sa CSV.');
+    $('endSessionCsvDateInput')?.focus();
+    return;
+  }
+  exportDuprCsvWithDetails(eventName,locationName,dateValue);
+}
 function renderHistoryTable(){
   const table=$('historyTable');
   if(!table) return;
@@ -4202,6 +4516,19 @@ document.querySelectorAll('.gender-choice').forEach(btn=>btn.onclick=()=>{regist
 $('registerFullname').addEventListener('input',updateRegistrationSaveButton);
 bindRegistrationTextHelpers();
 $('endSessionBtn').onclick=openEndSessionConfirmation;
+$('endSessionAttendeeSearch')?.addEventListener('input',renderEndSessionAttendeeList);
+window.addEventListener('resize',()=>{
+  const panel=$('endSessionAttendeePanel');
+  if(endSessionAttendeePanelOpen||panel?.dataset.animationState==='closing')positionEndSessionAttendeePanel();
+},{passive:true});
+$('endSessionModal')?.addEventListener('scroll',()=>{
+  const panel=$('endSessionAttendeePanel');
+  if(endSessionAttendeePanelOpen||panel?.dataset.animationState==='closing')positionEndSessionAttendeePanel();
+},{passive:true});
+$('endSessionModal')?.querySelector('.end-session-modal-box')?.addEventListener('scroll',()=>{
+  const panel=$('endSessionAttendeePanel');
+  if(endSessionAttendeePanelOpen||panel?.dataset.animationState==='closing')positionEndSessionAttendeePanel();
+},{passive:true});
 $('endSessionCancel').onclick=closeEndSessionConfirmation;
 $('endSessionConfirm').onclick=endSession;
 $('addCourtBtn').onclick=addWaitingCourt;
@@ -4213,7 +4540,7 @@ $('historyCloseBtn').onclick=closeHistoryDetail;
 $('historySaveBtn').onclick=saveHistoryScore;
 
 $('importPlayersBtn').onclick=()=>{loadCloudRecords();$('cloudRecordsModal').classList.remove('hidden');renderCloudRecords();};
-$('topStats')?.addEventListener('click',e=>{const toggle=e.target.closest('#queueDuprLabelsToggle');if(!toggle)return;state.duprLabelsEnabled=state.duprLabelsEnabled===false;saveState();syncQueueDuprLabelsToggle();render();toast(state.duprLabelsEnabled?'DUPR labels are ON.':'DUPR labels are OFF.');});
+$('topStats')?.addEventListener('click',e=>{const toggle=e.target.closest('#queueDuprLabelsToggle');if(!toggle||!isCurrentSessionDupr())return;state.duprLabelsEnabled=state.duprLabelsEnabled===false;saveState();syncQueueDuprLabelsToggle();render();toast(state.duprLabelsEnabled?'DUPR labels are ON.':'DUPR labels are OFF.');});
 $('cloudRecordsDone').onclick=()=>{pendingCloudDeleteId=null;editingCloudDuprId=null;$('cloudRecordsModal').classList.add('hidden');};$('cloudRecordsSearch').addEventListener('input',renderCloudRecords);const leftPlayersSearch=$('leftPlayersSearch');if(leftPlayersSearch)leftPlayersSearch.addEventListener('input',renderLeftPlayersPopup);
 $('importCancel').onclick=()=>$('importModal').classList.add('hidden');
 $('importSave').onclick=importPlayers;
@@ -4403,7 +4730,7 @@ function enterLiveQueueFromStart(){
   state.sessionEndedAt=null;
   state.duprMatch=!!$('liveQueueDupr')?.checked;
   state.duprLocation=String($('liveQueueDuprLocation')?.value||'').trim();
-  state.duprLabelsEnabled=$('liveQueueDuprLabels') ? !!$('liveQueueDuprLabels').checked : true;
+  state.duprLabelsEnabled=state.duprMatch;
   state.recordScores=!!$('liveQueueRecordResults')?.checked;
   state.eventRules={target,winBy,type};
   state.matchingMode=['balanced','social-mix','skill-separated','winners-losers'].includes(matchingMode)?matchingMode:'balanced';
@@ -4496,7 +4823,7 @@ function applyPendingLiveQueueStartConfig(){
   state.sessionEndedAt=null;
   state.duprMatch=!!config.duprMatch;
   state.duprLocation=String(config.duprLocation||'').trim();
-  state.duprLabelsEnabled=typeof config.duprLabelsEnabled==='boolean'?config.duprLabelsEnabled:true;
+  state.duprLabelsEnabled=state.duprMatch;
   state.recordScores=!!config.recordScores;
   state.eventRules={target:[11,15,21].includes(target)?target:11,winBy:[1,2,3].includes(winBy)?winBy:1,type:config.type==='Singles'?'Singles':'Doubles'};
   state.matchingMode=matchingMode;
