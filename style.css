@@ -24414,3 +24414,45 @@ html body #endSessionModal .end-session-attendee-category.skill-exp {
   border-color: #F8B4B4 !important;
   color: #9B1C1C !important;
 }
+
+
+/* Registered Player Cloud — full player-detail editor; scoped to this new modal. */
+html body #cloudRecordsModal .cloud-player-actions .cloud-edit-btn {
+  min-height:25px!important;padding:5px 7px!important;border:1px solid #d2dce4!important;border-radius:7px!important;
+  background:#f7fafc!important;color:#43566a!important;font-family:inherit!important;font-size:9px!important;font-weight:700!important;line-height:1!important;white-space:nowrap!important;cursor:pointer!important;
+}
+html body #cloudRecordsModal .cloud-player-actions .cloud-edit-btn:hover,
+html body #cloudRecordsModal .cloud-player-actions .cloud-edit-btn:focus-visible {
+  border-color:#9bcfc7!important;background:#effbf7!important;color:#087f73!important;outline:none!important;
+}
+html body #cloudPlayerEditModal {
+  z-index:1200!important;background:rgba(12,20,36,.62)!important;padding:12px!important;overflow-y:auto!important;
+}
+html body #cloudPlayerEditModal .cloud-player-edit-box {
+  width:min(410px,94vw)!important;max-width:410px!important;max-height:calc(100dvh - 24px)!important;overflow-y:auto!important;
+  margin:auto!important;padding:17px!important;border:1px solid #e1e9e4!important;border-radius:14px!important;
+  background:#fff!important;box-shadow:0 16px 48px rgba(15,35,25,.22)!important;box-sizing:border-box!important;
+}
+html body #cloudPlayerEditModal .cloud-player-edit-heading {margin:0 0 13px!important;padding:0 0 10px!important;border-bottom:1px solid #edf2ef!important;}
+html body #cloudPlayerEditModal .cloud-player-edit-heading h2 {margin:0 0 4px!important;color:#203e30!important;font-size:15px!important;line-height:1.25!important;font-weight:800!important;}
+html body #cloudPlayerEditModal .cloud-player-edit-heading p {margin:0!important;color:#738179!important;font-size:10px!important;line-height:1.4!important;}
+html body #cloudPlayerEditModal .cloud-player-edit-field {display:flex!important;flex-direction:column!important;gap:5px!important;margin:0 0 10px!important;color:#53645a!important;font-size:10px!important;font-weight:750!important;}
+html body #cloudPlayerEditModal .cloud-player-edit-field input,
+html body #cloudPlayerEditModal .cloud-player-edit-field select {
+  display:block!important;width:100%!important;min-width:0!important;min-height:35px!important;padding:8px 10px!important;
+  border:1px solid #d8e2dc!important;border-radius:7px!important;background:#fff!important;color:#24372c!important;
+  font-family:inherit!important;font-size:12px!important;font-weight:500!important;line-height:1.3!important;box-sizing:border-box!important;outline:none!important;
+}
+html body #cloudPlayerEditModal .cloud-player-edit-field input:focus,
+html body #cloudPlayerEditModal .cloud-player-edit-field select:focus {border-color:#79bdb0!important;box-shadow:0 0 0 2px rgba(121,189,176,.16)!important;}
+html body #cloudPlayerEditModal .cloud-player-edit-actions {display:flex!important;justify-content:flex-end!important;gap:7px!important;margin-top:14px!important;padding-top:11px!important;border-top:1px solid #edf2ef!important;}
+html body #cloudPlayerEditModal .cloud-player-edit-actions button {min-height:32px!important;padding:7px 12px!important;border-radius:7px!important;font-family:inherit!important;font-size:10px!important;font-weight:750!important;line-height:1!important;cursor:pointer!important;}
+html body #cloudPlayerEditModal .cloud-player-edit-cancel {border:1px solid #d8e0dc!important;background:#f7f9f8!important;color:#5d6c63!important;}
+html body #cloudPlayerEditModal .cloud-player-edit-save {border:1px solid #087f73!important;background:#087f73!important;color:#fff!important;}
+html body #cloudPlayerEditModal .cloud-player-edit-cancel:hover {background:#eef2ef!important;}
+html body #cloudPlayerEditModal .cloud-player-edit-save:hover {background:#066c62!important;}
+@media(max-width:480px) {
+  html body #cloudRecordsModal .cloud-player-actions {gap:4px!important;}
+  html body #cloudRecordsModal .cloud-player-actions .cloud-edit-btn {padding:5px 6px!important;}
+  html body #cloudPlayerEditModal .cloud-player-edit-box {width:min(410px,96vw)!important;padding:14px!important;}
+}

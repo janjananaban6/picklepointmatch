@@ -88,7 +88,7 @@
     }
 
     const app = document.createElement('script');
-    app.src = 'script.js?v=organizer-scoped-dupr-registration-20261028-1&qr-logo-assignment=20261024-2&organizer-title-badge=20261024-1&event-rules-enabled-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&court-player-inline-meta-20261026-1&court-dupr-editor-touch-size-20261026-1&dupr-label-toggle-20261026-1&dupr-csv-export=20261028-3&end-session-details=20261028-1&dupr-location=20261026-1&queue-dupr-toggle-header=20261026-2&queue-dupr-text-only=20261026-1&end-session-attendee-panel=20261028-13-reference-colors-no-auto-open';
+    app.src = 'script.js?v=organizer-scoped-dupr-registration-20261028-1&qr-logo-assignment=20261024-2&organizer-title-badge=20261024-1&event-rules-enabled-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&court-player-inline-meta-20261026-1&court-dupr-editor-touch-size-20261026-1&dupr-label-toggle-20261026-1&dupr-csv-export=20261028-3&end-session-details=20261028-1&dupr-location=20261026-1&queue-dupr-toggle-header=20261026-2&queue-dupr-text-only=20261026-1&end-session-attendee-panel=20261028-13-reference-colors-no-auto-open&registered-player-edit=20261028-1';
     app.onerror = () => console.error('Pickle Point Match could not load script.js.');
     document.body.appendChild(app);
   }

@@ -51,7 +51,7 @@ let liveViewPendingKeepalive=false;
 try{if('BroadcastChannel' in window)liveViewBroadcastChannel=new BroadcastChannel(`pickle-point-match-live-view${ORGANIZER_STORAGE_SUFFIX?`-${ORGANIZER_STORAGE_SUFFIX}`:''}`);}catch(e){}
 const LEGACY_STORAGE_KEYS=ORGANIZER_STORAGE_SUFFIX?[]:['pickleq_v10_state','pickleq_v9_state','pickleq_v8_state','pickleq_v7_state','pickleq_v6_state'];
 const CLOUD_RECORDS_KEY='pickleq_registered_cloud_records_v1';
-let cloudRecords={players:[],logs:[],sessions:[]};let pendingCloudDeleteId=null;let editingCloudDuprId=null;let editingQueueDuprPlayerId=null;let editingCourtDuprKey=null;
+let cloudRecords={players:[],logs:[],sessions:[]};let pendingCloudDeleteId=null;let editingCloudDuprId=null;let editingCloudPlayerId=null;let editingQueueDuprPlayerId=null;let editingCourtDuprKey=null;
 const sharedClientId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():`pp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let sharedSyncReady=false,sharedSyncAvailable=false,sharedSyncInitializing=false,sharedSyncRetryTimer=null;
 let sharedAppRevision=0,sharedCloudRevision=0,appSyncInFlight=false,appSyncPending=null,cloudSyncInFlight=false,cloudSyncPending=null,applyingRemoteAppState=false,sharedEvents=null,sharedSyncStartedAt=0;
@@ -262,9 +262,71 @@ function renderCloudRecords(){
       <span class="cloud-dupr-badge cloud-dupr-inline-fields ${duprId?'':'is-unrated'}"><span class="cloud-dupr-inline-prefix">DUPR:</span><input id="cloudDuprIdInput" type="text" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(duprId||'NR')}" aria-label="DUPR ID" style="width:${Math.max(28,Math.min(200,(duprId||'NR').length*10+4))}px !important" oninput="this.style.setProperty('width',Math.max(28,Math.min(200,this.value.length*10+4))+'px','important')" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCloudDuprDetails(${playerId})}else if(event.key==='Escape'){cancelEditCloudDuprDetails()}" /><span class="cloud-dupr-separator">•</span><input id="cloudSelfRatingInput" type="text" maxlength="12" inputmode="decimal" autocomplete="off" value="${esc(selfRating||'NR')}" aria-label="Self rating" style="width:${Math.max(28,Math.min(104,(selfRating||'NR').length*10+4))}px !important" oninput="this.style.setProperty('width',Math.max(28,Math.min(104,this.value.length*10+4))+'px','important')" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCloudDuprDetails(${playerId})}else if(event.key==='Escape'){cancelEditCloudDuprDetails()}" /></span>
       <span class="cloud-dupr-editor-actions"><button type="button" class="cloud-dupr-save-btn" onclick="event.stopPropagation();saveCloudDuprDetails(${playerId})">Save</button><button type="button" class="cloud-dupr-cancel-btn" onclick="event.stopPropagation();cancelEditCloudDuprDetails()">Cancel</button></span>
     </span>`:`<button type="button" class="cloud-dupr-badge ${duprId?'':'is-unrated'}" onclick="event.stopPropagation();editCloudDuprDetails(${playerId})" aria-label="Edit DUPR ID and self rating" title="Click to edit DUPR ID and self rating"><span>DUPR: ${esc(duprId||'NR')}</span><span class="cloud-dupr-separator">•</span><span>${esc(selfRating||'NR')}</span></button>`;
-    return `<article class="cloud-player-card"><div class="cloud-player-main"><div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${esc((p.name||'?').charAt(0).toUpperCase())}</div><div class="cloud-player-ident"><b>${highlightSearchMatch(p.name,q)}${p.nickname?` (${highlightSearchMatch(p.nickname,q)})`:''} <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b><small class="cloud-player-summary"><span class="cloud-category-badge skill-${cls}">${esc(cat)}</span>${duprBadge}<span class="cloud-player-stats"><span>${p.matches||0} Matches</span><span class="cloud-win">${p.wins||0} Wins</span><span class="cloud-loss">${p.losses||0} Losses</span></span></small></div><div class="cloud-player-actions"><button class="cloud-checkin-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Player is already checked in or playing on court"':''} onclick="checkInCloudPlayer(${playerId})">${alreadyQueued?'Checked In':'Check in'}</button>${Number(pendingCloudDeleteId)===playerId?'':`<button class="cloud-delete-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Cannot delete a checked-in player"':''} onclick="requestDeleteCloudPlayer(${playerId})">Delete</button>`}</div></div>${Number(pendingCloudDeleteId)===playerId?`<div class="cloud-delete-warning">Delete this registered profile? Match history will be kept. <button onclick="deleteCloudPlayer(${playerId})">Confirm</button> <button onclick="cancelDeleteCloudPlayer()">Cancel</button></div>`:''}</article>`;
+    return `<article class="cloud-player-card"><div class="cloud-player-main"><div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${esc((p.name||'?').charAt(0).toUpperCase())}</div><div class="cloud-player-ident"><b>${highlightSearchMatch(p.name,q)}${p.nickname?` (${highlightSearchMatch(p.nickname,q)})`:''} <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b><small class="cloud-player-summary"><span class="cloud-category-badge skill-${cls}">${esc(cat)}</span>${duprBadge}<span class="cloud-player-stats"><span>${p.matches||0} Matches</span><span class="cloud-win">${p.wins||0} Wins</span><span class="cloud-loss">${p.losses||0} Losses</span></span></small></div><div class="cloud-player-actions"><button type="button" class="cloud-edit-btn" onclick="event.stopPropagation();openCloudPlayerEditModal(${playerId})" aria-label="Edit ${esc(p.name||'player')} details">Edit</button><button class="cloud-checkin-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Player is already checked in or playing on court"':''} onclick="checkInCloudPlayer(${playerId})">${alreadyQueued?'Checked In':'Check in'}</button>${Number(pendingCloudDeleteId)===playerId?'':`<button class="cloud-delete-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Cannot delete a checked-in player"':''} onclick="requestDeleteCloudPlayer(${playerId})">Delete</button>`}</div></div>${Number(pendingCloudDeleteId)===playerId?`<div class="cloud-delete-warning">Delete this registered profile? Match history will be kept. <button onclick="deleteCloudPlayer(${playerId})">Confirm</button> <button onclick="cancelDeleteCloudPlayer()">Cancel</button></div>`:''}</article>`;
   }).join('')||'<div class="cloud-empty"><div class="cloud-empty-icon">🏓</div><div>No registered player records found.</div></div>';
 }
+function openCloudPlayerEditModal(id){
+  loadCloudRecords();
+  const player=cloudRecords.players.find(item=>Number(item.cloudId)===Number(id));
+  const modal=$('cloudPlayerEditModal');
+  if(!player||!modal)return;
+  editingCloudPlayerId=Number(id);
+  pendingCloudDeleteId=null;
+  editingCloudDuprId=null;
+  $('cloudPlayerEditFullName').value=String(player.name||'');
+  $('cloudPlayerEditNickname').value=String(player.nickname||'');
+  $('cloudPlayerEditGender').value=['Male','Female'].includes(String(player.gender||''))?String(player.gender):'';
+  $('cloudPlayerEditCategory').value=['BEG','NOV','INT','ADV','EXP'].includes(String(player.category||''))?String(player.category):'';
+  const rawDuprId=String(player.duprId||player.duprID||player.dupr_id||player.dupr||'').trim().toUpperCase();
+  $('cloudPlayerEditDuprId').value=rawDuprId==='NR'?'':rawDuprId;
+  modal.classList.remove('hidden');
+  setTimeout(()=>{$('cloudPlayerEditFullName')?.focus();$('cloudPlayerEditFullName')?.select();},0);
+}
+function cancelCloudPlayerEdit(){
+  editingCloudPlayerId=null;
+  $('cloudPlayerEditModal')?.classList.add('hidden');
+  if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
+}
+function saveCloudPlayerEdit(){
+  const id=Number(editingCloudPlayerId);
+  if(!id)return;
+  const name=String($('cloudPlayerEditFullName')?.value||'').trim().replace(/\s+/g,' ');
+  const nickname=String($('cloudPlayerEditNickname')?.value||'').trim().replace(/\s+/g,' ');
+  const gender=String($('cloudPlayerEditGender')?.value||'').trim();
+  const category=String($('cloudPlayerEditCategory')?.value||'').trim().toUpperCase();
+  const enteredDuprId=String($('cloudPlayerEditDuprId')?.value||'').trim().toUpperCase();
+  const duprId=enteredDuprId==='NR'?'':enteredDuprId;
+  if(!name){toast('Please enter the player full name.');$('cloudPlayerEditFullName')?.focus();return;}
+  if(gender&&!['Male','Female'].includes(gender)){toast('Please select a valid gender.');$('cloudPlayerEditGender')?.focus();return;}
+  if(category&&!['BEG','NOV','INT','ADV','EXP'].includes(category)){toast('Please select a valid category.');$('cloudPlayerEditCategory')?.focus();return;}
+  if(duprId&&!/^[A-Z0-9]{1,20}$/.test(duprId)){toast('DUPR ID must contain letters and numbers only.');$('cloudPlayerEditDuprId')?.focus();return;}
+  loadCloudRecords();
+  const player=cloudRecords.players.find(item=>Number(item.cloudId)===id);
+  if(!player){toast('This registered player could not be found.');cancelCloudPlayerEdit();renderCloudRecords();return;}
+  const normalizedName=name.toLowerCase();
+  const duplicate=cloudRecords.players.find(item=>Number(item.cloudId)!==id&&String(item.name||'').trim().replace(/\s+/g,' ').toLowerCase()===normalizedName);
+  if(duplicate){toast('Another registered player already uses this full name.');$('cloudPlayerEditFullName')?.focus();return;}
+  const previousName=String(player.name||'').trim().toLowerCase();
+  player.name=name;
+  player.nickname=nickname;
+  player.gender=gender;
+  player.category=category;
+  player.duprId=duprId;player.duprID='';player.dupr_id='';player.dupr='';
+  let changedLiveState=false;
+  [...state.players,...state.left].filter(active=>String(active.name||'').trim().toLowerCase()===previousName).forEach(active=>{
+    active.name=name;
+    active.nickname=nickname;
+    active.gender=gender;
+    active.category=category;
+    active.duprId=duprId;active.duprID='';active.dupr_id='';active.dupr='';
+    changedLiveState=true;
+  });
+  saveCloudRecords();
+  if(changedLiveState){saveState();render();}
+  cancelCloudPlayerEdit();
+  toast(`${name} details saved.`);
+}
+
 function editCloudDuprDetails(id){
   loadCloudRecords();
   const p=cloudRecords.players.find(player=>Number(player.cloudId)===Number(id));
@@ -4541,7 +4603,7 @@ $('historySaveBtn').onclick=saveHistoryScore;
 
 $('importPlayersBtn').onclick=()=>{loadCloudRecords();$('cloudRecordsModal').classList.remove('hidden');renderCloudRecords();};
 $('topStats')?.addEventListener('click',e=>{const toggle=e.target.closest('#queueDuprLabelsToggle');if(!toggle||!isCurrentSessionDupr())return;state.duprLabelsEnabled=state.duprLabelsEnabled===false;saveState();syncQueueDuprLabelsToggle();render();toast(state.duprLabelsEnabled?'DUPR labels are ON.':'DUPR labels are OFF.');});
-$('cloudRecordsDone').onclick=()=>{pendingCloudDeleteId=null;editingCloudDuprId=null;$('cloudRecordsModal').classList.add('hidden');};$('cloudRecordsSearch').addEventListener('input',renderCloudRecords);const leftPlayersSearch=$('leftPlayersSearch');if(leftPlayersSearch)leftPlayersSearch.addEventListener('input',renderLeftPlayersPopup);
+$('cloudRecordsDone').onclick=()=>{pendingCloudDeleteId=null;editingCloudDuprId=null;cancelCloudPlayerEdit();$('cloudRecordsModal').classList.add('hidden');};$('cloudRecordsSearch').addEventListener('input',renderCloudRecords);const leftPlayersSearch=$('leftPlayersSearch');if(leftPlayersSearch)leftPlayersSearch.addEventListener('input',renderLeftPlayersPopup);
 $('importCancel').onclick=()=>$('importModal').classList.add('hidden');
 $('importSave').onclick=importPlayers;
 

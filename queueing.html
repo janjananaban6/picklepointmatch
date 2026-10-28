@@ -25,7 +25,7 @@
   <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
   <title>Pickle Point Match — Queueing</title>
 <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=queue-header-glass-20261023-3&dupr-csv-export=20261028-3&mzoom=20261024-1&organizer-stats=20261024-1&qr-logo-assignment=20261024-2&organizer-share-glass=20261024-1&event-rules-amber-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&lock-partner-gender-minimal-20261026-1&court-player-inline-meta-20261026-1&court-dupr-editor-touch-size-20261026-1&dupr-label-toggle-20261026-1&end-session-modal-details=20261028-2&end-session-compact=20261028-1&end-session-attendee-panel=20261028-13-reference-colors-no-auto-open">
+  <link rel="stylesheet" href="style.css?v=queue-header-glass-20261023-3&dupr-csv-export=20261028-3&mzoom=20261024-1&organizer-stats=20261024-1&qr-logo-assignment=20261024-2&organizer-share-glass=20261024-1&event-rules-amber-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&lock-partner-gender-minimal-20261026-1&court-player-inline-meta-20261026-1&court-dupr-editor-touch-size-20261026-1&dupr-label-toggle-20261026-1&end-session-modal-details=20261028-2&end-session-compact=20261028-1&end-session-attendee-panel=20261028-13-reference-colors-no-auto-open&registered-player-edit=20261028-1">
   <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261022-1&mzoom=20261024-1">
   <link rel="stylesheet" href="network-skeleton.css?v=network-skeleton-20261024-1">
   <link rel="stylesheet" href="queueing-refresh.css?v=queueing-refresh-stability-20261026-7&court-dupr-editor-touch-size-20261026-1&queue-dupr-event-rule-text-btn=20261026-3&queue-dupr-compact-all-devices=20261026-2&queue-dupr-event-stats-placement=20261026-1">
@@ -497,6 +497,17 @@ Maria Santos,Female"></textarea>
   </div>
 </div>
 <div class="modal hidden" id="cloudRecordsModal"><div class="modal-box cloud-records-modal-box"><div class="cloud-records-head"><div class="cloud-records-title"><h2>☁ Registered Player Cloud <span id="cloudRecordsCount" class="history-count">(0)</span></h2><p>Saved player profiles stay here when a live queue ends.</p></div></div><div class="cloud-search-summary"><label class="cloud-search-wrap"><span class="cloud-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="cloudRecordsSearch" type="search" placeholder="Search registered players..."></label></div><div class="cloud-records-content" id="cloudRecordsContent"></div><div class="cloud-records-actions"><button type="button" id="cloudRecordsDone">Close</button></div></div></div>
+<div class="modal hidden cloud-player-edit-modal" id="cloudPlayerEditModal" onclick="if(event.target===this)cancelCloudPlayerEdit()">
+  <form class="modal-box cloud-player-edit-box" id="cloudPlayerEditForm" role="dialog" aria-modal="true" aria-labelledby="cloudPlayerEditTitle" onsubmit="event.preventDefault();saveCloudPlayerEdit()">
+    <div class="cloud-player-edit-heading"><h2 id="cloudPlayerEditTitle">Edit Player Details</h2><p>Update this registered player profile.</p></div>
+    <label class="cloud-player-edit-field" for="cloudPlayerEditFullName"><span>Full name</span><input id="cloudPlayerEditFullName" type="text" maxlength="120" autocomplete="name" required></label>
+    <label class="cloud-player-edit-field" for="cloudPlayerEditNickname"><span>Nickname</span><input id="cloudPlayerEditNickname" type="text" maxlength="80" autocomplete="nickname" placeholder="Optional"></label>
+    <label class="cloud-player-edit-field" for="cloudPlayerEditGender"><span>Gender</span><select id="cloudPlayerEditGender"><option value="">Not specified</option><option value="Male">Male</option><option value="Female">Female</option></select></label>
+    <label class="cloud-player-edit-field" for="cloudPlayerEditCategory"><span>Category</span><select id="cloudPlayerEditCategory"><option value="">Not specified</option><option value="BEG">BEG</option><option value="NOV">NOV</option><option value="INT">INT</option><option value="ADV">ADV</option><option value="EXP">EXP</option></select></label>
+    <label class="cloud-player-edit-field" for="cloudPlayerEditDuprId"><span>DUPR ID</span><input id="cloudPlayerEditDuprId" type="text" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Optional"></label>
+    <div class="cloud-player-edit-actions"><button type="button" class="cloud-player-edit-cancel" onclick="cancelCloudPlayerEdit()">Cancel</button><button type="submit" class="cloud-player-edit-save">Save Change</button></div>
+  </form>
+</div>
 <div class="modal hidden" id="cloudMatchActionModal" onclick="if(event.target===this)closeCloudMatchModal()">
   <div class="modal-box cloud-match-action-box" role="dialog" aria-modal="true" aria-labelledby="cloudMatchActionTitle">
     <h2 id="cloudMatchActionTitle"></h2>
