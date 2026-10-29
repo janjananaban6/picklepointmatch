@@ -1,6 +1,6 @@
 # Registered Player CSV Storage
 
-Registered Player Cloud player profiles are stored by the server in `data/registered-players.csv`. The CSV includes each registered profile field (including DUPR ID, nickname, gender, skill category, self rating, and match/win/loss counters). Additional player properties are kept as additional CSV columns so profile details are not silently discarded. Legacy OPG ID fields are ignored and excluded from new storage and exports. Fields containing commas, quotes, or newlines are CSV-escaped; nested values are serialized as JSON within the cell.
+Registered Player Cloud player profiles are stored by the server in `data/registered-players.csv`. The CSV includes each registered profile field (including avatar ID, DUPR ID, nickname, gender, skill category, self rating, and match/win/loss counters). Additional player properties are kept as additional CSV columns so profile details are not silently discarded. Legacy OPG ID fields are ignored and excluded from new storage and exports. Fields containing commas, quotes, or newlines are CSV-escaped; nested values are serialized as JSON within the cell.
 
 The `/api/cloud-records` interface remains unchanged for the existing pages. It reconstructs `records.players` from the CSV on the server and still synchronizes real-time updates to connected clients. Match logs and session history remain in the existing cloud-record envelope; their structure is not converted to CSV.
 

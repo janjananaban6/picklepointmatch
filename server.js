@@ -16,7 +16,7 @@ const CLUB_ID_SEQUENCE_FILE = path.join(DATA_DIR, 'club-id-sequence.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
-const allowedFiles = new Set(['index.html','panel.html','panel.css','panel.js','session.html','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js','network-validation.js']);
+const allowedFiles = new Set(['index.html','panel.html','panel.css','panel.js','session.html','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js','network-validation.js','registration-avatar-01.png','registration-avatar-02.png','registration-avatar-03.png','registration-avatar-04.png','registration-avatar-05.png','registration-avatar-06.png','registration-avatar-07.png','registration-avatar-08.png','registration-avatar-09.png','registration-avatar-10.png','registration-avatar-11.png','registration-avatar-12.png','registration-avatar-13.png','registration-avatar-14.png','registration-avatar-15.png','registration-avatar-16.png','registration-avatar-17.png','registration-avatar-18.png','registration-avatar-19.png','registration-avatar-20.png','registration-avatar-21.png']);
 let latestState = null;
 let sharedAppState = null;
 let sharedAppRevision = 0;
@@ -430,7 +430,7 @@ async function loadStored(key, filePath) {
   }
 }
 
-const REGISTERED_PLAYER_CSV_FIELDS = ['cloudId','name','nickname','gender','category','duprId','selfRating','matches','wins','losses'];
+const REGISTERED_PLAYER_CSV_FIELDS = ['cloudId','name','nickname','gender','category','avatarId','duprId','selfRating','matches','wins','losses'];
 function isRemovedOpgField(key) {
   const normalized = String(key || '').replace(/[ _-]/g, '').toLowerCase();
   return normalized === 'opg' || normalized === 'opgid';
@@ -623,7 +623,171 @@ function normalizePlayerName(value) {
   return String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
 function createDefaultSharedAppState() {
-  return {schemaVersion:12,players:[],left:[],queue:[],lockedPartners:[],courts:[],logs:[],nextPlayer:1,nextCourt:1,nextWaitingCourt:1,nextLog:1,sessionMetrics:{cloudCheckins:0,newRegistered:0},sessionActive:false,sessionEndedAt:null,sessionName:'Open Play',duprMatch:false,duprLocation:'',duprLabelsEnabled:true,recordScores:false,liveRankingEnabled:false,liveMatchesEnabled:false,eventRules:{target:11,winBy:1,type:'Doubles'},matchingMode:'balanced',winnersLosersNextGroup:'winners'};
+  return {schemaVersion:13,sessionId:null,players:[],left:[],queue:[],lockedPartners:[],courts:[],logs:[],nextPlayer:1,nextCourt:1,nextWaitingCourt:1,nextLog:1,sessionMetrics:{cloudCheckins:0,newRegistered:0},sessionActive:false,sessionEndedAt:null,sessionName:'Open Play',duprMatch:false,duprLocation:'',duprLabelsEnabled:true,recordScores:false,liveRankingEnabled:false,liveMatchesEnabled:false,eventRules:{target:11,winBy:1,type:'Doubles'},matchingMode:'balanced',winnersLosersNextGroup:'winners'};
+}
+function getSessionId(state) {
+  return String(state && state.sessionId || '').trim();
+}
+function isEndedSessionState(state) {
+  return !!(state && state.sessionActive === false && state.sessionEndedAt);
+}
+function getOrganizerRegistrationSessionStatus(organizerId, expectedSessionId = '') {
+  const appState = getOrganizerAppEntry(organizerId).state;
+  const sessionId = getSessionId(appState);
+  const sessionActive = !!(appState && appState.sessionActive === true && sessionId && !isEndedSessionState(appState));
+  const sessionMismatch = sessionActive && !!expectedSessionId && String(expectedSessionId) !== sessionId;
+  return {
+    active: sessionActive && !sessionMismatch,
+    sessionActive,
+    sessionMismatch,
+    sessionId: sessionId || null,
+    sessionEndedAt: appState && appState.sessionEndedAt || null
+  };
+}
+function registrationSessionUnavailableResponse(status) {
+  return {
+    ok:false,
+    noActiveSession:true,
+    sessionMismatch:!!status.sessionMismatch,
+    sessionActive:!!status.sessionActive,
+    sessionId:status.sessionId || null,
+    sessionEndedAt:status.sessionEndedAt || null,
+    error:status.sessionMismatch
+      ? 'This registration QR code belongs to a previous session. Please scan the current Register QR code from the organizer.'
+      : 'No active live session. The organizer has ended the session. Registration is closed until a new session starts.'
+  };
+}
+function isStaleSessionWrite(currentEntry, incoming, body) {
+  const current = currentEntry && currentEntry.state;
+  if (!current || !incoming) return false;
+  const currentId = getSessionId(current);
+  const incomingId = getSessionId(incoming);
+  const currentActive = current.sessionActive === true;
+  const incomingActive = incoming.sessionActive === true;
+
+  // An ended session can only be followed by a newly identified session. A late
+  // heartbeat/write from the old session must never resurrect it.
+  if (isEndedSessionState(current)) {
+    // The only active write allowed after an end is a new session with a new ID.
+    if (incomingActive) return !incomingId || incomingId === currentId;
+    return incomingId !== currentId;
+  }
+
+  if (currentActive) {
+    if (currentId) return incomingId !== currentId;
+    // Do not let a new session replace a legacy active session that has not ended.
+    if (incomingId) return true;
+    return false;
+  }
+
+  // Inactive initial/legacy state may be replaced by a newly created session.
+  return false;
+}
+function makeSessionTransitionLiveSnapshot(appState, previous = null, updatedAt = new Date().toISOString()) {
+  return {
+    sessionName: String(appState && appState.sessionName || 'Pickle Point Match').slice(0, 200),
+    sessionId: getSessionId(appState) || null,
+    active: appState && appState.sessionActive === true,
+    recordScores: appState && appState.recordScores === true,
+    liveRankingEnabled: !!(appState && appState.sessionActive === true && appState.liveRankingEnabled === true),
+    liveMatchesEnabled: !!(appState && appState.sessionActive === true && appState.liveMatchesEnabled === true),
+    updatedAt,
+    playerCount: 0,
+    queue: [],
+    courts: [],
+    activeCourtCount: 0,
+    readyCourtCount: 0,
+    courtCount: 0,
+    waitingCourtCount: 0,
+    matchCount: 0,
+    ranking: [],
+    eventRules: appState && appState.eventRules || {target:11,winBy:1,type:'Doubles'},
+    recentMatches: []
+  };
+}
+function normalizeAvatarId(value) {
+  const raw = String(value ?? '').trim().toLowerCase();
+  // Accept the canonical avatar-01 form plus older/imported forms such as
+  // avatar-1, avatar_01, 01, or 1, and always return the canonical ID.
+  const match = /^(?:avatar[-_ ]?)?0?(\d{1,2})$/.exec(raw);
+  if (!match) return null;
+  const number = Number(match[1]);
+  return Number.isInteger(number) && number >= 1 && number <= 21
+    ? `avatar-${String(number).padStart(2, '0')}`
+    : null;
+}
+function avatarIdFromProfile(record) {
+  return normalizeAvatarId(record?.avatarId ?? record?.avatarID ?? record?.avatar_id ?? record?.selectedAvatarId ?? record?.profileAvatarId);
+}
+function normalizeAvatarPlayerName(value) {
+  return String(value ?? '').normalize('NFC').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+}
+// Only profiles with NO saved avatar receive this display fallback. Pick from
+// gender-matching avatars deterministically so the same legacy player shows the
+// same profile in queueing and Live View without writing it as a saved choice.
+const MALE_FALLBACK_AVATAR_NUMBERS = [1, 3, 7, 12, 13, 16, 17, 18, 21];
+const FEMALE_FALLBACK_AVATAR_NUMBERS = [2, 4, 5, 6, 8, 9, 10, 11, 14, 15, 19, 20];
+function fallbackAvatarIdForPlayer(player) {
+  const name = normalizeAvatarPlayerName(player?.name);
+  const gender = String(player?.gender ?? '').trim().toLowerCase();
+  const female = ['female', 'f', 'woman', 'women'].includes(gender);
+  const male = ['male', 'm', 'man', 'men'].includes(gender);
+  const pool = female ? FEMALE_FALLBACK_AVATAR_NUMBERS
+    : male ? MALE_FALLBACK_AVATAR_NUMBERS
+    : Array.from({length: 21}, (_, index) => index + 1);
+  if (!name) return `avatar-${String(pool[0] || 1).padStart(2, '0')}`;
+  let hash = 2166136261;
+  for (const character of name) {
+    hash ^= character.codePointAt(0);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  const avatarNumber = pool[hash % pool.length] || pool[0] || 1;
+  return `avatar-${String(avatarNumber).padStart(2, '0')}`;
+}
+// Older queue/app snapshots were created before avatarId was copied into the
+// active player object. Resolve those players against Registered Player Cloud.
+// Prefer an exact name + nickname match and only use a name-only match when it
+// is unambiguous, so one player's avatar is not assigned to someone else.
+function resolveLiveAvatarId(player) {
+  const direct = avatarIdFromProfile(player);
+  if (direct) return direct;
+  const name = normalizeAvatarPlayerName(player?.name);
+  if (!name) return fallbackAvatarIdForPlayer(player);
+  const playerRecords = Array.isArray(sharedCloudRecords?.players) ? sharedCloudRecords.players : [];
+  const namedRecords = playerRecords.filter(record => normalizeAvatarPlayerName(record?.name) === name);
+  const nickname = normalizeAvatarPlayerName(player?.nickname);
+  const matchingNickname = nickname
+    ? namedRecords.find(record => normalizeAvatarPlayerName(record?.nickname) === nickname && avatarIdFromProfile(record))
+    : null;
+  if (matchingNickname) return avatarIdFromProfile(matchingNickname);
+  const candidates = namedRecords.map(record => ({record, avatarId: avatarIdFromProfile(record)})).filter(item => item.avatarId);
+  if (candidates.length === 1) return candidates[0].avatarId;
+  if (candidates.length > 1 && nickname) {
+    const matched = candidates.find(item => normalizeAvatarPlayerName(item.record?.nickname) === nickname);
+    if (matched) return matched.avatarId;
+  }
+  // Even if an old queue player never had an avatar saved, don't leave the
+  // public diagram or waitlist blank: use a repeatable fallback that matches gender.
+  return fallbackAvatarIdForPlayer(player);
+}
+function enrichLivePlayerAvatar(player) {
+  if (!player || typeof player !== 'object') return player;
+  const avatarId = resolveLiveAvatarId(player);
+  return avatarId && player.avatarId !== avatarId ? { ...player, avatarId } : player;
+}
+function enrichLiveStateAvatars(state) {
+  if (!state || typeof state !== 'object') return state;
+  return {
+    ...state,
+    queue: Array.isArray(state.queue) ? state.queue.map(enrichLivePlayerAvatar) : [],
+    courts: Array.isArray(state.courts) ? state.courts.map(court => ({
+      ...court,
+      players: Array.isArray(court.players) ? court.players.map(enrichLivePlayerAvatar) : [],
+      team1: Array.isArray(court.team1) ? court.team1.map(enrichLivePlayerAvatar) : [],
+      team2: Array.isArray(court.team2) ? court.team2.map(enrichLivePlayerAvatar) : []
+    })) : [],
+    ranking: Array.isArray(state.ranking) ? state.ranking.map(enrichLivePlayerAvatar) : []
+  };
 }
 function normalizeTimestamp(value) {
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
@@ -637,7 +801,11 @@ function normalizeTimestamp(value) {
 }
 function broadcast(snapshot = latestState, organizerId = null) {
   if (!snapshot) return;
-  const packet = `event: live-state\ndata: ${JSON.stringify(snapshot)}\n\n`;
+  // The initial GET endpoint already enriched old snapshots. Keep the SSE path
+  // identical; otherwise a raw event arriving after the GET strips avatarId and
+  // makes Live View revert from profile images to initials.
+  const publishedSnapshot = enrichLiveStateAvatars(snapshot);
+  const packet = `event: live-state\ndata: ${JSON.stringify(publishedSnapshot)}\n\n`;
   for (const res of subscribers) {
     if ((liveSubscriberScopes.get(res) || null) !== (organizerId || null)) continue;
     try { res.write(packet); } catch (_) { subscribers.delete(res); liveSubscriberScopes.delete(res); }
@@ -691,6 +859,7 @@ function buildLiveQueueSnapshot(appState, updatedAt = new Date().toISOString(), 
   return {
     ...previous,
     sessionName: String(appState?.sessionName || previous.sessionName || 'Open Play'),
+    sessionId: getSessionId(appState) || null,
     active: !!appState?.sessionActive,
     recordScores: appState?.recordScores === true,
     liveRankingEnabled: typeof appState?.liveRankingEnabled === 'boolean' ? appState.liveRankingEnabled : previous.liveRankingEnabled !== false,
@@ -1092,15 +1261,57 @@ async function handle(req, res) {
       if (body.onlyIfEmpty && currentEntry.state) {
         return sendJson(res, 200, {ok:true,accepted:false,unchanged:true,revision:currentEntry.revision,state:currentEntry.state,updatedAt:currentEntry.updatedAt});
       }
-      if (!body.onlyIfEmpty && Number.isFinite(Number(body.baseRevision)) && Number(body.baseRevision) !== currentEntry.revision) {
+      const snapshot = withoutOpgFields(JSON.parse(JSON.stringify(incoming)));
+      snapshot.sessionId = getSessionId(snapshot) || null;
+      if (isStaleSessionWrite(currentEntry, snapshot, body)) {
+        return sendJson(res, 409, {ok:false,conflict:true,staleSession:true,error:'This update belongs to an older session',revision:currentEntry.revision,state:currentEntry.state,updatedAt:currentEntry.updatedAt});
+      }
+      const startsFreshSessionAfterEnd = isEndedSessionState(currentEntry.state) &&
+        snapshot.sessionActive === true && !!getSessionId(snapshot) &&
+        getSessionId(snapshot) !== getSessionId(currentEntry.state);
+      // A device may still hold the previous revision when another device ends
+      // the session. A newly identified session is allowed to start from that
+      // terminal state instead of being blocked by the stale revision alone.
+      // Competing new sessions are still serialized by the session-ID guard.
+      if (!body.onlyIfEmpty && !startsFreshSessionAfterEnd && Number.isFinite(Number(body.baseRevision)) && Number(body.baseRevision) !== currentEntry.revision) {
         return sendJson(res, 409, {ok:false,conflict:true,error:'Queue state changed on another device',revision:currentEntry.revision,state:currentEntry.state,updatedAt:currentEntry.updatedAt});
       }
-      const snapshot = withoutOpgFields(JSON.parse(JSON.stringify(incoming)));
+      // A terminal end marker is authoritative. Never allow stale arrays to
+      // survive as an apparently active queue on another device.
+      if (isEndedSessionState(snapshot)) {
+        snapshot.players = [];
+        snapshot.left = [];
+        snapshot.queue = [];
+        snapshot.lockedPartners = [];
+        snapshot.courts = [];
+        snapshot.logs = [];
+        snapshot.nextPlayer = 1;
+        snapshot.nextCourt = 1;
+        snapshot.nextWaitingCourt = 1;
+        snapshot.nextLog = 1;
+        snapshot.sessionMetrics = {cloudCheckins:0,newRegistered:0};
+      }
       let entry = currentEntry;
       if (JSON.stringify(currentEntry.state) !== JSON.stringify(snapshot)) {
+        const previousSessionId = getSessionId(currentEntry.state);
         entry = {revision:currentEntry.revision+1,updatedAt:new Date().toISOString(),clientId:String(body.clientId||'').slice(0,100)||null,state:snapshot};
         await saveOrganizerAppState(organizerId,entry);
-        broadcastNamedEvent('app-state',{revision:entry.revision,updatedAt:entry.updatedAt,clientId:entry.clientId,state:entry.state,organizerId},organizerId);
+        // Storage writes can overlap with another device's next revision. Only
+        // publish transition snapshots/events while this entry is still current.
+        if (getOrganizerAppEntry(organizerId).revision === entry.revision) {
+          const nextSessionId = getSessionId(snapshot);
+          const sessionChanged = previousSessionId !== nextSessionId;
+          if (isEndedSessionState(snapshot) || sessionChanged) {
+            const transitionLiveState = makeSessionTransitionLiveSnapshot(snapshot, getOrganizerLiveState(organizerId), entry.updatedAt);
+            await saveOrganizerLiveState(organizerId, transitionLiveState);
+            if (getOrganizerAppEntry(organizerId).revision === entry.revision && getOrganizerLiveState(organizerId) === transitionLiveState) {
+              broadcast(transitionLiveState, organizerId);
+            }
+          }
+          if (getOrganizerAppEntry(organizerId).revision === entry.revision) {
+            broadcastNamedEvent('app-state',{revision:entry.revision,updatedAt:entry.updatedAt,clientId:entry.clientId,state:entry.state,organizerId},organizerId);
+          }
+        }
       }
       return sendJson(res, 200, {ok:true,accepted:true,revision:entry.revision,updatedAt:entry.updatedAt,unchanged:JSON.stringify(entry.state)===JSON.stringify(snapshot)});
     } catch (err) { return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to save organizer queue state'}); }
@@ -1153,10 +1364,19 @@ async function handle(req, res) {
       const nickname = String(body?.nickname || '').normalize('NFC').trim().replace(/\s+/g, ' ').slice(0, 80);
       const gender = String(body?.gender || '');
       const category = String(body?.category || '').toUpperCase();
+      const requestedAvatarId = String(body?.avatarId || 'avatar-01');
+      const avatarId = /^avatar-(?:0[1-9]|1[0-9]|2[01])$/.test(requestedAvatarId) ? requestedAvatarId : 'avatar-01';
       const requestedScope = String(url.searchParams.get('organizer') || body?.organizerId || '').trim();
       if (!requestedScope) return sendJson(res, 400, {ok:false,error:'Organizer-specific registration link required. Please scan the QR code or use the link provided by your organizer.'});
       const organizerId = accountById(requestedScope)?.id || null;
       if (!organizerId) return sendJson(res, 400, {ok:false,error:'Organizer link is invalid or inactive. Ask the organizer for an updated registration link.'});
+
+      // Registration links generated by the organizer are tied to one session.
+      // The active session check is server-side, so a stale QR or already-open
+      // registration form cannot submit after End Session.
+      const requestedSessionId = String(url.searchParams.get('session') || body?.sessionId || '').trim();
+      let registrationSessionStatus = getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId);
+      if (!registrationSessionStatus.active) return sendJson(res, 409, registrationSessionUnavailableResponse(registrationSessionStatus));
 
       const requestedDuprMode = url.searchParams.get('dupr');
       const isDuprSession = requestedDuprMode === null
@@ -1192,12 +1412,17 @@ async function handle(req, res) {
       const duplicate = currentPlayers.find(p => normalizePlayerName(p?.name) === normalizePlayerName(name));
       if (duplicate) return sendJson(res, 409, {ok:false,duplicate:true,duplicateType:'name',error:'This user is already registered in Registered Player Cloud',player:{name:duplicate.name}});
 
+      // Re-check immediately before committing the record. This closes the gap
+      // where the organizer ends or replaces the session while the form is open.
+      registrationSessionStatus = getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId);
+      if (!registrationSessionStatus.active) return sendJson(res, 409, registrationSessionUnavailableResponse(registrationSessionStatus));
+
       const records = JSON.parse(JSON.stringify(currentRecords));
       records.players = Array.isArray(records.players) ? records.players : [];
       records.logs = Array.isArray(records.logs) ? records.logs : [];
       records.sessions = Array.isArray(records.sessions) ? records.sessions : [];
       const cloudId = Date.now() + Math.floor(Math.random() * 100000);
-      const cloudPlayer = {cloudId,name,nickname,gender,category,duprId,selfRating,matches:0,wins:0,losses:0};
+      const cloudPlayer = {cloudId,name,nickname,gender,category,avatarId,duprId,selfRating,matches:0,wins:0,losses:0};
       records.players.push(cloudPlayer);
 
       sharedCloudRecords = records;
@@ -1238,7 +1463,8 @@ async function handle(req, res) {
     const organizerId = requestedScope ? (accountById(requestedScope)?.id || null) : resolveOrganizerId(req,url,null,true);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     const organizer = organizerId ? accountById(organizerId) : null;
-    return sendJson(res, 200, {ok:true,state:getOrganizerLiveState(organizerId),organizerId,organizerName:organizer ? String(organizer.displayName || organizer.username) : null,organizerLogo:organizer ? organizerLogoFor(organizer) : null});
+    const liveState = enrichLiveStateAvatars(getOrganizerLiveState(organizerId));
+    return sendJson(res, 200, {ok:true,state:liveState,organizerId,organizerName:organizer ? String(organizer.displayName || organizer.username) : null,organizerLogo:organizer ? organizerLogoFor(organizer) : null});
   }
   if (url.pathname === '/api/live-state' && req.method === 'POST') {
     try {
@@ -1247,9 +1473,23 @@ async function handle(req, res) {
       const organizerId = auth.organizerId;
       const body = await readBody(req);
       if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.sessionName !== 'string') return sendJson(res, 400, {ok:false,error:'Invalid live view state'});
+      const authoritativeAppState = getOrganizerAppEntry(organizerId).state;
+      if (authoritativeAppState) {
+        const authoritativeId = getSessionId(authoritativeAppState);
+        const postedId = getSessionId(body);
+        const authoritativeActive = authoritativeAppState.sessionActive === true;
+        const postedActive = body.active === true;
+        if ((authoritativeId && postedId !== authoritativeId) ||
+            (!authoritativeId && postedId && (authoritativeActive || isEndedSessionState(authoritativeAppState))) ||
+            postedActive !== authoritativeActive) {
+          return sendJson(res, 409, {ok:false,staleSession:true,error:'Live View update belongs to an older session'});
+        }
+      }
       // Only public display fields should be submitted by the browser publisher.
       const snapshot = {
-        sessionName: String(body.sessionName).slice(0,200), active: !!body.active,
+        sessionName: String(body.sessionName).slice(0,200),
+        sessionId: getSessionId(body) || null,
+        active: !!body.active,
         recordScores: body.recordScores === true,
         liveRankingEnabled: body.liveRankingEnabled !== false,
         liveMatchesEnabled: body.liveMatchesEnabled !== false,
@@ -1260,9 +1500,9 @@ async function handle(req, res) {
         queue: Array.isArray(body.queue) ? body.queue.slice(0,500).map(p=>{
           const queuedAt = normalizeTimestamp(p?.queuedAt);
           const waitingSince = normalizeTimestamp(p?.waitingSince) || queuedAt;
-          return {id:p?.id,name:String(p?.name||'Player').slice(0,120),nickname:String(p?.nickname||'').slice(0,80),gender:String(p?.gender||'').slice(0,20),category:String(p?.category||'').slice(0,10),queuedAt,waitingSince};
+          return {id:p?.id,name:String(p?.name||'Player').slice(0,120),nickname:String(p?.nickname||'').slice(0,80),gender:String(p?.gender||'').slice(0,20),category:String(p?.category||'').slice(0,10),avatarId:resolveLiveAvatarId(p),queuedAt,waitingSince};
         }) : [],
-        courts: Array.isArray(body.courts) ? body.courts.slice(0,100).map(c=>({id:c?.id,name:String(c?.name||'Court').slice(0,100),number:Number(c?.number)||null,waitingOnly:!!c?.waitingOnly,playing:!!c?.playing,start:c?.start||null,target:Math.max(1,Number(c?.target)||11),winBy:Math.max(1,Number(c?.winBy)||1),players:Array.isArray(c?.players)?c.players.slice(0,4).map(p=>p?({id:p.id,name:String(p.name||'Player').slice(0,120),nickname:String(p.nickname||'').slice(0,80),gender:String(p.gender||'').slice(0,20),category:String(p.category||'').slice(0,10)}):null):[],team1:Array.isArray(c?.team1)?c.team1.slice(0,2).map(p=>p?({id:p.id,name:String(p.name||'Player').slice(0,120),nickname:String(p.nickname||'').slice(0,80),gender:String(p.gender||'').slice(0,20),category:String(p.category||'').slice(0,10)}):null):[],team2:Array.isArray(c?.team2)?c.team2.slice(0,2).map(p=>p?({id:p.id,name:String(p.name||'Player').slice(0,120),nickname:String(p.nickname||'').slice(0,80),gender:String(p.gender||'').slice(0,20),category:String(p.category||'').slice(0,10)}):null):[],scores:Array.isArray(c?.scores)?c.scores.slice(0,2).map(n=>Math.max(0,Number(n)||0)):[0,0]})) : [],
+        courts: Array.isArray(body.courts) ? body.courts.slice(0,100).map(c=>({id:c?.id,name:String(c?.name||'Court').slice(0,100),number:Number(c?.number)||null,waitingOnly:!!c?.waitingOnly,playing:!!c?.playing,start:c?.start||null,target:Math.max(1,Number(c?.target)||11),winBy:Math.max(1,Number(c?.winBy)||1),players:Array.isArray(c?.players)?c.players.slice(0,4).map(p=>p?({id:p.id,name:String(p.name||'Player').slice(0,120),nickname:String(p.nickname||'').slice(0,80),gender:String(p.gender||'').slice(0,20),category:String(p.category||'').slice(0,10),avatarId:resolveLiveAvatarId(p)}):null):[],team1:Array.isArray(c?.team1)?c.team1.slice(0,2).map(p=>p?({id:p.id,name:String(p.name||'Player').slice(0,120),nickname:String(p.nickname||'').slice(0,80),gender:String(p.gender||'').slice(0,20),category:String(p.category||'').slice(0,10),avatarId:resolveLiveAvatarId(p)}):null):[],team2:Array.isArray(c?.team2)?c.team2.slice(0,2).map(p=>p?({id:p.id,name:String(p.name||'Player').slice(0,120),nickname:String(p.nickname||'').slice(0,80),gender:String(p.gender||'').slice(0,20),category:String(p.category||'').slice(0,10),avatarId:resolveLiveAvatarId(p)}):null):[],scores:Array.isArray(c?.scores)?c.scores.slice(0,2).map(n=>Math.max(0,Number(n)||0)):[0,0]})) : [],
         activeCourtCount:Math.max(0,Number(body.activeCourtCount)||0), readyCourtCount:Math.max(0,Number(body.readyCourtCount)||0), courtCount:Math.max(0,Number(body.courtCount)||0), waitingCourtCount:Math.max(0,Number(body.waitingCourtCount)||0), matchCount:Math.max(0,Number(body.matchCount)||0),
         // Keep the ranking in the published snapshot. Without this allowlisted
         // field, the server silently discarded the ranking created by script.js,
@@ -1274,6 +1514,7 @@ async function handle(req, res) {
           nickname:String(p?.nickname||'').slice(0,80),
           gender:String(p?.gender||'').slice(0,20),
           category:String(p?.category||'').slice(0,10),
+          avatarId:resolveLiveAvatarId(p),
           matches:Math.max(0,Number(p?.matches)||0),
           wins:Math.max(0,Number(p?.wins)||0),
           losses:Math.max(0,Number(p?.losses)||0),
@@ -1291,6 +1532,22 @@ async function handle(req, res) {
       snapshot.readyCourtCount = regularCourts.filter(c => !c.playing).length;
       snapshot.courtCount = regularCourts.length;
       snapshot.waitingCourtCount = snapshot.courts.filter(c => c.waitingOnly).length;
+      if (authoritativeAppState && isEndedSessionState(authoritativeAppState)) {
+        snapshot.active = false;
+        snapshot.recordScores = false;
+        snapshot.liveRankingEnabled = false;
+        snapshot.liveMatchesEnabled = false;
+        snapshot.playerCount = 0;
+        snapshot.queue = [];
+        snapshot.courts = [];
+        snapshot.activeCourtCount = 0;
+        snapshot.readyCourtCount = 0;
+        snapshot.courtCount = 0;
+        snapshot.waitingCourtCount = 0;
+        snapshot.matchCount = 0;
+        snapshot.ranking = [];
+        snapshot.recentMatches = [];
+      }
 
       // Heartbeats and the public Live View snapshot are isolated per organizer.
       const previousState = getOrganizerLiveState(organizerId);
@@ -1308,7 +1565,10 @@ async function handle(req, res) {
       }
       if (organizerId) {
         await saveOrganizerLiveState(organizerId,snapshot);
-        broadcast(snapshot,organizerId);
+        const latestAppState = getOrganizerAppEntry(organizerId).state;
+        const stillAuthoritative = getOrganizerLiveState(organizerId) === snapshot &&
+          (!latestAppState || (getSessionId(latestAppState) === getSessionId(snapshot) && (latestAppState.sessionActive === true) === (snapshot.active === true)));
+        if (stillAuthoritative) broadcast(snapshot,organizerId);
       } else {
         await persistState(snapshot);
       }
@@ -1346,7 +1606,7 @@ async function handle(req, res) {
     res.writeHead(200, {'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
     res.write('retry: 2000\n\n');
     const scopedState = getOrganizerLiveState(organizerId);
-    if (scopedState) res.write(`event: live-state\ndata: ${JSON.stringify(scopedState)}\n\n`);
+    if (scopedState) res.write(`event: live-state\ndata: ${JSON.stringify(enrichLiveStateAvatars(scopedState))}\n\n`);
     res.write(`event: live-theme\ndata: ${liveTheme}\n\n`);
     subscribers.add(res);
     liveSubscriberScopes.set(res,organizerId || null);
@@ -1514,6 +1774,22 @@ async function handle(req, res) {
     if (migrationTarget && !organizerLiveStates.has(migrationTarget.id) && latestState && typeof latestState === 'object') {
       organizerLiveStates.set(migrationTarget.id,latestState);
       await saveOrganizerLiveState(migrationTarget.id,latestState);
+    }
+
+    // Reconcile persisted Live View snapshots on startup too. A previous build
+    // may have saved the queue state but missed the separate Live View write.
+    for (const account of organizerAccounts) {
+      const appEntry = getOrganizerAppEntry(account.id);
+      const appState = appEntry.state;
+      if (!appState || typeof appState !== 'object') continue;
+      const liveState = getOrganizerLiveState(account.id);
+      const identityMismatch = !!(getSessionId(appState) || getSessionId(liveState)) && getSessionId(appState) !== getSessionId(liveState);
+      const activityMismatch = !!liveState && (appState.sessionActive === true) !== (liveState.active === true);
+      const nameMismatch = !!(liveState && appState.sessionActive === true && liveState.sessionName && appState.sessionName && String(liveState.sessionName) !== String(appState.sessionName));
+      if (isEndedSessionState(appState) || identityMismatch || activityMismatch || nameMismatch || (!liveState && appState.sessionActive === true)) {
+        const reconciled = makeSessionTransitionLiveSnapshot(appState, liveState, appEntry.updatedAt || new Date().toISOString());
+        await saveOrganizerLiveState(account.id,reconciled);
+      }
     }
 
     const savedCloud = await loadStored('cloud-records', CLOUD_RECORDS_FILE);

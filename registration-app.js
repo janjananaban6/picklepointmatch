@@ -3,8 +3,11 @@
   const $ = id => document.getElementById(id);
   const registrationParams = new URLSearchParams(window.location.search);
   const organizerScope = String(registrationParams.get('organizer') || '').trim();
+  const registrationSessionId = String(registrationParams.get('session') || '').trim();
   const registrationDuprSession = ['1', 'true', 'dupr'].includes(String(registrationParams.get('dupr') || '').trim().toLowerCase());
   let organizerValidated = false;
+  let registrationSessionAvailable = false;
+  let registrationSessionBlockReason = 'No active live session. Registration is closed until the organizer starts a new session.';
   function scopedApiUrl(path, params = {}) {
     const url = new URL(path, window.location.origin);
     if (organizerScope) url.searchParams.set('organizer', organizerScope);
@@ -26,13 +29,14 @@
       return false;
     }
     try {
-      const response = await fetch(`/api/live-state?organizer=${encodeURIComponent(organizerScope)}`, {cache:'no-store',credentials:'same-origin'});
+      const response = await fetch(scopedApiUrl('/api/app-state',{_:Date.now()}), {cache:'no-store',credentials:'same-origin'});
       const data = response.ok ? await response.json() : null;
       if (!data || String(data.organizerId || '') !== organizerScope) {
         showRegistrationLinkNotice('This organizer registration link is invalid or inactive. Please ask the organizer for an updated QR code or link.');
         return false;
       }
       organizerValidated = true;
+      updateRegistrationSessionState(data.state);
       return true;
     } catch (_) {
       setConnection(false, 'Offline');
@@ -58,6 +62,7 @@
   const SKILLS = new Set(['BEG', 'NOV', 'INT', 'ADV', 'EXP']);
   let selectedGender = '';
   let selectedSkill = '';
+  let selectedAvatarId = 'avatar-01';
   let cloudPlayers = [];
   let appPlayers = [];
   let serviceReady = false;
@@ -66,6 +71,41 @@
   let eyebrowThemeEvents = null;
   let feedbackTimer = null;
   let feedbackHideTimer = null;
+
+  function updateRegistrationSessionState(appState) {
+    const sessionId = String(appState?.sessionId || '').trim();
+    const active = appState?.sessionActive === true && !!sessionId && !appState?.sessionEndedAt;
+    const sessionMismatch = active && !!registrationSessionId && registrationSessionId !== sessionId;
+    registrationSessionAvailable = active && !sessionMismatch;
+    if (sessionMismatch) {
+      registrationSessionBlockReason = 'This registration QR belongs to a previous session. Please scan the current Register QR code from the organizer.';
+    } else if (!active) {
+      registrationSessionBlockReason = 'No active live session. The organizer has ended the session. Registration is unavailable until a new session starts.';
+    } else {
+      registrationSessionBlockReason = '';
+    }
+
+    const panel = $('registrationPagePanel');
+    const notice = $('registrationLinkNotice');
+    if (!organizerValidated) {
+      if (panel) panel.hidden = true;
+      updateSubmitButton();
+      return;
+    }
+    if (!registrationSessionAvailable) {
+      if (panel) panel.hidden = true;
+      if (notice) {
+        notice.textContent = registrationSessionBlockReason;
+        notice.hidden = false;
+      }
+      setConnection(false, sessionMismatch ? 'Old QR code' : 'No live session');
+    } else {
+      if (panel) panel.hidden = false;
+      if (notice) notice.hidden = true;
+      setConnection(true, 'Live session active');
+    }
+    updateSubmitButton();
+  }
 
   const LIVE_THEME_STORAGE_KEY = 'picklepoint_live_view_theme_v1';
 
@@ -235,8 +275,149 @@
     const duprComplete = !registrationDuprSession || /^[A-Z0-9]{6}$/.test(duprId.toUpperCase());
     const complete = fullname.length > 0 && duprComplete && !!selectedGender && SKILLS.has(selectedSkill);
     const button = $('registerSaveBtn');
-    if (button) button.disabled = !(serviceReady && organizerValidated && complete && !duplicate && !duplicateDupr && !submitting);
+    if (button) button.disabled = !(serviceReady && organizerValidated && registrationSessionAvailable && complete && !duplicate && !duplicateDupr && !submitting);
     return {fullname, duplicate, duplicateDupr, complete};
+  }
+
+  function selectAvatar(avatarId) {
+    const value = String(avatarId || '');
+    if (!/^avatar-(?:0[1-9]|1[0-9]|2[01])$/.test(value)) return;
+    selectedAvatarId = value;
+    document.querySelectorAll('.registration-avatar-option').forEach(button => {
+      const selected = button.dataset.avatarId === value;
+      button.classList.toggle('is-selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+    const selectedLabel = $('registrationAvatarSelectedLabel');
+    if (selectedLabel) selectedLabel.textContent = `Avatar ${value.slice(-2)} selected`;
+  }
+
+  function bindAvatarPicker() {
+    const carousel = $('registrationAvatarCarousel');
+    if (!carousel) return;
+    const options = Array.from(carousel.querySelectorAll('.registration-avatar-option'));
+    const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+    function centerAvatar(button, behavior = 'smooth') {
+      if (!button) return;
+      const carouselRect = carousel.getBoundingClientRect();
+      const buttonRect = button.getBoundingClientRect();
+      const buttonCenter = buttonRect.left + buttonRect.width / 2;
+      const carouselCenter = carouselRect.left + carousel.clientWidth / 2;
+      const maxScroll = Math.max(0, carousel.scrollWidth - carousel.clientWidth);
+      const targetLeft = Math.max(0, Math.min(maxScroll, carousel.scrollLeft + buttonCenter - carouselCenter));
+      carousel.scrollTo({ left: targetLeft, behavior: reducedMotion ? 'auto' : behavior });
+    }
+
+    function nearestAvatarToCenter() {
+      const center = carousel.getBoundingClientRect().left + carousel.clientWidth / 2;
+      let nearest = null;
+      let nearestDistance = Infinity;
+      options.forEach(button => {
+        const rect = button.getBoundingClientRect();
+        const distance = Math.abs((rect.left + rect.width / 2) - center);
+        if (distance < nearestDistance) {
+          nearest = button;
+          nearestDistance = distance;
+        }
+      });
+      return nearest;
+    }
+
+    let suppressClickUntil = 0;
+    options.forEach((button, index) => {
+      button.addEventListener('click', event => {
+        if (performance.now() < suppressClickUntil) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+        selectAvatar(button.dataset.avatarId);
+        centerAvatar(button);
+      });
+      button.addEventListener('keydown', event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        let nextIndex = index;
+        if (event.key === 'ArrowRight') nextIndex = Math.min(options.length - 1, index + 1);
+        if (event.key === 'ArrowLeft') nextIndex = Math.max(0, index - 1);
+        if (event.key === 'Home') nextIndex = 0;
+        if (event.key === 'End') nextIndex = options.length - 1;
+        const next = options[nextIndex];
+        if (!next) return;
+        next.focus({ preventScroll: true });
+        selectAvatar(next.dataset.avatarId);
+        centerAvatar(next);
+      });
+    });
+
+    // Native touch scrolling keeps mobile momentum; desktop mouse dragging is handled here.
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+    let scrollStartX = 0;
+    let draggingMouse = false;
+    let dragMoved = false;
+    let trackingTouchSwipe = false;
+    let touchSwipeMoved = false;
+
+    carousel.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'mouse') {
+        if (event.button !== 0) return;
+        draggingMouse = true;
+        dragMoved = false;
+        pointerStartX = event.clientX;
+        scrollStartX = carousel.scrollLeft;
+        carousel.classList.add('is-dragging');
+      } else {
+        trackingTouchSwipe = true;
+        touchSwipeMoved = false;
+        pointerStartX = event.clientX;
+        pointerStartY = event.clientY;
+      }
+    });
+
+    window.addEventListener('pointermove', event => {
+      if (draggingMouse) {
+        const delta = event.clientX - pointerStartX;
+        if (Math.abs(delta) > 5) dragMoved = true;
+        if (dragMoved) {
+          carousel.scrollLeft = scrollStartX - delta;
+          if (event.cancelable) event.preventDefault();
+        }
+        return;
+      }
+      if (trackingTouchSwipe) {
+        const deltaX = event.clientX - pointerStartX;
+        const deltaY = event.clientY - pointerStartY;
+        if (Math.abs(deltaX) > 9 && Math.abs(deltaX) > Math.abs(deltaY) * 1.15) {
+          touchSwipeMoved = true;
+        }
+      }
+    }, { passive: false });
+
+    function finishPointerInteraction() {
+      if (draggingMouse) {
+        draggingMouse = false;
+        carousel.classList.remove('is-dragging');
+        if (dragMoved) {
+          suppressClickUntil = performance.now() + 120;
+          const nearest = nearestAvatarToCenter();
+          if (nearest) {
+            selectAvatar(nearest.dataset.avatarId);
+            centerAvatar(nearest);
+          }
+        }
+      }
+      if (trackingTouchSwipe) {
+        trackingTouchSwipe = false;
+        if (touchSwipeMoved) suppressClickUntil = performance.now() + 120;
+      }
+      dragMoved = false;
+      touchSwipeMoved = false;
+    }
+
+    window.addEventListener('pointerup', finishPointerInteraction);
+    window.addEventListener('pointercancel', finishPointerInteraction);
   }
 
   function selectGender(gender) {
@@ -276,8 +457,8 @@
       const [data, appStateData] = await Promise.all([response.json(), appStateRequest]);
       cloudPlayers = Array.isArray(data.records?.players) ? data.records.players : [];
       updateAppPlayers(appStateData?.state);
+      updateRegistrationSessionState(appStateData?.state);
       serviceReady = true;
-      setConnection(true, 'Connected');
       updateSubmitButton();
       bindCloudEvents();
       return true;
@@ -305,11 +486,12 @@
         try {
           const payload = JSON.parse(event.data);
           updateAppPlayers(payload.state);
+          updateRegistrationSessionState(payload.state);
           updateSubmitButton();
         } catch (_) {}
       });
       cloudEvents.onerror = () => setConnection(false, 'Reconnecting');
-      cloudEvents.onopen = () => setConnection(true, 'Connected');
+      cloudEvents.onopen = () => setConnection(registrationSessionAvailable, registrationSessionAvailable ? 'Live session active' : 'No live session');
     } catch (_) {
       cloudEvents = null;
     }
@@ -322,6 +504,7 @@
     $('registerSelfRating').value = '';
     selectedGender = '';
     selectedSkill = '';
+    selectAvatar('avatar-01');
     document.querySelectorAll('.gender-choice').forEach(button => {
       button.classList.remove('selected');
       button.setAttribute('aria-pressed', 'false');
@@ -335,6 +518,13 @@
 
   async function submitRegistration() {
     if (submitting) return;
+    if (!registrationSessionAvailable) {
+      await validateOrganizerRegistrationLink();
+      if (!registrationSessionAvailable) {
+        showFeedback(registrationSessionId ? 'Registration QR unavailable' : 'No active live session', registrationSessionBlockReason || 'Registration is closed until the organizer starts a live session.', true);
+        return;
+      }
+    }
     const {fullname, duplicate, duplicateDupr, complete} = updateSubmitButton();
     hideFeedback();
     if (duplicateDupr) {
@@ -358,19 +548,30 @@
       await loadCloudRecords();
       if (!serviceReady) return;
     }
+    if (!registrationSessionAvailable) {
+      showFeedback(registrationSessionId ? 'Registration QR unavailable' : 'No active live session', registrationSessionBlockReason || 'Registration is closed until the organizer starts a live session.', true);
+      return;
+    }
 
     submitting = true;
     const button = $('registerSaveBtn');
     if (button) button.textContent = 'Registering…';
     updateSubmitButton();
     try {
-      const response = await fetch(scopedApiUrl('/api/register-player', {dupr:registrationDuprSession?'1':'0'}), {
+      const registrationParamsForRequest = {dupr:registrationDuprSession?'1':'0'};
+      if (registrationSessionId) registrationParamsForRequest.session = registrationSessionId;
+      const response = await fetch(scopedApiUrl('/api/register-player', registrationParamsForRequest), {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         cache: 'no-store',
-        body: JSON.stringify({name: fullname, nickname: $('registerNickname').value.trim(), gender: selectedGender, category: selectedSkill, duprId, selfRating, duprMatch:registrationDuprSession, organizerId:organizerScope})
+        body: JSON.stringify({name: fullname, nickname: $('registerNickname').value.trim(), gender: selectedGender, category: selectedSkill, avatarId:selectedAvatarId, duprId, selfRating, duprMatch:registrationDuprSession, organizerId:organizerScope, sessionId:registrationSessionId})
       });
       const data = await response.json().catch(() => ({}));
+      if (response.status === 409 && data.noActiveSession) {
+        updateRegistrationSessionState({sessionActive:data.sessionActive===true,sessionId:data.sessionId||null,sessionEndedAt:data.sessionEndedAt||null});
+        showFeedback(data.sessionMismatch ? 'Registration QR expired' : 'No active live session', data.error || registrationSessionBlockReason, true);
+        return;
+      }
       if (response.status === 409 && data.duplicate) {
         const player = data.player || {name: fullname};
         if (data.duplicateType === 'duprId') {
@@ -454,7 +655,13 @@
     hideFeedback();
   });
   bindNameHelpers();
+  bindAvatarPicker();
   syncDuprRegistrationFields();
+  if ($('registrationPagePanel')) $('registrationPagePanel').hidden = true;
+  if ($('registrationLinkNotice')) {
+    $('registrationLinkNotice').textContent = 'Checking live session status…';
+    $('registrationLinkNotice').hidden = false;
+  }
   syncRegistrationEyebrowTheme();
   loadCloudRecords();
 })();

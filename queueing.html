@@ -25,7 +25,7 @@
   <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
   <title>Pickle Point Match — Queueing</title>
 <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=queue-header-glass-20261023-3&dupr-csv-export=20261028-3&mzoom=20261024-1&organizer-stats=20261024-1&qr-logo-assignment=20261024-2&organizer-share-glass=20261024-1&event-rules-amber-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&lock-partner-gender-minimal-20261026-1&court-player-inline-meta-20261026-1&court-dupr-editor-touch-size-20261026-1&dupr-label-toggle-20261026-1&end-session-modal-details=20261028-2&end-session-compact=20261028-1&end-session-attendee-panel=20261028-13-reference-colors-no-auto-open&registered-player-edit=20261028-1">
+  <link rel="stylesheet" href="style.css?v=queue-header-glass-20261023-3&dupr-csv-export=20261028-3&mzoom=20261024-1&organizer-stats=20261024-1&qr-logo-assignment=20261024-2&organizer-share-glass=20261024-1&event-rules-amber-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&lock-partner-gender-minimal-20261026-1&court-player-inline-meta-20261026-1&court-dupr-editor-touch-size-20261026-1&dupr-label-toggle-20261026-1&end-session-modal-details=20261028-2&end-session-compact=20261028-1&end-session-attendee-panel=20261029-1-synced-motion&registered-player-edit=20261028-1&cloud-records-compact=20261028-2&left-player-dupr-id=20261029-1&left-player-dupr-color=20261029-1&registered-cloud-dupr-inline-edit=20261029-2&cloud-dupr-stable-anchor=20261029-2&cloud-dupr-no-shift-final=20261029-1&cloud-edit-side-panel=20261029-1-smooth-slide&cloud-player-edit-form=20261029-2-category-buttons&cloud-edit-dupr-empty-state=20261029-1&cloud-edit-live-preview=20261029-1&cloud-edit-live-follow-responsive=20261029-2&cloud-edit-radio-row=20261029-1-no-divider&cloud-edit-loading-animation=20261029-1&cloud-records-scrollbar-hidden=20261029-2&cloud-edit-gender-compact=20261029-1&cloud-edit-dupr-logo-ratio=20261029-1&cloud-edit-gender-label-tight=20261029-1&cloud-record-actions-20261029=2-original-close-nojump&cloud-disabled-actions-hover-only=20261029-1&cloud-edit-width=20261029-2&cloud-edit-dupr-logo-height=20261029-1&cloud-category-height-static-dupr=20261029-1">
   <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261022-1&mzoom=20261024-1">
   <link rel="stylesheet" href="network-skeleton.css?v=network-skeleton-20261024-1">
   <link rel="stylesheet" href="queueing-refresh.css?v=queueing-refresh-stability-20261026-7&court-dupr-editor-touch-size-20261026-1&queue-dupr-event-rule-text-btn=20261026-3&queue-dupr-compact-all-devices=20261026-2&queue-dupr-event-stats-placement=20261026-1">
@@ -496,17 +496,62 @@ Maria Santos,Female"></textarea>
     <div class="modal-actions"><button id="importCancel">Cancel</button><button class="blue" id="importSave">Import</button></div>
   </div>
 </div>
-<div class="modal hidden" id="cloudRecordsModal"><div class="modal-box cloud-records-modal-box"><div class="cloud-records-head"><div class="cloud-records-title"><h2>☁ Registered Player Cloud <span id="cloudRecordsCount" class="history-count">(0)</span></h2><p>Saved player profiles stay here when a live queue ends.</p></div></div><div class="cloud-search-summary"><label class="cloud-search-wrap"><span class="cloud-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="cloudRecordsSearch" type="search" placeholder="Search registered players..."></label></div><div class="cloud-records-content" id="cloudRecordsContent"></div><div class="cloud-records-actions"><button type="button" id="cloudRecordsDone">Close</button></div></div></div>
-<div class="modal hidden cloud-player-edit-modal" id="cloudPlayerEditModal" onclick="if(event.target===this)cancelCloudPlayerEdit()">
-  <form class="modal-box cloud-player-edit-box" id="cloudPlayerEditForm" role="dialog" aria-modal="true" aria-labelledby="cloudPlayerEditTitle" onsubmit="event.preventDefault();saveCloudPlayerEdit()">
-    <div class="cloud-player-edit-heading"><h2 id="cloudPlayerEditTitle">Edit Player Details</h2><p>Update this registered player profile.</p></div>
-    <label class="cloud-player-edit-field" for="cloudPlayerEditFullName"><span>Full name</span><input id="cloudPlayerEditFullName" type="text" maxlength="120" autocomplete="name" required></label>
-    <label class="cloud-player-edit-field" for="cloudPlayerEditNickname"><span>Nickname</span><input id="cloudPlayerEditNickname" type="text" maxlength="80" autocomplete="nickname" placeholder="Optional"></label>
-    <label class="cloud-player-edit-field" for="cloudPlayerEditGender"><span>Gender</span><select id="cloudPlayerEditGender"><option value="">Not specified</option><option value="Male">Male</option><option value="Female">Female</option></select></label>
-    <label class="cloud-player-edit-field" for="cloudPlayerEditCategory"><span>Category</span><select id="cloudPlayerEditCategory"><option value="">Not specified</option><option value="BEG">BEG</option><option value="NOV">NOV</option><option value="INT">INT</option><option value="ADV">ADV</option><option value="EXP">EXP</option></select></label>
-    <label class="cloud-player-edit-field" for="cloudPlayerEditDuprId"><span>DUPR ID</span><input id="cloudPlayerEditDuprId" type="text" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Optional"></label>
-    <div class="cloud-player-edit-actions"><button type="button" class="cloud-player-edit-cancel" onclick="cancelCloudPlayerEdit()">Cancel</button><button type="submit" class="cloud-player-edit-save">Save Change</button></div>
-  </form>
+<div class="modal hidden" id="cloudRecordsModal">
+  <div class="modal-box cloud-records-modal-box">
+    <div class="cloud-records-head"><div class="cloud-records-title"><h2>☁ Registered Player Cloud <span id="cloudRecordsCount" class="history-count">(0)</span></h2><p>Saved player profiles stay here when a live queue ends.</p></div><button type="button" id="cloudRecordsDone" aria-label="Close registered player cloud" title="Close">Close</button></div>
+    <div class="cloud-search-summary"><label class="cloud-search-wrap"><span class="cloud-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="cloudRecordsSearch" type="search" placeholder="Search registered players..."></label></div>
+    <div class="cloud-records-content" id="cloudRecordsContent"></div>
+  </div>
+  <aside class="cloud-player-edit-modal" id="cloudPlayerEditModal" aria-hidden="true" inert>
+    <form class="cloud-player-edit-box" id="cloudPlayerEditForm" role="dialog" aria-modal="false" aria-labelledby="cloudPlayerEditTitle" onsubmit="event.preventDefault();saveCloudPlayerEdit()">
+      <div class="cloud-player-edit-heading"><h2 id="cloudPlayerEditTitle">Edit Player Details</h2><p>Update this registered player profile.</p></div>
+      <label class="cloud-player-edit-field" for="cloudPlayerEditFullName"><span>Full name</span><input id="cloudPlayerEditFullName" type="text" maxlength="120" autocomplete="name" placeholder="Enter full name" required></label>
+      <label class="cloud-player-edit-field" for="cloudPlayerEditNickname"><span>Nickname</span><input id="cloudPlayerEditNickname" type="text" maxlength="80" autocomplete="nickname" placeholder="Enter nickname (optional)"></label>
+      <div class="cloud-player-edit-field cloud-player-edit-gender-field">
+        <span id="cloudPlayerEditGenderLabel">Gender</span>
+        <div class="cloud-edit-gender-options" role="radiogroup" aria-labelledby="cloudPlayerEditGenderLabel">
+          <label class="cloud-edit-gender-option">
+            <input class="cloud-edit-gender-radio" type="radio" name="cloudPlayerEditGenderChoice" value="Male">
+            <span class="cloud-edit-gender-circle" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="12.2" cy="19.5" r="7"></circle><path d="M17.2 14.4 27 4.7M19.2 4.7H27v7.8"></path></svg></span>
+            <span class="cloud-edit-gender-name">Male</span>
+          </label>
+          <label class="cloud-edit-gender-option">
+            <input class="cloud-edit-gender-radio" type="radio" name="cloudPlayerEditGenderChoice" value="Female">
+            <span class="cloud-edit-gender-circle" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="11" r="7.1"></circle><path d="M16 18.1v10M10.8 23.2h10.4"></path></svg></span>
+            <span class="cloud-edit-gender-name">Female</span>
+          </label>
+        </div>
+        <input id="cloudPlayerEditGender" type="hidden" value="">
+      </div>
+      <div class="cloud-player-edit-field cloud-player-edit-category-field">
+        <span id="cloudPlayerEditCategoryLabel">Category</span>
+        <input id="cloudPlayerEditCategory" type="hidden" value="">
+        <div class="registration-skill-buttons cloud-edit-category-buttons" role="group" aria-labelledby="cloudPlayerEditCategoryLabel">
+          <button type="button" class="registration-skill-btn skill-beg" data-cloud-edit-category-value="BEG" aria-pressed="false">BEG</button>
+          <button type="button" class="registration-skill-btn skill-nov" data-cloud-edit-category-value="NOV" aria-pressed="false">NOV</button>
+          <button type="button" class="registration-skill-btn skill-int" data-cloud-edit-category-value="INT" aria-pressed="false">INT</button>
+          <button type="button" class="registration-skill-btn skill-adv" data-cloud-edit-category-value="ADV" aria-pressed="false">ADV</button>
+          <button type="button" class="registration-skill-btn skill-exp" data-cloud-edit-category-value="EXP" aria-pressed="false">EXP</button>
+        </div>
+      </div>
+      <div class="cloud-player-edit-field cloud-player-edit-dupr-field">
+        <span id="cloudPlayerEditDuprLabel">DUPR ID</span>
+        <div class="cloud-edit-dupr-row">
+          <svg class="cloud-edit-dupr-logo" viewBox="0 0 64 32" role="img" aria-label="DUPR logo"><defs><linearGradient id="cloudEditDuprLogoGradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#021861"></stop><stop offset="0.56" stop-color="#113570"></stop><stop offset="1" stop-color="#113570"></stop></linearGradient></defs><rect width="64" height="32" rx="5" fill="url(#cloudEditDuprLogoGradient)"></rect><text x="32" y="22" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="900" letter-spacing="-.7" fill="#fff">DUPR</text></svg>
+          <div class="cloud-edit-dupr-slots" role="group" aria-labelledby="cloudPlayerEditDuprLabel">
+            <input class="cloud-edit-dupr-slot" id="cloudPlayerEditDuprSlot1" type="text" inputmode="text" placeholder="1" maxlength="1" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="DUPR ID character 1 of 6">
+            <input class="cloud-edit-dupr-slot" id="cloudPlayerEditDuprSlot2" type="text" inputmode="text" placeholder="A" maxlength="1" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="DUPR ID character 2 of 6">
+            <input class="cloud-edit-dupr-slot" id="cloudPlayerEditDuprSlot3" type="text" inputmode="text" placeholder="2" maxlength="1" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="DUPR ID character 3 of 6">
+            <input class="cloud-edit-dupr-slot" id="cloudPlayerEditDuprSlot4" type="text" inputmode="text" placeholder="B" maxlength="1" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="DUPR ID character 4 of 6">
+            <input class="cloud-edit-dupr-slot" id="cloudPlayerEditDuprSlot5" type="text" inputmode="text" placeholder="3" maxlength="1" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="DUPR ID character 5 of 6">
+            <input class="cloud-edit-dupr-slot" id="cloudPlayerEditDuprSlot6" type="text" inputmode="text" placeholder="C" maxlength="1" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="DUPR ID character 6 of 6">
+          </div>
+        </div>
+        <input id="cloudPlayerEditDuprId" type="hidden" value="">
+      </div>
+      <div class="cloud-player-edit-actions"><button type="button" class="cloud-player-edit-cancel" onclick="cancelCloudPlayerEdit()">Cancel</button><button type="submit" class="cloud-player-edit-save"><span class="cloud-player-edit-save-spinner" aria-hidden="true"></span><span class="cloud-player-edit-save-label">Save Change</span></button></div>
+    </form>
+  </aside>
 </div>
 <div class="modal hidden" id="cloudMatchActionModal" onclick="if(event.target===this)closeCloudMatchModal()">
   <div class="modal-box cloud-match-action-box" role="dialog" aria-modal="true" aria-labelledby="cloudMatchActionTitle">
@@ -568,7 +613,7 @@ Maria Santos,Female"></textarea>
 
 <div class="toast" id="toast"></div>
 <script src="auth-session.js?v=organizer-display-name-20261024-1"></script>
-<script src="queueing-app-loader.js?v=queueing-refresh-stability-20261027-1&attendee-panel-no-auto-open=20261028-1&dupr-csv-export=20261028-3&dupr-location=20261026-1&organizer-logo-cache-20261026-1&event-rules-enabled-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&dupr-label-toggle-20261026-1&queue-dupr-toggle-header=20261026-2&queue-dupr-text-only=20261026-1&organizer-scoped-dupr-registration=20261028-1&end-session-attendee-panel=20261028-13-reference-colors-no-auto-open" defer></script>
+<script src="queueing-app-loader.js?v=queueing-refresh-stability-20261029-3-cloud-dupr-slot-select&cloud-category-full-labels=20261029-2-live-edit-follow&attendee-panel-no-auto-open=20261028-1&session-lifecycle-qr-guards=20261028-2&dupr-csv-export=20261028-3&dupr-location=20261026-1&organizer-logo-cache-20261026-1&event-rules-enabled-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&dupr-label-toggle-20261026-1&queue-dupr-toggle-header=20261026-2&queue-dupr-text-only=20261026-1&organizer-scoped-dupr-registration=20261028-1&end-session-attendee-panel=20261029-1-synced-motion&left-player-dupr-id=20261029-1&registered-cloud-dupr-inline-edit=20261029-2&cloud-dupr-stable-anchor=20261029-2&cloud-dupr-no-shift-final=20261029-1&queue-self-rating-removed=20261029-1&dupr-id-no-spaces=20261029-1&cloud-dupr-no-shift-final=20261029-1&cloud-edit-side-panel=20261029-1-smooth-slide&cloud-player-edit-form=20261029-2-category-buttons&cloud-edit-live-preview=20261029-1&cloud-edit-gender-two-options=20261029-1&cloud-edit-dupr-empty-state=20261029-1&cloud-edit-live-follow-responsive=20261029-2-no-autofocus-fit-content&cloud-edit-width=20261029-1&cloud-edit-loading-animation=20261029-1&cloud-record-actions=20261029-1" defer></script>
 
 
 

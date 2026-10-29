@@ -1,8 +1,86 @@
-*{box-sizing:border-box} :root{color-scheme:dark;--bg:#061f27;--panel:#0b3039;--panel2:#0e3a43;--line:#1c5059;--teal:#27d3c5;--muted:#9dbfc3;--text:#eefafa;--orange:#ffb04e;--green:#37d6a1;--red:#ff7078}
-html{min-height:100%;background:var(--bg)}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(ellipse at 50% -220px,#18515b 0,transparent 62%),var(--bg);min-height:100vh}button,a{-webkit-tap-highlight-color:transparent}.live-header{height:58px;padding:0 clamp(16px,4vw,54px);display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #24535a;background:rgba(4,30,37,.92);position:sticky;top:0;z-index:5;backdrop-filter:blur(14px)}.brand{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;min-width:0}.brand img{width:39px;height:39px;object-fit:contain}.brand-words{display:flex;flex-direction:column;gap:1px;letter-spacing:.7px;white-space:nowrap}.brand-words b{font-size:14px;font-weight:950}.brand-words strong{color:var(--teal)}.brand-words small{font-size:8px;letter-spacing:4px;font-weight:900;color:#95c4c7}.header-right{display:flex;align-items:center;gap:12px}.connection-status{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #2d6569;border-radius:999px;color:#b9d4d6;font-size:11px;font-weight:800;white-space:nowrap}.connection-status i{width:7px;height:7px;border-radius:50%;background:#a6b8bc}.connection-status.connected i{background:var(--green);box-shadow:0 0 9px #37d6a1}.connection-status.local i{background:var(--orange)}.page-shell{width:min(1380px,100%);margin:auto;padding:34px clamp(14px,4vw,54px) 22px}.event-heading{margin-bottom:25px}.eyebrow{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:2.2px;color:var(--teal);font-weight:950}.live-pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green)}.event-heading h1{font-size:clamp(24px,3.2vw,39px);letter-spacing:-1px;line-height:1.13;margin:11px 0 8px;font-weight:950;overflow-wrap:anywhere}.event-subtitle{margin:0;color:var(--muted);font-size:14px}.updated-line{display:flex;align-items:center;gap:13px;flex-wrap:wrap;color:#85aeb3;font-size:11px;margin-top:16px}.content-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(270px,1fr);gap:18px;align-items:start}.section-card{background:linear-gradient(155deg,#0b3039,#092831);border:1px solid var(--line);border-radius:17px;padding:20px;min-width:0;box-shadow:0 12px 32px #0000000a}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:17px}.section-kicker{color:var(--teal);font-size:9px;font-weight:950;letter-spacing:1.75px}.section-heading h2{font-size:21px;letter-spacing:-.45px;margin:4px 0 0;font-weight:900}.count-chip{display:inline-flex;padding:6px 9px;border-radius:8px;border:1px solid #265b61;background:#103b43;color:#bad4d6;font-size:10px;font-weight:850;white-space:nowrap}.courts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.court-card{border:1px solid #25545b;border-radius:13px;padding:14px;background:linear-gradient(160deg,#113a43,#0b3038);min-width:0}.court-card.playing{border-color:#2b9d87;box-shadow:inset 0 0 0 1px #2b9d8724}.court-top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-bottom:11px;border-bottom:1px solid #24515a}.court-name{font-size:14px;font-weight:950;overflow-wrap:anywhere}.court-state{font-size:9px;text-transform:uppercase;letter-spacing:.5px;border-radius:999px;padding:5px 7px;font-weight:950;white-space:nowrap;color:#b7d0d2;background:#24494f}.court-state.playing{background:#164b43;color:#65e2b5}.court-state.ready{background:#1d4d61;color:#8bd2ed}.court-state.waiting{background:#59492a;color:#ffd58c}.match-meta{display:flex;justify-content:space-between;gap:7px;color:#9ebfc2;font-size:10px;margin:10px 0}.match-timer{color:var(--teal);font-weight:950;font-variant-numeric:tabular-nums}.teams{display:grid;grid-template-columns:1fr 18px 1fr;align-items:center;gap:5px}.team{display:flex;flex-direction:column;gap:6px;min-width:0}.team-label{color:#89b1b5;font-size:8px;font-weight:950;letter-spacing:1px}.player-chip{display:flex;align-items:center;gap:4px;padding:8px 7px;min-height:35px;border:1px solid #28555c;border-radius:8px;background:#0c2a32;font-size:10px;font-weight:800;overflow-wrap:anywhere;min-width:0}.player-chip:before{content:"";display:block;flex:0 0 6px;width:6px;height:6px;border-radius:50%;background:#eca257}.team:nth-child(3) .player-chip:before{background:#8bd4d6}.player-chip.empty{color:#63868b;font-weight:600;font-style:italic}.versus{text-align:center;font-size:9px;color:#76a2a6;font-weight:950}.scoreline{margin-top:11px;display:flex;align-items:center;justify-content:center;gap:9px;color:#dffafa;font-size:12px;font-weight:950}.scoreline b{color:var(--teal);font-size:17px}.queue-list{display:flex;flex-direction:column;gap:8px}.queue-item{display:flex;align-items:center;gap:11px;padding:10px 11px;background:#0b2931;border:1px solid #1d4851;border-radius:10px;min-width:0}.queue-number{flex:0 0 27px;width:27px;height:27px;border-radius:8px;background:#1b4f57;color:var(--teal);display:grid;place-items:center;font-weight:950;font-size:11px}.queue-player{font-size:12px;font-weight:850;overflow-wrap:anywhere}.queue-label{display:block;color:#7fa9ad;font-size:9px;margin-top:3px}.empty-state{padding:24px 12px;text-align:center;color:#83a8ac;border:1px dashed #2a555b;border-radius:10px;font-size:12px;line-height:1.5}.notice-card{display:flex;gap:14px;align-items:center;margin-bottom:18px;padding:16px 18px;border:1px solid #725c31;background:#332f21;border-radius:13px}.notice-icon{font-size:24px}.notice-card strong{font-size:13px}.notice-card p{color:#d7c9a6;margin:4px 0 0;font-size:11px}.sync-notice{display:flex;gap:8px;flex-direction:column;padding:12px 14px;border:1px solid #876532;background:#302c20;color:#e7d3a5;border-radius:11px;margin-bottom:16px;font-size:11px;line-height:1.5}.sync-notice strong{font-size:11px;color:#ffdc88}.page-footer{margin-top:25px;padding-top:0;border-top:0;display:flex;justify-content:space-between;gap:10px;color:#648c91;font-size:9px;letter-spacing:.75px;font-weight:850}[hidden]{display:none!important}
-@media(max-width:900px){.content-grid{grid-template-columns:1fr}.queue-section{order:2}.court-section{order:1}.queue-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){.live-header{height:58px;padding:0 13px}.brand img{width:32px;height:32px}.brand-words b{font-size:11px}.brand-words small{font-size:7px;letter-spacing:3px}.header-right{gap:7px}.connection-status{font-size:9px;padding:6px 7px}.page-shell{padding:24px 12px 18px}.event-heading h1{font-size:26px}.section-card{padding:13px;border-radius:13px}.section-heading h2{font-size:19px}.courts-grid{grid-template-columns:1fr}.queue-list{grid-template-columns:1fr}.page-footer{font-size:8px;flex-direction:column}.court-card{padding:12px}}
-
+*{box-sizing:border-box}
+:root{color-scheme:dark;--bg:#061f27;--panel:#0b3039;--panel2:#0e3a43;--line:#1c5059;--teal:#27d3c5;--muted:#9dbfc3;--text:#eefafa;--orange:#ffb04e;--green:#37d6a1;--red:#ff7078}
+html{min-height:100%;background:var(--bg)}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(ellipse at 50% -220px,#18515b 0,transparent 62%),var(--bg);min-height:100vh}
+button,a{-webkit-tap-highlight-color:transparent}
+.live-header{height:58px;padding:0 clamp(16px,4vw,54px);display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #24535a;background:rgba(4,30,37,.92);position:sticky;top:0;z-index:5;backdrop-filter:blur(14px)}
+.brand{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;min-width:0}
+.brand img{width:39px;height:39px;object-fit:contain}
+.brand-words{display:flex;flex-direction:column;gap:1px;letter-spacing:.7px;white-space:nowrap}
+.brand-words b{font-size:14px;font-weight:950}
+.brand-words strong{color:var(--teal)}
+.brand-words small{font-size:8px;letter-spacing:4px;font-weight:900;color:#95c4c7}
+.header-right{display:flex;align-items:center;gap:12px}
+.connection-status{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #2d6569;border-radius:999px;color:#b9d4d6;font-size:11px;font-weight:800;white-space:nowrap}
+.connection-status i{width:7px;height:7px;border-radius:50%;background:#a6b8bc}
+.connection-status.connected i{background:var(--green);box-shadow:0 0 9px #37d6a1}
+.connection-status.local i{background:var(--orange)}
+.page-shell{width:min(1380px,100%);margin:auto;padding:34px clamp(14px,4vw,54px) 22px}
+.event-heading{margin-bottom:25px}
+.eyebrow{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:2.2px;color:var(--teal);font-weight:950}
+.live-pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green)}
+.event-heading h1{font-size:clamp(24px,3.2vw,39px);letter-spacing:-1px;line-height:1.13;margin:11px 0 8px;font-weight:950;overflow-wrap:anywhere}
+.event-subtitle{margin:0;color:var(--muted);font-size:14px}
+.updated-line{display:flex;align-items:center;gap:13px;flex-wrap:wrap;color:#85aeb3;font-size:11px;margin-top:16px}
+.content-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(270px,1fr);gap:18px;align-items:start}
+.section-card{background:linear-gradient(155deg,#0b3039,#092831);border:1px solid var(--line);border-radius:17px;padding:20px;min-width:0;box-shadow:0 12px 32px #0000000a}
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:17px}
+.section-kicker{color:var(--teal);font-size:9px;font-weight:950;letter-spacing:1.75px}
+.section-heading h2{font-size:21px;letter-spacing:-.45px;margin:4px 0 0;font-weight:900}
+.count-chip{display:inline-flex;padding:6px 9px;border-radius:8px;border:1px solid #265b61;background:#103b43;color:#bad4d6;font-size:10px;font-weight:850;white-space:nowrap}
+.courts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.court-card{border:1px solid #25545b;border-radius:13px;padding:14px;background:linear-gradient(160deg,#113a43,#0b3038);min-width:0}
+.court-card.playing{border-color:#2b9d87;box-shadow:inset 0 0 0 1px #2b9d8724}
+.court-top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-bottom:11px;border-bottom:1px solid #24515a}
+.court-name{font-size:14px;font-weight:950;overflow-wrap:anywhere}
+.court-state{font-size:9px;text-transform:uppercase;letter-spacing:.5px;border-radius:999px;padding:5px 7px;font-weight:950;white-space:nowrap;color:#b7d0d2;background:#24494f}
+.court-state.playing{background:#164b43;color:#65e2b5}
+.court-state.ready{background:#1d4d61;color:#8bd2ed}
+.court-state.waiting{background:#59492a;color:#ffd58c}
+.match-meta{display:flex;justify-content:space-between;gap:7px;color:#9ebfc2;font-size:10px;margin:10px 0}
+.match-timer{color:var(--teal);font-weight:950;font-variant-numeric:tabular-nums}
+.teams{display:grid;grid-template-columns:1fr 18px 1fr;align-items:center;gap:5px}
+.team{display:flex;flex-direction:column;gap:6px;min-width:0}
+.team-label{color:#89b1b5;font-size:8px;font-weight:950;letter-spacing:1px}
+.player-chip{display:flex;align-items:center;gap:4px;padding:8px 7px;min-height:35px;border:1px solid #28555c;border-radius:8px;background:#0c2a32;font-size:10px;font-weight:800;overflow-wrap:anywhere;min-width:0}
+.player-chip:before{content:"";display:block;flex:0 0 6px;width:6px;height:6px;border-radius:50%;background:#eca257}
+.team:nth-child(3) .player-chip:before{background:#8bd4d6}
+.player-chip.empty{color:#63868b;font-weight:600;font-style:italic}
+.versus{text-align:center;font-size:9px;color:#76a2a6;font-weight:950}
+.scoreline{margin-top:11px;display:flex;align-items:center;justify-content:center;gap:9px;color:#dffafa;font-size:12px;font-weight:950}
+.scoreline b{color:var(--teal);font-size:17px}
+.queue-list{display:flex;flex-direction:column;gap:8px}
+.queue-item{display:flex;align-items:center;gap:11px;padding:10px 11px;background:#0b2931;border:1px solid #1d4851;border-radius:10px;min-width:0}
+.queue-number{flex:0 0 27px;width:27px;height:27px;border-radius:8px;background:#1b4f57;color:var(--teal);display:grid;place-items:center;font-weight:950;font-size:11px}
+.queue-player{font-size:12px;font-weight:850;overflow-wrap:anywhere}
+.queue-label{display:block;color:#7fa9ad;font-size:9px;margin-top:3px}
+.empty-state{padding:24px 12px;text-align:center;color:#83a8ac;border:1px dashed #2a555b;border-radius:10px;font-size:12px;line-height:1.5}
+.notice-card{display:flex;gap:14px;align-items:center;margin-bottom:18px;padding:16px 18px;border:1px solid #725c31;background:#332f21;border-radius:13px}
+.notice-icon{font-size:24px}
+.notice-card strong{font-size:13px}
+.notice-card p{color:#d7c9a6;margin:4px 0 0;font-size:11px}
+.sync-notice{display:flex;gap:8px;flex-direction:column;padding:12px 14px;border:1px solid #876532;background:#302c20;color:#e7d3a5;border-radius:11px;margin-bottom:16px;font-size:11px;line-height:1.5}
+.sync-notice strong{font-size:11px;color:#ffdc88}
+.page-footer{margin-top:25px;padding-top:0;border-top:0;display:flex;justify-content:space-between;gap:10px;color:#648c91;font-size:9px;letter-spacing:.75px;font-weight:850}
+[hidden]{display:none!important}
+@media(max-width:900px) {.content-grid{grid-template-columns:1fr}
+.queue-section{order:2}
+.court-section{order:1}
+.queue-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px) {.live-header{height:58px;padding:0 13px}
+.brand img{width:32px;height:32px}
+.brand-words b{font-size:11px}
+.brand-words small{font-size:7px;letter-spacing:3px}
+.header-right{gap:7px}
+.connection-status{font-size:9px;padding:6px 7px}
+.page-shell{padding:24px 12px 18px}
+.event-heading h1{font-size:26px}
+.section-card{padding:13px;border-radius:13px}
+.section-heading h2{font-size:19px}
+.courts-grid{grid-template-columns:1fr}
+.queue-list{grid-template-columns:1fr}
+.page-footer{font-size:8px;flex-direction:column}
+.court-card{padding:12px}}
 /* Live-view refinements */
 .match-meta{align-items:center;flex-wrap:wrap}
 .match-timer{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -15,7 +93,6 @@ html{min-height:100%;background:var(--bg)}body{margin:0;font-family:Inter,ui-san
 .player-chip-name{display:block;flex:0 1 auto;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .waiting-courts-section{margin-top:18px}
 .waiting-courts-section[hidden]{display:none!important}
-
 /* Live view layout and timer label refinements */
 .content-grid{display:block}
 .court-section{width:100%}
@@ -27,19 +104,23 @@ html{min-height:100%;background:var(--bg)}body{margin:0;font-family:Inter,ui-san
 .match-timer.timer-amber{color:#ffbf47}
 .match-timer.timer-red{color:#ff5757}
 .queue-player-wrap{min-width:0;flex:1}
-@media(max-width:900px){.support-grid{grid-template-columns:minmax(0,1fr)}.support-grid:has(.waiting-courts-section[hidden]){grid-template-columns:minmax(0,1fr)}}
-@media(max-width:560px){.courts-grid{grid-template-columns:minmax(0,1fr)}.court-card{padding:9px}.court-top{align-items:flex-start;flex-wrap:wrap}.court-name{font-size:12px}.court-state{font-size:8px}.teams{grid-template-columns:minmax(0,1fr) 12px minmax(0,1fr);gap:3px}.player-chip{padding:7px 5px;font-size:9px}.match-meta{font-size:9px}}
-
+@media(max-width:900px) {.support-grid{grid-template-columns:minmax(0,1fr)}
+.support-grid:has(.waiting-courts-section[hidden]){grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px) {.courts-grid{grid-template-columns:minmax(0,1fr)}
+.court-card{padding:9px}
+.court-top{align-items:flex-start;flex-wrap:wrap}
+.court-name{font-size:12px}
+.court-state{font-size:8px}
+.teams{grid-template-columns:minmax(0,1fr) 12px minmax(0,1fr);gap:3px}
+.player-chip{padding:7px 5px;font-size:9px}
+.match-meta{font-size:9px}}
 /* Center the score separator independently from the score label. */
 .scoreline{position:relative;display:flex;align-items:center;justify-content:center;gap:0;min-height:22px}
-
 .score-values{display:grid;grid-template-columns:minmax(24px,1fr) 20px minmax(24px,1fr);align-items:center;width:84px}
 .score-values b{text-align:center;min-width:0;line-height:1}
 .score-separator{text-align:center;color:#dffafa;font-size:15px;font-weight:950;line-height:1}
-
 /* Keep the VS divider clear and centered between teams on narrow phones. */
 @media(max-width:560px){.teams{grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:4px}.versus{display:flex;align-items:center;justify-content:center;min-width:0;white-space:nowrap;font-size:8px;letter-spacing:.25px;line-height:1}}
-
 /* LIGHT THEME — paired with the existing live-view theme toggle. */
 :root[data-theme="light"] {
   color-scheme: light;
@@ -132,7 +213,6 @@ html[data-theme="light"] .page-footer {
   border-top-color: #d8e5e6;
   color: #6c8589;
 }
-
 /* Keep the Live View header in its dark teal design in both light and dark page themes. */
 .live-header {
   background: rgba(4, 30, 37, .92);
@@ -152,7 +232,6 @@ html[data-theme="light"] .page-footer {
   box-shadow: 0 0 9px #37d6a1;
 }
 .live-header .connection-status.local i { background: #ffb04e; }
-
 /* Player identity details in Live View: name, gender icon and skill category. */
 .queue-player-line{display:flex;align-items:center;gap:6px;min-width:0;width:100%;flex-wrap:nowrap}
 .queue-player-line .queue-player{flex:0 1 auto;min-width:0;line-height:1.25}
@@ -173,8 +252,10 @@ html[data-theme="light"] .page-footer {
 .player-chip .live-player-gender .gender-symbol{flex-basis:11px;width:11px;height:11px}
 html[data-theme="light"] .live-player-gender.male{background:transparent;color:#2676b7}
 html[data-theme="light"] .live-player-gender.female{background:transparent;color:#c43b7b}
-@media(max-width:560px){.queue-player-line{gap:4px}.queue-player-line .queue-player{font-size:11px}.live-player-category{padding:2px 4px;font-size:7px}.player-chip{gap:4px}}
-
+@media(max-width:560px) {.queue-player-line{gap:4px}
+.queue-player-line .queue-player{font-size:11px}
+.live-player-category{padding:2px 4px;font-size:7px}
+.player-chip{gap:4px}}
 /* Display each player's Queueing-page waiting duration at the far right of the Live View row. */
 .queue-waiting-time{flex:0 0 auto;margin-left:auto;padding-left:8px;color:var(--teal);font-size:10px;font-weight:850;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
 .queue-waiting-time.waiting-amber{color:#ffbf47}
@@ -182,8 +263,7 @@ html[data-theme="light"] .live-player-gender.female{background:transparent;color
 html[data-theme="light"] .queue-waiting-time{color:#087f80}
 html[data-theme="light"] .queue-waiting-time.waiting-amber{color:#986000}
 html[data-theme="light"] .queue-waiting-time.waiting-red{color:#bd2935}
-@media(max-width:560px){.queue-waiting-time{font-size:9px;padding-left:4px}}
-
+@media(max-width:560px) {.queue-waiting-time{font-size:9px;padding-left:4px}}
 /* GLOBAL SCROLLBAR THEME — match the Live Queue Start screen.
    Keep the intentionally hidden desktop courts-list scrollbar hidden. */
 html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override),
@@ -192,21 +272,18 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
   scrollbar-color: #d1d5db transparent !important;
   scrollbar-width: thin !important;
 }
-
 html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar,
 body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar,
 html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar {
   width: 8px !important;
   height: 8px !important;
 }
-
 html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-track,
 body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-track,
 html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-track {
   background: transparent !important;
   border-radius: 999px !important;
 }
-
 html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb,
 body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb,
 html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb {
@@ -216,21 +293,18 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
   background-clip: padding-box !important;
   border-radius: 999px !important;
 }
-
 html:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb:hover,
 body:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb:hover,
 html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar-thumb:hover {
   background: #c4c9d1 !important;
   background-clip: padding-box !important;
 }
-
 /* READY STATUS — use the same teal badge palette as the main court cards. */
 .court-state.ready {
   background: #d9f7f3 !important;
   color: #087e8b !important;
   border: 1px solid #b6ebe6 !important;
 }
-
 /* STATUS COLOR SYNC — add matching dots to Ready and Playing badges. */
 .court-state.ready,
 .court-state.playing {
@@ -255,7 +329,6 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
   background: #65e2b5;
   box-shadow: 0 0 0 2px rgba(101, 226, 181, .2);
 }
-
 /* PLAYING STATUS — match the user-provided mint pill reference, including its dot. */
 .court-state.playing {
   display: inline-flex !important;
@@ -284,7 +357,6 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
   background: #08764e !important;
   box-shadow: none !important;
 }
-
 /* READY STATUS — match the user-provided light-blue READY pill reference, including its dot. */
 .court-state.ready {
   display: inline-flex !important;
@@ -313,7 +385,6 @@ html body *:not(.courts-panel > #courtsList):not(#scrollbar-theme-override):not(
   background: #176a9f !important;
   box-shadow: 0 0 0 2px #d4eaf8 !important;
 }
-
 /* DOT SIZE NORMALIZATION — keep larger Live View status dots at the compact 5px size. */
 html body .connection-status i {
   width: 5px !important;
@@ -334,9 +405,9 @@ html body .match-timer::before {
   min-height: 5px !important;
   flex: 0 0 5px !important;
 }
-
 /* FINAL LIVE VIEW DOT FIX — enforce compact 5px dots and remove oversized glow/rings.
-   Applies only to Live View indicators; dot colors and all status behavior remain unchanged. */
+   Applies only to Live View indicators;
+dot colors and all status behavior remain unchanged. */
 html body .live-header .connection-status i,
 html body .connection-status i,
 html body .event-heading .live-pulse,
@@ -357,7 +428,6 @@ html body .match-timer::before {
   flex: 0 0 5px !important;
   box-shadow: none !important;
 }
-
 /* PLAYER CHIP TEAM DOTS — 3px, blue for Team 1 and violet for Team 2. */
 html body .teams > .team:nth-child(1) .player-chip::before {
   width: 3px !important;
@@ -379,7 +449,6 @@ html body .teams > .team:nth-child(3) .player-chip::before {
   flex: 0 0 3px !important;
   background: #8b5cf6 !important;
 }
-
 /* Live View section headings — compact sizing and baseline alignment to match Index panel titles. */
 html body .section-card .section-heading {
   display: flex;
@@ -431,17 +500,14 @@ html body .section-card .section-heading h2 .panel-count {
   vertical-align: middle;
   white-space: nowrap;
 }
-@media (max-width: 560px) {
-  html body .section-card .section-heading h2 {
+@media (max-width: 560px) {html body .section-card .section-heading h2 {
     font-size: 15px;
     line-height: 20px;
   }
-  html body .section-card .section-heading h2 .panel-count {
+html body .section-card .section-heading h2 .panel-count {
     font-size: 11px;
     line-height: 20px;
-  }
-}
-
+  }}
 /* Court status color consistency: Ready uses the light-mode palette in both themes. */
 html body .court-card .court-state.ready {
   background: #e3f2fb !important;
@@ -452,7 +518,6 @@ html body .court-card .court-state.ready::before {
   background: #176a9f !important;
   box-shadow: 0 0 0 2px #d4eaf8 !important;
 }
-
 /* Up Next in Live View mirrors the waiting-court status badge on the Index page. */
 html body .court-card .court-state.up-next {
   display: inline-flex !important;
@@ -485,7 +550,6 @@ html body .court-card .court-state.up-next::before {
   background: #00a99d !important;
   box-shadow: none !important;
 }
-
 /* Compact Live View queue avatar stack: match the index queue identity style at a smaller size. */
 .queue-item > .queue-avatar-stack {
   position: relative;
@@ -534,26 +598,23 @@ html body .court-card .court-state.up-next::before {
   box-shadow: none;
   z-index: 1;
 }
-@media (max-width: 560px) {
-  .queue-item { gap: 8px; }
-  .queue-item > .queue-avatar-stack {
+@media (max-width: 560px) {.queue-item { gap: 8px; }
+.queue-item > .queue-avatar-stack {
     flex-basis: 28px;
     width: 28px;
     min-width: 28px;
     height: 28px;
   }
-  .queue-item > .queue-avatar-stack > .queue-avatar {
+.queue-item > .queue-avatar-stack > .queue-avatar {
     width: 28px;
     height: 28px;
     font-size: 11px;
   }
-  .queue-item > .queue-avatar-stack > .queue-position-badge {
+.queue-item > .queue-avatar-stack > .queue-position-badge {
     width: 15px;
     height: 15px;
     font-size: 7px;
-  }
-}
-
+  }}
 /* Match the compact gender symbol sizing used throughout the Index app. */
 html body .live-player-gender svg.gender-symbol {
   width: 10px !important;
@@ -569,35 +630,51 @@ html body .player-chip .live-player-gender svg.gender-symbol {
   max-width: 9px !important;
   flex: 0 0 9px !important;
 }
-
 /* Live View: inline locked-partner badge, scoped to the queue section only. */
 .queue-section .queue-locked-partner-inline{display:inline-flex;align-items:center;justify-content:center;flex:0 1 auto;min-width:0;max-width:74px;margin:0 0 0 2px;padding:1px 4px;border:1px solid #e5d5ff;border-radius:999px;background:#f1eaff;color:#6d28d9;font-family:inherit;font-size:7.5px;font-weight:500;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
-
 /* Search-match highlight used by the Rankings tab. */
 .live-ranking-search-hit{padding:0 1px;border-radius:3px;background:#ffe16b;color:#18252a;font-weight:950;box-shadow:0 0 0 1px rgba(255,193,7,.22);-webkit-box-decoration-break:clone;box-decoration-break:clone}
-
 .live-ranking-list{display:flex;flex-direction:column;gap:8px;min-height:100px;padding:13px 15px 16px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#4d777d transparent}
-.live-ranking-list::-webkit-scrollbar{width:6px}.live-ranking-list::-webkit-scrollbar-track{background:transparent}.live-ranking-list::-webkit-scrollbar-thumb{border-radius:99px;background:#4d777d}
+.live-ranking-list::-webkit-scrollbar{width:6px}
+.live-ranking-list::-webkit-scrollbar-track{background:transparent}
+.live-ranking-list::-webkit-scrollbar-thumb{border-radius:99px;background:#4d777d}
 .live-ranking-row{display:grid;grid-template-columns:36px minmax(0,1fr) 63px;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
 .live-ranking-row.rank-1{border-color:#f3d56b}
 .live-ranking-row.rank-2{border-color:#dce7f1}
 .live-ranking-row.rank-3{border-color:#ffd5a8}
 .live-ranking-position{color:var(--muted);text-align:center;font-size:12px;font-weight:900;line-height:1.1;white-space:nowrap}
 .live-ranking-row.rank-1 .live-ranking-position,.live-ranking-row.rank-2 .live-ranking-position,.live-ranking-row.rank-3 .live-ranking-position{font-size:21px}
-.live-ranking-main{min-width:0}.live-ranking-name-line{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
+.live-ranking-main{min-width:0}
+.live-ranking-name-line{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
 .live-ranking-name-line strong{min-width:0;overflow-wrap:anywhere;font-size:12px;font-weight:850;line-height:1.25}
 .live-ranking-category{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;white-space:nowrap;min-width:25px;padding:2px 5px;border:1px solid #dfe5e9;border-radius:6px;font-size:7px;font-weight:900;line-height:1;letter-spacing:.1px;background:#f8f9fa;color:#a0aec0;box-sizing:border-box}
-.live-ranking-category.skill-beg{background:#e8f3ff;border-color:#bce0fd;color:#2b6cb0}.live-ranking-category.skill-nov{background:#e0f8f3;border-color:#a2f0df;color:#227a68}.live-ranking-category.skill-int{background:#fff6d6;border-color:#fce38a;color:#9a6700}.live-ranking-category.skill-adv{background:#f1eaff;border-color:#d9c9f5;color:#7250ad}.live-ranking-category.skill-exp{background:#ffecef;border-color:#f2c8cd;color:#c43d4b}
+.live-ranking-category.skill-beg{background:#e8f3ff;border-color:#bce0fd;color:#2b6cb0}
+.live-ranking-category.skill-nov{background:#e0f8f3;border-color:#a2f0df;color:#227a68}
+.live-ranking-category.skill-int{background:#fff6d6;border-color:#fce38a;color:#9a6700}
+.live-ranking-category.skill-adv{background:#f1eaff;border-color:#d9c9f5;color:#7250ad}
+.live-ranking-category.skill-exp{background:#ffecef;border-color:#f2c8cd;color:#c43d4b}
 .live-ranking-playing{display:inline-flex;align-items:center;padding:3px 6px;border-radius:999px;background:#164b43;color:#65e2b5;font-size:8px;font-weight:850;line-height:1}
 .live-ranking-stats{display:flex;flex-wrap:wrap;gap:9px;margin-top:6px;color:var(--muted);font-size:9px;font-weight:750}
 .live-ranking-progress{height:4px;margin-top:7px;overflow:hidden;border-radius:99px;background:rgba(127,169,173,.22)}
 .live-ranking-progress span{display:block;height:100%;border-radius:inherit;background:var(--teal)}
 .live-ranking-result{display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:0}
-.live-ranking-result strong{font-size:17px;font-weight:950;line-height:1;font-variant-numeric:tabular-nums}.live-ranking-result span{color:var(--muted);font-size:8px;white-space:nowrap}
-.live-ranking-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;min-height:190px;margin:0;padding:30px 12px;box-sizing:border-box;color:var(--muted);text-align:center;font-size:11px;line-height:1.45}.live-ranking-empty>span:first-child{font-size:28px}.live-ranking-empty strong{color:var(--text);font-size:13px}
+.live-ranking-result strong{font-size:17px;font-weight:950;line-height:1;font-variant-numeric:tabular-nums}
+.live-ranking-result span{color:var(--muted);font-size:8px;white-space:nowrap}
+.live-ranking-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;min-height:190px;margin:0;padding:30px 12px;box-sizing:border-box;color:var(--muted);text-align:center;font-size:11px;line-height:1.45}
+.live-ranking-empty>span:first-child{font-size:28px}
+.live-ranking-empty strong{color:var(--text);font-size:13px}
 html[data-theme="light"] .live-ranking-playing{background:#e0f8ee;color:#087e59}
-@media(max-width:560px){.live-header{gap:7px}.header-right{gap:5px}.connection-status{height:25px;gap:5px}.live-ranking-list{padding:10px;max-height:548px}.live-ranking-row{grid-template-columns:29px minmax(0,1fr) 51px;gap:7px;padding:9px 8px}.live-ranking-position{font-size:9px}.live-ranking-row.rank-1 .live-ranking-position,.live-ranking-row.rank-2 .live-ranking-position,.live-ranking-row.rank-3 .live-ranking-position{font-size:17px}.live-ranking-name-line strong{font-size:10px}.live-ranking-stats{gap:6px;font-size:8px}.live-ranking-result strong{font-size:14px}.live-ranking-result span{font-size:7px}}
-
+@media(max-width:560px) {.live-header{gap:7px}
+.header-right{gap:5px}
+.connection-status{height:25px;gap:5px}
+.live-ranking-list{padding:10px;max-height:548px}
+.live-ranking-row{grid-template-columns:29px minmax(0,1fr) 51px;gap:7px;padding:9px 8px}
+.live-ranking-position{font-size:9px}
+.live-ranking-row.rank-1 .live-ranking-position,.live-ranking-row.rank-2 .live-ranking-position,.live-ranking-row.rank-3 .live-ranking-position{font-size:17px}
+.live-ranking-name-line strong{font-size:10px}
+.live-ranking-stats{gap:6px;font-size:8px}
+.live-ranking-result strong{font-size:14px}
+.live-ranking-result span{font-size:7px}}
 /* LIGHT MODE SCROLLBAR — keep the track/background fully transparent.
    Preserve the scrollbar thumb and leave dark mode unchanged. */
 html[data-theme="light"],
@@ -623,7 +700,6 @@ html[data-theme="light"] body *::-webkit-scrollbar-corner {
   background: transparent !important;
   background-color: transparent !important;
 }
-
 /* Footer cleanup: keep the live footer borderless even under theme overrides. */
 html body .page-footer {
   border: 0 !important;
@@ -640,7 +716,6 @@ html body .page-footer::after {
   border: 0 !important;
   box-shadow: none !important;
 }
-
 /* Keep the footer in the normal document flow inside the Live Page scroll area.
    It must move with page scrolling and follow the queue's expanded/collapsed height. */
 html body .live-content-scroll > .page-footer {
@@ -680,7 +755,6 @@ html body .page-footer > span:last-child {
   font-weight: 750 !important;
   letter-spacing: .2px !important;
 }
-
 /* COURT LIST — compact illustrated scoreboard, based on the supplied court-card reference. */
 html body .court-card.court-visual-card {
   position: relative !important;
@@ -925,29 +999,25 @@ html body .court-card.court-visual-card.playing {
 }
 .court-visual-score b { color: #a5c62e; font-size: 15px; }
 .court-visual-score span { color: #87988e; }
-@media (max-width: 560px) {
-  html body .court-card.court-visual-card { padding: 18px 18px 18px !important; border-radius: 22px !important; }
-  .court-visual-header { margin-bottom: 23px; }
-  .court-visual-name { font-size: 11px; letter-spacing: 1.2px; }
-  .court-mini-timer { padding: 4px 8px; font-size: 11px; }
-  .court-visual-status { gap: 5px; font-size: 11px; letter-spacing: 1.15px; }
-  .court-diagram { width: 92%; aspect-ratio: 2.72 / 1; }
-  .court-player-marker { width: 32px; height: 32px; font-size: 10px; }
-  .court-team-footer { gap: 8px; margin-top: 23px; }
-  .court-team-label { font-size: 12px; }
-  .court-team-versus { font-size: 10px; }
-}
-@media (max-width: 360px) {
-  html body .court-card.court-visual-card { padding-right: 10px !important; padding-left: 10px !important; }
-  .court-visual-header { gap: 6px; }
-  .court-visual-heading { gap: 6px; }
-  .court-visual-name { font-size: 10px; letter-spacing: .9px; }
-  .court-visual-status { font-size: 10px; letter-spacing: .8px; }
-  .court-team-label { font-size: 11px; }
-}
-
+@media (max-width: 560px) {html body .court-card.court-visual-card { padding: 18px 18px 18px !important; border-radius: 22px !important; }
+.court-visual-header { margin-bottom: 23px; }
+.court-visual-name { font-size: 11px; letter-spacing: 1.2px; }
+.court-mini-timer { padding: 4px 8px; font-size: 11px; }
+.court-visual-status { gap: 5px; font-size: 11px; letter-spacing: 1.15px; }
+.court-diagram { width: 92%; aspect-ratio: 2.72 / 1; }
+.court-player-marker { width: 32px; height: 32px; font-size: 10px; }
+.court-team-footer { gap: 8px; margin-top: 23px; }
+.court-team-label { font-size: 12px; }
+.court-team-versus { font-size: 10px; }}
+@media (max-width: 360px) {html body .court-card.court-visual-card { padding-right: 10px !important; padding-left: 10px !important; }
+.court-visual-header { gap: 6px; }
+.court-visual-heading { gap: 6px; }
+.court-visual-name { font-size: 10px; letter-spacing: .9px; }
+.court-visual-status { font-size: 10px; letter-spacing: .8px; }
+.court-team-label { font-size: 11px; }}
 /* COURT VISUAL THEME SYNC — apply to both Live View court lists. */
-/* The night palette preserves the supplied scoreboard design; Up Next follows Queueing. */
+/* The night palette preserves the supplied scoreboard design;
+Up Next follows Queueing. */
 html:not([data-theme="light"]) body #courtsList .court-card.court-visual-card .court-visual-status.is-up-next,
 html:not([data-theme="light"]) body #waitingCourtsList .court-card.court-visual-card .court-visual-status.is-up-next {
   color: #62d8cd !important;
@@ -958,7 +1028,6 @@ html:not([data-theme="light"]) body #courtsList .court-card.court-visual-card .c
 html:not([data-theme="light"]) body #waitingCourtsList .court-card.court-visual-card .court-visual-status.is-up-next i {
   background: #62d8cd !important;
 }
-
 /* Light theme: card, court lines, text, timer, and status all switch together. */
 html[data-theme="light"] body #courtsList .court-card.court-visual-card,
 html[data-theme="light"] body #waitingCourtsList .court-card.court-visual-card {
@@ -975,7 +1044,8 @@ html[data-theme="light"] body #waitingCourtsList .court-card.court-visual-card.p
 html[data-theme="light"] body #courtsList .court-visual-name,
 html[data-theme="light"] body #waitingCourtsList .court-visual-name {
   color: #587274 !important;
-}html[data-theme="light"] body #courtsList .court-mini-timer.timer-amber,
+}
+html[data-theme="light"] body #courtsList .court-mini-timer.timer-amber,
 html[data-theme="light"] body #waitingCourtsList .court-mini-timer.timer-amber { color: #986000 !important; }
 html[data-theme="light"] body #courtsList .court-mini-timer.timer-red,
 html[data-theme="light"] body #waitingCourtsList .court-mini-timer.timer-red { color: #bd2935 !important; }
@@ -983,7 +1053,6 @@ html[data-theme="light"] body #courtsList .court-visual-status.is-ready,
 html[data-theme="light"] body #waitingCourtsList .court-visual-status.is-ready {
   color: #176a9f !important;
 }
-
 html[data-theme="light"] body #courtsList .court-visual-status.is-playing,
 html[data-theme="light"] body #waitingCourtsList .court-visual-status.is-playing {
   color: #087e59 !important;
@@ -998,13 +1067,13 @@ html[data-theme="light"] body #waitingCourtsList .court-visual-status.is-up-next
 }
 html[data-theme="light"] body #courtsList .court-visual-status.is-up-next i,
 html[data-theme="light"] body #waitingCourtsList .court-visual-status.is-up-next i { background: #008f83 !important; }
-
 html[data-theme="light"] body #courtsList .court-player-marker,
 html[data-theme="light"] body #waitingCourtsList .court-player-marker {
   border-color: #ffffff !important;
   color: #18332d !important;
   box-shadow: 0 1px 3px rgba(23, 60, 54, .18) !important;
-}html[data-theme="light"] body #courtsList .court-player-category,
+}
+html[data-theme="light"] body #courtsList .court-player-category,
 html[data-theme="light"] body #waitingCourtsList .court-player-category {
   border-color: #ffffff !important;
 }
@@ -1013,13 +1082,10 @@ html[data-theme="light"] body #waitingCourtsList .court-player-gender {
   border-color: #d3e2de !important;
   background: #f8fcfb !important;
 }
-
 html[data-theme="light"] body #courtsList .court-team-versus,
 html[data-theme="light"] body #waitingCourtsList .court-team-versus { color: #78908d !important; }
-
 html[data-theme="light"] body #courtsList .court-visual-score span,
 html[data-theme="light"] body #waitingCourtsList .court-visual-score span { color: #78908d !important; }
-
 /* PINNED LIVE HEADER + QUEUE / RANKINGS / MATCHES TABS */
 .live-page-pinned {
   position: sticky;
@@ -1176,19 +1242,16 @@ html[data-theme="light"] body #waitingCourtsList .court-visual-score span { colo
 .live-match-loser strong { color: #fca5a5; }
 .live-match-vs { color: var(--muted); font-size: 9px; font-weight: 900; }
 .live-match-score { margin-top: 12px; padding-top: 9px; border-top: 1px solid var(--line); color: var(--teal); text-align: center; font-size: 13px; font-weight: 950; }
-@media (max-width: 560px) {
-  .live-page-pinned { top: 58px; margin-bottom: 13px; }
-  .live-page-pinned .event-heading { padding-bottom: 12px; }
-  .live-tabs { margin: 0 -1px; }
-  .live-tab { min-height: 42px; padding: 11px 6px 9px; font-size: 11px; }
-  .live-tab-card { padding: 13px; }
-  .live-tab-search { min-height: 35px; }
-  .live-tab-search input { height: 32px; font-size: 11px; }
-  .live-match-row { padding: 11px; }
-  .live-match-result { gap: 7px; margin-top: 10px; }
-  .live-match-winner strong, .live-match-loser strong { font-size: 11px; }
-}
-
+@media (max-width: 560px) {.live-page-pinned { top: 58px; margin-bottom: 13px; }
+.live-page-pinned .event-heading { padding-bottom: 12px; }
+.live-tabs { margin: 0 -1px; }
+.live-tab { min-height: 42px; padding: 11px 6px 9px; font-size: 11px; }
+.live-tab-card { padding: 13px; }
+.live-tab-search { min-height: 35px; }
+.live-tab-search input { height: 32px; font-size: 11px; }
+.live-match-row { padding: 11px; }
+.live-match-result { gap: 7px; margin-top: 10px; }
+.live-match-winner strong, .live-match-loser strong { font-size: 11px; }}
 /* Keep event heading and tabs outside the scrollable content area entirely. */
 html, body { height: 100%; }
 body {
@@ -1230,14 +1293,9 @@ body {
   -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable;
 }
-@media (min-width: 901px) {
-  .live-page-pinned { margin-top: 0; padding-top: 0; }
-}
-@media (max-width: 560px) {
-  .live-page-pinned { margin-top: 0; margin-bottom: 13px; padding: 0 12px 0; }
-  .page-shell.live-content-scroll { padding: 0 12px 18px; }
-}
-
+@media (min-width: 901px) {.live-page-pinned { margin-top: 0; padding-top: 0; }}
+@media (max-width: 560px) {.live-page-pinned { margin-top: 0; margin-bottom: 13px; padding: 0 12px 0; }
+.page-shell.live-content-scroll { padding: 0 12px 18px; }}
 /* Responsive alignment for Rankings and Matches tab headings/search. */
 html body .section-card .live-tab-section-heading {
   display: block;
@@ -1314,22 +1372,17 @@ html body .section-card .live-tab-search input {
 html body .live-page-pinned .event-heading .eyebrow {
   margin-top: 8px;
 }
-@media (max-width: 560px) {
-  html body .live-page-pinned .event-heading .eyebrow { margin-top: 8px; }
-  html body .section-card .live-tab-section-heading h2 { font-size: 18px; }
-  html body .section-card .live-tab-search {
+@media (max-width: 560px) {html body .live-page-pinned .event-heading .eyebrow { margin-top: 8px; }
+html body .section-card .live-tab-section-heading h2 { font-size: 18px; }
+html body .section-card .live-tab-search {
     min-height: 36px;
     max-width: none;
     margin-bottom: 12px;
     padding: 0 10px;
   }
-  html body .section-card .live-tab-search input { height: 32px; font-size: 11px; }
-}
-@media (max-width: 350px) {
-  html body .section-card .live-tab-card { padding: 11px; }
-  html body .section-card .live-tab-section-heading h2 { font-size: 17px; }
-}
-
+html body .section-card .live-tab-search input { height: 32px; font-size: 11px; }}
+@media (max-width: 350px) {html body .section-card .live-tab-card { padding: 11px; }
+html body .section-card .live-tab-section-heading h2 { font-size: 17px; }}
 /* Keep Live search readable and lightweight on mobile/tablet without iOS focus zoom.
    iOS Safari may zoom controls whose computed input font size is below 16px, so
    keep typed text at 16px while using a lighter weight and a smaller placeholder. */
@@ -1349,7 +1402,6 @@ html body .live-page-pinned .event-heading .eyebrow {
     opacity: .8;
   }
 }
-
 /* Desktop-only scrollbar alignment: let the scroll viewport span the full page,
    while keeping Live View content aligned to the same centered 1380px frame. */
 @media (min-width: 901px) {
@@ -1377,7 +1429,6 @@ html body .live-page-pinned .event-heading .eyebrow {
     margin-right: 0;
   }
 }
-
 /* The eyebrow line itself toggles the Live View session title. */
 html body .live-page-pinned .event-heading .eyebrow {
   flex-wrap: nowrap;
@@ -1445,14 +1496,11 @@ html body .live-page-pinned .event-heading .session-title-slide.is-collapsed #se
   transform: translateY(-7px);
   pointer-events: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  html body .live-page-pinned .event-heading #sessionTitleToggle,
+@media (prefers-reduced-motion: reduce) {html body .live-page-pinned .event-heading #sessionTitleToggle,
   html body .live-page-pinned .event-heading .session-title-slide,
   html body .live-page-pinned .event-heading #sessionTitle {
     transition: none;
-  }
-}
-
+  }}
 /* Court section heading: compact ON COURT label with a live-match count. */
 html body .section-card.court-section .section-heading.court-section-heading {
   display: flex;
@@ -1493,7 +1541,6 @@ html[data-theme="light"] body .section-card.court-section .section-heading.court
 html[data-theme="light"] body .section-card.court-section .section-heading.court-section-heading .court-live-count {
   color: #778783;
 }
-
 /* Empty court placeholder: compact message only, with no diagram or guide line. */
 .court-diagram-empty-message {
   display: flex;
@@ -1518,7 +1565,6 @@ html[data-theme="light"] body #courtsList .court-diagram-empty-message,
 html[data-theme="light"] body #waitingCourtsList .court-diagram-empty-message {
   color: #82948f;
 }
-
 /* Waiting Court heading follows the compact court-section heading style. */
 html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading {
   display: flex;
@@ -1587,19 +1633,17 @@ html[data-theme="light"] .waiting-courts-heading-icon {
 html[data-theme="light"] .waiting-courts-heading-icon svg {
   color: #6f8918;
 }
-@media (max-width: 560px) {
-  html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading {
+@media (max-width: 560px) {html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading {
     gap: 8px;
     margin-bottom: 13px;
   }
-  html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading h2 {
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading h2 {
     font-size: 9px;
     letter-spacing: 1.35px;
   }
-  html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-live-count {
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-live-count {
     font-size: 8px;
-  }
-}
+  }}
 /* Compact empty-state spacing: remove excess vertical space around the message only. */
 html body .court-card.court-visual-card.is-empty-court .court-visual-header {
   margin-bottom: 9px;
@@ -1612,7 +1656,6 @@ html body .court-card.court-visual-card.is-empty-court .court-diagram-empty-mess
 html body .court-card.court-visual-card.is-empty-court .court-team-footer {
   margin-top: 8px;
 }
-
 /* Mobile alignment parity: an empty Up Next slot uses the exact same compact
    header, message and footer spacing as a regular empty court. */
 @media (max-width: 560px) {
@@ -1651,7 +1694,6 @@ html body .court-card.court-visual-card.is-empty-court .court-team-footer {
     visibility: visible !important;
   }
 }
-
 /* Queue heading follows the supplied compact QUEUE · N WAITING reference. */
 html body .section-card.queue-section .section-heading.queue-section-heading {
   display: flex;
@@ -1750,16 +1792,11 @@ html[data-theme="light"] .queue-heading-separator { color: #9aa7a2; }
 html[data-theme="light"] .queue-heading-actions,
 html[data-theme="light"] .queue-collapse-toggle,
 html[data-theme="light"] .queue-waiting-icon { color: #778783; }
-@media (max-width: 560px) {
-  html body .section-card.queue-section .section-heading.queue-section-heading { gap: 7px; margin-bottom: 11px; }
-  html body .section-card.queue-section .section-heading.queue-section-heading h2 { gap: 4px; font-size: 9px; letter-spacing: 1.15px; }
-  .queue-waiting-count { font-size: 8px; letter-spacing: .45px; }
-  .queue-heading-actions { gap: 6px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .queue-list-viewport { transition: none; }
-}
-
+@media (max-width: 560px) {html body .section-card.queue-section .section-heading.queue-section-heading { gap: 7px; margin-bottom: 11px; }
+html body .section-card.queue-section .section-heading.queue-section-heading h2 { gap: 4px; font-size: 9px; letter-spacing: 1.15px; }
+.queue-waiting-count { font-size: 8px; letter-spacing: .45px; }
+.queue-heading-actions { gap: 6px; }}
+@media (prefers-reduced-motion: reduce) {.queue-list-viewport { transition: none; }}
 /* FINAL INTERACTION + RESPONSIVE FIXES (Live View v6). */
 /* Use an actual inline SVG arrow inside the outlined circle, across all browsers. */
 html body .waiting-courts-heading-icon {
@@ -1788,7 +1825,6 @@ html body .waiting-courts-heading-icon svg {
 html body .waiting-courts-heading-icon svg path { stroke: currentColor !important; }
 html[data-theme="light"] body .waiting-courts-heading-icon { border-color: #6f8918 !important; }
 html[data-theme="light"] body .waiting-courts-heading-icon svg { color: #6f8918 !important; }
-
 /* The empty-court message is intentionally light-weight and compact. */
 html body #courtsList .court-diagram-empty-message,
 html body #waitingCourtsList .court-diagram-empty-message {
@@ -1801,8 +1837,8 @@ html body #waitingCourtsList .court-diagram-empty-message {
   line-height: 1.4 !important;
   overflow-wrap: anywhere !important;
 }
-
-/* Height is set by JS to the measured target; keep a real CSS transition and
+/* Height is set by JS to the measured target;
+keep a real CSS transition and
    use a shorter (not disabled) motion duration for reduced-motion devices. */
 html body #queueListViewport.queue-list-viewport {
   display: block !important;
@@ -1848,57 +1884,47 @@ html body .queue-collapse-toggle {
   user-select: none;
   -webkit-user-select: none;
 }
-@media (max-width: 900px) {
-  html body .support-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-  html body .support-grid:has(.waiting-courts-section[hidden]) { grid-template-columns: minmax(0, 1fr); }
-  html body .section-card { min-width: 0; }
-}
-@media (max-width: 560px) {
-  html body .live-page-pinned { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
-  html body .page-shell.live-content-scroll { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
-  html body .section-card.queue-section { padding: 12px; }
-  html body .section-card.queue-section .section-heading.queue-section-heading { gap: 6px; }
-  html body .section-card.queue-section .section-heading.queue-section-heading h2 {
+@media (max-width: 900px) {html body .support-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+html body .support-grid:has(.waiting-courts-section[hidden]) { grid-template-columns: minmax(0, 1fr); }
+html body .section-card { min-width: 0; }}
+@media (max-width: 560px) {html body .live-page-pinned { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+html body .page-shell.live-content-scroll { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+html body .section-card.queue-section { padding: 12px; }
+html body .section-card.queue-section .section-heading.queue-section-heading { gap: 6px; }
+html body .section-card.queue-section .section-heading.queue-section-heading h2 {
     max-width: calc(100% - 28px);
     gap: 4px;
     font-size: 9px;
     letter-spacing: 1px;
   }
-  html body .queue-heading-actions { gap: 5px; }
-  html body #queueListViewport.queue-list-viewport {
+html body .queue-heading-actions { gap: 5px; }
+html body #queueListViewport.queue-list-viewport {
     transition-duration: 320ms, 230ms !important;
   }
-  html body .queue-item { gap: 7px; padding: 9px 8px; }
-  html body .queue-waiting-time { flex-shrink: 0; font-size: 9px; }
-  html body .court-card.court-visual-card { min-width: 0; }
-}
-@media (max-width: 380px) {
-  html body .brand { gap: 6px; }
-  html body .brand img { width: 29px; height: 29px; }
-  html body .brand-words b { font-size: 10px; }
-  html body .brand-words small { letter-spacing: 2.2px; }
-  html body .section-card.queue-section .section-heading.queue-section-heading h2 {
+html body .queue-item { gap: 7px; padding: 9px 8px; }
+html body .queue-waiting-time { flex-shrink: 0; font-size: 9px; }
+html body .court-card.court-visual-card { min-width: 0; }}
+@media (max-width: 380px) {html body .brand { gap: 6px; }
+html body .brand img { width: 29px; height: 29px; }
+html body .brand-words b { font-size: 10px; }
+html body .brand-words small { letter-spacing: 2.2px; }
+html body .section-card.queue-section .section-heading.queue-section-heading h2 {
     gap: 3px;
     font-size: 8px;
     letter-spacing: .7px;
   }
-  html body .queue-waiting-count { font-size: 7.5px; letter-spacing: .25px; }
-  html body .queue-collapse-toggle { flex-basis: 14px; width: 14px; min-width: 14px; min-height: 18px; }
-  html body .queue-waiting-icon { width: 9px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  html body #queueListViewport.queue-list-viewport {
+html body .queue-waiting-count { font-size: 7.5px; letter-spacing: .25px; }
+html body .queue-collapse-toggle { flex-basis: 14px; width: 14px; min-width: 14px; min-height: 18px; }
+html body .queue-waiting-icon { width: 9px; }}
+@media (prefers-reduced-motion: reduce) {html body #queueListViewport.queue-list-viewport {
     transition-duration: 180ms, 140ms !important;
-  }
-}
-
+  }}
 /* QUEUE COLLAPSE + LIVE FOOTER ALIGNMENT FIX (2026-10-21). */
 /* Keep the collapsed queue card snug around its heading rather than leaving
    an unnecessary gap where the player list used to be. */
 html body .section-card.queue-section:has(#queueListViewport[hidden]) .section-heading.queue-section-heading {
   margin-bottom: 0 !important;
 }
-
 /* Prevent browser scroll anchoring from fighting the intentional height
    transition when the queue opens/closes and making the footer appear to jump. */
 html body .page-shell.live-content-scroll,
@@ -1906,7 +1932,6 @@ html body .section-card.queue-section,
 html body #queueListViewport.queue-list-viewport {
   overflow-anchor: none;
 }
-
 /* Let the footer use the same scroll viewport and alignment frame as the tab content. */
 @media (min-width: 901px) {
   html body .live-content-scroll > .page-footer {
@@ -1927,14 +1952,11 @@ html body #queueListViewport.queue-list-viewport {
     ) !important;
   }
 }
-@media (max-width: 900px) {
-  html body .live-content-scroll > .page-footer {
+@media (max-width: 900px) {html body .live-content-scroll > .page-footer {
     box-sizing: border-box !important;
     width: 100% !important;
     margin: 22px 0 0 !important;
-  }
-}
-
+  }}
 /* Keep the queue collapse control steady and honor native hidden state. */
 html body .section-card.queue-section .queue-collapse-toggle {
   flex: 0 0 16px !important;
@@ -1949,7 +1971,6 @@ html body .section-card.queue-section .queue-collapse-toggle {
 html body #queueListViewport.queue-list-viewport[hidden] {
   display: none !important;
 }
-
 /* SESSION HEADING BADGE — compact green LIVE pill with animated status dot,
    followed by the current match type. This only restyles the session toggle. */
 html body .live-page-pinned .event-heading #sessionTitleToggle.session-title-toggle-row {
@@ -1986,7 +2007,6 @@ html body .live-page-pinned .event-heading #sessionTitleToggle .live-pulse {
   transform-origin: center;
   will-change: opacity;
 }
-
 html body .live-page-pinned .event-heading #sessionTitleToggle .session-title-toggle-label {
   color: inherit;
   font-size: 9px;
@@ -2077,7 +2097,6 @@ html body .live-page-pinned .event-heading #sessionTitleToggle .live-pulse::afte
   transform-origin: 50% 50% !important;
   box-sizing: border-box !important;
 }
-
 /* Mobile-only side-scroll layout toggles for ON COURT and NEXT UP. */
 html body .section-card.court-section .section-heading.court-section-heading .court-section-heading-main,
 html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .waiting-court-section-heading-main {
@@ -2134,7 +2153,8 @@ html body .section-card.waiting-courts-section .section-heading.waiting-court-se
   transform: translate(-50%, -50%) scale(1);
   transition: opacity .18s ease, transform .24s cubic-bezier(.22, .72, .25, 1);
 }
-/* Image 1 is side-slide; image 2 is vertical. */
+/* Image 1 is side-slide;
+image 2 is vertical. */
 html body .section-card.court-section .section-heading.court-section-heading .court-layout-icon-horizontal,
 html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-icon-horizontal {
   opacity: 0;
@@ -2173,8 +2193,7 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll::-webkit-scrollbar
   height: 0 !important;
   background: transparent !important;
 }
-@media (max-width: 560px) {
-  /* Only mobile cards narrow enough to reveal the next court on the right. */
+@media (max-width: 560px) {/* Only mobile cards narrow enough to reveal the next court on the right. */
   html body #courtsList.courts-grid.is-horizontal-scroll > .court-card,
   html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card {
     flex: 0 0 88%;
@@ -2185,13 +2204,12 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll::-webkit-scrollbar
     height: var(--court-layout-fixed-height, auto) !important;
     min-height: 0 !important;
   }
-  /* Keep the original court-diagram height so bottom labels do not jump up. */
+/* Keep the original court-diagram height so bottom labels do not jump up. */
   html body #courtsList.courts-grid.is-horizontal-scroll > .court-card .court-diagram,
   html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card .court-diagram {
     height: var(--court-layout-diagram-height, auto) !important;
     aspect-ratio: auto !important;
-  }
-}
+  }}
 html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle[aria-pressed="true"] .court-layout-icon-horizontal,
 html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle[aria-pressed="true"] .court-layout-icon-horizontal {
   opacity: 1;
@@ -2218,19 +2236,18 @@ html[data-theme="light"] body .section-card.waiting-courts-section .section-head
   color: #087f80;
   background: rgba(8, 127, 128, .06);
 }
-@media (max-width: 560px) {
-  html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle:not([hidden]),
+@media (max-width: 560px) {html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle:not([hidden]),
   html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle:not([hidden]) {
     display: inline-flex !important;
   }
-  html body #courtsList.courts-grid.is-horizontal-scroll > .court-card,
+html body #courtsList.courts-grid.is-horizontal-scroll > .court-card,
   html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card {
     flex-basis: 88%;
     width: 88%;
     max-width: none;
-  }
-}
-/* Both lists remain transparent; each court card keeps its geometry but no edge/shadow color. */
+  }}
+/* Both lists remain transparent;
+each court card keeps its geometry but no edge/shadow color. */
 html body #courtsList.courts-grid,
 html body #courtsList.courts-grid.is-horizontal-scroll,
 html body #waitingCourtsList.courts-grid,
@@ -2296,17 +2313,14 @@ html body #waitingCourtsList.courts-grid.is-court-layout-transitioning > .court-
   animation: none !important;
   transition: none !important;
 }
-@media (prefers-reduced-motion: reduce) {
-  html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle,
+@media (prefers-reduced-motion: reduce) {html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle,
   html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-toggle {
     transition-duration: .12s !important;
   }
-  html body .section-card.court-section .section-heading.court-section-heading .court-layout-icon,
+html body .section-card.court-section .section-heading.court-section-heading .court-layout-icon,
   html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-layout-icon {
     transition-duration: .14s !important;
-  }
-}
-
+  }}
 /* The layout toggles belong only beside the section headings, never inside a court card. */
 html body #courtsList .court-layout-toggle,
 html body #waitingCourtsList .court-layout-toggle,
@@ -2318,24 +2332,20 @@ html body .section-card.court-section > .section-heading.court-section-heading >
 html body .section-card.waiting-courts-section > .section-heading.waiting-court-section-heading > .waiting-court-section-heading-main > #waitingCourtLayoutToggle {
   display: none !important;
 }
-@media (max-width: 560px) {
-  html body .section-card.court-section > .section-heading.court-section-heading > .court-section-heading-main > #courtLayoutToggle:not([hidden]),
+@media (max-width: 560px) {html body .section-card.court-section > .section-heading.court-section-heading > .court-section-heading-main > #courtLayoutToggle:not([hidden]),
   html body .section-card.waiting-courts-section > .section-heading.waiting-court-section-heading > .waiting-court-section-heading-main > #waitingCourtLayoutToggle:not([hidden]) {
     display: inline-flex !important;
-  }
-}
+  }}
 html body #courtLayoutToggle[hidden],
 html body #waitingCourtLayoutToggle[hidden] {
   display: none !important;
 }
-
 /* Keep the first card anchored at the same origin in both layouts. */
 html body #courtsList.courts-grid.is-horizontal-scroll > .court-card:first-child,
 html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card:first-child {
   margin-inline-start: 0 !important;
   scroll-margin-inline-start: 0 !important;
 }
-
 /* MOBILE COURT LABEL STABILITY — keep header/team text anchored while the
    court cards switch between the vertical grid and horizontal swipe layout. */
 @media (max-width: 560px) {
@@ -2425,7 +2435,6 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card:firs
     text-align: left !important;
   }
 }
-
 /* WAITING COURT MOBILE FIX — include empty waiting slots, too.
    The earlier stability rules excluded .is-empty-court, which meant the
    court name could use its natural/flex height and shift during layout toggles. */
@@ -2482,7 +2491,6 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card:firs
     white-space: nowrap !important;
   }
 }
-
 /* WAITING COURT NAME — lock mobile typography/alignment for every waiting card.
    Keep the same text box while the list switches between grid and swipe mode. */
 @media (max-width: 560px) {
@@ -2551,15 +2559,11 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card:firs
     box-sizing: border-box !important;
   }
 }
-
-@media (max-width: 360px) {
-  html body #waitingCourtsList > .court-card.court-visual-card .court-visual-name {
+@media (max-width: 360px) {html body #waitingCourtsList > .court-card.court-visual-card .court-visual-name {
     font-size: 10px !important;
     line-height: 13px !important;
     letter-spacing: .9px !important;
-  }
-}
-
+  }}
 /* MOBILE COURT SWIPE: hide only the horizontal scrollbar, not scrolling itself.
    The extra selector specificity keeps the global scrollbar theme from showing it. */
 html body #courtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override),
@@ -2583,7 +2587,6 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-the
   background: transparent !important;
   border: 0 !important;
 }
-
 /* STABLE MOBILE COURT TIMER — keep the name/timer group anchored identically
    in vertical-grid and horizontal-swipe mode, with a fixed timer footprint. */
 @media (max-width: 560px) {
@@ -2645,7 +2648,6 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll:not(#scrollbar-the
     transition: none !important;
   }
 }
-
 /* COURT LAYOUT TOGGLE — suppress iOS scroll-snap restoration while resetting
    horizontal courts to Court 1. This applies equally to the waiting-court list. */
 html body #courtsList.courts-grid.is-resetting-court-scroll,
@@ -2654,27 +2656,21 @@ html body #waitingCourtsList.courts-grid.is-resetting-court-scroll {
   scroll-behavior: auto !important;
   overflow-anchor: none !important;
 }
-
 /* DEVICE-WIDE RESPONSIVE SAFETY — Live View */
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { overflow-x: hidden; }
 button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-@media (max-width: 380px) {
-  .live-header { gap: 7px; }
-  .brand { gap: 6px; }
-  .brand-words b { font-size: 10px; }
-  .brand-words small { letter-spacing: 2px; }
-  .header-right { min-width: 0; }
-  .connection-status { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; }
-  .page-shell { padding-left: 8px; padding-right: 8px; }
-  .section-card { padding-left: 9px; padding-right: 9px; }
-}
-@media (max-width: 560px) {
-  #courtsList, #waitingCourtsList { overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
-  #courtsList > .court-card, #waitingCourtsList > .court-card { scroll-margin-inline-start: 0; }
-  .court-layout-toggle { touch-action: manipulation; min-width: 40px; min-height: 40px; }
-}
-
+@media (max-width: 380px) {.live-header { gap: 7px; }
+.brand { gap: 6px; }
+.brand-words b { font-size: 10px; }
+.brand-words small { letter-spacing: 2px; }
+.header-right { min-width: 0; }
+.connection-status { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; }
+.page-shell { padding-left: 8px; padding-right: 8px; }
+.section-card { padding-left: 9px; padding-right: 9px; }}
+@media (max-width: 560px) {#courtsList, #waitingCourtsList { overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+#courtsList > .court-card, #waitingCourtsList > .court-card { scroll-margin-inline-start: 0; }
+.court-layout-toggle { touch-action: manipulation; min-width: 40px; min-height: 40px; }}
 /* COURT DIAGRAM GLITCH FIX — keep player rows vertically separated in mobile swipe mode.
    Previously aspect-ratio was forced to auto while the saved height could be missing,
    allowing the absolutely-positioned court contents to collapse onto one horizontal line. */
@@ -2688,7 +2684,6 @@ button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation
     box-sizing: border-box !important;
   }
 }
-
 /* FINAL LIVE VIEW LIGHT PALETTE — coherent contrast and status colors across all tabs. */
 html[data-theme="light"] {
   color-scheme: light !important;
@@ -2908,7 +2903,6 @@ html[data-theme="light"] body .page-footer > span:first-child { color: #456c72 !
 html[data-theme="light"] body .page-footer > span:last-child { color: #607a7e !important; }
 html[data-theme="light"] body .court-layout-toggle { color: #607a7e !important; border-color: #d5e3e5 !important; }
 html[data-theme="light"] body .court-layout-toggle:hover { color: #087f80 !important; border-color: #80c7c3 !important; background: rgba(8, 127, 128, .06) !important; }
-
 /* ALL LIVE VIEW DOTS: fixed dot + opacity fade only. No pulse scaling, glow, or expanding ring. */
 @keyframes liveViewDotFade {
   0%, 100% { opacity: 1; }
@@ -2941,7 +2935,8 @@ html body #waitingCourtsList .court-visual-status i::after {
   box-shadow: none !important;
   transform: none;
 }
-/* Live-dot animation is intentionally preserved; see the final ping rules below. */
+/* Live-dot animation is intentionally preserved;
+see the final ping rules below. */
 
 /* Focused light-mode polish: Live match rows and connection status only. */
 html[data-theme="light"] body .live-match-row {
@@ -2991,7 +2986,6 @@ html[data-theme="light"] body .live-match-row:hover {
   border-color: #a9d8d4 !important;
   box-shadow: inset 3px 0 0 #239f96, 0 7px 19px rgba(27, 82, 91, .105) !important;
 }
-
 html[data-theme="light"] body #connectionStatus {
   color: #315b76 !important;
   background: #edf6ff !important;
@@ -3020,7 +3014,6 @@ html[data-theme="light"] body #connectionStatus.local i {
   background: #d48a19 !important;
   box-shadow: none !important;
 }
-
 /* Focused night-mode polish: Live match rows and connection status only. */
 html[data-theme="night"] body .live-match-row {
   color: #e2f4f3 !important;
@@ -3069,7 +3062,6 @@ html[data-theme="night"] body .live-match-row:hover {
   border-color: #478d90 !important;
   box-shadow: inset 3px 0 0 #48d3c1, 0 8px 22px rgba(0, 0, 0, .24) !important;
 }
-
 html[data-theme="night"] body #connectionStatus {
   color: #b9dbe1 !important;
   background: #123640 !important;
@@ -3098,7 +3090,6 @@ html[data-theme="night"] body #connectionStatus.local i {
   background: #ffc25e !important;
   box-shadow: none !important;
 }
-
 /* Focused section-card color polish: court and waiting sections only, both themes. */
 html[data-theme="light"] body .section-card.court-section {
   background: linear-gradient(145deg, #ffffff 0%, #f0fbfa 54%, #edf6ff 100%) !important;
@@ -3120,7 +3111,6 @@ html[data-theme="night"] body .section-card.waiting-courts-section {
   border-color: #2e746d !important;
   box-shadow: 0 12px 30px rgba(0, 0, 0, .20), inset 0 1px 0 rgba(153, 235, 211, .045) !important;
 }
-
 /* WINNER / OPPONENT outcome labels: plain light-gray text, no badge styling in either theme. */
 html[data-theme="light"] body .live-match-row .live-match-outcome,
 html[data-theme="light"] body .live-match-row .live-match-loser .live-match-outcome,
@@ -3146,7 +3136,6 @@ html[data-theme="night"] body .live-match-row .live-match-outcome,
 html[data-theme="night"] body .live-match-row .live-match-loser .live-match-outcome {
   color: #b8c2c8 !important;
 }
-
 /* COURT CARD EDGE + LIVE-MATCH-ROW SURFACE — correct targets are court cards,
    not the waiting-queue player rows. All regular and waiting court cards stay visible. */
 html[data-theme="light"] body #courtsList > .court-card.court-visual-card,
@@ -3167,7 +3156,6 @@ html:not([data-theme="light"]) body #waitingCourtsList > .court-card.court-visua
   border-color: #315761 !important;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .18) !important;
 }
-
 /* Playing court gets a stronger edge, while every other court keeps its own visible border. */
 html[data-theme="light"] body #courtsList > .court-card.court-visual-card.playing,
 html[data-theme="light"] body #waitingCourtsList > .court-card.court-visual-card.playing {
@@ -3181,7 +3169,6 @@ html:not([data-theme="light"]) body #waitingCourtsList > .court-card.court-visua
   border-color: #2fc4b3 !important;
   box-shadow: 0 0 0 1px rgba(47, 196, 179, .12), 0 7px 18px rgba(0, 0, 0, .20) !important;
 }
-
 /* Empty court slots only: use a dashed outline when no players are assigned.
    Occupied court cards keep their existing solid border treatment. */
 html body #courtsList > .court-card.court-visual-card.is-empty-court,
@@ -3205,7 +3192,6 @@ html[data-theme="night"] body #waitingCourtsList > .court-card.court-visual-card
   border-color: #3c777d !important;
   box-shadow: 0 5px 14px rgba(0, 0, 0, .12) !important;
 }
-
 /* LIVE PAGE STABILITY PATCH — isolate viewport sizing from other pages that share this stylesheet.
    Use the small viewport unit on mobile so browser chrome expanding/collapsing does not
    resize the app shell on every scroll. The main content remains the only vertical scroller. */
@@ -3235,10 +3221,7 @@ body.live-view-page .page-shell.live-content-scroll {
 body.live-view-page #queueListViewport.queue-list-viewport {
   overflow-anchor: none;
 }
-@supports not (height: 100svh) {
-  body.live-view-page { height: 100vh; }
-}
-
+@supports not (height: 100svh) {body.live-view-page { height: 100vh; }}
 /* LIVE PAGE STATUS DOT POLISH — keep READY and UP NEXT dots centered on the same baseline. */
 html body #courtsList .court-visual-status.is-ready,
 html body #waitingCourtsList .court-visual-status.is-ready,
@@ -3273,7 +3256,6 @@ html body #waitingCourtsList .court-visual-status.is-up-next i {
   transform: none !important;
   box-sizing: border-box !important;
 }
-
 /* Updated shared animation: a soft brightness/opacity pulse with no scaling or layout shift. */
 @keyframes liveViewDotPulse {
   0%, 100% {
@@ -3304,19 +3286,17 @@ html body .match-timer::before {
   box-shadow: none !important;
   will-change: opacity, filter !important;
 }
-/* Live-dot animation is intentionally preserved; see the final ping rules below. */
+/* Live-dot animation is intentionally preserved;
+see the final ping rules below. */
 
 /* RESTORED LIVE VIEW DOT PING — expanding ripple without moving the dot or changing layout. */
 @keyframes liveViewDotPing {
   0% { opacity: .68; transform: scale(.58); }
   78%, 100% { opacity: 0; transform: scale(2.15); }
 }
-@keyframes liveViewGeneratedDotPing {
-  0% { outline-color: transparent; outline-width: 0; outline-offset: 0; }
-  16% { outline-color: currentColor; outline-width: 1px; outline-offset: 0; }
-  100% { outline-color: transparent; outline-width: 1px; outline-offset: 4px; }
-}
-
+@keyframes liveViewGeneratedDotPing {0% { outline-color: transparent; outline-width: 0; outline-offset: 0; }
+16% { outline-color: currentColor; outline-width: 1px; outline-offset: 0; }
+100% { outline-color: transparent; outline-width: 1px; outline-offset: 4px; }}
 /* Real dot elements: keep the dot fixed and animate a separate ripple ring. */
 html body .live-header .connection-status i,
 html body .connection-status i,
@@ -3347,7 +3327,6 @@ html body #waitingCourtsList .court-visual-status i::after {
   transform-origin: 50% 50% !important;
   animation: liveViewDotPing 1.8s ease-out infinite !important;
 }
-
 /* Generated indicator dots use an expanding outline ripple. */
 html body .court-card .court-state::before,
 html body .court-state.ready::before,
@@ -3361,8 +3340,8 @@ html body .match-timer::before {
   outline-width: 0;
   outline-offset: 0;
 }
-
-/* Live-dot animation is intentionally preserved; see the final ping rules below. */
+/* Live-dot animation is intentionally preserved;
+see the final ping rules below. */
 
 /* FINAL LIVE DOT PING FIX — anchor each ripple to its actual dot.
    READY/UP NEXT centering previously forced position:static at higher specificity,
@@ -3413,20 +3392,20 @@ html body #waitingCourtsList .court-visual-status.is-up-next i::after {
   animation-play-state: running !important;
   z-index: 2 !important;
 }
-/* Live-dot animation is intentionally preserved; see the final ping rules below. */
+/* Live-dot animation is intentionally preserved;
+see the final ping rules below. */
 
-/* FINAL LIVE DOT PING — single authoritative rule set; keep this block last to defeat prior resets. */
+/* FINAL LIVE DOT PING — single authoritative rule set;
+keep this block last to defeat prior resets. */
 @keyframes liveDotPingReliable20261022 {
   0%   { opacity: .92; transform: scale(.48); }
   72%  { opacity: .32; transform: scale(2.25); }
   100% { opacity: 0; transform: scale(2.55); }
 }
-@keyframes liveDotBreathReliable20261022 {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .68; }
-}
-
-/* The dot itself stays in place and breathes subtly; this does not change layout. */
+@keyframes liveDotBreathReliable20261022 {0%, 100% { opacity: 1; }
+50% { opacity: .68; }}
+/* The dot itself stays in place and breathes subtly;
+this does not change layout. */
 html body.live-view-page .live-header .connection-status i,
 html body.live-view-page .connection-status i,
 html body.live-view-page .live-page-pinned #sessionTitleToggle .live-pulse,
@@ -3450,7 +3429,6 @@ html body.live-view-page .match-timer::before {
   animation-play-state: running !important;
   will-change: opacity !important;
 }
-
 /* A separate circular ripple is anchored to each real Live indicator dot. */
 html body.live-view-page .live-header .connection-status i,
 html body.live-view-page .connection-status i,
@@ -3496,7 +3474,6 @@ html body.live-view-page #waitingCourtsList .court-visual-status.is-up-next i::a
   will-change: transform, opacity !important;
   z-index: 3 !important;
 }
-
 /* FINAL LIVE DOT COLOR-CHANGE ANIMATION — visible hue + brightness change only.
    Dots stay the same size and position. No rings, scaling, or layout movement. */
 @keyframes liveDotColorShift20261022 {
@@ -3513,7 +3490,6 @@ html body.live-view-page #waitingCourtsList .court-visual-status.is-up-next i::a
     filter: hue-rotate(12deg) brightness(1.08) saturate(1.55);
   }
 }
-
 /* Remove all ripple pseudo-elements from earlier ping attempts. */
 html body.live-view-page .live-header .connection-status i::after,
 html body.live-view-page .connection-status i::after,
@@ -3534,8 +3510,8 @@ html body.live-view-page #waitingCourtsList .court-visual-status.is-up-next i::a
   outline: none !important;
   box-shadow: none !important;
 }
-
-/* Color-shifting animation on actual Live page dots; no spatial motion.
+/* Color-shifting animation on actual Live page dots;
+no spatial motion.
    This deliberate color-only effect remains active with reduced-motion enabled. */
 html body.live-view-page .live-header .connection-status i,
 html body.live-view-page .connection-status i,
@@ -3556,9 +3532,9 @@ html body.live-view-page .match-timer::before {
   outline-width: 0 !important;
   will-change: opacity, filter !important;
 }
-
 /* FINAL LIVE DOT SIZE — all primary Live page status dots are exactly 10x10px.
-   Keep their existing status colors and color-shift animation; no rings or position movement. */
+   Keep their existing status colors and color-shift animation;
+no rings or position movement. */
 html body.live-view-page .live-header .connection-status i,
 html body.live-view-page .connection-status i,
 html body.live-view-page .live-page-pinned #sessionTitleToggle .live-pulse,
@@ -3585,15 +3561,14 @@ html body.live-view-page #waitingCourtsList .court-visual-status.is-up-next i {
   margin-block: 0 !important;
   padding: 0 !important;
 }
-
 /* Live page: keep count text inline and transparent in Light mode. */
 html[data-theme="light"] body.live-view-page .panel-count {
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
 }
-
-/* Responsive Live session title sizing; JS shrinks only titles exceeding two lines. */
+/* Responsive Live session title sizing;
+JS shrinks only titles exceeding two lines. */
 html body.live-view-page .live-page-pinned .event-heading .session-title-slide #sessionTitle {
   display: block;
   width: 100%;
@@ -3603,7 +3578,6 @@ html body.live-view-page .live-page-pinned .event-heading .session-title-slide #
   overflow-wrap: anywhere;
   text-wrap: balance;
 }
-
 /* LIVE PAGE ONLY — precisely center the queue expand/collapse glyph and smooth its list transition. */
 body.live-view-page .section-card.queue-section #queueCollapseToggle.queue-collapse-toggle {
   display: inline-grid !important;
@@ -3640,12 +3614,9 @@ body.live-view-page #queueCollapseToggle.queue-collapse-toggle[aria-expanded="fa
 body.live-view-page #queueListViewport.queue-list-viewport {
   transition: height 360ms cubic-bezier(.22, .61, .36, 1), opacity 260ms ease !important;
 }
-@media (prefers-reduced-motion: reduce) {
-  body.live-view-page #queueListViewport.queue-list-viewport {
+@media (prefers-reduced-motion: reduce) {body.live-view-page #queueListViewport.queue-list-viewport {
     transition: none !important;
-  }
-}
-
+  }}
 /* Queue-only player search control: transparent magnifier beside the waiting icon. */
 body.live-view-page .section-card.queue-section .queue-heading-actions {
   gap: 6px;
@@ -3687,7 +3658,6 @@ body.live-view-page .section-card.queue-section .queue-search-toggle svg {
 html[data-theme="light"] body.live-view-page .section-card.queue-section .queue-search-toggle:hover {
   color: #36575b !important;
 }
-
 /* Search field is placed immediately below the queue heading and animates open/closed. */
 body.live-view-page .section-card.queue-section .queue-search-panel {
   display: flex;
@@ -3761,42 +3731,35 @@ html[data-theme="light"] body.live-view-page .section-card.queue-section .queue-
   color: #6d8589;
   opacity: 1;
 }
-@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
-  body.live-view-page .section-card.queue-section .queue-search-panel input {
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {body.live-view-page .section-card.queue-section .queue-search-panel input {
     font-size: 16px;
     font-weight: 400;
     letter-spacing: 0;
   }
-  body.live-view-page .section-card.queue-section .queue-search-panel input::placeholder {
+body.live-view-page .section-card.queue-section .queue-search-panel input::placeholder {
     font-size: 13px;
     font-weight: 400;
     letter-spacing: 0;
-  }
-}
-@media (max-width: 560px) {
-  body.live-view-page .section-card.queue-section .queue-heading-actions { gap: 4px; }
-  body.live-view-page .section-card.queue-section .queue-search-toggle {
+  }}
+@media (max-width: 560px) {body.live-view-page .section-card.queue-section .queue-heading-actions { gap: 4px; }
+body.live-view-page .section-card.queue-section .queue-search-toggle {
     flex-basis: 19px !important;
     width: 19px !important;
     min-width: 19px !important;
     height: 20px !important;
   }
-  body.live-view-page .section-card.queue-section .queue-search-toggle svg {
+body.live-view-page .section-card.queue-section .queue-search-toggle svg {
     width: 15px;
     height: 15px;
   }
-  body.live-view-page .section-card.queue-section .queue-search-panel.is-open {
+body.live-view-page .section-card.queue-section .queue-search-panel.is-open {
     margin-bottom: 8px;
     min-height: 32px;
   }
-  body.live-view-page .section-card.queue-section .queue-search-panel input { height: 30px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  body.live-view-page .section-card.queue-section .queue-search-panel {
+body.live-view-page .section-card.queue-section .queue-search-panel input { height: 30px; }}
+@media (prefers-reduced-motion: reduce) {body.live-view-page .section-card.queue-section .queue-search-panel {
     transition: none !important;
-  }
-}
-
+  }}
 /* QUEUE SEARCH FONT FIX — prevent iOS focus zoom while keeping the typed text compact.
    Touch browsers get a 16px native input font (Safari's no-auto-zoom threshold),
    visually scaled to the same compact 12px size used on desktop. */
@@ -3819,8 +3782,7 @@ html body.live-view-page #queueSearchPanel #queueListSearch::-webkit-input-place
   letter-spacing: 0 !important;
   line-height: 1.2 !important;
 }
-@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
-  html body.live-view-page #queueSearchPanel #queueListSearch {
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {html body.live-view-page #queueSearchPanel #queueListSearch {
     /* Keep a 16px computed font to stop iOS Safari auto-zoom, while scaling the
        borderless control visually so entered text still appears about 12px. */
     flex: 0 0 calc((100% - 24px) * 1.333333) !important;
@@ -3832,12 +3794,10 @@ html body.live-view-page #queueSearchPanel #queueListSearch::-webkit-input-place
     transform: scale(.75);
     transform-origin: left center;
   }
-  html body.live-view-page #queueSearchPanel #queueListSearch::placeholder,
+html body.live-view-page #queueSearchPanel #queueListSearch::placeholder,
   html body.live-view-page #queueSearchPanel #queueListSearch::-webkit-input-placeholder {
     font-size: 16px !important;
-  }
-}
-
+  }}
 /* QUEUE SEARCH CLOSE JUMP FIX — animate its real height so the queue list below
    follows the field smoothly instead of snapping as max-height is clipped. */
 html body.live-view-page #queueSearchPanel.queue-search-panel {
@@ -3852,18 +3812,13 @@ html body.live-view-page #queueSearchPanel.queue-search-panel.is-open {
   min-height: 0 !important;
   max-height: none !important;
 }
-@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
-  html body.live-view-page #queueSearchPanel.queue-search-panel.is-open {
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {html body.live-view-page #queueSearchPanel.queue-search-panel.is-open {
     height: 38px !important;
     min-height: 0 !important;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  html body.live-view-page #queueSearchPanel.queue-search-panel {
+  }}
+@media (prefers-reduced-motion: reduce) {html body.live-view-page #queueSearchPanel.queue-search-panel {
     transition: none !important;
-  }
-}
-
+  }}
 /* QUEUE SEARCH SLOT LAYOUT FIX — keep the field animation separate from queue reflow.
    The slot alone changes layout height, so the queue list returns to its original
    position smoothly instead of jumping when the search field is dismissed. */
@@ -3914,23 +3869,17 @@ html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-sea
 html body.live-view-page .section-card.queue-section #queueSearchSlot.queue-search-slot[hidden] {
   display: none !important;
 }
-@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
-  html body.live-view-page .section-card.queue-section #queueSearchSlot.queue-search-slot.is-open {
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {html body.live-view-page .section-card.queue-section #queueSearchSlot.queue-search-slot.is-open {
     height: 34px;
   }
-  html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel {
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel {
     height: 30px !important;
     min-height: 30px !important;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  html body.live-view-page .section-card.queue-section #queueSearchSlot.queue-search-slot,
+  }}
+@media (prefers-reduced-motion: reduce) {html body.live-view-page .section-card.queue-section #queueSearchSlot.queue-search-slot,
   html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel {
     transition: none !important;
-  }
-}
-
-
+  }}
 /* LIVE PAGE PICKLEBALL COURT — realistic top-down court markings.
    Scoped to the Live page court diagram so unrelated screens remain unchanged. */
 html body #courtsList .court-diagram.pickleball-court,
@@ -4033,7 +3982,6 @@ html body #waitingCourtsList .court-diagram.pickleball-court .court-player-marke
 html body #waitingCourtsList .court-diagram.pickleball-court .court-player-marker.marker-bottom-right {
   left: 84%;
 }
-
 /* Mobile/iPad input zoom prevention: keep text controls at Safari's 16px threshold. */
 @media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
@@ -4042,9 +3990,9 @@ html body #waitingCourtsList .court-diagram.pickleball-court .court-player-marke
     font-size: 16px !important;
   }
 }
-
 /* LIVE TABS — balanced standalone tabs, no shared outer rail.
-   Scoped to Live View only; tab behavior and page content remain unchanged. */
+   Scoped to Live View only;
+tab behavior and page content remain unchanged. */
 html body.live-view-page .live-tabs {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -4112,7 +4060,6 @@ html body.live-view-page .live-tab:focus-visible {
   outline: 2px solid #35cfc5 !important;
   outline-offset: 2px !important;
 }
-
 /* Keep the individual tabs consistent in the optional light theme. */
 html[data-theme="light"] body.live-view-page .live-tabs {
   margin: 0 !important;
@@ -4156,11 +4103,8 @@ html[data-theme="light"] body.live-view-page .live-tab.is-active:active {
     0 1px 4px rgba(8, 127, 128, .10) !important;
   transform: scale(.985);
 }
-@media (max-width: 560px) {
-  html body.live-view-page .live-tabs { gap: 5px !important; padding: 0 !important; }
-  html body.live-view-page .live-tab { min-height: 31px !important; padding: 7px 5px !important; font-size: 10.5px !important; border-radius: 11px !important; }
-}
-
+@media (max-width: 560px) {html body.live-view-page .live-tabs { gap: 5px !important; padding: 0 !important; }
+html body.live-view-page .live-tab { min-height: 31px !important; padding: 7px 5px !important; font-size: 10.5px !important; border-radius: 11px !important; }}
 /* Prevent any inherited pseudo-element from drawing a shared rail behind the tabs. */
 html body.live-view-page .live-page-pinned > nav.live-tabs,
 html[data-theme="light"] body.live-view-page .live-page-pinned > nav.live-tabs {
@@ -4209,7 +4153,6 @@ html[data-theme="light"] body.live-view-page .live-page-pinned > nav.live-tabs::
   content: none !important;
   display: none !important;
 }
-
 /* LIVE VIEW TABS — responsive sizing and consistent 15px corners across devices. */
 html body.live-view-page .live-page-pinned {
   width: 100% !important;
@@ -4228,7 +4171,8 @@ html body.live-view-page .live-page-pinned > nav.live-tabs {
   gap: clamp(4px, 0.7vw, 8px) !important;
   overflow: visible !important;
 }
-/* Monochrome icons for the Live View tabs; icons inherit the tab text color. */
+/* Monochrome icons for the Live View tabs;
+icons inherit the tab text color. */
 html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab {
   gap: 5px !important;
 }
@@ -4261,40 +4205,32 @@ html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
 }
-@media (max-width: 560px) {
-  html body.live-view-page .live-page-pinned > nav.live-tabs {
+@media (max-width: 560px) {html body.live-view-page .live-page-pinned > nav.live-tabs {
     gap: 4px !important;
   }
-  html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab {
+html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab {
     gap: 4px !important;
     min-height: 35px !important;
     padding-left: 4px !important;
     padding-right: 4px !important;
     font-size: 10.5px !important;
     border-radius: 15px !important;
-  }
-}
-@media (max-width: 350px) {
-  html body.live-view-page .live-page-pinned > nav.live-tabs {
+  }}
+@media (max-width: 350px) {html body.live-view-page .live-page-pinned > nav.live-tabs {
     gap: 3px !important;
   }
-  html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab {
+html body.live-view-page .live-page-pinned > nav.live-tabs > .live-tab {
     padding-left: 2px !important;
     padding-right: 2px !important;
     font-size: 10px !important;
-  }
-}
-
-
-
-/* The organizer label is optional; keep hidden placeholders out of the header even
+  }}
+/* The organizer label is optional;
+keep hidden placeholders out of the header even
    though the shared stat/separator rules normally assign inline-block display. */
 html body .live-page-pinned .event-heading #sessionTitleToggle .session-organizer-stat[hidden],
 html body .live-page-pinned .event-heading #sessionTitleToggle #sessionOrganizerSeparator[hidden] {
   display: none !important;
 }
-
-
 /* Organizer identity badge sits beside connection status, with matching pill height. */
 html body.live-view-page .live-header .header-right #sessionOrganizerStat {
   display: inline-flex;
@@ -4348,8 +4284,7 @@ html body.live-view-page .live-header .header-right #sessionOrganizerName {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-@media (max-width: 560px) {
-  html body.live-view-page .live-header .header-right #sessionOrganizerStat {
+@media (max-width: 560px) {html body.live-view-page .live-header .header-right #sessionOrganizerStat {
     gap: 4px;
     height: 25px;
     max-width: 42vw;
@@ -4357,21 +4292,17 @@ html body.live-view-page .live-header .header-right #sessionOrganizerName {
     font-size: 9px;
     overflow: hidden;
   }
-  html body.live-view-page .live-header .header-right #sessionOrganizerStat .session-organizer-icon {
+html body.live-view-page .live-header .header-right #sessionOrganizerStat .session-organizer-icon {
     flex-basis: 11px;
     width: 11px;
     height: 11px;
     min-width: 11px;
     padding: 0;
     border-radius: 3px;
-  }
-}
-@media (max-width: 380px) {
-  html body.live-view-page .live-header .header-right #sessionOrganizerStat {
+  }}
+@media (max-width: 380px) {html body.live-view-page .live-header .header-right #sessionOrganizerStat {
     max-width: 38vw;
-  }
-}
-
+  }}
 /* Singles Live View: one centered player marker on each side of the court. */
 html body #courtsList .court-diagram.pickleball-court.is-singles .court-player-marker.marker-single-left,
 html body #waitingCourtsList .court-diagram.pickleball-court.is-singles .court-player-marker.marker-single-left {
@@ -4394,4 +4325,41 @@ html body #waitingCourtsList .court-diagram.pickleball-court.is-singles .court-p
   color: #c4d0c8;
   box-shadow: none;
 }
-
+/* Profile photos selected during registration are reused in every existing Live View avatar slot. */
+.queue-item > .queue-avatar-stack > .queue-avatar {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+.live-profile-avatar-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  border-radius: inherit;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.court-player-marker .court-player-initial {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  border-radius: inherit;
+  overflow: hidden;
+  z-index: 0;
+}
+.court-player-marker .court-player-initial .live-profile-avatar-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}

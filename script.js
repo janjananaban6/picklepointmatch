@@ -20,6 +20,7 @@ const state={
   winnersLosersNextGroup:'winners',
   sessionMetrics:{cloudCheckins:0,newRegistered:0},
   sessionActive:false,
+  sessionId:null,
   sessionEndedAt:null,
   sessionName:'Open Play — Oct 6, 2026',
   duprMatch:false,
@@ -51,7 +52,7 @@ let liveViewPendingKeepalive=false;
 try{if('BroadcastChannel' in window)liveViewBroadcastChannel=new BroadcastChannel(`pickle-point-match-live-view${ORGANIZER_STORAGE_SUFFIX?`-${ORGANIZER_STORAGE_SUFFIX}`:''}`);}catch(e){}
 const LEGACY_STORAGE_KEYS=ORGANIZER_STORAGE_SUFFIX?[]:['pickleq_v10_state','pickleq_v9_state','pickleq_v8_state','pickleq_v7_state','pickleq_v6_state'];
 const CLOUD_RECORDS_KEY='pickleq_registered_cloud_records_v1';
-let cloudRecords={players:[],logs:[],sessions:[]};let pendingCloudDeleteId=null;let editingCloudDuprId=null;let editingCloudPlayerId=null;let editingQueueDuprPlayerId=null;let editingCourtDuprKey=null;
+let cloudRecords={players:[],logs:[],sessions:[]};let cloudRecordCheckInStateById=new Map();let cloudRecordCheckInAnimationAtById=new Map();let pendingCloudDeleteId=null;let editingCloudDuprId=null;let editingCloudPlayerId=null;let editingQueueDuprPlayerId=null;let editingCourtDuprKey=null;let cloudPlayerEditPanelOpen=false;let cloudPlayerEditPanelAnimationTimer=null;let cloudPlayerEditPanelPositionFrame=null;let cloudPlayerEditResizeObserver=null;let cloudPlayerEditSaveInFlight=false;
 const sharedClientId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():`pp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let sharedSyncReady=false,sharedSyncAvailable=false,sharedSyncInitializing=false,sharedSyncRetryTimer=null;
 let sharedAppRevision=0,sharedCloudRevision=0,appSyncInFlight=false,appSyncPending=null,cloudSyncInFlight=false,cloudSyncPending=null,applyingRemoteAppState=false,sharedEvents=null,sharedSyncStartedAt=0;
@@ -60,10 +61,53 @@ function isHttpApp(){return location.protocol==='http:'||location.protocol==='ht
 function cloneSharedData(value){try{return JSON.parse(JSON.stringify(value));}catch(e){return value;}}
 function readLocalTimestamp(key){try{return Number(localStorage.getItem(key))||0;}catch(e){return 0;}}
 function toTimestamp(value){if(typeof value==='number'&&Number.isFinite(value)&&value>0)return value;const numeric=Number(value);if(Number.isFinite(numeric)&&numeric>0)return numeric;const parsed=Date.parse(value);return Number.isFinite(parsed)&&parsed>0?parsed:0;}
+function createSessionId(){const uuid=(window.crypto&&typeof window.crypto.randomUUID==='function')?window.crypto.randomUUID():`${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;return `session-${Date.now()}-${uuid}`;}
+function getSessionId(value){return String(value&&value.sessionId||'').trim();}
+function sessionIdentityDiffers(incomingState,currentState=getSharedAppStateSnapshot()){const incomingId=getSessionId(incomingState),currentId=getSessionId(currentState);return (!!incomingId||!!currentId)&&incomingId!==currentId;}
 function hasFreshLocalPending(savedAtKey,pendingKey,remoteUpdatedAt){const savedAt=readLocalTimestamp(savedAtKey),pendingAt=readLocalTimestamp(pendingKey);return pendingAt>0&&pendingAt===savedAt&&savedAt>toTimestamp(remoteUpdatedAt);}
 function clearLocalPendingSync(pendingKey,savedAtKey,expectedSavedAt){try{if(Number(localStorage.getItem(pendingKey))===Number(expectedSavedAt)&&Number(localStorage.getItem(savedAtKey))===Number(expectedSavedAt))localStorage.removeItem(pendingKey);}catch(e){}}
 function stampRemoteSave(savedAtKey,pendingKey,updatedAt){try{localStorage.setItem(savedAtKey,String(toTimestamp(updatedAt)||Date.now()));localStorage.removeItem(pendingKey);}catch(e){}}
 function removeOpgFields(record){if(!record||typeof record!=='object'||Array.isArray(record))return record;const copy={...record};Object.keys(copy).forEach(key=>{if(['opg','opgid'].includes(String(key).replace(/[ _-]/g,'').toLowerCase()))delete copy[key];});return copy;}
+const REGISTRATION_AVATAR_ID_PATTERN=/^avatar-(?:0[1-9]|1[0-9]|2[01])$/;
+function normalizeRegistrationAvatarId(value){
+  const raw=String(value??'').trim().toLowerCase();
+  const match=/^(?:avatar[-_ ]?)?0?(\d{1,2})$/.exec(raw);
+  if(!match)return '';
+  const number=Number(match[1]);
+  return Number.isInteger(number)&&number>=1&&number<=21?`avatar-${String(number).padStart(2,'0')}`:'';
+}
+const MALE_FALLBACK_AVATAR_NUMBERS=[1,3,7,12,13,16,17,18,21];
+const FEMALE_FALLBACK_AVATAR_NUMBERS=[2,4,5,6,8,9,10,11,14,15,19,20];
+function fallbackRegistrationAvatarId(player){
+  const name=String(player?.name??'').normalize('NFC').trim().toLocaleLowerCase().replace(/\s+/g,' ');
+  const gender=String(player?.gender??'').trim().toLocaleLowerCase();
+  const female=['female','f','woman','women'].includes(gender);
+  const male=['male','m','man','men'].includes(gender);
+  const pool=female?FEMALE_FALLBACK_AVATAR_NUMBERS:male?MALE_FALLBACK_AVATAR_NUMBERS:Array.from({length:21},(_,index)=>index+1);
+  if(!name)return `avatar-${String(pool[0]||1).padStart(2,'0')}`;
+  let hash=2166136261;
+  for(const character of name){hash^=character.codePointAt(0);hash=Math.imul(hash,16777619)>>>0;}
+  return `avatar-${String(pool[hash%pool.length]||pool[0]||1).padStart(2,'0')}`;
+}
+function getPlayerAvatarId(p){
+  const valid=value=>normalizeRegistrationAvatarId(value);
+  const direct=valid(p?.avatarId??p?.avatarID??p?.avatar_id??p?.selectedAvatarId??p?.profileAvatarId);
+  if(direct)return direct;
+  const normalize=value=>String(value??'').normalize('NFC').trim().toLocaleLowerCase().replace(/\s+/g,' ');
+  const name=normalize(p?.name);
+  const named=name&&Array.isArray(cloudRecords?.players)?cloudRecords.players.filter(item=>normalize(item?.name)===name):[];
+  const nickname=normalize(p?.nickname);
+  const matchingNickname=nickname?named.find(item=>normalize(item?.nickname)===nickname&&valid(item?.avatarId??item?.avatarID??item?.avatar_id??item?.selectedAvatarId??item?.profileAvatarId)):null;
+  if(matchingNickname)return valid(matchingNickname.avatarId??matchingNickname.avatarID??matchingNickname.avatar_id??matchingNickname.selectedAvatarId??matchingNickname.profileAvatarId);
+  const withAvatar=named.map(item=>({item,avatarId:valid(item?.avatarId??item?.avatarID??item?.avatar_id??item?.selectedAvatarId??item?.profileAvatarId)})).filter(entry=>entry.avatarId);
+  if(withAvatar.length===1)return withAvatar[0].avatarId;
+  if(withAvatar.length>1&&nickname){const matched=withAvatar.find(entry=>normalize(entry.item?.nickname)===nickname);if(matched)return matched.avatarId;}
+  return fallbackRegistrationAvatarId(p);
+}
+function playerAvatarMarkup(p,imageClass='profile-avatar-image'){
+  const avatarId=getPlayerAvatarId(p);
+  return avatarId?`<img class="${imageClass}" src="registration-${avatarId}.png" alt="" aria-hidden="true" loading="lazy" draggable="false">`:initial(p?.name);
+}
 function loadCloudRecords(){try{const d=JSON.parse(localStorage.getItem(CLOUD_RECORDS_KEY)||'null');if(d)cloudRecords={players:Array.isArray(d.players)?d.players.map(removeOpgFields):[],logs:Array.isArray(d.logs)?d.logs:[],sessions:Array.isArray(d.sessions)?d.sessions:[]};}catch(e){}}
 function queueCloudRecordsSync(){if(applyingRemoteAppState)return;cloudSyncPending=cloneSharedData(cloudRecords);flushCloudRecordsSync();}
 function saveCloudRecords(){cloudRecords.players=(Array.isArray(cloudRecords.players)?cloudRecords.players:[]).map(removeOpgFields);const savedAt=Date.now();try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));localStorage.setItem(CLOUD_RECORDS_SAVED_AT_KEY,String(savedAt));if(isHttpApp())localStorage.setItem(CLOUD_RECORDS_PENDING_SYNC_KEY,String(savedAt));else localStorage.removeItem(CLOUD_RECORDS_PENDING_SYNC_KEY);}catch(e){}queueCloudRecordsSync();}
@@ -107,8 +151,9 @@ function applySharedCloudRecords(payload,force=false){
   cloudSyncPending=null;
   if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
   if($('registerFullname'))updateRegistrationSaveButton();
+  if(document.body?.dataset.page==='queueing'&&sharedSyncReady)publishLiveViewState();
 }
-function getSharedAppStateSnapshot(){return {schemaVersion:12,players:state.players,left:state.left,queue:state.queue,lockedPartners:state.lockedPartners,courts:state.courts,logs:state.logs,nextPlayer:state.nextPlayer,nextCourt:state.nextCourt,nextWaitingCourt:state.nextWaitingCourt,nextLog:state.nextLog,sessionMetrics:state.sessionMetrics,sessionActive:state.sessionActive,sessionEndedAt:state.sessionEndedAt||null,sessionName:state.sessionName,duprMatch:state.duprMatch,duprLocation:state.duprLocation||'',duprLabelsEnabled:state.duprLabelsEnabled!==false,recordScores:state.recordScores,liveRankingEnabled:state.liveRankingEnabled!==false,liveMatchesEnabled:state.liveMatchesEnabled!==false,eventRules:state.eventRules,matchingMode:state.matchingMode,winnersLosersNextGroup:state.winnersLosersNextGroup};}
+function getSharedAppStateSnapshot(){return {schemaVersion:13,sessionId:state.sessionId||null,players:state.players,left:state.left,queue:state.queue,lockedPartners:state.lockedPartners,courts:state.courts,logs:state.logs,nextPlayer:state.nextPlayer,nextCourt:state.nextCourt,nextWaitingCourt:state.nextWaitingCourt,nextLog:state.nextLog,sessionMetrics:state.sessionMetrics,sessionActive:state.sessionActive,sessionEndedAt:state.sessionEndedAt||null,sessionName:state.sessionName,duprMatch:state.duprMatch,duprLocation:state.duprLocation||'',duprLabelsEnabled:state.duprLabelsEnabled!==false,recordScores:state.recordScores,liveRankingEnabled:state.liveRankingEnabled!==false,liveMatchesEnabled:state.liveMatchesEnabled!==false,eventRules:state.eventRules,matchingMode:state.matchingMode,winnersLosersNextGroup:state.winnersLosersNextGroup};}
 function queueSharedAppStateSync(snapshot){if(applyingRemoteAppState)return;appSyncPending=cloneSharedData(snapshot);flushSharedAppStateSync();}
 function flushSharedAppStateSync(){
   if(!sharedSyncAvailable||!sharedSyncReady||appSyncInFlight||!appSyncPending||!isHttpApp())return;
@@ -119,7 +164,8 @@ function flushSharedAppStateSync(){
     .then(async response=>{
       const data=await response.json();
       if(response.status===409&&data.conflict){
-        if(isExplicitSessionEndState(data.state))applySharedAppState({revision:data.revision,updatedAt:data.updatedAt,clientId:null,state:data.state},true);
+        const localSnapshot=getSharedAppStateSnapshot();
+        if(isExplicitSessionEndState(data.state)||sessionIdentityDiffers(data.state,localSnapshot))applySharedAppState({revision:data.revision,updatedAt:data.updatedAt,clientId:null,state:data.state},true);
         else if(hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,data.updatedAt))sharedAppRevision=Math.max(sharedAppRevision,Number(data.revision)||0);
         else applySharedAppState({revision:data.revision,updatedAt:data.updatedAt,clientId:null,state:data.state});
       }
@@ -131,8 +177,9 @@ function flushSharedAppStateSync(){
     .finally(()=>{appSyncInFlight=false;if(appSyncPending&&!failed)flushSharedAppStateSync();});
 }
 function isExplicitSessionEndState(incomingState){
-  return !!(incomingState&&incomingState.sessionEndedAt&&incomingState.sessionActive===false&&
-    ['players','left','queue','courts','logs'].every(key=>Array.isArray(incomingState[key])&&incomingState[key].length===0));
+  // sessionEndedAt is the terminal marker. Trust it even if an older client
+  // accidentally retained stale arrays in its copy of the ended session.
+  return !!(incomingState&&incomingState.sessionEndedAt&&incomingState.sessionActive===false);
 }
 function stableStateValue(value){
   if(Array.isArray(value))return value.map(stableStateValue);
@@ -149,7 +196,7 @@ function sharedStateMatchesCurrent(incomingState){
   // schema keys that exist today and let loadState handle genuinely new data.
   const comparable={};
   Object.keys(current).forEach(key=>{
-    comparable[key]=Object.prototype.hasOwnProperty.call(incomingState,key)?incomingState[key]:current[key];
+    comparable[key]=Object.prototype.hasOwnProperty.call(incomingState,key)?incomingState[key]:(key==='sessionId'?null:current[key]);
   });
   return JSON.stringify(stableStateValue(comparable))===JSON.stringify(stableStateValue(current));
 }
@@ -162,7 +209,8 @@ function applySharedAppState(payload,force=false){
   const isExplicitSessionEnd=isExplicitSessionEndState(incomingState);
   // A confirmed remote End Session must beat stale, locally pending queue data.
   // Otherwise a second device could re-upload its old queue and keep the session alive.
-  if(!isExplicitSessionEnd&&hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt)&&(!force||readLocalTimestamp(LOCAL_STATE_SAVED_AT_KEY)>sharedSyncStartedAt)){
+  const sessionChanged=sessionIdentityDiffers(incomingState);
+  if(!isExplicitSessionEnd&&!sessionChanged&&hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt)&&(!force||readLocalTimestamp(LOCAL_STATE_SAVED_AT_KEY)>sharedSyncStartedAt)){
     appSyncPending=getSharedAppStateSnapshot();
     if(sharedSyncAvailable)flushSharedAppStateSync();
     return;
@@ -203,6 +251,7 @@ function applySharedAppState(payload,force=false){
     }
   }catch(e){console.warn('Could not apply shared queue state',e);}
   finally{applyingRemoteAppState=false;}
+  syncOrganizerQrSessionStatus();
 }
 function scheduleSharedSyncRetry(){if(sharedSyncRetryTimer!==null||!isHttpApp())return;sharedSyncRetryTimer=setTimeout(()=>{sharedSyncRetryTimer=null;if(!sharedSyncAvailable){initializeSharedDataSync();return;}flushSharedAppStateSync();flushCloudRecordsSync();},5000);}
 async function initializeSharedDataSync(){if(!isHttpApp()){sharedSyncReady=true;return;}if(sharedSyncInitializing||sharedSyncAvailable)return;sharedSyncInitializing=true;if(!sharedSyncStartedAt)sharedSyncStartedAt=Date.now();try{const responses=await Promise.all([fetch(`/api/app-state?_=${Date.now()}`,{cache:'no-store'}),fetch(`/api/cloud-records?_=${Date.now()}`,{cache:'no-store'})]);if(responses.some(response=>!response.ok))throw new Error('Shared data API is not available');const [remoteApp,remoteCloud]=await Promise.all(responses.map(response=>response.json()));
@@ -210,12 +259,12 @@ async function initializeSharedDataSync(){if(!isHttpApp()){sharedSyncReady=true;
   if(remoteCloud.records&&typeof remoteCloud.records==='object'){applySharedCloudRecords({revision:remoteCloud.revision,updatedAt:remoteCloud.updatedAt,clientId:null,records:remoteCloud.records},true);}else{const response=await fetch('/api/cloud-records',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({records:cloneSharedData(cloudRecords),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize Registered Player Cloud');const seeded=await response.json();sharedCloudRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.records)applySharedCloudRecords({revision:seeded.revision,updatedAt:seeded.updatedAt,clientId:null,records:seeded.records},true);}
   sharedSyncAvailable=true;sharedSyncReady=true;sharedEvents=new EventSource('/api/shared-events');sharedEvents.addEventListener('app-state',event=>{try{applySharedAppState(JSON.parse(event.data));}catch(e){}});sharedEvents.addEventListener('cloud-records',event=>{try{applySharedCloudRecords(JSON.parse(event.data));}catch(e){}});publishLiveViewState();flushSharedAppStateSync();flushCloudRecordsSync();
  }catch(error){sharedSyncReady=true;console.warn('Shared device sync is temporarily unavailable:',error);scheduleSharedSyncRetry();}finally{sharedSyncInitializing=false;}}
-function upsertCloudPlayer(p){if(!p||!p.name)return;loadCloudRecords();let a=cloudRecords.players.find(x=>x.name.toLowerCase()===p.name.toLowerCase());if(!a){a={cloudId:Date.now()+Math.floor(Math.random()*100000),name:p.name,matches:0,wins:0,losses:0};cloudRecords.players.push(a);}Object.assign(a,{name:p.name,nickname:p.nickname||a.nickname||'',gender:p.gender||a.gender||'',category:p.category||a.category||'',duprId:p.duprId||p.duprID||p.dupr_id||p.dupr||a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:p.selfRating||p.self_rating||a.selfRating||a.self_rating||''});saveCloudRecords();}
+function upsertCloudPlayer(p){if(!p||!p.name)return;loadCloudRecords();let a=cloudRecords.players.find(x=>x.name.toLowerCase()===p.name.toLowerCase());if(!a){a={cloudId:Date.now()+Math.floor(Math.random()*100000),name:p.name,matches:0,wins:0,losses:0};cloudRecords.players.push(a);}Object.assign(a,{name:p.name,nickname:p.nickname||a.nickname||'',gender:p.gender||a.gender||'',category:p.category||a.category||'',duprId:p.duprId||p.duprID||p.dupr_id||p.dupr||a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:p.selfRating||p.self_rating||a.selfRating||a.self_rating||''});const avatarId=getPlayerAvatarId(p);if(avatarId)a.avatarId=avatarId;saveCloudRecords();}
 function archiveLiveSession(){
   loadCloudRecords();
   state.players.concat(state.left).forEach(upsertCloudPlayer);
   loadCloudRecords();
-  const sid='session-'+Date.now();
+  const sid=state.sessionId||createSessionId();
   const getName=id=>(state.players.find(p=>p.id===id)||state.left.find(p=>p.id===id)||{}).name;
   const normalizeName=value=>String(value||'').trim().toLowerCase();
   const logs=state.logs.map(l=>{
@@ -241,136 +290,413 @@ function archiveLiveSession(){
   cloudRecords.sessions.push({id:sid,endedAt:new Date().toISOString(),playerCount:state.players.length+state.left.length,matchCount:logs.length,sessionName:state.sessionName||''});
   saveCloudRecords();
 }
+/* Display full category names only inside the Registered Cloud and Left Players cloud modals. */
+function cloudCategoryCode(category){
+  const value=String(category||'').trim().toUpperCase().replace(/[^A-Z]/g,'');
+  if(/^(BEG|BEGINNER|BEGINNERS)/.test(value))return 'BEG';
+  if(/^(NOV|NOVICE|NOVICES)/.test(value))return 'NOV';
+  if(/^(INT|INTERMEDIATE)/.test(value))return 'INT';
+  if(/^(ADV|ADVANCE|ADVANCED)/.test(value))return 'ADV';
+  if(/^(EXP|EXPERT|EXPERTS)/.test(value))return 'EXP';
+  return '';
+}
+function cloudCategoryLabel(category){
+  const code=cloudCategoryCode(category);
+  return ({BEG:'BEGINNERS',NOV:'NOVICE',INT:'INTERMEDIATE',ADV:'ADVANCE',EXP:'EXPERT'})[code]||String(category||'').trim()||'—';
+}
 function renderCloudRecords(){
   loadCloudRecords();
   const count=$('cloudRecordsCount');
   if(count)count.textContent=`(${cloudRecords.players.length})`;
   const q=($('cloudRecordsSearch')?.value||'').trim().toLowerCase();
-  const players=cloudRecords.players.filter(p=>[p.name,p.nickname,p.gender,p.category,p.duprId,p.duprID,p.dupr_id,p.dupr,p.selfRating,p.self_rating].join(' ').toLowerCase().includes(q));
+  const players=cloudRecords.players.filter(p=>[p.name,p.nickname,p.gender,p.category,p.duprId,p.duprID,p.dupr_id,p.dupr].join(' ').toLowerCase().includes(q));
   $('cloudRecordsContent').innerHTML=players.map((p,index)=>{
-    const cat=({BEG:'BEG',NOV:'NOV',INT:'INT',ADV:'ADV',EXP:'EXP'})[p.category]||p.category||'—';
-    const cls=({BEG:'beg',NOV:'nov',INT:'int',ADV:'adv',EXP:'exp'})[p.category]||'nov';
+    const catCode=cloudCategoryCode(p.category);
+    const cat=cloudCategoryLabel(p.category);
+    const cls=({BEG:'beg',NOV:'nov',INT:'int',ADV:'adv',EXP:'exp'})[catCode]||'nov';
     const active=state.players.find(sp=>String(sp.name||'').trim().toLowerCase()===String(p.name||'').trim().toLowerCase()&&(state.queue.includes(sp.id)||!!sp.court||(state.courts||[]).some(c=>(c.players||[]).includes(sp.id))));
     const alreadyQueued=!!active;
-    const rawDuprId=String(p.duprId||p.duprID||p.dupr_id||p.dupr||'').trim().toUpperCase();
+    const rawDuprId=String(p.duprId||p.duprID||p.dupr_id||p.dupr||'').replace(/\s+/g,'').toUpperCase();
     const duprId=rawDuprId==='NR'?'':rawDuprId;
-    const rawSelfRating=String(p.selfRating||p.self_rating||'').trim().toUpperCase();
-    const selfRating=rawSelfRating==='NR'?'':rawSelfRating;
     const playerId=Number(p.cloudId);
-    const editing=Number(editingCloudDuprId)===playerId;
-    const duprBadge=editing?`<span class="cloud-dupr-inline-edit" role="group" aria-label="Edit DUPR ID and self rating">
-      <span class="cloud-dupr-badge cloud-dupr-inline-fields ${duprId?'':'is-unrated'}"><span class="cloud-dupr-inline-prefix">DUPR:</span><input id="cloudDuprIdInput" type="text" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(duprId||'NR')}" aria-label="DUPR ID" style="width:${Math.max(28,Math.min(200,(duprId||'NR').length*10+4))}px !important" oninput="this.style.setProperty('width',Math.max(28,Math.min(200,this.value.length*10+4))+'px','important')" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCloudDuprDetails(${playerId})}else if(event.key==='Escape'){cancelEditCloudDuprDetails()}" /><span class="cloud-dupr-separator">•</span><input id="cloudSelfRatingInput" type="text" maxlength="12" inputmode="decimal" autocomplete="off" value="${esc(selfRating||'NR')}" aria-label="Self rating" style="width:${Math.max(28,Math.min(104,(selfRating||'NR').length*10+4))}px !important" oninput="this.style.setProperty('width',Math.max(28,Math.min(104,this.value.length*10+4))+'px','important')" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCloudDuprDetails(${playerId})}else if(event.key==='Escape'){cancelEditCloudDuprDetails()}" /></span>
-      <span class="cloud-dupr-editor-actions"><button type="button" class="cloud-dupr-save-btn" onclick="event.stopPropagation();saveCloudDuprDetails(${playerId})">Save</button><button type="button" class="cloud-dupr-cancel-btn" onclick="event.stopPropagation();cancelEditCloudDuprDetails()">Cancel</button></span>
-    </span>`:`<button type="button" class="cloud-dupr-badge ${duprId?'':'is-unrated'}" onclick="event.stopPropagation();editCloudDuprDetails(${playerId})" aria-label="Edit DUPR ID and self rating" title="Click to edit DUPR ID and self rating"><span>DUPR: ${esc(duprId||'NR')}</span><span class="cloud-dupr-separator">•</span><span>${esc(selfRating||'NR')}</span></button>`;
-    return `<article class="cloud-player-card"><div class="cloud-player-main"><div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${esc((p.name||'?').charAt(0).toUpperCase())}</div><div class="cloud-player-ident"><b>${highlightSearchMatch(p.name,q)}${p.nickname?` (${highlightSearchMatch(p.nickname,q)})`:''} <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b><small class="cloud-player-summary"><span class="cloud-category-badge skill-${cls}">${esc(cat)}</span>${duprBadge}<span class="cloud-player-stats"><span>${p.matches||0} Matches</span><span class="cloud-win">${p.wins||0} Wins</span><span class="cloud-loss">${p.losses||0} Losses</span></span></small></div><div class="cloud-player-actions"><button type="button" class="cloud-edit-btn" onclick="event.stopPropagation();openCloudPlayerEditModal(${playerId})" aria-label="Edit ${esc(p.name||'player')} details">Edit</button><button class="cloud-checkin-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Player is already checked in or playing on court"':''} onclick="checkInCloudPlayer(${playerId})">${alreadyQueued?'Checked In':'Check in'}</button>${Number(pendingCloudDeleteId)===playerId?'':`<button class="cloud-delete-btn" ${alreadyQueued?'disabled aria-disabled="true" title="Cannot delete a checked-in player"':''} onclick="requestDeleteCloudPlayer(${playerId})">Delete</button>`}</div></div>${Number(pendingCloudDeleteId)===playerId?`<div class="cloud-delete-warning">Delete this registered profile? Match history will be kept. <button onclick="deleteCloudPlayer(${playerId})">Confirm</button> <button onclick="cancelDeleteCloudPlayer()">Cancel</button></div>`:''}</article>`;
+    const selectedForEdit=Number(editingCloudPlayerId)===playerId;
+    const avatarId=getPlayerAvatarId(p);
+    const avatarMarkup=avatarId?`<img class="cloud-avatar-image" src="registration-${avatarId}.png" alt="" aria-hidden="true" loading="lazy" draggable="false">`:`<span class="cloud-avatar-initial">${esc((p.name||'?').charAt(0).toUpperCase())}</span>`;
+    const previousCheckInState=cloudRecordCheckInStateById.get(playerId);
+    const checkInStateChanged=previousCheckInState!==undefined&&previousCheckInState!==alreadyQueued;
+    if(checkInStateChanged)cloudRecordCheckInAnimationAtById.set(playerId,Date.now());
+    const checkInAnimationAt=cloudRecordCheckInAnimationAtById.get(playerId)||0;
+    const animateCheckInState=checkInAnimationAt>0&&(Date.now()-checkInAnimationAt)<450;
+    cloudRecordCheckInStateById.set(playerId,alreadyQueued);
+    // Keep the original badge in the flex row in both modes. The editor overlays it,
+    // so switching to edit mode cannot reflow the summary row or push the badge left.
+    const duprBadge=`<span class="cloud-dupr-slot"><span class="cloud-dupr-badge cloud-dupr-slot-anchor ${duprId?'':'is-unrated'}" aria-label="DUPR ID" title="DUPR ID: ${esc(duprId||'NR')}"><span>DUPR: ${esc(duprId||'NR')}</span></span></span>`;
+    return `<article class="cloud-player-card${selectedForEdit?' is-edit-selected':''}" data-cloud-player-id="${playerId}"><div class="cloud-player-main"><div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${avatarMarkup}</div><div class="cloud-player-ident"><b><span class="cloud-player-name-and-nickname">${highlightSearchMatch(p.name,q)}${p.nickname?` (${highlightSearchMatch(p.nickname,q)})`:''}</span> <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b><small class="cloud-player-summary"><span class="cloud-category-badge skill-${cls}">${esc(cat)}</span>${duprBadge}</small></div><div class="cloud-player-actions">${selectedForEdit?'':`<button type="button" class="cloud-edit-btn cloud-icon-action" onclick="event.stopPropagation();openCloudPlayerEditModal(${playerId})" aria-label="Edit ${esc(p.name||'player')} details" title="Edit player"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg></button>`}<button type="button" class="cloud-checkin-btn cloud-icon-action" ${alreadyQueued?'disabled aria-disabled="true" title="Player is already checked in or playing on court"':''} aria-label="${alreadyQueued?'Checked in':'Check in'} ${esc(p.name||'player')}" onclick="checkInCloudPlayer(${playerId})"><span class="cloud-action-icon cloud-checkin-icon ${alreadyQueued?'is-checked-in':'is-check-in'}${animateCheckInState?' is-state-changing':''}" aria-hidden="true">${alreadyQueued?`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12.3 2.5 2.5 5.5-5.5"></path></svg>`:`<svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"></circle><path d="M2.5 21v-2a4.5 4.5 0 0 1 4.5-4.5h4a4.5 4.5 0 0 1 4.5 4.5v2"></path><path d="M19 8v6M16 11h6"></path></svg>`}</span></button>${Number(pendingCloudDeleteId)===playerId?'':`<button type="button" class="cloud-delete-btn cloud-icon-action" ${alreadyQueued?'disabled aria-disabled="true" title="Cannot delete a checked-in player"':''} onclick="requestDeleteCloudPlayer(${playerId})" aria-label="Delete ${esc(p.name||'player')}" title="Delete player"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg></button>`}</div></div>${Number(pendingCloudDeleteId)===playerId?`<div class="cloud-delete-warning">Delete this registered profile? Match history will be kept. <button onclick="deleteCloudPlayer(${playerId})">Confirm</button> <button onclick="cancelDeleteCloudPlayer()">Cancel</button></div>`:''}</article>`;
   }).join('')||'<div class="cloud-empty"><div class="cloud-empty-icon">🏓</div><div>No registered player records found.</div></div>';
+}
+function positionCloudPlayerEditPanel(){
+  const modal=$('cloudRecordsModal');
+  const box=modal?.querySelector('.cloud-records-modal-box');
+  const panel=$('cloudPlayerEditModal');
+  const form=$('cloudPlayerEditForm');
+  if(!modal||!box||!panel||!form)return;
+
+  const viewportWidth=Math.max(280,Math.round(document.documentElement.clientWidth||window.innerWidth||280));
+  const viewportHeight=Math.max(280,Math.round(window.innerHeight||document.documentElement.clientHeight||280));
+  const compact=viewportWidth<=640;
+  const gap=viewportWidth<=360?5:(viewportWidth<=640?7:(viewportWidth<=900?8:10));
+  const panelWidth=compact?Math.min(370,viewportWidth-38):Math.min(270,Math.max(175,Math.round(viewportWidth*.26)-10));
+  modal.classList.toggle('cloud-player-edit-overlay-mode',compact);
+  modal.style.setProperty('--cloud-player-edit-panel-width',`${panelWidth}px`);
+  modal.style.setProperty('--cloud-player-edit-gap',`${gap}px`);
+  panel.style.setProperty('width',`${panelWidth}px`,'important');
+
+  // Fit the drawer to the form through its actions instead of stretching it to the cloud modal.
+  // On short screens the panel is capped to the viewport and the form itself scrolls.
+  const measuredContentHeight=Math.ceil(form.scrollHeight||form.getBoundingClientRect().height||460);
+  const panelHeight=Math.max(1,Math.min(viewportHeight-16,measuredContentHeight+2));
+  const modalRect=modal.getBoundingClientRect();
+  const boxRect=box.getBoundingClientRect();
+  let panelLeft=0;
+  let panelTop=0;
+  if(compact){
+    panelLeft=Math.max(8,Math.round((viewportWidth-panelWidth)/2));
+    panelTop=Math.max(8,Math.round((viewportHeight-panelHeight)/2));
+  }else{
+    const mainWidth=Math.min(560,Math.max(300,viewportWidth-panelWidth-gap-24));
+    panelLeft=Math.max(8,Math.round((viewportWidth-mainWidth-panelWidth-gap)/2));
+    panelTop=Math.max(8,Math.round(boxRect.top-modalRect.top+modal.scrollTop));
+  }
+  panel.style.setProperty('left',`${panelLeft-modalRect.left+modal.scrollLeft}px`,'important');
+  panel.style.setProperty('top',`${panelTop}px`,'important');
+  panel.style.setProperty('height',`${panelHeight}px`,'important');
+  panel.style.setProperty('--cloud-player-edit-panel-height',`${panelHeight}px`);
+}
+function scheduleCloudPlayerEditPanelPosition(){
+  if(cloudPlayerEditPanelPositionFrame!==null)return;
+  cloudPlayerEditPanelPositionFrame=requestAnimationFrame(()=>{
+    cloudPlayerEditPanelPositionFrame=null;
+    const panel=$('cloudPlayerEditModal');
+    const modal=$('cloudRecordsModal');
+    if((cloudPlayerEditPanelOpen||panel?.dataset.animationState==='closing')&&panel&&modal&&!modal.classList.contains('hidden'))positionCloudPlayerEditPanel();
+  });
+}
+function observeCloudPlayerEditPanelSize(){
+  const modal=$('cloudRecordsModal');
+  const box=modal?.querySelector('.cloud-records-modal-box');
+  if(!box||typeof ResizeObserver==='undefined')return;
+  if(!cloudPlayerEditResizeObserver)cloudPlayerEditResizeObserver=new ResizeObserver(()=>scheduleCloudPlayerEditPanelPosition());
+  cloudPlayerEditResizeObserver.disconnect();
+  cloudPlayerEditResizeObserver.observe(box);
+}
+function syncCloudPlayerEditGenderChoice(gender){
+  const value=['Male','Female'].includes(String(gender||''))?String(gender):'';
+  const hidden=$('cloudPlayerEditGender');
+  if(hidden)hidden.value=value;
+  document.querySelectorAll('#cloudPlayerEditModal input[name="cloudPlayerEditGenderChoice"]').forEach(input=>{
+    input.checked=input.value===value;
+    const option=input.closest('.cloud-edit-gender-option');
+    if(option){option.dataset.gender=input.value.toLowerCase();option.classList.toggle('selected',input.checked);}
+  });
+  syncCloudPlayerEditLivePreview();
+}
+function syncCloudPlayerEditCategory(value){
+  const allowed=['BEG','NOV','INT','ADV','EXP'];
+  const candidate=String(value||'').toUpperCase();
+  const normalized=allowed.includes(candidate)?candidate:'';
+  const hidden=$('cloudPlayerEditCategory');
+  if(hidden)hidden.value=normalized;
+  const panel=$('cloudPlayerEditModal');
+  panel?.querySelectorAll('[data-cloud-edit-category-value]').forEach(button=>{
+    const selected=button.dataset.cloudEditCategoryValue===normalized;
+    button.classList.toggle('selected',selected);
+    button.setAttribute('aria-pressed',selected?'true':'false');
+  });
+  syncCloudPlayerEditLivePreview();
+}
+function syncCloudPlayerEditDuprSlots(value){
+  const normalized=String(value||'').replace(/\s+/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+  const hidden=$('cloudPlayerEditDuprId');
+  if(hidden)hidden.value=normalized;
+  const row=document.querySelector('#cloudPlayerEditModal .cloud-edit-dupr-row');
+  row?.classList.toggle('is-empty',!normalized);
+  document.querySelectorAll('#cloudPlayerEditModal .cloud-edit-dupr-slot').forEach((slot,index)=>{slot.value=normalized[index]||'';});
+  syncCloudPlayerEditLivePreview();
+}
+function updateCloudPlayerEditDuprValue(){
+  const value=Array.from(document.querySelectorAll('#cloudPlayerEditModal .cloud-edit-dupr-slot')).map(slot=>String(slot.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(-1)).join('');
+  const hidden=$('cloudPlayerEditDuprId');
+  if(hidden)hidden.value=value;
+  const row=document.querySelector('#cloudPlayerEditModal .cloud-edit-dupr-row');
+  row?.classList.toggle('is-empty',!value);
+  syncCloudPlayerEditLivePreview();
+  return value;
+}
+function syncCloudPlayerEditLivePreview(){
+  const id=Number(editingCloudPlayerId);
+  if(!id)return;
+  const card=document.querySelector(`#cloudRecordsModal .cloud-player-card[data-cloud-player-id="${id}"]`);
+  if(!card)return;
+
+  const fullName=String($('cloudPlayerEditFullName')?.value||'');
+  const nickname=String($('cloudPlayerEditNickname')?.value||'').trim();
+  const nameLine=card.querySelector('.cloud-player-name-and-nickname');
+  if(nameLine)nameLine.textContent=fullName+(nickname?` (${nickname})`:'');
+  const initial=card.querySelector('.cloud-avatar-initial');
+  if(initial)initial.textContent=(fullName.trim().charAt(0)||'?').toUpperCase();
+
+  const gender=String($('cloudPlayerEditGender')?.value||'').trim();
+  const genderIcon=card.querySelector('.cloud-player-ident .cloud-gender');
+  if(genderIcon){
+    genderIcon.classList.toggle('gender-female',gender==='Female');
+    genderIcon.classList.toggle('gender-male',gender!=='Female');
+    genderIcon.innerHTML=genderSvgIcon(gender);
+    genderIcon.setAttribute('aria-label',gender||'Gender');
+  }
+
+  const category=String($('cloudPlayerEditCategory')?.value||'').trim().toUpperCase();
+  const categoryBadge=card.querySelector('.cloud-player-summary .cloud-category-badge');
+  if(categoryBadge){
+    const knownCategory=['BEG','NOV','INT','ADV','EXP'].includes(category)?category:'';
+    categoryBadge.textContent=cloudCategoryLabel(knownCategory);
+    categoryBadge.classList.remove('skill-beg','skill-nov','skill-int','skill-adv','skill-exp');
+    categoryBadge.classList.add(`skill-${(knownCategory||'NOV').toLowerCase()}`);
+  }
+
+  const duprId=String($('cloudPlayerEditDuprId')?.value||'').replace(/\s+/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+  const duprBadge=card.querySelector('.cloud-player-summary .cloud-dupr-slot-anchor');
+  if(duprBadge){
+    const duprText=duprBadge.querySelector('span');
+    if(duprText)duprText.textContent=`DUPR: ${duprId||'NR'}`;
+    duprBadge.classList.toggle('is-unrated',!duprId);
+    duprBadge.setAttribute('aria-label',`DUPR ID${duprId?`: ${duprId}`:''}`);
+    duprBadge.title=`DUPR ID: ${duprId||'NR'}`;
+  }
+}
+function initializeCloudPlayerEditControls(){
+  const panel=$('cloudPlayerEditModal');
+  if(!panel||panel.dataset.formControlsBound==='true')return;
+  panel.dataset.formControlsBound='true';
+  $('cloudPlayerEditFullName')?.addEventListener('input',syncCloudPlayerEditLivePreview);
+  $('cloudPlayerEditNickname')?.addEventListener('input',syncCloudPlayerEditLivePreview);
+  const syncGenderFromControl=radio=>{
+    if(!radio||!['Male','Female'].includes(radio.value))return;
+    const hidden=$('cloudPlayerEditGender');
+    if(hidden)hidden.value=radio.value;
+    panel.querySelectorAll('.cloud-edit-gender-option').forEach(option=>{
+      const input=option.querySelector('input[name="cloudPlayerEditGenderChoice"]');
+      if(input)option.dataset.gender=input.value.toLowerCase();
+      option.classList.toggle('selected',!!input?.checked);
+    });
+    syncCloudPlayerEditLivePreview();
+  };
+  panel.addEventListener('change',event=>{
+    const radio=event.target.closest('input[name="cloudPlayerEditGenderChoice"]');
+    if(radio)syncGenderFromControl(radio);
+  });
+  panel.querySelectorAll('.cloud-edit-gender-option').forEach(option=>{
+    option.addEventListener('click',()=>{
+      const radio=option.querySelector('input[name="cloudPlayerEditGenderChoice"]');
+      if(!radio)return;
+      radio.checked=true;
+      syncGenderFromControl(radio);
+    });
+  });
+  panel.querySelectorAll('[data-cloud-edit-category-value]').forEach(button=>{
+    button.addEventListener('click',()=>syncCloudPlayerEditCategory(button.dataset.cloudEditCategoryValue||''));
+  });
+  const slots=Array.from(panel.querySelectorAll('.cloud-edit-dupr-slot'));
+  slots.forEach((slot,index)=>{
+    // Clicking a populated character slot selects its whole value for quick replacement.
+    slot.addEventListener('click',()=>slot.select());
+    slot.addEventListener('input',()=>{
+      slot.value=String(slot.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(-1);
+      updateCloudPlayerEditDuprValue();
+      if(slot.value&&slots[index+1])slots[index+1].focus();
+    });
+    slot.addEventListener('paste',event=>{
+      const pasted=String(event.clipboardData?.getData('text')||'').replace(/\s+/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+      if(!pasted)return;
+      event.preventDefault();
+      const chars=slots.map(input=>input.value||'');
+      pasted.slice(0,Math.max(0,slots.length-index)).split('').forEach((char,offset)=>{chars[index+offset]=char;});
+      slots.forEach((input,slotIndex)=>{input.value=chars[slotIndex]||'';});
+      updateCloudPlayerEditDuprValue();
+      const nextIndex=Math.min(slots.length-1,index+pasted.length);
+      slots[nextIndex]?.focus();
+      slots[nextIndex]?.select();
+    });
+    slot.addEventListener('keydown',event=>{
+      if(event.key==='Backspace'&&!slot.value&&slots[index-1]){event.preventDefault();slots[index-1].focus();slots[index-1].value='';updateCloudPlayerEditDuprValue();}
+      else if(event.key==='ArrowLeft'&&slots[index-1]){event.preventDefault();slots[index-1].focus();}
+      else if(event.key==='ArrowRight'&&slots[index+1]){event.preventDefault();slots[index+1].focus();}
+    });
+  });
 }
 function openCloudPlayerEditModal(id){
   loadCloudRecords();
   const player=cloudRecords.players.find(item=>Number(item.cloudId)===Number(id));
-  const modal=$('cloudPlayerEditModal');
-  if(!player||!modal)return;
+  const modal=$('cloudRecordsModal');
+  const panel=$('cloudPlayerEditModal');
+  if(!player||!modal||!panel)return;
+  if(cloudPlayerEditPanelAnimationTimer){clearTimeout(cloudPlayerEditPanelAnimationTimer);cloudPlayerEditPanelAnimationTimer=null;}
   editingCloudPlayerId=Number(id);
   pendingCloudDeleteId=null;
   editingCloudDuprId=null;
   $('cloudPlayerEditFullName').value=String(player.name||'');
   $('cloudPlayerEditNickname').value=String(player.nickname||'');
-  $('cloudPlayerEditGender').value=['Male','Female'].includes(String(player.gender||''))?String(player.gender):'';
-  $('cloudPlayerEditCategory').value=['BEG','NOV','INT','ADV','EXP'].includes(String(player.category||''))?String(player.category):'';
-  const rawDuprId=String(player.duprId||player.duprID||player.dupr_id||player.dupr||'').trim().toUpperCase();
-  $('cloudPlayerEditDuprId').value=rawDuprId==='NR'?'':rawDuprId;
-  modal.classList.remove('hidden');
-  setTimeout(()=>{$('cloudPlayerEditFullName')?.focus();$('cloudPlayerEditFullName')?.select();},0);
+  initializeCloudPlayerEditControls();
+  syncCloudPlayerEditGenderChoice(['Male','Female'].includes(String(player.gender||''))?String(player.gender):'');
+  syncCloudPlayerEditCategory(['BEG','NOV','INT','ADV','EXP'].includes(String(player.category||''))?String(player.category):'');
+  const rawDuprId=String(player.duprId||player.duprID||player.dupr_id||player.dupr||'').replace(/\s+/g,'').toUpperCase();
+  syncCloudPlayerEditDuprSlots(rawDuprId==='NR'?'':rawDuprId);
+
+  cloudPlayerEditPanelOpen=true;
+  modal.classList.add('has-cloud-player-edit-panel');
+  panel.classList.add('is-open');
+  panel.dataset.animationState='opening';
+  panel.setAttribute('aria-hidden','false');
+  panel.inert=false;
+  renderCloudRecords();
+  observeCloudPlayerEditPanelSize();
+  positionCloudPlayerEditPanel();
+  requestAnimationFrame(()=>{
+    if(!cloudPlayerEditPanelOpen)return;
+    positionCloudPlayerEditPanel();
+    panel.dataset.animationState='open';
+  });
 }
-function cancelCloudPlayerEdit(){
+function cancelCloudPlayerEdit(options={}){
+  const panel=$('cloudPlayerEditModal');
+  const modal=$('cloudRecordsModal');
+  const wasOpen=cloudPlayerEditPanelOpen||panel?.classList.contains('is-open')||panel?.dataset.animationState==='closing';
   editingCloudPlayerId=null;
-  $('cloudPlayerEditModal')?.classList.add('hidden');
-  if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
+  if(cloudPlayerEditPanelAnimationTimer){clearTimeout(cloudPlayerEditPanelAnimationTimer);cloudPlayerEditPanelAnimationTimer=null;}
+  if(!panel||options.immediate===true||!wasOpen||modal?.classList.contains('hidden')){
+    cloudPlayerEditPanelOpen=false;
+    panel?.classList.remove('is-open');
+    if(panel){panel.dataset.animationState='closed';panel.setAttribute('aria-hidden','true');panel.inert=true;}
+    modal?.classList.remove('has-cloud-player-edit-panel','cloud-player-edit-overlay-mode');
+    if(modal&&!modal.classList.contains('hidden'))renderCloudRecords();
+    return;
+  }
+
+  cloudPlayerEditPanelOpen=false;
+  panel.dataset.animationState='closing';
+  panel.classList.remove('is-open');
+  panel.setAttribute('aria-hidden','true');
+  panel.inert=true;
+  renderCloudRecords();
+  const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  cloudPlayerEditPanelAnimationTimer=window.setTimeout(()=>{
+    if(cloudPlayerEditPanelOpen)return;
+    modal?.classList.remove('has-cloud-player-edit-panel','cloud-player-edit-overlay-mode');
+    panel.dataset.animationState='closed';
+    cloudPlayerEditPanelAnimationTimer=null;
+  },reducedMotion?0:360);
 }
-function saveCloudPlayerEdit(){
+async function saveCloudPlayerEdit(){
+  if(cloudPlayerEditSaveInFlight)return;
   const id=Number(editingCloudPlayerId);
   if(!id)return;
+  const panel=$('cloudPlayerEditModal');
   const name=String($('cloudPlayerEditFullName')?.value||'').trim().replace(/\s+/g,' ');
   const nickname=String($('cloudPlayerEditNickname')?.value||'').trim().replace(/\s+/g,' ');
   const gender=String($('cloudPlayerEditGender')?.value||'').trim();
   const category=String($('cloudPlayerEditCategory')?.value||'').trim().toUpperCase();
-  const enteredDuprId=String($('cloudPlayerEditDuprId')?.value||'').trim().toUpperCase();
+  const enteredDuprId=String($('cloudPlayerEditDuprId')?.value||'').replace(/\s+/g,'').toUpperCase();
   const duprId=enteredDuprId==='NR'?'':enteredDuprId;
   if(!name){toast('Please enter the player full name.');$('cloudPlayerEditFullName')?.focus();return;}
-  if(gender&&!['Male','Female'].includes(gender)){toast('Please select a valid gender.');$('cloudPlayerEditGender')?.focus();return;}
-  if(category&&!['BEG','NOV','INT','ADV','EXP'].includes(category)){toast('Please select a valid category.');$('cloudPlayerEditCategory')?.focus();return;}
-  if(duprId&&!/^[A-Z0-9]{1,20}$/.test(duprId)){toast('DUPR ID must contain letters and numbers only.');$('cloudPlayerEditDuprId')?.focus();return;}
+  if(gender&&!['Male','Female'].includes(gender)){toast('Please select a valid gender.');panel?.querySelector('.cloud-edit-gender-radio')?.focus();return;}
+  if(category&&!['BEG','NOV','INT','ADV','EXP'].includes(category)){toast('Please select a valid category.');panel?.querySelector('[data-cloud-edit-category-value]')?.focus();return;}
+  if(duprId&&!/^[A-Z0-9]{6}$/.test(duprId)){toast('DUPR ID must be exactly 6 letters or numbers.');$('cloudPlayerEditDuprSlot1')?.focus();return;}
   loadCloudRecords();
   const player=cloudRecords.players.find(item=>Number(item.cloudId)===id);
   if(!player){toast('This registered player could not be found.');cancelCloudPlayerEdit();renderCloudRecords();return;}
   const normalizedName=name.toLowerCase();
   const duplicate=cloudRecords.players.find(item=>Number(item.cloudId)!==id&&String(item.name||'').trim().replace(/\s+/g,' ').toLowerCase()===normalizedName);
   if(duplicate){toast('Another registered player already uses this full name.');$('cloudPlayerEditFullName')?.focus();return;}
-  const previousName=String(player.name||'').trim().toLowerCase();
-  player.name=name;
-  player.nickname=nickname;
-  player.gender=gender;
-  player.category=category;
-  player.duprId=duprId;player.duprID='';player.dupr_id='';player.dupr='';
-  let changedLiveState=false;
-  [...state.players,...state.left].filter(active=>String(active.name||'').trim().toLowerCase()===previousName).forEach(active=>{
-    active.name=name;
-    active.nickname=nickname;
-    active.gender=gender;
-    active.category=category;
-    active.duprId=duprId;active.duprID='';active.dupr_id='';active.dupr='';
-    changedLiveState=true;
-  });
-  saveCloudRecords();
-  if(changedLiveState){saveState();render();}
-  cancelCloudPlayerEdit();
-  toast(`${name} details saved.`);
-}
 
+  const saveButton=panel?.querySelector('.cloud-player-edit-save');
+  const saveLabel=saveButton?.querySelector('.cloud-player-edit-save-label');
+  const cancelButton=panel?.querySelector('.cloud-player-edit-cancel');
+  const saveStartedAt=Date.now();
+  cloudPlayerEditSaveInFlight=true;
+  if(saveButton){saveButton.classList.add('is-loading');saveButton.disabled=true;saveButton.setAttribute('aria-busy','true');if(saveLabel)saveLabel.textContent='Saving…';}
+  if(cancelButton)cancelButton.disabled=true;
+
+  try{
+    // Let the spinner paint before local storage and queue state are updated.
+    await new Promise(resolve=>window.setTimeout(resolve,50));
+    const previousName=String(player.name||'').trim().toLowerCase();
+    player.name=name;
+    player.nickname=nickname;
+    player.gender=gender;
+    player.category=category;
+    player.duprId=duprId;player.duprID='';player.dupr_id='';player.dupr='';
+    let changedLiveState=false;
+    [...state.players,...state.left].filter(active=>String(active.name||'').trim().toLowerCase()===previousName).forEach(active=>{
+      active.name=name;
+      active.nickname=nickname;
+      active.gender=gender;
+      active.category=category;
+      active.duprId=duprId;active.duprID='';active.dupr_id='';active.dupr='';
+      changedLiveState=true;
+    });
+    saveCloudRecords();
+    if(changedLiveState){saveState();render();}
+
+    // Keep the loading animation visible through the save-to-panel transition.
+    const remainingLoading=Math.max(0,350-(Date.now()-saveStartedAt));
+    if(remainingLoading)await new Promise(resolve=>window.setTimeout(resolve,remainingLoading));
+    cancelCloudPlayerEdit();
+    toast(`${name} details saved.`);
+  }catch(error){
+    toast('Could not save player details. Please try again.');
+  }finally{
+    cloudPlayerEditSaveInFlight=false;
+    if(saveButton){saveButton.classList.remove('is-loading');saveButton.disabled=false;saveButton.removeAttribute('aria-busy');if(saveLabel)saveLabel.textContent='Save Change';}
+    if(cancelButton)cancelButton.disabled=false;
+  }
+}
 function editCloudDuprDetails(id){
   loadCloudRecords();
   const p=cloudRecords.players.find(player=>Number(player.cloudId)===Number(id));
   if(!p)return;
+  // Keep the original badge as the in-flow sizing anchor. The editor is only an overlay.
   editingCloudDuprId=Number(id);
   pendingCloudDeleteId=null;
   renderCloudRecords();
-  const input=$('cloudDuprIdInput');
-  if(input){input.focus();input.select();}
+  focusDuprIdAtEnd($('cloudDuprIdInput'));
 }
 function cancelEditCloudDuprDetails(){editingCloudDuprId=null;renderCloudRecords();}
 function saveCloudDuprDetails(id){
   const duprInput=$('cloudDuprIdInput');
-  const ratingInput=$('cloudSelfRatingInput');
-  if(!duprInput||!ratingInput)return;
-  const enteredDuprId=String(duprInput.value||'').trim().toUpperCase();
+  if(!duprInput)return;
+  const enteredDuprId=String(duprInput.value||'').replace(/\s+/g,'').toUpperCase();
   const duprId=enteredDuprId==='NR'?'':enteredDuprId;
-  const enteredRating=String(ratingInput.value||'').trim().toUpperCase();
-  const selfRating=enteredRating==='NR'?'':enteredRating;
   if(duprId&&!/^[A-Z0-9]{1,20}$/.test(duprId)){toast('DUPR ID must contain letters and numbers only.');duprInput.focus();return;}
-  if(selfRating&&!/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)){toast('Enter self rating as a number, a range such as 2.5/4.0, or NR.');ratingInput.focus();return;}
   loadCloudRecords();
   const p=cloudRecords.players.find(player=>Number(player.cloudId)===Number(id));
   if(!p)return;
   p.duprId=duprId;p.duprID='';p.dupr_id='';p.dupr='';
-  p.selfRating=selfRating;p.self_rating='';
   const normalizedName=String(p.name||'').trim().toLowerCase();
   let changedLiveState=false;
   [...state.players,...state.left].filter(player=>String(player.name||'').trim().toLowerCase()===normalizedName).forEach(player=>{
     player.duprId=duprId;player.duprID='';player.dupr_id='';player.dupr='';
-    player.selfRating=selfRating;player.self_rating='';
     changedLiveState=true;
   });
   editingCloudDuprId=null;
   saveCloudRecords();
   if(changedLiveState)saveState();
   renderCloudRecords();
-  toast('DUPR ID and self rating saved.');
+  toast('DUPR ID saved.');
 }
 function closeCloudMatchModal(){const el=$('cloudMatchActionModal');if(el){el.classList.add('hidden');el.classList.remove('cloud-match-edit-modal');}window._cloudMatchAction=null;}
 function requestDeleteCloudPlayer(id){editingCloudDuprId=null;pendingCloudDeleteId=id;renderCloudRecords();}
 function cancelDeleteCloudPlayer(){pendingCloudDeleteId=null;renderCloudRecords();}
-function deleteCloudPlayer(id){loadCloudRecords();cloudRecords.players=cloudRecords.players.filter(p=>Number(p.cloudId)!==Number(id));pendingCloudDeleteId=null;if(Number(editingCloudDuprId)===Number(id))editingCloudDuprId=null;saveCloudRecords();renderCloudRecords();}
-function checkInCloudPlayer(id){loadCloudRecords();const a=cloudRecords.players.find(p=>Number(p.cloudId)===Number(id));if(!a)return;let p=state.players.find(p=>p.name.toLowerCase()===a.name.toLowerCase());if(!p){const left=state.left.find(p=>p.name.toLowerCase()===a.name.toLowerCase());if(left){checkIn(left.id,true);state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();renderCloudRecords();return;}p={id:state.nextPlayer++,name:a.name,nickname:a.nickname||'',wins:a.wins||0,court:null,gender:a.gender||'Male',category:a.category||'',duprId:a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:a.selfRating||a.self_rating||'',queuedAt:Date.now(),waitingSince:Date.now()};state.players.push(p);}else{p.duprId=p.duprId||a.duprId||a.duprID||a.dupr_id||a.dupr||'';p.selfRating=p.selfRating||a.selfRating||a.self_rating||'';}if(p.court){toast('Player is already on court.');return;}if(!state.queue.includes(p.id))state.queue.push(p.id);p.queuedAt=Date.now();p.waitingSince=p.queuedAt;state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();render();renderCloudRecords();toast(`${p.name} checked in.`);}
+function deleteCloudPlayer(id){loadCloudRecords();cloudRecords.players=cloudRecords.players.filter(p=>Number(p.cloudId)!==Number(id));pendingCloudDeleteId=null;if(Number(editingCloudDuprId)===Number(id)){editingCloudDuprId=null;}saveCloudRecords();renderCloudRecords();}
+function checkInCloudPlayer(id){loadCloudRecords();const a=cloudRecords.players.find(p=>Number(p.cloudId)===Number(id));if(!a)return;let p=state.players.find(p=>p.name.toLowerCase()===a.name.toLowerCase());if(!p){const left=state.left.find(p=>p.name.toLowerCase()===a.name.toLowerCase());if(left){left.avatarId=left.avatarId||getPlayerAvatarId(a);checkIn(left.id,true);state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();renderCloudRecords();return;}p={id:state.nextPlayer++,name:a.name,nickname:a.nickname||'',wins:a.wins||0,court:null,gender:a.gender||'Male',category:a.category||'',avatarId:getPlayerAvatarId(a),duprId:a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:a.selfRating||a.self_rating||'',queuedAt:Date.now(),waitingSince:Date.now()};state.players.push(p);}else{p.avatarId=p.avatarId||getPlayerAvatarId(a);p.duprId=p.duprId||a.duprId||a.duprID||a.dupr_id||a.dupr||'';p.selfRating=p.selfRating||a.selfRating||a.self_rating||'';}if(p.court){toast('Player is already on court.');return;}if(!state.queue.includes(p.id))state.queue.push(p.id);p.queuedAt=Date.now();p.waitingSince=p.queuedAt;state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();render();renderCloudRecords();toast(`${p.name} checked in.`);}
 
 let openCategoryPlayerId=null;
 let openGenderPlayerId=null;
@@ -415,7 +741,7 @@ let endSessionAttendeePanelOpen=false;
 let endSessionAttendeeAnimationTimer=null;
 let endSessionAttendeeResizeObserver=null;
 let endSessionAttendeePositionFrame=null;
-const END_SESSION_ATTENDEE_ANIMATION_MS=720;
+const END_SESSION_ATTENDEE_ANIMATION_MS=420;
 function animateEndSessionCount(id,target){
   const el=$(id);
   if(!el)return;
@@ -438,6 +764,7 @@ function animateEndSessionCount(id,target){
 }
 
 function renderEndSessionAttendees(checkins, matches){
+  loadCloudRecords();
   const avatarStack=$('endSessionAttendeeAvatars');
   const meta=$('endSessionAttendeeMeta');
   const candidates=[...(Array.isArray(state.players)?state.players:[]),...(Array.isArray(state.left)?state.left:[])];
@@ -451,13 +778,15 @@ function renderEndSessionAttendees(checkins, matches){
     if(!name)return;
     const gender=String(player.gender||'').trim();
     const category=String(player.category||'').trim().toUpperCase();
+    const avatarId=getPlayerAvatarId(player);
     const existing=peopleByKey.get(key);
     if(existing){
       if(!existing.gender&&gender)existing.gender=gender;
       if(!existing.category&&category)existing.category=category;
+      if(!existing.avatarId&&avatarId)existing.avatarId=avatarId;
       return;
     }
-    const person={name,id,gender,category};
+    const person={name,id,gender,category,avatarId};
     peopleByKey.set(key,person);
     people.push(person);
   });
@@ -472,7 +801,7 @@ function renderEndSessionAttendees(checkins, matches){
       avatar.className='end-session-avatar';
       const name=person?.name||'Player';
       const initials=name.split(/\s+/).filter(Boolean).slice(0,2).map(part=>part.charAt(0)).join('').toLocaleUpperCase()||'P';
-      avatar.textContent=initials;
+      if(REGISTRATION_AVATAR_ID_PATTERN.test(String(person?.avatarId||''))){const image=document.createElement('img');image.className='end-session-avatar-image';image.src=`registration-${person.avatarId}.png`;image.alt='';image.setAttribute('aria-hidden','true');image.draggable=false;avatar.appendChild(image);}else avatar.textContent=initials;
       avatar.title=person?.name||'Checked-in player';
       avatar.setAttribute('aria-label',person?.name||'Checked-in player');
       avatarStack.appendChild(avatar);
@@ -516,7 +845,7 @@ function renderEndSessionAttendeeList(){
     const initials=document.createElement('span');
     initials.className='end-session-attendee-list-avatar';
     initials.setAttribute('aria-hidden','true');
-    initials.textContent=person.name.split(/\s+/).filter(Boolean).slice(0,2).map(part=>part.charAt(0)).join('').toLocaleUpperCase()||'P';
+    if(REGISTRATION_AVATAR_ID_PATTERN.test(String(person.avatarId||''))){const image=document.createElement('img');image.className='end-session-avatar-image';image.src=`registration-${person.avatarId}.png`;image.alt='';image.draggable=false;initials.appendChild(image);}else initials.textContent=person.name.split(/\s+/).filter(Boolean).slice(0,2).map(part=>part.charAt(0)).join('').toLocaleUpperCase()||'P';
 
     const info=document.createElement('div');
     info.className='end-session-attendee-info';
@@ -594,6 +923,22 @@ function positionEndSessionAttendeePanel(){
   panel.style.setProperty('--end-session-attendee-panel-height',`${boxRect.height}px`);
 }
 
+function scheduleEndSessionAttendeePanelPosition(){
+  // Coalesce resize, scroll, and ResizeObserver notifications into one layout
+  // read/write per frame. This prevents the drawer from chasing intermediate
+  // modal measurements on smaller or slower devices.
+  if(endSessionAttendeePositionFrame!==null)return;
+  endSessionAttendeePositionFrame=requestAnimationFrame(()=>{
+    endSessionAttendeePositionFrame=null;
+    const modal=$('endSessionModal');
+    const panel=$('endSessionAttendeePanel');
+    const shouldTrack=endSessionAttendeePanelOpen||panel?.dataset.animationState==='closing';
+    if(shouldTrack&&modal&&panel&&!modal.classList.contains('hidden')){
+      positionEndSessionAttendeePanel();
+    }
+  });
+}
+
 function observeEndSessionAttendeeModalSize(){
   const modal=$('endSessionModal');
   const box=modal?.querySelector('.end-session-modal-box');
@@ -602,15 +947,7 @@ function observeEndSessionAttendeeModalSize(){
     endSessionAttendeeResizeObserver=new ResizeObserver(()=>{
       const panel=$('endSessionAttendeePanel');
       const shouldTrack=endSessionAttendeePanelOpen||panel?.dataset.animationState==='closing';
-      if(!shouldTrack||!panel)return;
-      if(endSessionAttendeePositionFrame!==null){
-        cancelAnimationFrame(endSessionAttendeePositionFrame);
-      }
-      endSessionAttendeePositionFrame=requestAnimationFrame(()=>{
-        endSessionAttendeePositionFrame=null;
-        const stillTracking=endSessionAttendeePanelOpen||panel.dataset.animationState==='closing';
-        if(stillTracking)positionEndSessionAttendeePanel();
-      });
+      if(shouldTrack&&panel)scheduleEndSessionAttendeePanelPosition();
     });
   }
   endSessionAttendeeResizeObserver.disconnect();
@@ -677,12 +1014,13 @@ function setEndSessionAttendeePanelOpen(shouldOpen, options={}){
   }else{
     if(search)search.value='';
     // Keep the closing direction active until the slow rightward slide ends.
+    const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     endSessionAttendeeAnimationTimer=window.setTimeout(()=>{
       if(!endSessionAttendeePanelOpen){
         panel.dataset.animationState='closed';
       }
       endSessionAttendeeAnimationTimer=null;
-    },END_SESSION_ATTENDEE_ANIMATION_MS+80);
+    },reducedMotion?0:END_SESSION_ATTENDEE_ANIMATION_MS+50);
   }
 }
 
@@ -863,6 +1201,7 @@ function buildLiveViewSnapshot(){
       nickname:String(p.nickname||''),
       gender:String(p.gender||''),
       category:String(p.category||''),
+      avatarId:getPlayerAvatarId(p),
       queuedAt:p.queuedAt||null,
       waitingSince:p.waitingSince||p.queuedAt||null
     }:null;
@@ -913,6 +1252,7 @@ function buildLiveViewSnapshot(){
         nickname:String(p.nickname||''),
         gender:String(p.gender||''),
         category:String(p.category||''),
+        avatarId:getPlayerAvatarId(p),
         matches:Number(st.matches)||0,
         wins:Number(st.wins)||0,
         losses:Number(st.losses)||0,
@@ -923,6 +1263,7 @@ function buildLiveViewSnapshot(){
     });
   return {
     sessionName:String(state.sessionName||'Pickle Point Match'),
+    sessionId:state.sessionId||null,
     active:!!state.sessionActive,
     recordScores:!!state.recordScores,
     liveRankingEnabled:state.liveRankingEnabled!==false,
@@ -998,6 +1339,9 @@ function getLiveViewUrl(){
   const url=new URL('live.html',window.location.href);
   if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);
   return url;
+}
+function hasActiveOrganizerSession(){
+  return state.sessionActive===true&&!!String(state.sessionId||'').trim()&&!state.sessionEndedAt;
 }
 function syncLiveViewThemeButton(theme){
   const button=$('liveViewThemeToggle');
@@ -1205,8 +1549,10 @@ function syncLiveViewQrNetworkState(forceQrRefresh=false){
     if(organizerLogo)organizerLogo.hidden=true;
     image.removeAttribute('src');
     delete image.dataset.qrTarget;
-    if(statusTitle)statusTitle.textContent='Local / private link';
-    if(statusNote)statusNote.textContent='Open Pickle Point Match through a web server to generate a scannable QR code.';
+    if(statusTitle)statusTitle.textContent=hasActiveOrganizerSession()?'Local / private link':'No active session';
+    if(statusNote)statusNote.textContent=hasActiveOrganizerSession()
+      ?'Open Pickle Point Match through a web server to generate a scannable QR code.'
+      :'The organizer has ended the live session. The shared Live View will show no active session until a new session starts.';
     return;
   }
 
@@ -1231,6 +1577,10 @@ function syncLiveViewQrNetworkState(forceQrRefresh=false){
   if(statusNote)statusNote.textContent=publicReady
     ?'Anyone with this link can watch the live queue from a phone or browser.'
     :'This link is limited to this computer or local network. For access from anywhere, host the app on a public HTTPS address.';
+  if(!hasActiveOrganizerSession()){
+    if(statusTitle)statusTitle.textContent='No active session';
+    if(statusNote)statusNote.textContent='The organizer has ended the live session. The shared Live View will show no active session until a new session starts.';
+  }
 }
 function openLiveViewQrModal(){
   const modal=$('liveViewQrModal');
@@ -1252,7 +1602,7 @@ async function copyLiveViewQrLink(){
   try{await navigator.clipboard.writeText(field.value);toast('Live View link copied.');}
   catch(e){field.focus();field.select();let copied=false;try{copied=document.execCommand('copy');}catch(err){}toast(copied?'Live View link copied.':'Select and copy the Live View link.');}
 }
-function getRegistrationPageUrl(){const url=new URL('Registration.html',window.location.href);if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);url.searchParams.set('dupr',isCurrentSessionDupr()?'1':'0');return url;}
+function getRegistrationPageUrl(){const url=new URL('Registration.html',window.location.href);if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);if(state.sessionId)url.searchParams.set('session',String(state.sessionId));url.searchParams.set('dupr',isCurrentSessionDupr()?'1':'0');return url;}
 function syncRegistrationQrOrganizerLogo(forceRefresh=false){
   const logo=$('registrationQrBrandLogo');
   if(!logo)return;
@@ -1311,7 +1661,27 @@ function syncRegistrationQrNetworkState(){
   }
   const url=getRegistrationPageUrl();
   const online=navigator.onLine!==false;
+  const activeSession=hasActiveOrganizerSession();
+  const urlField=$('registrationQrUrl');
+  const copyButton=$('registrationQrCopyBtn');
+  const openButton=$('registrationQrOpenPageBtn');
+  if(urlField)urlField.value=url.href;
+  if(copyButton)copyButton.disabled=!activeSession;
+  if(openButton)openButton.disabled=!activeSession;
   wrap.classList.toggle('is-offline',!online);
+  if(!activeSession){
+    image.hidden=true;
+    if(brandLogo)brandLogo.hidden=true;
+    image.removeAttribute('src');
+    delete image.dataset.qrTarget;
+    image.dataset.qrFallbackAttempted='false';
+    loader.hidden=true;
+    unavailable.textContent='No active live session. Registration is closed until the organizer starts a new session.';
+    unavailable.hidden=false;
+    if(title)title.textContent='No active session';
+    if(note)note.textContent='The registration QR code will become available automatically when a new live session starts.';
+    return;
+  }
   if(!online){image.hidden=true;if(brandLogo)brandLogo.hidden=true;image.removeAttribute('src');delete image.dataset.qrTarget;image.dataset.qrFallbackAttempted='false';loader.hidden=false;unavailable.hidden=true;if(title)title.textContent='Offline mode';if(note)note.textContent='Reconnect to generate the registration QR code.';return;}
   loader.hidden=true;
   if(!['http:','https:'].includes(url.protocol)){image.hidden=true;if(brandLogo)brandLogo.hidden=true;image.removeAttribute('src');delete image.dataset.qrTarget;unavailable.textContent='Open Pickle Point Match through a web server to generate a QR code for phones.';unavailable.hidden=false;if(title)title.textContent='Web server required';if(note)note.textContent='The phone needs an HTTP or HTTPS registration link.';return;}
@@ -1329,10 +1699,15 @@ function openRegistrationQrModal(){
 function closeRegistrationQrModal(){$('registrationQrModal')?.classList.add('hidden');}
 async function copyRegistrationQrLink(){
   const field=$('registrationQrUrl');if(!field)return;
+  if(!hasActiveOrganizerSession()){toast('No active live session. Registration is closed.');return;}
   try{await navigator.clipboard.writeText(field.value);toast('Registration link copied.');}
   catch(e){field.focus();field.select();let copied=false;try{copied=document.execCommand('copy');}catch(err){}toast(copied?'Registration link copied.':'Select and copy the registration link.');}
 }
-function openRegistrationPage(){window.open(getRegistrationPageUrl().href,'_blank','noopener');}
+function openRegistrationPage(){if(!hasActiveOrganizerSession()){toast('No active live session. Registration is closed.');return;}window.open(getRegistrationPageUrl().href,'_blank','noopener');}
+function syncOrganizerQrSessionStatus(){
+  syncLiveViewQrNetworkState();
+  syncRegistrationQrNetworkState();
+}
 window.addEventListener('online',()=>{if($('registrationQrModal')&&!$('registrationQrModal').classList.contains('hidden'))syncRegistrationQrNetworkState();});
 window.addEventListener('offline',()=>{if($('registrationQrModal')&&!$('registrationQrModal').classList.contains('hidden'))syncRegistrationQrNetworkState();});
 
@@ -1366,6 +1741,7 @@ function saveState(){
   }catch(e){console.warn('PickleQ save failed',e);}
   queueSharedAppStateSync(snapshot);
   publishLiveViewState();
+  syncOrganizerQrSessionStatus();
 }
 
 function loadState(){
@@ -1395,6 +1771,7 @@ function loadState(){
     state.logs=Array.isArray(data.logs)?data.logs:[];
     state.sessionMetrics={cloudCheckins:Number(data.sessionMetrics?.cloudCheckins)||0,newRegistered:Number(data.sessionMetrics?.newRegistered)||0};
     state.sessionActive=typeof data.sessionActive==='boolean'?data.sessionActive:(state.players.length>0||state.left.length>0||state.queue.length>0||state.courts.length>0||state.logs.length>0);
+    state.sessionId=typeof data.sessionId==='string'&&data.sessionId.trim()?data.sessionId.trim():null;
     state.sessionEndedAt=typeof data.sessionEndedAt==='string'&&data.sessionEndedAt?data.sessionEndedAt:null;
     state.sessionName=String(data.sessionName||'Open Play — Oct 6, 2026');
     state.duprMatch=!!data.duprMatch;
@@ -1541,6 +1918,22 @@ function renderCourtTitle(c){
 }
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+function sanitizeDuprIdInput(input){
+  if(!input)return;
+  const before=String(input.value||'');
+  const selectionStart=Number.isInteger(input.selectionStart)?input.selectionStart:before.length;
+  const normalized=before.replace(/\s+/g,'').toUpperCase();
+  if(normalized===before)return;
+  const caret=before.slice(0,selectionStart).replace(/\s+/g,'').length;
+  input.value=normalized;
+  try{input.setSelectionRange(caret,caret);}catch(e){}
+}
+function focusDuprIdAtEnd(input){
+  if(!input)return;
+  input.focus();
+  const caret=String(input.value||'').length;
+  try{input.setSelectionRange(caret,caret);}catch(e){}
+}
 const player=id=>state.players.find(p=>p.id===id);
 const court=id=>state.courts.find(c=>c.id===id);
 function isSinglesCourt(c=null){return String(c?.type||state.eventRules?.type||'Doubles')==='Singles';}
@@ -1782,21 +2175,40 @@ function renderLeftPlayerRows(popup=false){
   const visibleLeft=getVisibleLeftPlayers();
   if(!visibleLeft.length)return '<div class="left-empty-state"><div class="left-empty-icon" aria-hidden="true">↩️</div><div class="left-empty-text">No left players yet</div></div>';
   const query=popup?String(($('leftPlayersSearch')&&$('leftPlayersSearch').value)||'').trim().toLowerCase():'';
-  const filtered=popup?visibleLeft.filter(p=>{const st=getLeftPlayerLiveStats(p);return [p.name,p.nickname,p.gender,p.category,st.matches,st.wins,st.losses].join(' ').toLowerCase().includes(query);}):visibleLeft;
+  const duprSession=popup&&isCurrentSessionDupr();
+  const cloudDuprByName=new Map();
+  loadCloudRecords();
+  if(duprSession){
+    (cloudRecords.players||[]).forEach(record=>{
+      const name=String(record.name||'').trim().toLowerCase();
+      const rawId=String(record.duprId||record.duprID||record.dupr_id||record.dupr||'').trim().toUpperCase();
+      if(name&&rawId&&rawId!=='NR'&&!cloudDuprByName.has(name))cloudDuprByName.set(name,rawId);
+    });
+  }
+  const getLeftPlayerDuprId=p=>{
+    const rawId=String(p.duprId||p.duprID||p.dupr_id||p.dupr||'').trim().toUpperCase();
+    return rawId&&rawId!=='NR'?rawId:(cloudDuprByName.get(String(p.name||'').trim().toLowerCase())||'');
+  };
+  const filtered=popup?visibleLeft.filter(p=>{
+    const duprId=duprSession?getLeftPlayerDuprId(p):'';
+    return [p.name,p.nickname,p.gender,p.category,duprId].join(' ').toLowerCase().includes(query);
+  }):visibleLeft;
   if(popup){const summary=$('leftPlayersSearchSummary');if(summary)summary.textContent=`${filtered.length} of ${visibleLeft.length} player${visibleLeft.length===1?'':'s'}`;}
   if(!filtered.length)return '<div class="left-empty-state"><div class="left-empty-icon" aria-hidden="true">↩️</div><div class="left-empty-text">No matching left players found</div></div>';
   return filtered.map((p,index)=>{
     const pending=state.pendingLeftDelete===p.id;
-    const liveStats=getLeftPlayerLiveStats(p);
+    const liveStats=popup?null:getLeftPlayerLiveStats(p);
     if(popup){
-      const category=String(p.category||'—');
-      const catClass=({'BEG':'beg','NOV':'nov','INT':'int','ADV':'adv','EXP':'exp'})[category.toUpperCase()]||'nov';
-      const matches=liveStats.matches;
+      const category=cloudCategoryLabel(p.category);
+      const catCode=cloudCategoryCode(p.category);
+      const catClass=({'BEG':'beg','NOV':'nov','INT':'int','ADV':'adv','EXP':'exp'})[catCode]||'nov';
+      const duprId=duprSession?getLeftPlayerDuprId(p):'';
+      const duprBadge=duprId?`<span class="left-dupr-id-badge">DUPR: ${esc(duprId)}</span>`:'';
       return `<article class="cloud-player-card left-cloud-player-card ${pending?'delete-pending':''}">
         <div class="cloud-player-main">
-          <div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${esc((p.name||'?').charAt(0).toUpperCase())}</div>
+          <div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${playerAvatarMarkup(p,'cloud-avatar-image')}</div>
           <div class="cloud-player-ident"><b>${highlightSearchMatch(p.name||'Unknown',query)}${p.nickname?` (${highlightSearchMatch(p.nickname,query)})`:''} <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b>
-            <small class="cloud-player-summary"><span class="cloud-category-badge skill-${catClass}">${esc(category)}</span><span class="cloud-player-stats"><span>${matches} Matches</span><span class="cloud-win">${liveStats.wins} Wins</span><span class="cloud-loss">${liveStats.losses} Losses</span></span></small>
+            <small class="cloud-player-summary"><span class="cloud-category-badge skill-${catClass}">${esc(category)}</span>${duprBadge}</small>
           </div>
           <div class="cloud-player-actions"><button class="cloud-checkin-btn" ${pending?'disabled':''} onclick="event.stopPropagation();checkIn(${p.id})">Check in</button>${pending?'':`<button class="cloud-delete-btn" onclick="event.stopPropagation();requestDeleteLeftPlayer(${p.id})">Remove</button>`}</div>
         </div>
@@ -2593,7 +3005,7 @@ function openCourtPlayersModal(courtId){
     const categoryClass=category.toLowerCase().replace(/[^a-z0-9_-]/g,'');
     const genderClass=p.gender==='Female'?'female':'male';
     return `<div class="court-lineup-player">
-      <span class="court-lineup-avatar ${genderClass}">${esc(initial(p.name))}</span>
+      <span class="court-lineup-avatar ${genderClass}">${playerAvatarMarkup(p,'profile-avatar-image')}</span>
       <div class="court-lineup-player-info">
         <div class="court-lineup-name"><b>${esc(displayPlayerName(p))}</b><span class="court-lineup-gender ${genderClass}">${genderIcon(p)}</span><span class="court-lineup-category skill-${categoryClass}">${esc(category)}</span></div>
       </div>
@@ -3136,16 +3548,15 @@ function renderLockInPartnerChoices(playerId){
   const options=candidates.map(candidate=>`<button type="button" class="queue-lock-partner-option" title="Lock in ${esc(displayPlayerName(candidate))}" aria-label="Lock in ${esc(displayPlayerName(candidate))}" onclick="event.stopPropagation();toggleLockInPartner(${playerId},${candidate.id})"><span class="queue-lock-partner-option-ident"><span class="queue-lock-partner-option-name">${highlightSearchMatch(displayPlayerName(candidate),searchValue)}</span><span class="queue-lock-partner-option-meta"><span class="queue-lock-partner-gender ${candidate.gender==='Female'?'female':'male'}" aria-label="${candidate.gender==='Female'?'Female':'Male'}">${genderSvgIcon(candidate.gender)}</span><span class="queue-lock-partner-category ${candidate.category?'skill-'+String(candidate.category).toLowerCase():''}">${esc(candidate.category||'—')}</span></span></span><span class="queue-lock-partner-option-state" aria-hidden="true">🔓</span></button>`).join('');
   return `<div class="queue-lock-partner"><div class="queue-lock-partner-heading">Lock in partner</div><span class="queue-lock-partner-divider" aria-hidden="true"></span><div class="queue-lock-partner-search-wrap"><svg class="queue-lock-partner-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg><input class="queue-lock-partner-search" data-player-id="${Number(playerId)}" type="search" placeholder="Search players..." aria-label="Search lock in partner players" value="${esc(searchValue)}" oninput="lockPartnerSearchValues[${Number(playerId)}]=this.value;filterLockInPartnerOptions(${Number(playerId)})" onclick="event.stopPropagation()"></div><div class="queue-lock-partner-list ${candidates.length>=5?'has-scroll':''}">${options||'<small class="queue-lock-partner-empty">No other players in the Queue List.</small>'}</div></div>`;
 }
-function courtDuprInputId(surface,id,field){
-  return `courtDupr${field==='id'?'Id':'SelfRating'}Input-${surface}-${Number(id)}`;
+function courtDuprInputId(surface,id){
+  return `courtDuprIdInput-${surface}-${Number(id)}`;
 }
 function getCourtDuprDetails(target){
-  if(!target)return {duprId:'',selfRating:''};
+  if(!target)return {duprId:''};
   const normalizedName=String(target.name||'').trim().toLowerCase();
   const matchingCloud=cloudRecords.players.find(item=>String(item.name||'').trim().toLowerCase()===normalizedName);
-  const rawId=String(target.duprId||target.duprID||target.dupr_id||target.dupr||matchingCloud?.duprId||matchingCloud?.duprID||matchingCloud?.dupr_id||matchingCloud?.dupr||'').trim().toUpperCase();
-  const rawRating=String(target.selfRating||target.self_rating||matchingCloud?.selfRating||matchingCloud?.self_rating||'').trim().toUpperCase();
-  return {duprId:rawId==='NR'?'':rawId,selfRating:rawRating==='NR'?'':rawRating};
+  const rawId=String(target.duprId||target.duprID||target.dupr_id||target.dupr||matchingCloud?.duprId||matchingCloud?.duprID||matchingCloud?.dupr_id||matchingCloud?.dupr||'').replace(/\s+/g,'').toUpperCase();
+  return {duprId:rawId==='NR'?'':rawId};
 }
 function renderCourtDuprBadge(target,surface){
   if(!target || state.duprLabelsEnabled===false)return '';
@@ -3153,17 +3564,15 @@ function renderCourtDuprBadge(target,surface){
   const key=`${surface}:${id}`;
   const details=getCourtDuprDetails(target);
   const duprId=details.duprId;
-  const selfRating=details.selfRating;
   // Live court is a display-only surface. Edits remain available from the ready court/queue UI.
   if(surface==='match'){
-    return `<span class="court-dupr-badge court-dupr-badge-static ${duprId?'':'is-unrated'}" aria-label="DUPR ID and self rating"><span>DUPR: ${esc(duprId||'NR')}</span><span class="court-dupr-separator">•</span><span>${esc(selfRating||'NR')}</span></span>`;
+    return `<span class="court-dupr-badge court-dupr-badge-static ${duprId?'':'is-unrated'}" aria-label="DUPR ID">DUPR: ${esc(duprId||'NR')}</span>`;
   }
   if(editingCourtDuprKey===key){
-    const idInputId=courtDuprInputId(surface,id,'id');
-    const ratingInputId=courtDuprInputId(surface,id,'rating');
-    return `<span class="court-dupr-inline-edit" role="group" aria-label="Edit DUPR ID and self rating" data-player-id="${id}" data-surface="${surface}"><span class="court-dupr-badge court-dupr-edit-fields ${duprId?'':'is-unrated'}"><span class="court-dupr-prefix">DUPR:</span><input class="court-dupr-id-input" id="${idInputId}" type="text" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(duprId||'NR')}" aria-label="DUPR ID" style="width:${Math.max(36,Math.min(176,(duprId||'NR').length*10+4))}px !important" oninput="this.style.setProperty('width',Math.max(36,Math.min(176,this.value.length*10+4))+'px','important')" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCourtDuprDetails(${id},'${surface}')}else if(event.key==='Escape'){event.preventDefault();cancelEditCourtDuprDetails()}" /><span class="court-dupr-separator">•</span><input class="court-dupr-rating-input" id="${ratingInputId}" type="text" maxlength="12" inputmode="decimal" autocomplete="off" value="${esc(selfRating||'NR')}" aria-label="Self rating" style="width:${Math.max(36,Math.min(96,(selfRating||'NR').length*10+4))}px !important" oninput="this.style.setProperty('width',Math.max(36,Math.min(96,this.value.length*10+4))+'px','important')" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCourtDuprDetails(${id},'${surface}')}else if(event.key==='Escape'){event.preventDefault();cancelEditCourtDuprDetails()}" /></span><span class="court-dupr-editor-actions"><button type="button" class="court-dupr-save-btn" onclick="event.stopPropagation();saveCourtDuprDetails(${id},'${surface}')">Save</button><button type="button" class="court-dupr-cancel-btn" onclick="event.stopPropagation();cancelEditCourtDuprDetails()">Cancel</button></span></span>`;
+    const idInputId=courtDuprInputId(surface,id);
+    return `<span class="court-dupr-inline-edit" role="group" aria-label="Edit DUPR ID" data-player-id="${id}" data-surface="${surface}"><span class="court-dupr-badge court-dupr-edit-fields ${duprId?'':'is-unrated'}"><span class="court-dupr-prefix">DUPR:</span><input class="court-dupr-id-input" id="${idInputId}" type="text" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(duprId)}" aria-label="DUPR ID" style="width:75px !important" oninput="sanitizeDuprIdInput(this)" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCourtDuprDetails(${id},'${surface}')}else if(event.key==='Escape'){event.preventDefault();cancelEditCourtDuprDetails()}" /></span><span class="court-dupr-editor-actions"><button type="button" class="court-dupr-save-btn" onclick="event.stopPropagation();saveCourtDuprDetails(${id},'${surface}')">Save</button><button type="button" class="court-dupr-cancel-btn" onclick="event.stopPropagation();cancelEditCourtDuprDetails()">Cancel</button></span></span>`;
   }
-  return `<button type="button" class="court-dupr-badge ${duprId?'':'is-unrated'}" onclick="event.stopPropagation();editCourtDuprDetails(${id},'${surface}')" aria-label="Edit DUPR ID and self rating" title="Click to edit DUPR ID and self rating"><span>DUPR: ${esc(duprId||'NR')}</span><span class="court-dupr-separator">•</span><span>${esc(selfRating||'NR')}</span></button>`;
+  return `<button type="button" class="court-dupr-badge ${duprId?'':'is-unrated'}" onclick="event.stopPropagation();editCourtDuprDetails(${id},'${surface}')" aria-label="Edit DUPR ID" title="Click to edit DUPR ID">DUPR: ${esc(duprId||'NR')}</button>`;
 }
 function editCourtDuprDetails(id,surface){
   if(surface==='match')return;
@@ -3171,29 +3580,23 @@ function editCourtDuprDetails(id,surface){
   if(!target)return;
   editingCourtDuprKey=`${surface}:${Number(id)}`;
   renderCourts();
-  const input=$(courtDuprInputId(surface,id,'id'));
-  if(input){input.focus();input.select();}
+  focusDuprIdAtEnd($(courtDuprInputId(surface,id)));
 }
 function cancelEditCourtDuprDetails(){
   editingCourtDuprKey=null;
   renderCourts();
 }
 function saveCourtDuprDetails(id,surface){
-  const duprInput=$(courtDuprInputId(surface,id,'id'));
-  const ratingInput=$(courtDuprInputId(surface,id,'rating'));
-  if(!duprInput||!ratingInput)return;
-  const enteredDuprId=String(duprInput.value||'').trim().toUpperCase();
+  const duprInput=$(courtDuprInputId(surface,id));
+  if(!duprInput)return;
+  const enteredDuprId=String(duprInput.value||'').replace(/\s+/g,'').toUpperCase();
   const duprId=enteredDuprId==='NR'?'':enteredDuprId;
-  const enteredRating=String(ratingInput.value||'').trim().toUpperCase();
-  const selfRating=enteredRating==='NR'?'':enteredRating;
   if(duprId&&!/^[A-Z0-9]{1,20}$/.test(duprId)){toast('DUPR ID must contain letters and numbers only.');duprInput.focus();return;}
-  if(selfRating&&!/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)){toast('Enter self rating as a number, a range such as 2.5/4.0, or NR.');ratingInput.focus();return;}
   const target=player(Number(id));
   if(!target)return;
   const normalizedName=String(target.name||'').trim().toLowerCase();
   [...state.players,...state.left].filter(item=>String(item.name||'').trim().toLowerCase()===normalizedName).forEach(item=>{
     item.duprId=duprId;item.duprID='';item.dupr_id='';item.dupr='';
-    item.selfRating=selfRating;item.self_rating='';
   });
   loadCloudRecords();
   let record=cloudRecords.players.find(item=>String(item.name||'').trim().toLowerCase()===normalizedName);
@@ -3202,13 +3605,12 @@ function saveCourtDuprDetails(id,surface){
     cloudRecords.players.push(record);
   }
   record.duprId=duprId;record.duprID='';record.dupr_id='';record.dupr='';
-  record.selfRating=selfRating;record.self_rating='';
   editingCourtDuprKey=null;
   saveCloudRecords();
   saveState();
   render();
   if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
-  toast('DUPR ID and self rating saved.');
+  toast('DUPR ID saved.');
 }
 
 function editQueueDuprDetails(id){
@@ -3216,26 +3618,20 @@ function editQueueDuprDetails(id){
   if(!target)return;
   editingQueueDuprPlayerId=Number(id);
   renderQueue();
-  const input=$('queueDuprIdInput');
-  if(input){input.focus();input.select();}
+  focusDuprIdAtEnd($('queueDuprIdInput'));
 }
 function cancelEditQueueDuprDetails(){editingQueueDuprPlayerId=null;renderQueue();}
 function saveQueueDuprDetails(id){
   const duprInput=$('queueDuprIdInput');
-  const ratingInput=$('queueSelfRatingInput');
-  if(!duprInput||!ratingInput)return;
-  const enteredDuprId=String(duprInput.value||'').trim().toUpperCase();
+  if(!duprInput)return;
+  const enteredDuprId=String(duprInput.value||'').replace(/\s+/g,'').toUpperCase();
   const duprId=enteredDuprId==='NR'?'':enteredDuprId;
-  const enteredRating=String(ratingInput.value||'').trim().toUpperCase();
-  const selfRating=enteredRating==='NR'?'':enteredRating;
   if(duprId&&!/^[A-Z0-9]{1,20}$/.test(duprId)){toast('DUPR ID must contain letters and numbers only.');duprInput.focus();return;}
-  if(selfRating&&!/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)){toast('Enter self rating as a number, a range such as 2.5/4.0, or NR.');ratingInput.focus();return;}
   const target=player(Number(id));
   if(!target)return;
   const normalizedName=String(target.name||'').trim().toLowerCase();
   [...state.players,...state.left].filter(item=>String(item.name||'').trim().toLowerCase()===normalizedName).forEach(item=>{
     item.duprId=duprId;item.duprID='';item.dupr_id='';item.dupr='';
-    item.selfRating=selfRating;item.self_rating='';
   });
   loadCloudRecords();
   let record=cloudRecords.players.find(item=>String(item.name||'').trim().toLowerCase()===normalizedName);
@@ -3244,13 +3640,12 @@ function saveQueueDuprDetails(id){
     cloudRecords.players.push(record);
   }
   record.duprId=duprId;record.duprID='';record.dupr_id='';record.dupr='';
-  record.selfRating=selfRating;record.self_rating='';
   editingQueueDuprPlayerId=null;
   saveCloudRecords();
   saveState();
   render();
   if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
-  toast('DUPR ID and self rating saved.');
+  toast('DUPR ID saved.');
 }
 function renderQueue(){
   const queueCountBadge=$('queueCountBadge');
@@ -3278,19 +3673,18 @@ function renderQueue(){
     const gender=['female','f','woman','women'].includes(genderValue)?'Female':'Male';
     const st=rankingStats.get(p.id)||{matches:0,wins:0,losses:0};
     const matchingCloudDupr=cloudRecords.players.find(cp=>String(cp.name||'').trim().toLowerCase()===String(p.name||'').trim().toLowerCase());
-    const rawQueueDuprId=String(p.duprId||p.duprID||p.dupr_id||p.dupr||matchingCloudDupr?.duprId||matchingCloudDupr?.duprID||matchingCloudDupr?.dupr_id||matchingCloudDupr?.dupr||'').trim().toUpperCase();
+    const rawQueueDuprId=String(p.duprId||p.duprID||p.dupr_id||p.dupr||matchingCloudDupr?.duprId||matchingCloudDupr?.duprID||matchingCloudDupr?.dupr_id||matchingCloudDupr?.dupr||'').replace(/\s+/g,'').toUpperCase();
     const queueDuprId=rawQueueDuprId==='NR'?'':rawQueueDuprId;
-    const rawQueueSelfRating=String(p.selfRating||p.self_rating||matchingCloudDupr?.selfRating||matchingCloudDupr?.self_rating||'').trim().toUpperCase();
-    const queueSelfRating=rawQueueSelfRating==='NR'?'':rawQueueSelfRating;
     const queueDuprEditing=Number(editingQueueDuprPlayerId)===Number(id);
-    const queueDuprBadge=state.duprLabelsEnabled===false?'':queueDuprEditing?`<span class="queue-dupr-inline-edit" role="group" aria-label="Edit DUPR ID and self rating"><span class="queue-dupr-badge queue-dupr-edit-fields ${queueDuprId?'':'is-unrated'}"><span class="queue-dupr-prefix">DUPR:</span><input id="queueDuprIdInput" type="text" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(queueDuprId||'NR')}" aria-label="DUPR ID" style="width:${Math.max(28,Math.min(200,(queueDuprId||'NR').length*10+4))}px !important" oninput="this.style.setProperty('width',Math.max(28,Math.min(200,this.value.length*10+4))+'px','important')" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveQueueDuprDetails(${id})}else if(event.key==='Escape'){cancelEditQueueDuprDetails()}" /><span class="queue-dupr-separator">•</span><input id="queueSelfRatingInput" type="text" maxlength="12" inputmode="decimal" autocomplete="off" value="${esc(queueSelfRating||'NR')}" aria-label="Self rating" style="width:${Math.max(28,Math.min(104,(queueSelfRating||'NR').length*10+4))}px !important" oninput="this.style.setProperty('width',Math.max(28,Math.min(104,this.value.length*10+4))+'px','important')" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveQueueDuprDetails(${id})}else if(event.key==='Escape'){cancelEditQueueDuprDetails()}" /></span><span class="queue-dupr-editor-actions"><button type="button" class="queue-dupr-save-btn" onclick="event.stopPropagation();saveQueueDuprDetails(${id})">Save</button><button type="button" class="queue-dupr-cancel-btn" onclick="event.stopPropagation();cancelEditQueueDuprDetails()">Cancel</button></span></span>`:`<button type="button" class="queue-dupr-badge ${queueDuprId?'':'is-unrated'}" onclick="event.stopPropagation();editQueueDuprDetails(${id})" aria-label="Edit DUPR ID and self rating" title="Click to edit DUPR ID and self rating"><span>DUPR: ${esc(queueDuprId||'NR')}</span><span class="queue-dupr-separator">•</span><span>${esc(queueSelfRating||'NR')}</span></button>`;
+    const queueDuprBadge=state.duprLabelsEnabled===false?'':queueDuprEditing?`<span class="queue-dupr-inline-edit" role="group" aria-label="Edit DUPR ID"><span class="queue-dupr-badge queue-dupr-edit-fields ${queueDuprId?'':'is-unrated'}"><span class="queue-dupr-prefix">DUPR:</span><input id="queueDuprIdInput" type="text" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(queueDuprId)}" aria-label="DUPR ID" style="width:75px !important" oninput="sanitizeDuprIdInput(this)" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveQueueDuprDetails(${id})}else if(event.key==='Escape'){cancelEditQueueDuprDetails()}" /></span><span class="queue-dupr-editor-actions"><button type="button" class="queue-dupr-save-btn" onclick="event.stopPropagation();saveQueueDuprDetails(${id})">Save</button><button type="button" class="queue-dupr-cancel-btn" onclick="event.stopPropagation();cancelEditQueueDuprDetails()">Cancel</button></span></span>`:`<button type="button" class="queue-dupr-badge ${queueDuprId?'':'is-unrated'}" onclick="event.stopPropagation();editQueueDuprDetails(${id})" aria-label="Edit DUPR ID" title="Click to edit DUPR ID">DUPR: ${esc(queueDuprId||'NR')}</button>`;
     const levelChange=p.levelChange||p.levelChanged||p.levelChangeNotice||'';
     const rating=p.rating||p.ratingLevel||p.rankLevel||'';
     const lockedPartnerId=getLockedPartnerId(id);
     const lockedPartner=lockedPartnerId?player(lockedPartnerId):null;
+    const queueAvatarMarkup=playerAvatarMarkup(p,'queue-profile-avatar');
     return `<div class="queue-item queue-modern-item ${lockedPartner?'has-locked-partner':''}" data-player-id="${id}">
       <div class="queue-avatar-stack">
-        <div class="queue-avatar ${gender==='Female'?'female':'male'}">${initial(p.name)}</div>
+        <div class="queue-avatar ${gender==='Female'?'female':'male'}">${queueAvatarMarkup}</div>
         <span class="queue-position-badge">${i+1}</span>
       </div>
       <div class="queue-main-info">
@@ -3441,7 +3835,6 @@ function readySlot(p,courtId,slotIndex){
     return `<div class="team-player tap-slot empty-slot" onclick="autoMatchEmptySlot(${courtId},${slotIndex})">Tap a player below</div>`;
   }
   const genderClass=p.gender==='Female'?'female':'male';
-  const initialLetter=initial(p.name);
   const category=p.category||'CAT';
   // Pairing is determined by the actual fixed slot beside this player, not partnerId.
   // This keeps the indicator stable when a player is removed and returned to the queue.
@@ -3455,7 +3848,7 @@ function readySlot(p,courtId,slotIndex){
   // MIX TEAMS keeps the lock-in relationship saved, but hides the icon when they
   // land on opposite teams; it returns automatically when they are paired again.
   const lockedOnCourt=lockedPartnerId!=null && teammateId!=null && Number(teammateId)===Number(lockedPartnerId);
-  return `<div class="team-player tap-slot filled-slot ${paired?'paired-before-player':''}" onclick="selectCourt(${courtId})"><span class="slot-player-name"><span class="slot-gender ${genderClass}">${initialLetter}</span><span class="slot-player-identity"><span class="slot-player-primary-line"><span class="slot-player-text">${esc(displayPlayerName(p))}</span><span class="slot-gender-icon ${genderClass}" aria-label="${p.gender}">${genderSvgIcon(p.gender)}</span><span class="slot-category ${p.category?'skill-'+String(p.category).toLowerCase():''}">${esc(category)}</span></span>${renderCourtDuprBadge(p,'ready')}</span></span>${lockedOnCourt?'<span class="slot-lock-icon" title="Locked-in partner" aria-label="Locked-in partner">🔒</span>':''}<button class="slot-remove" title="Remove player from court" onclick="event.stopPropagation();removePlayerFromCourt(${p.id},${courtId})">×</button></div>`;
+  return `<div class="team-player tap-slot filled-slot ${paired?'paired-before-player':''}" onclick="selectCourt(${courtId})"><span class="slot-player-name"><span class="slot-gender ${genderClass}">${playerAvatarMarkup(p,'profile-avatar-image')}</span><span class="slot-player-identity"><span class="slot-player-primary-line"><span class="slot-player-text">${esc(displayPlayerName(p))}</span><span class="slot-gender-icon ${genderClass}" aria-label="${p.gender}">${genderSvgIcon(p.gender)}</span><span class="slot-category ${p.category?'skill-'+String(p.category).toLowerCase():''}">${esc(category)}</span></span>${renderCourtDuprBadge(p,'ready')}</span></span>${lockedOnCourt?'<span class="slot-lock-icon" title="Locked-in partner" aria-label="Locked-in partner">🔒</span>':''}<button class="slot-remove" title="Remove player from court" onclick="event.stopPropagation();removePlayerFromCourt(${p.id},${courtId})">×</button></div>`;
 }
 
 function pickerCandidatePairedBefore(courtId, candidateId){
@@ -3495,7 +3888,7 @@ function renderMatchPlayer(p,fallback,avatarClass,second=false){
   const genderClass=p?.gender==='Female'?'female':'male';
   const category=p?.category||'CAT';
   const categoryClass=p?.category?'skill-'+String(p.category).toLowerCase():'';
-  return `<div class="match-player ${second?'second':''}"><span class="avatar ${avatarClass}">${initial(p?.name)}</span><div class="match-player-line"><div class="match-player-identity"><div class="match-player-primary-line"><b>${esc(p?displayPlayerName(p):fallback)}</b><span class="match-gender ${genderClass}">${genderSvgIcon(p?.gender)}</span><span class="match-category ${categoryClass}">${esc(category)}</span></div>${renderCourtDuprBadge(p,'match')}</div></div></div>`;
+  return `<div class="match-player ${second?'second':''}"><span class="avatar ${avatarClass}">${playerAvatarMarkup(p,'profile-avatar-image')}</span><div class="match-player-line"><div class="match-player-identity"><div class="match-player-primary-line"><b>${esc(p?displayPlayerName(p):fallback)}</b><span class="match-gender ${genderClass}">${genderSvgIcon(p?.gender)}</span><span class="match-category ${categoryClass}">${esc(category)}</span></div>${renderCourtDuprBadge(p,'match')}</div></div></div>`;
 }
 
 function renderCourts(){
@@ -4579,18 +4972,9 @@ $('registerFullname').addEventListener('input',updateRegistrationSaveButton);
 bindRegistrationTextHelpers();
 $('endSessionBtn').onclick=openEndSessionConfirmation;
 $('endSessionAttendeeSearch')?.addEventListener('input',renderEndSessionAttendeeList);
-window.addEventListener('resize',()=>{
-  const panel=$('endSessionAttendeePanel');
-  if(endSessionAttendeePanelOpen||panel?.dataset.animationState==='closing')positionEndSessionAttendeePanel();
-},{passive:true});
-$('endSessionModal')?.addEventListener('scroll',()=>{
-  const panel=$('endSessionAttendeePanel');
-  if(endSessionAttendeePanelOpen||panel?.dataset.animationState==='closing')positionEndSessionAttendeePanel();
-},{passive:true});
-$('endSessionModal')?.querySelector('.end-session-modal-box')?.addEventListener('scroll',()=>{
-  const panel=$('endSessionAttendeePanel');
-  if(endSessionAttendeePanelOpen||panel?.dataset.animationState==='closing')positionEndSessionAttendeePanel();
-},{passive:true});
+window.addEventListener('resize',scheduleEndSessionAttendeePanelPosition,{passive:true});
+$('endSessionModal')?.addEventListener('scroll',scheduleEndSessionAttendeePanelPosition,{passive:true});
+$('endSessionModal')?.querySelector('.end-session-modal-box')?.addEventListener('scroll',scheduleEndSessionAttendeePanelPosition,{passive:true});
 $('endSessionCancel').onclick=closeEndSessionConfirmation;
 $('endSessionConfirm').onclick=endSession;
 $('addCourtBtn').onclick=addWaitingCourt;
@@ -4603,7 +4987,7 @@ $('historySaveBtn').onclick=saveHistoryScore;
 
 $('importPlayersBtn').onclick=()=>{loadCloudRecords();$('cloudRecordsModal').classList.remove('hidden');renderCloudRecords();};
 $('topStats')?.addEventListener('click',e=>{const toggle=e.target.closest('#queueDuprLabelsToggle');if(!toggle||!isCurrentSessionDupr())return;state.duprLabelsEnabled=state.duprLabelsEnabled===false;saveState();syncQueueDuprLabelsToggle();render();toast(state.duprLabelsEnabled?'DUPR labels are ON.':'DUPR labels are OFF.');});
-$('cloudRecordsDone').onclick=()=>{pendingCloudDeleteId=null;editingCloudDuprId=null;cancelCloudPlayerEdit();$('cloudRecordsModal').classList.add('hidden');};$('cloudRecordsSearch').addEventListener('input',renderCloudRecords);const leftPlayersSearch=$('leftPlayersSearch');if(leftPlayersSearch)leftPlayersSearch.addEventListener('input',renderLeftPlayersPopup);
+$('cloudRecordsDone').onclick=()=>{pendingCloudDeleteId=null;editingCloudDuprId=null;cancelCloudPlayerEdit({immediate:true});$('cloudRecordsModal').classList.add('hidden');};$('cloudRecordsSearch').addEventListener('input',renderCloudRecords);window.addEventListener('resize',scheduleCloudPlayerEditPanelPosition,{passive:true});$('cloudRecordsModal')?.addEventListener('scroll',scheduleCloudPlayerEditPanelPosition,{passive:true});const leftPlayersSearch=$('leftPlayersSearch');if(leftPlayersSearch)leftPlayersSearch.addEventListener('input',renderLeftPlayersPopup);
 $('importCancel').onclick=()=>$('importModal').classList.add('hidden');
 $('importSave').onclick=importPlayers;
 
@@ -4787,6 +5171,7 @@ function enterLiveQueueFromStart(){
   const sessionInput=$('liveQueueSessionName');
   enforceLiveQueueSessionPrefix();
   state.sessionName=sessionInput?.value?.trim()||name;
+  state.sessionId=createSessionId();
   resetLiveViewFeatureTogglesForNewSession();
   state.sessionActive=true;
   state.sessionEndedAt=null;
@@ -4880,6 +5265,7 @@ function applyPendingLiveQueueStartConfig(){
   const winBy=Number(config.winBy)||1;
   const matchingMode=['balanced','social-mix','skill-separated','winners-losers'].includes(config.matchingMode)?config.matchingMode:'balanced';
   state.sessionName=String(config.sessionName||getAutoLiveQueueSessionName(!!config.duprMatch)).trim()||getAutoLiveQueueSessionName(!!config.duprMatch);
+  state.sessionId=createSessionId();
   resetLiveViewFeatureTogglesForNewSession();
   state.sessionActive=true;
   state.sessionEndedAt=null;
@@ -4950,6 +5336,7 @@ function bindTopbarBackButton(){
 
 loadCloudRecords();
 loadState();
+syncOrganizerQrSessionStatus();
 bindLiveQueueStartScreen();
 bindTopbarBackButton();
 initQueueNetworkStatus();

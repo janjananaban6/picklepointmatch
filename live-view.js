@@ -49,6 +49,80 @@
     ? String(p.name || 'Player') + (String(p.nickname || '').trim() ? ` (${String(p.nickname).trim()})` : '')
     : 'Waiting for player';
   const playerInitial = p => String(p?.name || '').trim().charAt(0).toUpperCase() || 'P';
+  const normalizeLiveAvatarId = value => {
+    const raw = String(value ?? '').trim().toLowerCase();
+    const match = /^(?:avatar[-_ ]?)?0?(\d{1,2})$/.exec(raw);
+    if (!match) return '';
+    const number = Number(match[1]);
+    return Number.isInteger(number) && number >= 1 && number <= 21 ? `avatar-${String(number).padStart(2, '0')}` : '';
+  };
+  const MALE_FALLBACK_AVATAR_NUMBERS = [1, 3, 7, 12, 13, 16, 17, 18, 21];
+  const FEMALE_FALLBACK_AVATAR_NUMBERS = [2, 4, 5, 6, 8, 9, 10, 11, 14, 15, 19, 20];
+  const fallbackLiveAvatarId = p => {
+    const name = String(p?.name ?? '').normalize('NFC').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+    const gender = String(p?.gender ?? '').trim().toLocaleLowerCase();
+    const female = ['female', 'f', 'woman', 'women'].includes(gender);
+    const male = ['male', 'm', 'man', 'men'].includes(gender);
+    const pool = female ? FEMALE_FALLBACK_AVATAR_NUMBERS
+      : male ? MALE_FALLBACK_AVATAR_NUMBERS
+      : Array.from({length: 21}, (_, index) => index + 1);
+    if (!name) return `avatar-${String(pool[0] || 1).padStart(2, '0')}`;
+    let hash = 2166136261;
+    for (const character of name) {
+      hash ^= character.codePointAt(0);
+      hash = Math.imul(hash, 16777619) >>> 0;
+    }
+    return `avatar-${String(pool[hash % pool.length] || pool[0] || 1).padStart(2, '0')}`;
+  };
+  const playerAvatarMarkup = p => {
+    // Prefer the exact saved registration choice; only profiles without a saved
+    // choice use the stable, gender-matched fallback shared with queueing/server.
+    const avatarId = normalizeLiveAvatarId(p?.avatarId ?? p?.avatarID ?? p?.avatar_id ?? p?.selectedAvatarId ?? p?.profileAvatarId) || fallbackLiveAvatarId(p);
+    return `<img class="live-profile-avatar-image" src="registration-${avatarId}.png" alt="" aria-hidden="true" loading="eager" decoding="async" draggable="false">`;
+  };
+  // Do not let a stale/legacy SSE event erase an avatar already resolved by the
+  // server's GET response. Match by player ID first, then by name + nickname.
+  function preserveKnownAvatarIds(nextState, previousState) {
+    if (!nextState || typeof nextState !== 'object' || !previousState || typeof previousState !== 'object') return nextState;
+    const previousPlayers = [];
+    const addPrevious = player => { if (player && typeof player === 'object') previousPlayers.push(player); };
+    (Array.isArray(previousState.queue) ? previousState.queue : []).forEach(addPrevious);
+    (Array.isArray(previousState.ranking) ? previousState.ranking : []).forEach(addPrevious);
+    (Array.isArray(previousState.courts) ? previousState.courts : []).forEach(court => {
+      (Array.isArray(court?.players) ? court.players : []).forEach(addPrevious);
+      (Array.isArray(court?.team1) ? court.team1 : []).forEach(addPrevious);
+      (Array.isArray(court?.team2) ? court.team2 : []).forEach(addPrevious);
+    });
+    const normalizeName = value => String(value ?? '').normalize('NFC').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+    const findPreviousAvatar = player => {
+      const playerNameKey = normalizeName(player?.name);
+      const direct = previousPlayers.find(old => player?.id != null && old?.id != null && String(old.id) === String(player.id) && (!playerNameKey || !normalizeName(old?.name) || normalizeName(old?.name) === playerNameKey) && normalizeLiveAvatarId(old?.avatarId ?? old?.avatarID ?? old?.avatar_id));
+      if (direct) return normalizeLiveAvatarId(direct.avatarId ?? direct.avatarID ?? direct.avatar_id);
+      const name = normalizeName(player?.name);
+      if (!name) return '';
+      const nickname = normalizeName(player?.nickname);
+      const named = previousPlayers.filter(old => normalizeName(old?.name) === name && normalizeLiveAvatarId(old?.avatarId ?? old?.avatarID ?? old?.avatar_id));
+      const matchingNickname = nickname ? named.find(old => normalizeName(old?.nickname) === nickname) : null;
+      if (matchingNickname) return normalizeLiveAvatarId(matchingNickname.avatarId ?? matchingNickname.avatarID ?? matchingNickname.avatar_id);
+      return named.length === 1 ? normalizeLiveAvatarId(named[0].avatarId ?? named[0].avatarID ?? named[0].avatar_id) : '';
+    };
+    const mergePlayer = player => {
+      if (!player || typeof player !== 'object' || normalizeLiveAvatarId(player.avatarId ?? player.avatarID ?? player.avatar_id)) return player;
+      const avatarId = findPreviousAvatar(player);
+      return avatarId ? { ...player, avatarId } : player;
+    };
+    return {
+      ...nextState,
+      queue: Array.isArray(nextState.queue) ? nextState.queue.map(mergePlayer) : nextState.queue,
+      courts: Array.isArray(nextState.courts) ? nextState.courts.map(court => ({
+        ...court,
+        players: Array.isArray(court?.players) ? court.players.map(mergePlayer) : court?.players,
+        team1: Array.isArray(court?.team1) ? court.team1.map(mergePlayer) : court?.team1,
+        team2: Array.isArray(court?.team2) ? court.team2.map(mergePlayer) : court?.team2
+      })) : nextState.courts,
+      ranking: Array.isArray(nextState.ranking) ? nextState.ranking.map(mergePlayer) : nextState.ranking
+    };
+  }
   const normalizedPlayerGender = p => String(p?.gender ?? '').trim().toLowerCase();
   const playerGenderClass = p => ['female', 'f', 'woman', 'women'].includes(normalizedPlayerGender(p)) ? 'female' : 'male';
   // Use inline SVG instead of platform-dependent Unicode glyphs so gender icons
@@ -231,7 +305,7 @@
       const genderBadge = player
         ? `<span class="court-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(player)}</span>`
         : '';
-      return `<span class="court-player-marker ${slotClass}${player ? '' : ' is-empty'}" title="${escapeHTML(accessibleName)}" aria-label="${escapeHTML(accessibleName)}"><span class="court-player-initial">${escapeHTML(player ? playerInitial(player) : '+')}</span>${categoryBadge}${genderBadge}</span>`;
+      return `<span class="court-player-marker ${slotClass}${player ? '' : ' is-empty'}" title="${escapeHTML(accessibleName)}" aria-label="${escapeHTML(accessibleName)}"><span class="court-player-initial">${player ? playerAvatarMarkup(player) : '+'}</span>${categoryBadge}${genderBadge}</span>`;
     };
     // Number only regular courts in the visual header; waiting courts keep their existing generic label.
     const courtNumber = Number(c.number);
@@ -426,7 +500,7 @@
         ? `<span class="queue-locked-partner-inline" title="Locked in with ${escapeHTML(lockedPartnerName)}" aria-label="Locked in with partner ${escapeHTML(lockedPartnerName)}" role="img">🔒${escapeHTML(lockedPartnerName)}</span>`
         : '';
       const displayedName = highlightSearchMatch(playerName(p), rawSearchTerm);
-      return `<div class="queue-item"><div class="queue-avatar-stack" aria-label="${genderLabel} player, queue position ${index + 1}"><div class="queue-avatar ${genderClass}" aria-hidden="true">${escapeHTML(playerInitial(p))}</div><span class="queue-position-badge" aria-label="Queue position ${index + 1}">${index + 1}</span></div><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${displayedName}</div><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span>${lockedPartnerIndicator}</div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
+      return `<div class="queue-item"><div class="queue-avatar-stack" aria-label="${genderLabel} player, queue position ${index + 1}"><div class="queue-avatar ${genderClass}" aria-hidden="true">${playerAvatarMarkup(p)}</div><span class="queue-position-badge" aria-label="Queue position ${index + 1}">${index + 1}</span></div><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${displayedName}</div><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span>${lockedPartnerIndicator}</div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
     }).join('');
   }
 
@@ -559,6 +633,7 @@
 
   function acceptState(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return;
+    value = preserveKnownAvatarIds(value, currentState);
     const signature = stateContentSignature(value);
     const contentChanged = signature !== currentStateSignature;
     currentState = value;

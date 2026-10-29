@@ -10,8 +10,10 @@
   const $ = id => document.getElementById(id);
 
   let currentState = null;
+  let sharedStateRevision = 0;
   let stateCheckComplete = false;
   let isNavigating = false;
+  let sharedStateSource = null;
 
   function readLocalState() {
     for (const key of [STATE_KEY, ...LEGACY_STATE_KEYS]) {
@@ -23,6 +25,27 @@
       } catch (_) {}
     }
     return null;
+  }
+
+  function sessionId(state) { return String(state && state.sessionId || '').trim(); }
+
+  function sessionIdentityDiffers(a, b) {
+    const first = sessionId(a);
+    const second = sessionId(b);
+    return (!!first || !!second) && first !== second;
+  }
+
+  function isEndedSession(state) {
+    return !!(state && state.sessionActive === false && state.sessionEndedAt);
+  }
+
+  function persistRemoteState(state, updatedAt) {
+    try {
+      localStorage.setItem(STATE_KEY, JSON.stringify(state));
+      const timestamp = Date.parse(updatedAt || '') || Date.now();
+      localStorage.setItem(SAVED_AT_KEY, String(timestamp));
+      localStorage.removeItem(PENDING_SYNC_KEY);
+    } catch (_) {}
   }
 
   function readLocalPendingIsNewer(remoteUpdatedAt) {
@@ -38,6 +61,7 @@
 
   function hasExistingQueue(state) {
     if (!state || typeof state !== 'object') return false;
+    if (isEndedSession(state)) return false;
     return !!(state.sessionActive ||
       (Array.isArray(state.players) && state.players.length) ||
       (Array.isArray(state.left) && state.left.length) ||
@@ -228,8 +252,17 @@
         const response = await fetch(`/api/app-state?_=${Date.now()}`, { cache: 'no-store' });
         if (response.ok) {
           const payload = await response.json();
+          if (Number(payload && payload.revision) > sharedStateRevision) sharedStateRevision = Number(payload.revision) || sharedStateRevision;
           if (payload && payload.state && typeof payload.state === 'object') {
-            currentState = readLocalPendingIsNewer(payload.updatedAt) ? localState : payload.state;
+            const sessionChanged = sessionIdentityDiffers(payload.state, localState);
+            const remoteIsTerminal = isEndedSession(payload.state);
+            const localIsTerminal = isEndedSession(localState);
+            if (sessionChanged || remoteIsTerminal || localIsTerminal || !readLocalPendingIsNewer(payload.updatedAt)) {
+              currentState = payload.state;
+              if (sessionChanged || remoteIsTerminal || localIsTerminal) persistRemoteState(currentState, payload.updatedAt);
+            } else {
+              currentState = localState;
+            }
           } else if (!localState) {
             currentState = null;
           }
@@ -242,6 +275,36 @@
     stateCheckComplete = true;
     applyQueueAvailability();
     if (!hasExistingQueue(currentState)) syncSessionName();
+  }
+
+  function startSharedStateStream() {
+    if (!(location.protocol === 'http:' || location.protocol === 'https:') || typeof EventSource === 'undefined') return;
+    try {
+      sharedStateSource = new EventSource('/api/shared-events');
+      const source = sharedStateSource;
+      source.addEventListener('app-state', event => {
+        try {
+          const payload = JSON.parse(event.data || '{}');
+          const revision = Number(payload.revision) || 0;
+          if (revision && revision <= sharedStateRevision) return;
+          if (!payload.state || typeof payload.state !== 'object') return;
+          if (revision) sharedStateRevision = revision;
+          const localState = readLocalState();
+          const sessionChanged = sessionIdentityDiffers(payload.state, currentState || localState);
+          const remoteIsTerminal = isEndedSession(payload.state);
+          const localIsTerminal = isEndedSession(currentState || localState);
+          if (!sessionChanged && !remoteIsTerminal && !localIsTerminal && readLocalPendingIsNewer(payload.updatedAt)) return;
+          currentState = payload.state;
+          stateCheckComplete = true;
+          if (sessionChanged || remoteIsTerminal || localIsTerminal) persistRemoteState(currentState, payload.updatedAt);
+          applyQueueAvailability();
+          if (!hasExistingQueue(currentState)) syncSessionName();
+        } catch (_) {}
+      });
+      source.onerror = () => {
+        // EventSource reconnects automatically; the existing polling remains as fallback.
+      };
+    } catch (_) {}
   }
 
   function collectStartConfig() {
@@ -355,6 +418,8 @@
     applyQueueAvailability();
     if (!hasExistingQueue(currentState)) syncSessionName();
   });
+
+  startSharedStateStream();
 
   // Keep this Start Screen's Existing Live Queue indicator fresh if the queue changes on another device.
   window.addEventListener('focus', () => { refreshSharedState(); });
