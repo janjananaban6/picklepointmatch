@@ -8,7 +8,7 @@ html body[data-page="queueing"] header.topbar .event-info {
 }
 html body[data-page="queueing"] header.topbar .event-title-row {
   display: grid !important;
-  grid-template-columns: clamp(104px, 17vw, 176px) minmax(0, 1fr) !important;
+  grid-template-columns: minmax(0, 1fr) !important;
   grid-template-rows: 22px !important;
   align-items: center !important;
   justify-content: stretch !important;
@@ -51,7 +51,7 @@ html body[data-page="queueing"] header.topbar .event-title-row > #eventOrganizer
 }
 html body[data-page="queueing"] header.topbar .event-title-row > #eventTitle {
   display: block !important;
-  grid-column: 2 !important;
+  grid-column: 1 !important;
   grid-row: 1 !important;
   flex: none !important;
   width: 100% !important;
@@ -100,7 +100,7 @@ html body[data-page="queueing"] #queueList > .queue-modern-item {
     margin: 0 !important;
   }
   html body[data-page="queueing"] header.topbar .event-title-row {
-    grid-template-columns: clamp(72px, 28vw, 120px) minmax(0, 1fr) !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     column-gap: 6px !important;
   }
   html body[data-page="queueing"] header.topbar .event-title-row > #eventOrganizerStat {
@@ -123,7 +123,7 @@ html body[data-page="queueing"] #queueList > .queue-modern-item {
 }
 @media (max-width: 380px) {
   html body[data-page="queueing"] header.topbar .event-title-row {
-    grid-template-columns: clamp(66px, 27vw, 100px) minmax(0, 1fr) !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 }
 
@@ -248,3 +248,76 @@ html body[data-page="queueing"] header.topbar .event-stats > .queue-dupr-header-
   border-radius: 2px !important;
   color: #d97706 !important;
 }
+
+
+/* QUEUEING STARTUP STABILITY — keep temporary pre-sync states from flashing.
+   visibility preserves each element's layout footprint; no app content or controls
+   are removed, and the guard is released after the first shared-state sync. */
+html.queueing-startup-pending body[data-page="queueing"] header.topbar .event-title-row > #eventOrganizerStat,
+html.queueing-startup-pending body[data-page="queueing"] header.topbar .event-title-row > #eventTitle,
+html.queueing-startup-pending body[data-page="queueing"] header.topbar .top-actions,
+html.queueing-startup-pending body[data-page="queueing"] #queueMainArea #leftSection,
+html.queueing-startup-pending body[data-page="queueing"] #courtsList,
+html.queueing-startup-pending body[data-page="queueing"] #rankingView,
+html.queueing-startup-pending body[data-page="queueing"] #historyView {
+  visibility: hidden !important;
+}
+html.queueing-startup-pending body[data-page="queueing"] header.topbar,
+html.queueing-startup-pending body[data-page="queueing"] header.topbar .event-info,
+html.queueing-startup-pending body[data-page="queueing"] header.topbar .event-title-row,
+html.queueing-startup-pending body[data-page="queueing"] header.topbar .event-title,
+html.queueing-startup-pending body[data-page="queueing"] header.topbar .top-actions,
+html.queueing-startup-pending body[data-page="queueing"] #queueMainArea #leftSection,
+html.queueing-startup-pending body[data-page="queueing"] #queueMainArea #leftSection *,
+html.queueing-startup-pending body[data-page="queueing"] #courtsList,
+html.queueing-startup-pending body[data-page="queueing"] #rankingView,
+html.queueing-startup-pending body[data-page="queueing"] #historyView {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* Organizer identity is plain violet text at the left of the event-stats row.
+   It has no badge surface or logo and stays beside the normal stats. */
+html body[data-page="queueing"] header.topbar .event-stats > #eventOrganizerStat {
+  display: inline-block !important;
+  flex: 0 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: min(220px, 25vw) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #b58aff !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  font: inherit !important;
+  font-weight: 850 !important;
+  line-height: inherit !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  vertical-align: baseline !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] header.topbar .event-stats > #eventOrganizerStat[hidden],
+html body[data-page="queueing"] header.topbar .event-stats > #eventOrganizerStatSep[hidden] {
+  display: none !important;
+}
+html body[data-page="queueing"] header.topbar .event-stats > #eventOrganizerStatSep {
+  color: #9a79d8 !important;
+}
+html body[data-page="queueing"] header.topbar #eventOrganizerName {
+  display: inline !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: inherit !important;
+}
+

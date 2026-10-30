@@ -16,7 +16,7 @@ const CLUB_ID_SEQUENCE_FILE = path.join(DATA_DIR, 'club-id-sequence.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
-const allowedFiles = new Set(['index.html','panel.html','panel.css','panel.js','session.html','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js','network-validation.js','registration-avatar-01.png','registration-avatar-02.png','registration-avatar-03.png','registration-avatar-04.png','registration-avatar-05.png','registration-avatar-06.png','registration-avatar-07.png','registration-avatar-08.png','registration-avatar-09.png','registration-avatar-10.png','registration-avatar-11.png','registration-avatar-12.png','registration-avatar-13.png','registration-avatar-14.png','registration-avatar-15.png','registration-avatar-16.png','registration-avatar-17.png','registration-avatar-18.png','registration-avatar-19.png','registration-avatar-20.png','registration-avatar-21.png']);
+const allowedFiles = new Set(['index.html','panel.html','panel.css','panel.js','session.html','session-brand.css','session-settings-polish.css','queueing-refresh.css','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js','network-validation.js','registration-avatar-01.png','registration-avatar-02.png','registration-avatar-03.png','registration-avatar-04.png','registration-avatar-05.png','registration-avatar-06.png','registration-avatar-07.png','registration-avatar-08.png','registration-avatar-09.png','registration-avatar-10.png','registration-avatar-11.png','registration-avatar-12.png','registration-avatar-13.png','registration-avatar-14.png','registration-avatar-15.png','registration-avatar-16.png','registration-avatar-17.png','registration-avatar-18.png','registration-avatar-19.png','registration-avatar-20.png','registration-avatar-21.png']);
 let latestState = null;
 let sharedAppState = null;
 let sharedAppRevision = 0;
@@ -622,9 +622,6 @@ function sendJson(res, status, data) {
 function normalizePlayerName(value) {
   return String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
-function createDefaultSharedAppState() {
-  return {schemaVersion:13,sessionId:null,players:[],left:[],queue:[],lockedPartners:[],courts:[],logs:[],nextPlayer:1,nextCourt:1,nextWaitingCourt:1,nextLog:1,sessionMetrics:{cloudCheckins:0,newRegistered:0},sessionActive:false,sessionEndedAt:null,sessionName:'Open Play',duprMatch:false,duprLocation:'',duprLabelsEnabled:true,recordScores:false,liveRankingEnabled:false,liveMatchesEnabled:false,eventRules:{target:11,winBy:1,type:'Doubles'},matchingMode:'balanced',winnersLosersNextGroup:'winners'};
-}
 function getSessionId(state) {
   return String(state && state.sessionId || '').trim();
 }
@@ -828,58 +825,6 @@ async function persistState(snapshot) {
   broadcast(snapshot, null);
 }
 
-// Project the authoritative shared queue into the public Live View snapshot.
-// This means phone registrations appear immediately even when the organizer tab
-// is temporarily asleep or the live queue client has not yet consumed its event.
-function buildLiveQueueSnapshot(appState, updatedAt = new Date().toISOString(), previousState = latestState) {
-  const players = Array.isArray(appState?.players) ? appState.players : [];
-  const left = Array.isArray(appState?.left) ? appState.left : [];
-  const roster = [...players, ...left];
-  const byId = new Map(roster.filter(p => p && p.id != null).map(p => [String(p.id), p]));
-  const lockedPartners = Array.isArray(appState?.lockedPartners) ? appState.lockedPartners : [];
-  const queue = (Array.isArray(appState?.queue) ? appState.queue : []).map(id => {
-    const player = byId.get(String(id));
-    if (!player) return null;
-    const pair = lockedPartners.find(item => Array.isArray(item) && item.map(String).includes(String(id)));
-    const partnerId = pair?.find(value => String(value) !== String(id));
-    const partner = partnerId != null ? byId.get(String(partnerId)) : null;
-    return {
-      id: player.id,
-      name: String(player.name || 'Player').slice(0, 120),
-      nickname: String(player.nickname || '').slice(0, 80),
-      gender: String(player.gender || '').slice(0, 20),
-      category: String(player.category || '').slice(0, 10),
-      queuedAt: normalizeTimestamp(player.queuedAt),
-      waitingSince: normalizeTimestamp(player.waitingSince) || normalizeTimestamp(player.queuedAt),
-      ...(partner ? {lockedPartnerName: String(partner.name || '').trim().split(/\s+/)[0] || ''} : {})
-    };
-  }).filter(Boolean);
-
-  const previous = previousState && typeof previousState === 'object' ? previousState : {};
-  return {
-    ...previous,
-    sessionName: String(appState?.sessionName || previous.sessionName || 'Open Play'),
-    sessionId: getSessionId(appState) || null,
-    active: !!appState?.sessionActive,
-    recordScores: appState?.recordScores === true,
-    liveRankingEnabled: typeof appState?.liveRankingEnabled === 'boolean' ? appState.liveRankingEnabled : previous.liveRankingEnabled !== false,
-    liveMatchesEnabled: typeof appState?.liveMatchesEnabled === 'boolean' ? appState.liveMatchesEnabled : previous.liveMatchesEnabled !== false,
-    updatedAt,
-    playerCount: roster.length,
-    queue,
-    courts: Array.isArray(previous.courts) ? previous.courts : [],
-    // Always compute counters from the court list. Cached counters can lag
-    // behind when this snapshot is refreshed by the registration endpoint.
-    activeCourtCount: (Array.isArray(previous.courts) ? previous.courts : []).filter(c => c && !c.waitingOnly && !!c.playing).length,
-    readyCourtCount: (Array.isArray(previous.courts) ? previous.courts : []).filter(c => c && !c.waitingOnly && !c.playing).length,
-    courtCount: (Array.isArray(previous.courts) ? previous.courts : []).filter(c => c && !c.waitingOnly).length,
-    waitingCourtCount: (Array.isArray(previous.courts) ? previous.courts : []).filter(c => c && c.waitingOnly).length,
-    matchCount: Array.isArray(appState?.logs) ? appState.logs.length : Number(previous.matchCount) || 0,
-    ranking: Array.isArray(previous.ranking) ? previous.ranking : [],
-    eventRules: previous.eventRules || appState?.eventRules || {target:11,winBy:1,type:'Doubles'},
-    recentMatches: Array.isArray(previous.recentMatches) ? previous.recentMatches : []
-  };
-}
 async function readBody(req, limit = 2 * 1024 * 1024) {
   let size = 0; const chunks = [];
   for await (const chunk of req) {

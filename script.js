@@ -52,7 +52,7 @@ let liveViewPendingKeepalive=false;
 try{if('BroadcastChannel' in window)liveViewBroadcastChannel=new BroadcastChannel(`pickle-point-match-live-view${ORGANIZER_STORAGE_SUFFIX?`-${ORGANIZER_STORAGE_SUFFIX}`:''}`);}catch(e){}
 const LEGACY_STORAGE_KEYS=ORGANIZER_STORAGE_SUFFIX?[]:['pickleq_v10_state','pickleq_v9_state','pickleq_v8_state','pickleq_v7_state','pickleq_v6_state'];
 const CLOUD_RECORDS_KEY='pickleq_registered_cloud_records_v1';
-let cloudRecords={players:[],logs:[],sessions:[]};let cloudRecordCheckInStateById=new Map();let cloudRecordCheckInAnimationAtById=new Map();let pendingCloudDeleteId=null;let editingCloudDuprId=null;let editingCloudPlayerId=null;let editingQueueDuprPlayerId=null;let editingCourtDuprKey=null;let cloudPlayerEditPanelOpen=false;let cloudPlayerEditPanelAnimationTimer=null;let cloudPlayerEditPanelPositionFrame=null;let cloudPlayerEditResizeObserver=null;let cloudPlayerEditSaveInFlight=false;
+let cloudRecords={players:[],logs:[],sessions:[]};let cloudRecordCheckInStateById=new Map();let cloudRecordCheckInAnimationAtById=new Map();let pendingCloudDeleteId=null;let editingCloudPlayerId=null;let editingQueueDuprPlayerId=null;let editingCourtDuprKey=null;let editingCourtDuprDraft='';let cloudPlayerEditPanelOpen=false;let cloudPlayerEditPanelAnimationTimer=null;let cloudPlayerEditPanelPositionFrame=null;let cloudPlayerEditResizeObserver=null;let cloudPlayerEditSaveInFlight=false;
 const sharedClientId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():`pp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let sharedSyncReady=false,sharedSyncAvailable=false,sharedSyncInitializing=false,sharedSyncRetryTimer=null;
 let sharedAppRevision=0,sharedCloudRevision=0,appSyncInFlight=false,appSyncPending=null,cloudSyncInFlight=false,cloudSyncPending=null,applyingRemoteAppState=false,sharedEvents=null,sharedSyncStartedAt=0;
@@ -200,6 +200,20 @@ function sharedStateMatchesCurrent(incomingState){
   });
   return JSON.stringify(stableStateValue(comparable))===JSON.stringify(stableStateValue(current));
 }
+function sharedStateMatchesCurrentExceptDuprLabelsEnabled(incomingState){
+  const current=getSharedAppStateSnapshot();
+  const currentComparable={},incomingComparable={};
+  Object.keys(current).forEach(key=>{
+    // This preference changes only label visibility. It must not force the
+    // whole Queue / Ready Court / Up Next Court DOM to be rebuilt on another tab.
+    if(key==='duprLabelsEnabled')return;
+    currentComparable[key]=current[key];
+    incomingComparable[key]=Object.prototype.hasOwnProperty.call(incomingState,key)
+      ? incomingState[key]
+      : (key==='sessionId'?null:current[key]);
+  });
+  return JSON.stringify(stableStateValue(incomingComparable))===JSON.stringify(stableStateValue(currentComparable));
+}
 function applySharedAppState(payload,force=false){
   if(!payload||!payload.state||typeof payload.state!=='object')return;
   const revision=Number(payload.revision)||0;
@@ -223,10 +237,19 @@ function applySharedAppState(payload,force=false){
   applyingRemoteAppState=true;
   try{
     const stateUnchanged=IS_QUEUEING_PAGE&&sharedStateMatchesCurrent(incomingState);
+    const onlyDuprLabelsChanged=IS_QUEUEING_PAGE&&!stateUnchanged&&sharedStateMatchesCurrentExceptDuprLabelsEnabled(incomingState);
     if(stateUnchanged){
       // A new revision is not necessarily new data. Avoid tearing down the
       // queue, ranking list, and court DOM for no-op server updates.
       stampRemoteSave(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt);
+    }else if(onlyDuprLabelsChanged){
+      // A DUPR label toggle is presentation-only. Apply it in place on this
+      // device instead of calling render(), which rebuilds Ready and Up Next.
+      state.duprLabelsEnabled=isCurrentSessionDupr()&&incomingState.duprLabelsEnabled!==false;
+      try{localStorage.setItem(STORAGE_KEY,JSON.stringify(getSharedAppStateSnapshot()));}catch(e){}
+      stampRemoteSave(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt);
+      syncQueueDuprLabelsToggle();
+      publishLiveViewState();
     }else{
       localStorage.setItem(STORAGE_KEY,JSON.stringify(payload.state));
       stampRemoteSave(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt);
@@ -343,9 +366,13 @@ function positionCloudPlayerEditPanel(){
 
   const viewportWidth=Math.max(280,Math.round(document.documentElement.clientWidth||window.innerWidth||280));
   const viewportHeight=Math.max(280,Math.round(window.innerHeight||document.documentElement.clientHeight||280));
-  const compact=viewportWidth<=640;
-  const gap=viewportWidth<=360?5:(viewportWidth<=640?7:(viewportWidth<=900?8:10));
-  const panelWidth=compact?Math.min(370,viewportWidth-38):Math.min(270,Math.max(175,Math.round(viewportWidth*.26)-10));
+  const desktopGap=viewportWidth<=900?8:10;
+  const desktopPanelWidth=Math.min(270,Math.max(175,Math.round(viewportWidth*.26)-10));
+  // Use the side-by-side layout only when the unchanged 560px records panel,
+  // editor drawer, gap and safe viewport margins all fit without resizing.
+  const compact=viewportWidth<=640||viewportWidth<(560+desktopPanelWidth+desktopGap+24);
+  const gap=compact?(viewportWidth<=360?5:7):desktopGap;
+  const panelWidth=compact?Math.min(370,viewportWidth-38):desktopPanelWidth;
   modal.classList.toggle('cloud-player-edit-overlay-mode',compact);
   modal.style.setProperty('--cloud-player-edit-panel-width',`${panelWidth}px`);
   modal.style.setProperty('--cloud-player-edit-gap',`${gap}px`);
@@ -363,7 +390,7 @@ function positionCloudPlayerEditPanel(){
     panelLeft=Math.max(8,Math.round((viewportWidth-panelWidth)/2));
     panelTop=Math.max(8,Math.round((viewportHeight-panelHeight)/2));
   }else{
-    const mainWidth=Math.min(560,Math.max(300,viewportWidth-panelWidth-gap-24));
+    const mainWidth=Math.max(1,Math.round(boxRect.width||560));
     panelLeft=Math.max(8,Math.round((viewportWidth-mainWidth-panelWidth-gap)/2));
     panelTop=Math.max(8,Math.round(boxRect.top-modalRect.top+modal.scrollTop));
   }
@@ -542,7 +569,6 @@ function openCloudPlayerEditModal(id){
   if(cloudPlayerEditPanelAnimationTimer){clearTimeout(cloudPlayerEditPanelAnimationTimer);cloudPlayerEditPanelAnimationTimer=null;}
   editingCloudPlayerId=Number(id);
   pendingCloudDeleteId=null;
-  editingCloudDuprId=null;
   $('cloudPlayerEditFullName').value=String(player.name||'');
   $('cloudPlayerEditNickname').value=String(player.nickname||'');
   initializeCloudPlayerEditControls();
@@ -586,14 +612,17 @@ function cancelCloudPlayerEdit(options={}){
   panel.classList.remove('is-open');
   panel.setAttribute('aria-hidden','true');
   panel.inert=true;
+  // Return the records list at the same time the edit drawer slides away.
+  // Keep the compact overlay sizing until the drawer's exit transition finishes.
+  modal?.classList.remove('has-cloud-player-edit-panel');
   renderCloudRecords();
   const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   cloudPlayerEditPanelAnimationTimer=window.setTimeout(()=>{
     if(cloudPlayerEditPanelOpen)return;
-    modal?.classList.remove('has-cloud-player-edit-panel','cloud-player-edit-overlay-mode');
+    modal?.classList.remove('cloud-player-edit-overlay-mode');
     panel.dataset.animationState='closed';
     cloudPlayerEditPanelAnimationTimer=null;
-  },reducedMotion?0:360);
+  },reducedMotion?0:720);
 }
 async function saveCloudPlayerEdit(){
   if(cloudPlayerEditSaveInFlight)return;
@@ -659,43 +688,10 @@ async function saveCloudPlayerEdit(){
     if(cancelButton)cancelButton.disabled=false;
   }
 }
-function editCloudDuprDetails(id){
-  loadCloudRecords();
-  const p=cloudRecords.players.find(player=>Number(player.cloudId)===Number(id));
-  if(!p)return;
-  // Keep the original badge as the in-flow sizing anchor. The editor is only an overlay.
-  editingCloudDuprId=Number(id);
-  pendingCloudDeleteId=null;
-  renderCloudRecords();
-  focusDuprIdAtEnd($('cloudDuprIdInput'));
-}
-function cancelEditCloudDuprDetails(){editingCloudDuprId=null;renderCloudRecords();}
-function saveCloudDuprDetails(id){
-  const duprInput=$('cloudDuprIdInput');
-  if(!duprInput)return;
-  const enteredDuprId=String(duprInput.value||'').replace(/\s+/g,'').toUpperCase();
-  const duprId=enteredDuprId==='NR'?'':enteredDuprId;
-  if(duprId&&!/^[A-Z0-9]{1,20}$/.test(duprId)){toast('DUPR ID must contain letters and numbers only.');duprInput.focus();return;}
-  loadCloudRecords();
-  const p=cloudRecords.players.find(player=>Number(player.cloudId)===Number(id));
-  if(!p)return;
-  p.duprId=duprId;p.duprID='';p.dupr_id='';p.dupr='';
-  const normalizedName=String(p.name||'').trim().toLowerCase();
-  let changedLiveState=false;
-  [...state.players,...state.left].filter(player=>String(player.name||'').trim().toLowerCase()===normalizedName).forEach(player=>{
-    player.duprId=duprId;player.duprID='';player.dupr_id='';player.dupr='';
-    changedLiveState=true;
-  });
-  editingCloudDuprId=null;
-  saveCloudRecords();
-  if(changedLiveState)saveState();
-  renderCloudRecords();
-  toast('DUPR ID saved.');
-}
 function closeCloudMatchModal(){const el=$('cloudMatchActionModal');if(el){el.classList.add('hidden');el.classList.remove('cloud-match-edit-modal');}window._cloudMatchAction=null;}
-function requestDeleteCloudPlayer(id){editingCloudDuprId=null;pendingCloudDeleteId=id;renderCloudRecords();}
+function requestDeleteCloudPlayer(id){pendingCloudDeleteId=id;renderCloudRecords();}
 function cancelDeleteCloudPlayer(){pendingCloudDeleteId=null;renderCloudRecords();}
-function deleteCloudPlayer(id){loadCloudRecords();cloudRecords.players=cloudRecords.players.filter(p=>Number(p.cloudId)!==Number(id));pendingCloudDeleteId=null;if(Number(editingCloudDuprId)===Number(id)){editingCloudDuprId=null;}saveCloudRecords();renderCloudRecords();}
+function deleteCloudPlayer(id){loadCloudRecords();cloudRecords.players=cloudRecords.players.filter(p=>Number(p.cloudId)!==Number(id));pendingCloudDeleteId=null;saveCloudRecords();renderCloudRecords();}
 function checkInCloudPlayer(id){loadCloudRecords();const a=cloudRecords.players.find(p=>Number(p.cloudId)===Number(id));if(!a)return;let p=state.players.find(p=>p.name.toLowerCase()===a.name.toLowerCase());if(!p){const left=state.left.find(p=>p.name.toLowerCase()===a.name.toLowerCase());if(left){left.avatarId=left.avatarId||getPlayerAvatarId(a);checkIn(left.id,true);state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();renderCloudRecords();return;}p={id:state.nextPlayer++,name:a.name,nickname:a.nickname||'',wins:a.wins||0,court:null,gender:a.gender||'Male',category:a.category||'',avatarId:getPlayerAvatarId(a),duprId:a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:a.selfRating||a.self_rating||'',queuedAt:Date.now(),waitingSince:Date.now()};state.players.push(p);}else{p.avatarId=p.avatarId||getPlayerAvatarId(a);p.duprId=p.duprId||a.duprId||a.duprID||a.dupr_id||a.dupr||'';p.selfRating=p.selfRating||a.selfRating||a.self_rating||'';}if(p.court){toast('Player is already on court.');return;}if(!state.queue.includes(p.id))state.queue.push(p.id);p.queuedAt=Date.now();p.waitingSince=p.queuedAt;state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();render();renderCloudRecords();toast(`${p.name} checked in.`);}
 
 let openCategoryPlayerId=null;
@@ -735,34 +731,12 @@ function initQueueNetworkStatus(){
   sync();
 }
 
-const endSessionCountTimers={};
 let endSessionAttendeePeople=[];
 let endSessionAttendeePanelOpen=false;
 let endSessionAttendeeAnimationTimer=null;
 let endSessionAttendeeResizeObserver=null;
 let endSessionAttendeePositionFrame=null;
 const END_SESSION_ATTENDEE_ANIMATION_MS=420;
-function animateEndSessionCount(id,target){
-  const el=$(id);
-  if(!el)return;
-  if(endSessionCountTimers[id]){
-    clearInterval(endSessionCountTimers[id]);
-    endSessionCountTimers[id]=null;
-  }
-  target=Math.max(0,Math.floor(Number(target)||0));
-  let current=0;
-  el.textContent='0';
-  if(target===0)return;
-  endSessionCountTimers[id]=setInterval(()=>{
-    current+=1;
-    el.textContent=String(current);
-    if(current>=target){
-      clearInterval(endSessionCountTimers[id]);
-      endSessionCountTimers[id]=null;
-    }
-  },70);
-}
-
 function renderEndSessionAttendees(checkins, matches){
   loadCloudRecords();
   const avatarStack=$('endSessionAttendeeAvatars');
@@ -1719,6 +1693,9 @@ function syncQueueDuprLabelsToggle(){
   // with them enabled; organizers may still hide them during that session.
   if(!duprSession)state.duprLabelsEnabled=false;
   const enabled=duprSession&&state.duprLabelsEnabled!==false;
+  // Keep the court/queue DOM intact when this display-only preference changes.
+  // Hiding labels through one body class avoids rebuilding Ready and Up Next courts.
+  document.body.classList.toggle('dupr-labels-hidden',!enabled);
   toggle.textContent=enabled?'Dupr on':'Dupr off';
   toggle.classList.toggle('is-off',!enabled);
   toggle.title=duprSession
@@ -1927,6 +1904,20 @@ function sanitizeDuprIdInput(input){
   const caret=before.slice(0,selectionStart).replace(/\s+/g,'').length;
   input.value=normalized;
   try{input.setSelectionRange(caret,caret);}catch(e){}
+}
+// Keep the compact Court DUPR editor width in step with its 8px displayed text.
+function courtDuprInputWidth(value){
+  const length=String(value??'').length;
+  return Math.min(120,Math.max(30,Math.ceil(Math.max(length,6)*5.2+5)));
+}
+function resizeCourtDuprIdInput(input){
+  if(!input)return;
+  const tabletQueueEditor = !!(document.body?.dataset?.page === 'queueing' &&
+    window.matchMedia?.('(min-width: 600px) and (max-width: 1400px) and (pointer: coarse)').matches);
+  // On iPad, style.css keeps the field at a fixed width; don't rewrite inline
+  // width on every keystroke, which can cause subtle Safari repaint movement.
+  if(tabletQueueEditor)return;
+  input.style.width=`${courtDuprInputWidth(input.value)}px`;
 }
 function focusDuprIdAtEnd(input){
   if(!input)return;
@@ -3559,7 +3550,9 @@ function getCourtDuprDetails(target){
   return {duprId:rawId==='NR'?'':rawId};
 }
 function renderCourtDuprBadge(target,surface){
-  if(!target || state.duprLabelsEnabled===false)return '';
+  // Render badge slots consistently; syncQueueDuprLabelsToggle controls visibility
+  // without forcing a full court rerender when the header toggle is clicked.
+  if(!target)return '';
   const id=Number(target.id);
   const key=`${surface}:${id}`;
   const details=getCourtDuprDetails(target);
@@ -3570,29 +3563,49 @@ function renderCourtDuprBadge(target,surface){
   }
   if(editingCourtDuprKey===key){
     const idInputId=courtDuprInputId(surface,id);
-    return `<span class="court-dupr-inline-edit" role="group" aria-label="Edit DUPR ID" data-player-id="${id}" data-surface="${surface}"><span class="court-dupr-badge court-dupr-edit-fields ${duprId?'':'is-unrated'}"><span class="court-dupr-prefix">DUPR:</span><input class="court-dupr-id-input" id="${idInputId}" type="text" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(duprId)}" aria-label="DUPR ID" style="width:75px !important" oninput="sanitizeDuprIdInput(this)" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCourtDuprDetails(${id},'${surface}')}else if(event.key==='Escape'){event.preventDefault();cancelEditCourtDuprDetails()}" /></span><span class="court-dupr-editor-actions"><button type="button" class="court-dupr-save-btn" onclick="event.stopPropagation();saveCourtDuprDetails(${id},'${surface}')">Save</button><button type="button" class="court-dupr-cancel-btn" onclick="event.stopPropagation();cancelEditCourtDuprDetails()">Cancel</button></span></span>`;
+    const draftValue=String(editingCourtDuprDraft??duprId);
+    return `<span class="court-dupr-inline-edit" role="group" aria-label="Edit DUPR ID" data-player-id="${id}" data-surface="${surface}"><span class="court-dupr-badge court-dupr-edit-fields ${draftValue?'':'is-unrated'}"><span class="court-dupr-prefix">DUPR:</span><input class="court-dupr-id-input" id="${idInputId}" type="text" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(draftValue)}" aria-label="DUPR ID" style="width:${courtDuprInputWidth(draftValue)}px" oninput="sanitizeDuprIdInput(this);resizeCourtDuprIdInput(this);updateCourtDuprDraft(this.value)" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();saveQueueDuprDetails(${id})}else if(event.key==='Escape'){event.preventDefault();cancelEditCourtDuprDetails()}" /></span><span class="court-dupr-editor-actions"><button type="button" class="court-dupr-save-btn" onclick="event.stopPropagation();saveQueueDuprDetails(${id})">Save</button><button type="button" class="court-dupr-cancel-btn" onclick="event.stopPropagation();cancelEditCourtDuprDetails()">Cancel</button></span></span>`;
   }
   return `<button type="button" class="court-dupr-badge ${duprId?'':'is-unrated'}" onclick="event.stopPropagation();editCourtDuprDetails(${id},'${surface}')" aria-label="Edit DUPR ID" title="Click to edit DUPR ID">DUPR: ${esc(duprId||'NR')}</button>`;
+}
+function updateCourtDuprDraft(value){
+  editingCourtDuprDraft=String(value??'');
 }
 function editCourtDuprDetails(id,surface){
   if(surface==='match')return;
   const target=player(Number(id));
   if(!target)return;
+  // Keep one editor open and preserve typed text if another render happens mid-edit.
+  if(editingQueueDuprPlayerId!==null){
+    editingQueueDuprPlayerId=null;
+    renderQueue();
+  }
   editingCourtDuprKey=`${surface}:${Number(id)}`;
+  editingCourtDuprDraft=getCourtDuprDetails(target).duprId;
   renderCourts();
-  focusDuprIdAtEnd($(courtDuprInputId(surface,id)));
+  requestAnimationFrame(()=>focusDuprIdAtEnd($(courtDuprInputId(surface,id))));
 }
 function cancelEditCourtDuprDetails(){
   editingCourtDuprKey=null;
+  editingCourtDuprDraft='';
   renderCourts();
 }
-function saveCourtDuprDetails(id,surface){
-  const duprInput=$(courtDuprInputId(surface,id));
+function saveQueueDuprDetails(id){
+  return saveDuprDetails(id,null);
+}
+function saveDuprDetails(id,surface=null){
+  const normalizedId=Number(id);
+  let activeCourtSurface=surface;
+  if(!activeCourtSurface&&editingCourtDuprKey){
+    const match=String(editingCourtDuprKey).match(/^([^:]+):(\d+)$/);
+    if(match&&Number(match[2])===normalizedId)activeCourtSurface=match[1];
+  }
+  const duprInput=activeCourtSurface?$(courtDuprInputId(activeCourtSurface,normalizedId)):$('queueDuprIdInput');
   if(!duprInput)return;
   const enteredDuprId=String(duprInput.value||'').replace(/\s+/g,'').toUpperCase();
   const duprId=enteredDuprId==='NR'?'':enteredDuprId;
   if(duprId&&!/^[A-Z0-9]{1,20}$/.test(duprId)){toast('DUPR ID must contain letters and numbers only.');duprInput.focus();return;}
-  const target=player(Number(id));
+  const target=player(normalizedId);
   if(!target)return;
   const normalizedName=String(target.name||'').trim().toLowerCase();
   [...state.players,...state.left].filter(item=>String(item.name||'').trim().toLowerCase()===normalizedName).forEach(item=>{
@@ -3605,7 +3618,8 @@ function saveCourtDuprDetails(id,surface){
     cloudRecords.players.push(record);
   }
   record.duprId=duprId;record.duprID='';record.dupr_id='';record.dupr='';
-  editingCourtDuprKey=null;
+  if(activeCourtSurface){editingCourtDuprKey=null;editingCourtDuprDraft='';}
+  else editingQueueDuprPlayerId=null;
   saveCloudRecords();
   saveState();
   render();
@@ -3613,40 +3627,26 @@ function saveCourtDuprDetails(id,surface){
   toast('DUPR ID saved.');
 }
 
+// Queue List DUPR badge: open an inline editor and focus the ID field.
+// Keep the queue and court editors mutually exclusive so Save targets the right surface.
 function editQueueDuprDetails(id){
-  const target=player(Number(id));
-  if(!target)return;
-  editingQueueDuprPlayerId=Number(id);
-  renderQueue();
-  focusDuprIdAtEnd($('queueDuprIdInput'));
-}
-function cancelEditQueueDuprDetails(){editingQueueDuprPlayerId=null;renderQueue();}
-function saveQueueDuprDetails(id){
-  const duprInput=$('queueDuprIdInput');
-  if(!duprInput)return;
-  const enteredDuprId=String(duprInput.value||'').replace(/\s+/g,'').toUpperCase();
-  const duprId=enteredDuprId==='NR'?'':enteredDuprId;
-  if(duprId&&!/^[A-Z0-9]{1,20}$/.test(duprId)){toast('DUPR ID must contain letters and numbers only.');duprInput.focus();return;}
-  const target=player(Number(id));
-  if(!target)return;
-  const normalizedName=String(target.name||'').trim().toLowerCase();
-  [...state.players,...state.left].filter(item=>String(item.name||'').trim().toLowerCase()===normalizedName).forEach(item=>{
-    item.duprId=duprId;item.duprID='';item.dupr_id='';item.dupr='';
-  });
-  loadCloudRecords();
-  let record=cloudRecords.players.find(item=>String(item.name||'').trim().toLowerCase()===normalizedName);
-  if(!record){
-    record={cloudId:Date.now()+Math.floor(Math.random()*100000),name:target.name,nickname:target.nickname||'',gender:target.gender||'',category:target.category||'',matches:0,wins:0,losses:0};
-    cloudRecords.players.push(record);
+  const normalizedId=Number(id);
+  if(!Number.isFinite(normalizedId)||!player(normalizedId)||state.duprLabelsEnabled===false)return;
+  if(editingCourtDuprKey!==null){
+    editingCourtDuprKey=null;
+    editingCourtDuprDraft='';
+    renderCourts();
   }
-  record.duprId=duprId;record.duprID='';record.dupr_id='';record.dupr='';
-  editingQueueDuprPlayerId=null;
-  saveCloudRecords();
-  saveState();
-  render();
-  if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
-  toast('DUPR ID saved.');
+  editingQueueDuprPlayerId=normalizedId;
+  renderQueue();
+  requestAnimationFrame(()=>focusDuprIdAtEnd($('queueDuprIdInput')));
 }
+function cancelEditQueueDuprDetails(){
+  if(editingQueueDuprPlayerId===null)return;
+  editingQueueDuprPlayerId=null;
+  renderQueue();
+}
+
 function renderQueue(){
   const queueCountBadge=$('queueCountBadge');
   // Paddle Stack count = everyone currently active: players waiting in Queue
@@ -3676,7 +3676,7 @@ function renderQueue(){
     const rawQueueDuprId=String(p.duprId||p.duprID||p.dupr_id||p.dupr||matchingCloudDupr?.duprId||matchingCloudDupr?.duprID||matchingCloudDupr?.dupr_id||matchingCloudDupr?.dupr||'').replace(/\s+/g,'').toUpperCase();
     const queueDuprId=rawQueueDuprId==='NR'?'':rawQueueDuprId;
     const queueDuprEditing=Number(editingQueueDuprPlayerId)===Number(id);
-    const queueDuprBadge=state.duprLabelsEnabled===false?'':queueDuprEditing?`<span class="queue-dupr-inline-edit" role="group" aria-label="Edit DUPR ID"><span class="queue-dupr-badge queue-dupr-edit-fields ${queueDuprId?'':'is-unrated'}"><span class="queue-dupr-prefix">DUPR:</span><input id="queueDuprIdInput" type="text" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(queueDuprId)}" aria-label="DUPR ID" style="width:75px !important" oninput="sanitizeDuprIdInput(this)" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveQueueDuprDetails(${id})}else if(event.key==='Escape'){cancelEditQueueDuprDetails()}" /></span><span class="queue-dupr-editor-actions"><button type="button" class="queue-dupr-save-btn" onclick="event.stopPropagation();saveQueueDuprDetails(${id})">Save</button><button type="button" class="queue-dupr-cancel-btn" onclick="event.stopPropagation();cancelEditQueueDuprDetails()">Cancel</button></span></span>`:`<button type="button" class="queue-dupr-badge ${queueDuprId?'':'is-unrated'}" onclick="event.stopPropagation();editQueueDuprDetails(${id})" aria-label="Edit DUPR ID" title="Click to edit DUPR ID">DUPR: ${esc(queueDuprId||'NR')}</button>`;
+    const queueDuprBadge=queueDuprEditing?`<span class="queue-dupr-inline-edit" role="group" aria-label="Edit DUPR ID"><span class="queue-dupr-badge queue-dupr-edit-fields ${queueDuprId?'':'is-unrated'}"><span class="queue-dupr-prefix">DUPR:</span><input id="queueDuprIdInput" type="text" maxlength="20" autocomplete="off" spellcheck="false" value="${esc(queueDuprId)}" aria-label="DUPR ID" style="width:75px !important" oninput="sanitizeDuprIdInput(this)" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveQueueDuprDetails(${id})}else if(event.key==='Escape'){cancelEditQueueDuprDetails()}" /></span><span class="queue-dupr-editor-actions"><button type="button" class="queue-dupr-save-btn" onclick="event.stopPropagation();saveQueueDuprDetails(${id})">Save</button><button type="button" class="queue-dupr-cancel-btn" onclick="event.stopPropagation();cancelEditQueueDuprDetails()">Cancel</button></span></span>`:`<button type="button" class="queue-dupr-badge ${queueDuprId?'':'is-unrated'}" onclick="event.stopPropagation();editQueueDuprDetails(${id})" aria-label="Edit DUPR ID" title="Click to edit DUPR ID">DUPR: ${esc(queueDuprId||'NR')}</button>`;
     const levelChange=p.levelChange||p.levelChanged||p.levelChangeNotice||'';
     const rating=p.rating||p.ratingLevel||p.rankLevel||'';
     const lockedPartnerId=getLockedPartnerId(id);
@@ -3702,7 +3702,7 @@ function renderQueue(){
           </span>
           <span class="queue-record-badge">${st.matches} match${st.matches===1?'':'es'} (${st.wins}W-${st.losses}L)</span>
         </div>
-        ${state.duprLabelsEnabled===false?'':`<div class="queue-dupr-line">${queueDuprBadge}</div>`}
+        <div class="queue-dupr-line">${queueDuprBadge}</div>
         <div class="queue-time-line">
           <span class="queue-checkin-inline">⏱︎ ${esc(checkInTime(p.queuedAt))}</span>
           <span class="queue-time-separator">·</span>
@@ -4862,14 +4862,14 @@ function render(){
   syncDuprCsvDownloadButtons();
   const activeResultsTab=IS_QUEUEING_PAGE?document.querySelector('.results-panel .tab.active')?.dataset.tab:null;
   const queueingScrollState=IS_QUEUEING_PAGE?{
-    pageX:window.scrollX||0,
-    pageY:window.scrollY||0,
+    // Queueing panels own their scroll positions; restoring window.scrollY here
+    // can fight the browser's native refresh restoration and visibly jump the page.
     containers:Array.from(document.querySelectorAll('#queueList,#courtsList,#rankingTable,#historyTable')).map(el=>({id:el.id,top:el.scrollTop,left:el.scrollLeft}))
   }:null;
   renderQueue(); renderCourts(); renderResults(); renderRegisteredSearch();
   updateAddWaitingCourtButton();
   const realCourts=state.courts.filter(c=>!c.waitingOnly); const waitingCourts=state.courts.filter(c=>c.waitingOnly);
-  const stats=$('topStats'); const organizerName=String(window.PPM_ORGANIZER_NAME||window.PPM_ORGANIZER_USERNAME||'').trim(); if(stats){ stats.innerHTML=`<span class="event-stat-text">${state.players.length} players</span><span class="event-stat-sep">•</span><span class="event-stat-text">${realCourts.length} courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn" title="Change race target" aria-disabled="false">Race to ${state.eventRules.target}</button><span class="event-stat-sep">•</span><button type="button" class="event-stat-text event-match-type-btn" id="eventMatchTypeBtn" title="Switch between Singles and Doubles" aria-disabled="false">${esc(state.eventRules.type==='Singles'?'Singles':'Doubles')}</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn" title="Change win-by rule" aria-disabled="false">Win by ${state.eventRules.winBy}</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn queue-dupr-header-toggle" id="queueDuprLabelsToggle" aria-pressed="true" aria-label="Dupr on — click to hide labels" title="Dupr on — click to hide labels">Dupr on</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventMatchingModeBtn" title="Change matching mode" aria-label="Change matching mode, current mode ${matchingModeDisplayName(state.matchingMode)}">${matchingModeDisplayName(state.matchingMode)}</button>`; bindEventRuleButtons(); syncQueueDuprLabelsToggle(); }
+  const stats=$('topStats'); const organizerName=String(window.PPM_ORGANIZER_NAME||window.PPM_ORGANIZER_USERNAME||'').trim(); if(stats){ stats.innerHTML=`<span id="eventOrganizerStat" class="organizer-event-stat"${organizerName?'':' hidden'}><span id="eventOrganizerName" class="organizer-event-name">${esc(organizerName)}</span></span><span id="eventOrganizerStatSep" class="event-stat-sep organizer-stat-sep"${organizerName?'':' hidden'}>•</span><span class="event-stat-text">${state.players.length} players</span><span class="event-stat-sep">•</span><span class="event-stat-text">${realCourts.length} courts</span><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventRaceBtn" title="Change race target" aria-disabled="false">Race to ${state.eventRules.target}</button><span class="event-stat-sep">•</span><button type="button" class="event-stat-text event-match-type-btn" id="eventMatchTypeBtn" title="Switch between Singles and Doubles" aria-disabled="false">${esc(state.eventRules.type==='Singles'?'Singles':'Doubles')}</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventWinByBtn" title="Change win-by rule" aria-disabled="false">Win by ${state.eventRules.winBy}</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn queue-dupr-header-toggle" id="queueDuprLabelsToggle" aria-pressed="true" aria-label="Dupr on — click to hide labels" title="Dupr on — click to hide labels">Dupr on</button><span class="event-stat-sep">•</span><button type="button" class="event-rule-btn" id="eventMatchingModeBtn" title="Change matching mode" aria-label="Change matching mode, current mode ${matchingModeDisplayName(state.matchingMode)}">${matchingModeDisplayName(state.matchingMode)}</button>`; bindEventRuleButtons(); syncQueueDuprLabelsToggle(); }
   const organizerStat=$('eventOrganizerStat'); const organizerNameLabel=$('eventOrganizerName'); if(organizerNameLabel)organizerNameLabel.textContent=organizerName; if(organizerStat){ organizerStat.hidden=!organizerName; organizerStat.title=organizerName; if(organizerName)organizerStat.setAttribute('aria-label',organizerName); else organizerStat.removeAttribute('aria-label'); } syncEventOrganizerBadgeLogo();
   const title=$('eventTitle'); if(title) title.innerHTML=renderSessionTitleMarkup(state.sessionName||'(DUPR MATCH) @PICKLE WORLD DOWNTOWN | 7PM - 11PM');
   if(activeResultsTab){
@@ -4883,9 +4883,6 @@ function render(){
         const el=$(saved.id);
         if(el){el.scrollTop=saved.top;el.scrollLeft=saved.left;}
       });
-      if(Math.abs((window.scrollY||0)-queueingScrollState.pageY)>1){
-        window.scrollTo({left:queueingScrollState.pageX,top:queueingScrollState.pageY,behavior:'auto'});
-      }
     });
   }
 }
@@ -4986,8 +4983,8 @@ $('historyCloseBtn').onclick=closeHistoryDetail;
 $('historySaveBtn').onclick=saveHistoryScore;
 
 $('importPlayersBtn').onclick=()=>{loadCloudRecords();$('cloudRecordsModal').classList.remove('hidden');renderCloudRecords();};
-$('topStats')?.addEventListener('click',e=>{const toggle=e.target.closest('#queueDuprLabelsToggle');if(!toggle||!isCurrentSessionDupr())return;state.duprLabelsEnabled=state.duprLabelsEnabled===false;saveState();syncQueueDuprLabelsToggle();render();toast(state.duprLabelsEnabled?'DUPR labels are ON.':'DUPR labels are OFF.');});
-$('cloudRecordsDone').onclick=()=>{pendingCloudDeleteId=null;editingCloudDuprId=null;cancelCloudPlayerEdit({immediate:true});$('cloudRecordsModal').classList.add('hidden');};$('cloudRecordsSearch').addEventListener('input',renderCloudRecords);window.addEventListener('resize',scheduleCloudPlayerEditPanelPosition,{passive:true});$('cloudRecordsModal')?.addEventListener('scroll',scheduleCloudPlayerEditPanelPosition,{passive:true});const leftPlayersSearch=$('leftPlayersSearch');if(leftPlayersSearch)leftPlayersSearch.addEventListener('input',renderLeftPlayersPopup);
+$('topStats')?.addEventListener('click',e=>{const toggle=e.target.closest('#queueDuprLabelsToggle');if(!toggle||!isCurrentSessionDupr())return;state.duprLabelsEnabled=state.duprLabelsEnabled===false;saveState();syncQueueDuprLabelsToggle();toast(state.duprLabelsEnabled?'DUPR labels are ON.':'DUPR labels are OFF.');});
+$('cloudRecordsDone').onclick=()=>{pendingCloudDeleteId=null;cancelCloudPlayerEdit({immediate:true});$('cloudRecordsModal').classList.add('hidden');};$('cloudRecordsSearch').addEventListener('input',renderCloudRecords);window.addEventListener('resize',scheduleCloudPlayerEditPanelPosition,{passive:true});$('cloudRecordsModal')?.addEventListener('scroll',scheduleCloudPlayerEditPanelPosition,{passive:true});const leftPlayersSearch=$('leftPlayersSearch');if(leftPlayersSearch)leftPlayersSearch.addEventListener('input',renderLeftPlayersPopup);
 $('importCancel').onclick=()=>$('importModal').classList.add('hidden');
 $('importSave').onclick=importPlayers;
 
@@ -5367,7 +5364,15 @@ if(IS_QUEUEING_PAGE){
   const finishQueueingStartup=()=>{
     if(remoteSessionEndRedirectInProgress)return;
     applyPendingLiveQueueStartConfig();
-    if(!remoteSessionEndRedirectInProgress)showLiveQueueWorkspace(false);
+    if(!remoteSessionEndRedirectInProgress){
+      showLiveQueueWorkspace(false);
+      // Release after any final startup render has had a chance to paint.
+      if(typeof window.__PPM_RELEASE_QUEUEING_STARTUP==='function'){
+        window.__PPM_RELEASE_QUEUEING_STARTUP();
+      }else{
+        document.documentElement.classList.remove('queueing-startup-pending');
+      }
+    }
   };
   sharedDataSyncReady.then(finishQueueingStartup,finishQueueingStartup);
 }else{

@@ -48,7 +48,6 @@
   const playerName = p => p
     ? String(p.name || 'Player') + (String(p.nickname || '').trim() ? ` (${String(p.nickname).trim()})` : '')
     : 'Waiting for player';
-  const playerInitial = p => String(p?.name || '').trim().charAt(0).toUpperCase() || 'P';
   const normalizeLiveAvatarId = value => {
     const raw = String(value ?? '').trim().toLowerCase();
     const match = /^(?:avatar[-_ ]?)?0?(\d{1,2})$/.exec(raw);

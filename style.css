@@ -7800,8 +7800,6 @@ to{opacity:1;transform:translateY(0);}}
 #cloudMatchActionModal .cloud-modal-ok:hover{background:#e6f6e9;}
 #cloudMatchActionModal .cloud-modal-cancel:hover{background:#eef2f5;}
 @media(max-width:480px) {#cloudMatchActionModal .cloud-match-action-box{width:min(94vw,430px)!important;padding:15px!important;}}
-@media(max-width:620px) {}
-@media(max-width:620px) {}
 /* Registered Player Cloud — disabled controls use the prohibited cursor only. */
 /* Registered Player Cloud — every disabled control uses only the not-allowed cursor. */
 #cloudRecordsModal button:disabled,
@@ -12043,7 +12041,6 @@ to{transform:rotate(360deg);}}
     transition-duration:.01ms!important;
     animation-duration:.01ms!important;
     animation-iteration-count:1!important;
-    scroll-behavior:auto!important;
   }}
 /* LIVE QUEUE START SCREEN — hide the app chrome while setup is visible.
    The app script adds/removes this class when switching between start and workspace. */
@@ -19392,7 +19389,6 @@ html body #leftPlayersModal #leftPlayersPopupList {
   html body header.topbar .top-actions .online { gap: 5px !important; }
 }
 /* DEVICE-WIDE INPUT AND VIEWPORT SAFETY — queue/start screens */
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { overflow-x: hidden; }
 button, input, select, textarea, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 img, svg, video, canvas { max-width: 100%; }
@@ -21023,99 +21019,7 @@ html body #cloudRecordsModal .cloud-player-summary .cloud-dupr-badge:focus-visib
 html body #cloudRecordsModal .cloud-player-summary .cloud-dupr-separator { opacity: .72; }
 /* Inline edit replaces only the DUPR badge;
 actions sit immediately beside it. */
-html body #cloudRecordsModal .cloud-player-summary .cloud-dupr-inline-edit {
-  display: inline-flex !important;
-  align-items: center !important;
-  flex: 0 0 auto !important;
-  flex-wrap: nowrap !important;
-  gap: 4px !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-sizing: border-box !important;
-  vertical-align: middle !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-inline-fields {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 4px !important;
-  min-height: 23px !important;
-  padding: 2px 5px !important;
-  border: 1px dashed #8bbdea !important;
-  border-radius: 6px !important;
-  background: #f8fbff !important;
-  color: #2b6cb0 !important;
-  box-sizing: border-box !important;
-  white-space: nowrap !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-fields .cloud-dupr-inline-prefix {
-  color: #2b6cb0 !important;
-  font-size: 8px !important;
-  font-weight: 800 !important;
-  line-height: 1.1 !important;
-  white-space: nowrap !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-fields input {
-  display: inline-block !important;
-  width: 75px !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  height: 18px !important;
-  min-height: 18px !important;
-  margin: 0 !important;
-  padding: 1px 3px !important;
-  border: 1px solid #d2dfeb !important;
-  border-radius: 3px !important;
-  background: #fff !important;
-  color: #253c52 !important;
-  font-family: inherit !important;
-  font-size: 9px !important;
-  font-weight: 700 !important;
-  line-height: 1.1 !important;
-  box-sizing: border-box !important;
-  outline: none !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-fields #cloudSelfRatingInput { width: 45px !important; }
-html body #cloudRecordsModal .cloud-dupr-inline-fields input:focus {
-  border-color: #6aa9e8 !important;
-  box-shadow: 0 0 0 1px rgba(43,108,176,.12) !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-editor-actions {
-  display: inline-flex !important;
-  align-items: center !important;
-  flex: 0 0 auto !important;
-  gap: 3px !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-editor-actions button {
-  min-height: 23px !important;
-  padding: 3px 6px !important;
-  border: 1px solid transparent !important;
-  border-radius: 5px !important;
-  font-size: 9px !important;
-  font-weight: 800 !important;
-  line-height: 1.1 !important;
-  white-space: nowrap !important;
-  cursor: pointer !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-save-btn {
-  background: #2b6cb0 !important;
-  border-color: #2b6cb0 !important;
-  color: #fff !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-cancel-btn {
-  background: #fff !important;
-  border-color: #cbd5e1 !important;
-  color: #52677e !important;
-}
-@media (max-width: 620px) {html body #cloudRecordsModal .cloud-dupr-inline-edit { gap: 3px !important; }
-html body #cloudRecordsModal .cloud-dupr-inline-fields { gap: 3px !important; padding: 2px 4px !important; }
-html body #cloudRecordsModal .cloud-dupr-inline-fields input { width: 67px !important; }
-html body #cloudRecordsModal .cloud-dupr-inline-fields #cloudSelfRatingInput { width: 40px !important; }
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-editor-actions { gap: 2px !important; }
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-editor-actions button { padding: 3px 5px !important; }}
+@media (max-width: 620px) {}
 /* Precise inline DUPR edit: only the badge border changes and action buttons align to its height. */
 html body #cloudRecordsModal .cloud-player-summary .cloud-dupr-badge {
   min-height: 19px !important;
@@ -21124,112 +21028,7 @@ html body #cloudRecordsModal .cloud-player-summary .cloud-dupr-badge {
   padding: 0 5px !important;
   vertical-align: middle !important;
 }
-html body #cloudRecordsModal .cloud-player-summary .cloud-dupr-inline-edit {
-  display: inline-flex !important;
-  align-items: center !important;
-  align-self: center !important;
-  gap: 4px !important;
-  height: 19px !important;
-  min-height: 19px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  vertical-align: middle !important;
-  white-space: nowrap !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-inline-fields {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 4px !important;
-  height: 19px !important;
-  min-height: 19px !important;
-  padding: 0 5px !important;
-  border: 1px dashed #bce0fd !important;
-  border-radius: 6px !important;
-  background: #e8f3ff !important;
-  color: #2b6cb0 !important;
-  font-family: inherit !important;
-  font-size: 8px !important;
-  font-weight: 800 !important;
-  line-height: 1.1 !important;
-  letter-spacing: .1px !important;
-  box-shadow: none !important;
-  box-sizing: border-box !important;
-  white-space: nowrap !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-inline-fields.is-unrated {
-  border-color: #cbd5e1 !important;
-  background: #f3f4f6 !important;
-  color: #9ca3af !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-fields .cloud-dupr-inline-prefix {
-  color: inherit !important;
-  font-size: inherit !important;
-  font-weight: inherit !important;
-  line-height: inherit !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-fields input,
-html body #cloudRecordsModal .cloud-dupr-inline-fields input:focus,
-html body #cloudRecordsModal .cloud-dupr-inline-fields input:hover {
-  display: inline-block !important;
-  flex: 0 0 auto !important;
-  min-width: 14px !important;
-  max-width: 100px !important;
-  height: 12px !important;
-  min-height: 12px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  outline: none !important;
-  background: transparent !important;
-  color: inherit !important;
-  box-shadow: none !important;
-  font-family: inherit !important;
-  font-size: inherit !important;
-  font-weight: inherit !important;
-  line-height: 12px !important;
-  letter-spacing: inherit !important;
-  text-align: center !important;
-  box-sizing: content-box !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-editor-actions {
-  display: inline-flex !important;
-  align-items: center !important;
-  align-self: center !important;
-  flex: 0 0 auto !important;
-  gap: 3px !important;
-  height: 19px !important;
-  min-height: 19px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-editor-actions button {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  height: 19px !important;
-  min-height: 19px !important;
-  max-height: 19px !important;
-  margin: 0 !important;
-  padding: 0 6px !important;
-  border: 1px solid transparent !important;
-  border-radius: 5px !important;
-  font-family: inherit !important;
-  font-size: 8px !important;
-  font-weight: 800 !important;
-  line-height: 1 !important;
-  white-space: nowrap !important;
-  box-sizing: border-box !important;
-  cursor: pointer !important;
-  transform: none !important;
-  box-shadow: none !important;
-}
-@media (max-width: 620px) {html body #cloudRecordsModal .cloud-dupr-inline-edit { gap: 3px !important; }
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-editor-actions { gap: 2px !important; }
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-editor-actions button { padding: 0 5px !important; }}
+@media (max-width: 620px) {}
 /* Queue List: compact editable DUPR badge directly below queue-stats-line. */
 #queueMainArea .queue-modern-item .queue-dupr-line {
   display: flex !important;
@@ -21777,15 +21576,7 @@ active match rows use the same pattern. */
 /* V50 — Keep editable DUPR text compact on desktop, iPad, and mobile.
    16px source font avoids iOS focus zoom;
 CSS zoom keeps the rendered controls tiny. */
-html body #cloudRecordsModal .cloud-dupr-inline-fields input,
-html body #cloudRecordsModal .cloud-dupr-inline-fields input:focus,
-html body #cloudRecordsModal .cloud-dupr-inline-fields input:hover,
-html body #queueMainArea .queue-dupr-edit-fields input,
-html body #queueMainArea .queue-dupr-edit-fields input:focus,
-html body #queueMainArea .queue-dupr-edit-fields input:hover,
-html body .court-dupr-inline-edit input,
-html body .court-dupr-inline-edit input:focus,
-html body .court-dupr-inline-edit input:hover {
+html body #queueMainArea .queue-dupr-edit-fields input, html body #queueMainArea .queue-dupr-edit-fields input:focus, html body #queueMainArea .queue-dupr-edit-fields input:hover, html body .court-dupr-inline-edit input, html body .court-dupr-inline-edit input:focus, html body .court-dupr-inline-edit input:hover {
   font-size: 16px !important;
   line-height: 24px !important;
   height: 24px !important;
@@ -21793,14 +21584,6 @@ html body .court-dupr-inline-edit input:hover {
   zoom: .5 !important;
   -webkit-text-size-adjust: 100% !important;
   text-size-adjust: 100% !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-fields input {
-  min-width: 28px !important;
-  max-width: 200px !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-fields #cloudSelfRatingInput {
-  min-width: 28px !important;
-  max-width: 104px !important;
 }
 html body #queueMainArea .queue-dupr-edit-fields input {
   min-width: 28px !important;
@@ -23804,148 +23587,11 @@ html body #cloudRecordsModal .cloud-player-summary .cloud-dupr-badge {
   vertical-align: middle !important;
   box-sizing: border-box !important;
 }
-html body #cloudRecordsModal .cloud-player-summary .cloud-dupr-inline-edit,
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-inline-fields,
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-editor-actions {
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
-  box-sizing: border-box !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-editor-actions button {
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  line-height: 1 !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-fields #cloudDuprIdInput {
-  width: 75px !important;
-  min-width: 75px !important;
-  max-width: 75px !important;
-  resize: none !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-fields #cloudSelfRatingInput {
-  width: 45px !important;
-  min-width: 45px !important;
-  max-width: 45px !important;
-  resize: none !important;
-}
-@media (max-width: 620px) {html body #cloudRecordsModal .cloud-dupr-inline-fields #cloudDuprIdInput {
-    width: 67px !important; min-width: 67px !important; max-width: 67px !important;
-  }
-html body #cloudRecordsModal .cloud-dupr-inline-fields #cloudSelfRatingInput {
-    width: 40px !important; min-width: 40px !important; max-width: 40px !important;
-  }}
+@media (max-width: 620px) {}
 /* Fixed-footprint Registered Player Cloud DUPR editor.
    Entering edit mode preserves the original badge dimensions and layout position;
 the text input overlays the badge and Save/Cancel controls do not take layout space. */
 html body #cloudRecordsModal .cloud-player-summary { overflow: visible !important; }
-html body #cloudRecordsModal .cloud-player-summary .cloud-dupr-inline-edit {
-  position: relative !important;
-  display: inline-block !important;
-  flex: 0 0 var(--cloud-dupr-edit-width) !important;
-  width: var(--cloud-dupr-edit-width) !important;
-  min-width: var(--cloud-dupr-edit-width) !important;
-  max-width: var(--cloud-dupr-edit-width) !important;
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  vertical-align: middle !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-inline-fields {
-  position: relative !important;
-  display: block !important;
-  width: 100% !important;
-  min-width: 100% !important;
-  max-width: 100% !important;
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
-  padding: 0 5px !important;
-  margin: 0 !important;
-  overflow: hidden !important;
-  box-sizing: border-box !important;
-  white-space: nowrap !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-fields .cloud-dupr-inline-prefix {
-  position: absolute !important;
-  z-index: 2 !important;
-  left: 5px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  pointer-events: none !important;
-  white-space: nowrap !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-fields #cloudDuprIdInput,
-html body #cloudRecordsModal .cloud-dupr-inline-fields #cloudDuprIdInput:focus,
-html body #cloudRecordsModal .cloud-dupr-inline-fields #cloudDuprIdInput:hover {
-  position: absolute !important;
-  z-index: 1 !important;
-  left: 0 !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  display: block !important;
-  width: 200% !important;
-  min-width: 200% !important;
-  max-width: 200% !important;
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  margin: 0 !important;
-  padding: 0 0 0 60px !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  outline: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  box-sizing: border-box !important;
-  font-family: inherit !important;
-  font-size: 16px !important;
-  font-weight: 800 !important;
-  line-height: 24px !important;
-  letter-spacing: .1px !important;
-  text-align: left !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  zoom: .5 !important;
-  resize: none !important;
-  -webkit-text-size-adjust: 100% !important;
-  text-size-adjust: 100% !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-editor-actions {
-  position: absolute !important;
-  z-index: 20 !important;
-  left: calc(100% + 4px) !important;
-  top: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 3px !important;
-  width: max-content !important;
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  white-space: nowrap !important;
-}
-html body #cloudRecordsModal .cloud-dupr-inline-edit .cloud-dupr-editor-actions button {
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
-  padding: 0 5px !important;
-  line-height: 1 !important;
-  box-sizing: border-box !important;
-  transform: none !important;
-}
 /* Registered Player Cloud: stable DUPR anchor. The original badge remains in the flex
    layout while the editor overlays it, preventing any horizontal movement on click. */
 html body #cloudRecordsModal .cloud-player-summary > .cloud-dupr-slot {
@@ -23967,15 +23613,6 @@ html body #cloudRecordsModal .cloud-player-summary > .cloud-dupr-slot {
   overflow: visible !important;
   box-sizing: border-box !important;
 }
-html body #cloudRecordsModal .cloud-player-summary > .cloud-dupr-slot.is-editing {
-  /* Never replace the original badge's natural layout footprint in edit mode. */
-  width: max-content !important;
-  min-width: 0 !important;
-  max-width: none !important;
-  flex: 0 0 auto !important;
-  flex-basis: auto !important;
-  flex-shrink: 0 !important;
-}
 html body #cloudRecordsModal .cloud-player-summary > .cloud-dupr-slot > .cloud-dupr-slot-anchor {
   display: inline-flex !important;
   position: relative !important;
@@ -23991,132 +23628,11 @@ html body #cloudRecordsModal .cloud-player-summary > .cloud-dupr-slot > .cloud-d
   visibility: visible !important;
   box-sizing: border-box !important;
 }
-html body #cloudRecordsModal .cloud-player-summary > .cloud-dupr-slot.is-editing > .cloud-dupr-slot-anchor {
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
-html body #cloudRecordsModal .cloud-player-summary > .cloud-dupr-slot > .cloud-dupr-inline-edit {
-  position: absolute !important;
-  display: block !important;
-  left: 0 !important;
-  top: 0 !important;
-  right: auto !important;
-  bottom: auto !important;
-  width: 100% !important;
-  min-width: 100% !important;
-  max-width: none !important;
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  gap: 0 !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-  z-index: 30 !important;
-}
-html body #cloudRecordsModal .cloud-dupr-slot .cloud-dupr-inline-fields {
-  position: absolute !important;
-  display: block !important;
-  left: 0 !important;
-  top: 0 !important;
-  width: 100% !important;
-  min-width: 100% !important;
-  max-width: 100% !important;
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: 1px solid #8bbdea !important;
-  border-radius: 6px !important;
-  background: #e8f3ff !important;
-  overflow: hidden !important;
-  white-space: nowrap !important;
-  box-sizing: border-box !important;
-}
-html body #cloudRecordsModal .cloud-dupr-slot .cloud-dupr-inline-prefix {
-  position: absolute !important;
-  left: 5px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  z-index: 2 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  color: #2b6cb0 !important;
-  font-size: 8px !important;
-  font-weight: 800 !important;
-  line-height: 1 !important;
-  pointer-events: none !important;
-}
-html body #cloudRecordsModal .cloud-dupr-slot #cloudDuprIdInput,
-html body #cloudRecordsModal .cloud-dupr-slot #cloudDuprIdInput:focus,
-html body #cloudRecordsModal .cloud-dupr-slot #cloudDuprIdInput:hover {
-  position: absolute !important;
-  display: block !important;
-  left: 0 !important;
-  top: 0 !important;
-  transform: none !important;
-  zoom: 1 !important;
-  width: 100% !important;
-  min-width: 100% !important;
-  max-width: 100% !important;
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
-  margin: 0 !important;
-  padding: 0 2px 0 29px !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  outline: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  color: #2b6cb0 !important;
-  caret-color: #2b6cb0 !important;
-  font-family: inherit !important;
-  font-size: 8px !important;
-  font-weight: 800 !important;
-  line-height: 16px !important;
-  letter-spacing: .1px !important;
-  text-align: left !important;
-  box-sizing: border-box !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  resize: none !important;
-}
-html body #cloudRecordsModal .cloud-dupr-slot .cloud-dupr-editor-actions {
-  position: absolute !important;
-  display: inline-flex !important;
-  left: calc(100% + 4px) !important;
-  right: auto !important;
-  top: 0 !important;
-  bottom: auto !important;
-  width: max-content !important;
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  gap: 3px !important;
-  white-space: nowrap !important;
-  z-index: 31 !important;
-}
-html body #cloudRecordsModal .cloud-dupr-slot .cloud-dupr-editor-actions button {
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
-  margin: 0 !important;
-  padding: 0 5px !important;
-  line-height: 1 !important;
-  box-sizing: border-box !important;
-  transform: none !important;
-}
 /* Final no-shift guard for Registered Player Cloud DUPR inline editing.
    The original badge remains in normal flow and sets the slot width;
 editor and actions
    are overlays only, so focus/click/typing cannot move the ID or its surrounding row. */
-html body #cloudRecordsModal .cloud-player-summary > .cloud-dupr-slot,
-html body #cloudRecordsModal .cloud-player-summary > .cloud-dupr-slot.is-editing {
+html body #cloudRecordsModal .cloud-player-summary > .cloud-dupr-slot {
   display: inline-block !important;
   position: relative !important;
   width: max-content !important;
@@ -24130,29 +23646,6 @@ html body #cloudRecordsModal .cloud-player-summary > .cloud-dupr-slot.is-editing
   border: 0 !important;
   vertical-align: middle !important;
   box-sizing: border-box !important;
-}
-html body #cloudRecordsModal .cloud-player-summary > .cloud-dupr-slot > .cloud-dupr-inline-edit {
-  position: absolute !important;
-  inset: 0 auto auto 0 !important;
-  width: 100% !important;
-  min-width: 100% !important;
-  max-width: none !important;
-  height: 16px !important;
-  min-height: 16px !important;
-  max-height: 16px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-}
-html body #cloudRecordsModal .cloud-dupr-slot .cloud-dupr-editor-actions {
-  position: absolute !important;
-  left: calc(100% + 4px) !important;
-  right: auto !important;
-  top: 0 !important;
-  bottom: auto !important;
-  width: max-content !important;
-  z-index: 999 !important;
 }
 /* Registered Player Cloud edit drawer — open beside the list instead of as a second modal. */
 html body #cloudRecordsModal {
@@ -25085,10 +24578,6 @@ html body #cloudRecordsModal #cloudPlayerEditForm .cloud-player-edit-actions but
 html body #cloudRecordsModal #cloudPlayerEditForm .cloud-player-edit-actions button,
   html body #cloudRecordsModal #cloudPlayerEditForm .cloud-edit-gender-circle { transition: none !important; }}
 /* 2026-10-29 — Cloud Records polish: compact gender radios, correct DUPR sizing. */
-html body #cloudRecordsModal .cloud-records-content,
-html body #cloudRecordsModal #cloudPlayerEditForm {
-  -webkit-overflow-scrolling: touch !important;
-}
 /* Smaller gender symbols and native radio controls in the cloud edit form. */
 html body #cloudRecordsModal #cloudPlayerEditForm .cloud-edit-gender-options {
   gap: 8px !important;
@@ -25459,4 +24948,948 @@ html body .end-session-attendee-list-avatar .end-session-avatar-image {
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+
+/* Slightly smaller queue position and cloud avatar number badges.
+   Only badge dimensions and number text size are changed. */
+html body #queueMainArea .queue-modern-item > .queue-avatar-stack > .queue-position-badge {
+  width: 17px !important;
+  height: 17px !important;
+  font-size: 9px !important;
+}
+html body #cloudRecordsModal .cloud-avatar .cloud-avatar-number,
+html body #leftPlayersModal .cloud-avatar .cloud-avatar-number {
+  width: 17px !important;
+  height: 17px !important;
+  font-size: 9px !important;
+}
+
+
+/* DUPR parity — ready/waiting Court badges use the same visual dimensions and
+   inline Save/Cancel flow as Queue DUPR badges. Live match badges stay read-only. */
+html body .slot-player-identity .court-dupr-badge,
+html body .court-dupr-badge {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  gap: 4px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 19px !important;
+  min-height: 19px !important;
+  max-height: 19px !important;
+  margin: 0 !important;
+  padding: 0 5px !important;
+  border: 1px solid #bce0fd !important;
+  border-radius: 6px !important;
+  background: #e8f3ff !important;
+  color: #2b6cb0 !important;
+  font-family: inherit !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: .1px !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: pointer !important;
+}
+html body .court-dupr-badge:hover,
+html body .court-dupr-badge:focus-visible {
+  border-color: #7bb9ee !important;
+  background: #dceeff !important;
+  outline: none !important;
+}
+html body .court-dupr-badge.is-unrated {
+  border-color: #e2e8f0 !important;
+  background: #f3f4f6 !important;
+  color: #9ca3af !important;
+}
+html body .court-dupr-badge-static {
+  cursor: default !important;
+  pointer-events: none !important;
+}
+html body .court-dupr-inline-edit {
+  display: inline-flex !important;
+  align-items: center !important;
+  align-self: center !important;
+  flex: 0 1 auto !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 19px !important;
+  min-height: 19px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+html body .court-dupr-inline-edit .court-dupr-edit-fields {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 1 auto !important;
+  gap: 4px !important;
+  height: 19px !important;
+  min-height: 19px !important;
+  max-height: 19px !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 5px !important;
+  border: 1px dashed #bce0fd !important;
+  border-radius: 6px !important;
+  background: #e8f3ff !important;
+  color: #2b6cb0 !important;
+  font-family: inherit !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: .1px !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  cursor: text !important;
+  overflow: visible !important;
+}
+html body .court-dupr-inline-edit .court-dupr-edit-fields.is-unrated {
+  border-color: #cbd5e1 !important;
+  background: #f3f4f6 !important;
+  color: #9ca3af !important;
+}
+html body .court-dupr-inline-edit .court-dupr-prefix {
+  color: inherit !important;
+  white-space: nowrap !important;
+}
+html body .court-dupr-inline-edit input,
+html body .court-dupr-inline-edit input:focus,
+html body .court-dupr-inline-edit input:hover {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-block !important;
+  flex: 0 0 auto !important;
+  min-width: 28px !important;
+  max-width: 200px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  color: inherit !important;
+  box-shadow: none !important;
+  font-family: inherit !important;
+  font-size: 16px !important;
+  font-weight: inherit !important;
+  line-height: 24px !important;
+  letter-spacing: inherit !important;
+  text-align: center !important;
+  box-sizing: content-box !important;
+  zoom: .5 !important;
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+html body .court-dupr-inline-edit .court-dupr-editor-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  align-self: center !important;
+  flex: 0 0 auto !important;
+  gap: 3px !important;
+  height: 19px !important;
+  min-height: 19px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+html body .court-dupr-inline-edit .court-dupr-editor-actions button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 19px !important;
+  min-height: 19px !important;
+  max-height: 19px !important;
+  margin: 0 !important;
+  padding: 0 6px !important;
+  border: 1px solid transparent !important;
+  border-radius: 5px !important;
+  background: #fff !important;
+  color: #52677e !important;
+  font-family: inherit !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  cursor: pointer !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+html body .court-dupr-inline-edit .court-dupr-save-btn {
+  background: #2b6cb0 !important;
+  border-color: #2b6cb0 !important;
+  color: #fff !important;
+}
+html body .court-dupr-inline-edit .court-dupr-cancel-btn {
+  background: #fff !important;
+  border-color: #cbd5e1 !important;
+  color: #52677e !important;
+}
+@media (max-width: 620px) {
+  html body .court-dupr-inline-edit { gap: 3px !important; }
+  html body .court-dupr-inline-edit .court-dupr-edit-fields { gap: 3px !important; }
+  html body .court-dupr-inline-edit .court-dupr-editor-actions { gap: 2px !important; }
+  html body .court-dupr-inline-edit .court-dupr-editor-actions button { padding-left: 5px !important; padding-right: 5px !important; }
+}
+
+/* Fix: keep the court DUPR editor anchored to the badge's original left edge.
+   Only alignment changes here; badge, input, card, and row dimensions stay unchanged. */
+html body .slot-player-identity > .court-dupr-inline-edit {
+  align-self: flex-start !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+/* Compact court DUPR inline editor; keep the badge/card dimensions and left anchor unchanged. */
+html body .court-dupr-inline-edit {
+  gap: 2px !important;
+  width: max-content !important;
+  max-width: 100% !important;
+}
+html body .court-dupr-inline-edit .court-dupr-edit-fields {
+  gap: 2px !important;
+}
+html body .court-dupr-inline-edit .court-dupr-editor-actions {
+  gap: 2px !important;
+}
+html body .court-dupr-inline-edit .court-dupr-editor-actions button {
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
+@media (max-width: 620px) {
+  html body .court-dupr-inline-edit { gap: 2px !important; }
+  html body .court-dupr-inline-edit .court-dupr-edit-fields { gap: 2px !important; }
+  html body .court-dupr-inline-edit .court-dupr-editor-actions { gap: 2px !important; }
+  html body .court-dupr-inline-edit .court-dupr-editor-actions button {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+}
+
+
+/* Court DUPR Save button parity: mirror Queue DUPR Save dimensions and colors only. */
+html body .court-dupr-inline-edit .court-dupr-editor-actions .court-dupr-save-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 19px !important;
+  min-height: 19px !important;
+  max-height: 19px !important;
+  margin: 0 !important;
+  padding: 0 6px !important;
+  border: 1px solid #2b6cb0 !important;
+  border-radius: 5px !important;
+  background: #2b6cb0 !important;
+  color: #fff !important;
+  font-family: inherit !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  cursor: pointer !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+@media (max-width: 620px) {
+  html body .court-dupr-inline-edit .court-dupr-editor-actions .court-dupr-save-btn {
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+  }
+}
+
+/* V50 — Minimal Court DUPR badges only; editor controls and Save/Cancel stay unchanged. */
+html body .slot-player-identity .court-dupr-badge:not(.court-dupr-edit-fields),
+html body .court-dupr-badge:not(.court-dupr-edit-fields) {
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  padding: 0 4px !important;
+  border: 1px solid #dbeafe !important;
+  border-radius: 4px !important;
+  background: #f8fbff !important;
+  color: #356b9e !important;
+  font-size: 7px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+  gap: 3px !important;
+  box-shadow: none !important;
+}
+html body .court-dupr-badge:not(.court-dupr-edit-fields):hover,
+html body .court-dupr-badge:not(.court-dupr-edit-fields):focus-visible {
+  border-color: #bfdbfe !important;
+  background: #eff6ff !important;
+  outline: none !important;
+}
+html body .court-dupr-badge.is-unrated:not(.court-dupr-edit-fields) {
+  border-color: #e5e7eb !important;
+  background: #f9fafb !important;
+  color: #9ca3af !important;
+}
+
+
+/* V51 — Match the open Court DUPR editor to the same minimal footprint as its badge.
+   Keep the existing inline Save/Cancel actions and editing behavior intact. */
+html body .court-dupr-inline-edit {
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  gap: 2px !important;
+}
+html body .court-dupr-inline-edit .court-dupr-edit-fields {
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  gap: 2px !important;
+  padding: 0 4px !important;
+  border-radius: 4px !important;
+  background: #f8fbff !important;
+  border-color: #dbeafe !important;
+  color: #356b9e !important;
+  font-size: 7px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+}
+html body .court-dupr-inline-edit .court-dupr-edit-fields.is-unrated {
+  border-color: #e5e7eb !important;
+  background: #f9fafb !important;
+  color: #9ca3af !important;
+}
+html body .court-dupr-inline-edit .court-dupr-editor-actions {
+  height: 16px !important;
+  min-height: 16px !important;
+  gap: 2px !important;
+}
+html body .court-dupr-inline-edit .court-dupr-editor-actions button {
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  padding: 0 4px !important;
+  border-radius: 4px !important;
+  font-size: 7px !important;
+  font-weight: 750 !important;
+}
+html body .court-dupr-inline-edit .court-dupr-editor-actions .court-dupr-save-btn {
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  padding: 0 4px !important;
+  border-radius: 4px !important;
+  font-size: 7px !important;
+}
+@media (max-width: 620px) {
+  html body .court-dupr-inline-edit { gap: 2px !important; }
+  html body .court-dupr-inline-edit .court-dupr-edit-fields { gap: 2px !important; padding-left: 4px !important; padding-right: 4px !important; }
+  html body .court-dupr-inline-edit .court-dupr-editor-actions { gap: 2px !important; }
+  html body .court-dupr-inline-edit .court-dupr-editor-actions button,
+  html body .court-dupr-inline-edit .court-dupr-editor-actions .court-dupr-save-btn { padding-left: 4px !important; padding-right: 4px !important; }
+}
+
+
+/* V53 — Match typed Court DUPR ID text to the compact badge text size.
+   Use a true 7px font with normal zoom when edit mode opens. */
+html body .court-dupr-inline-edit .court-dupr-id-input,
+html body .court-dupr-inline-edit .court-dupr-id-input:focus,
+html body .court-dupr-inline-edit .court-dupr-id-input:hover {
+  display: inline-block !important;
+  flex: 0 0 auto !important;
+  min-width: 30px !important;
+  max-width: 120px !important;
+  height: 12px !important;
+  min-height: 12px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  color: inherit !important;
+  font-family: inherit !important;
+  font-size: 7px !important;
+  font-weight: inherit !important;
+  line-height: 12px !important;
+  letter-spacing: 0 !important;
+  text-align: left !important;
+  text-indent: 0 !important;
+  white-space: nowrap !important;
+  box-sizing: content-box !important;
+  zoom: 1 !important;
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+  vertical-align: middle !important;
+}
+html body .court-dupr-inline-edit .court-dupr-edit-fields {
+  align-items: center !important;
+  overflow: visible !important;
+}
+
+
+/* Court DUPR all-text 7px: use the same actual font size closed and open.
+   Keep normal zoom so the typed ID is 7px in CSS, not a scaled larger font. */
+html body .court-dupr-badge,
+html body .court-dupr-inline-edit .court-dupr-edit-fields,
+html body .court-dupr-inline-edit .court-dupr-prefix,
+html body .court-dupr-inline-edit .court-dupr-editor-actions button {
+  font-size: 7px !important;
+}
+html body .court-dupr-inline-edit .court-dupr-id-input,
+html body .court-dupr-inline-edit .court-dupr-id-input:focus,
+html body .court-dupr-inline-edit .court-dupr-id-input:hover,
+html body .court-dupr-inline-edit input,
+html body .court-dupr-inline-edit input:focus,
+html body .court-dupr-inline-edit input:hover {
+  font-size: 7px !important;
+  zoom: 1 !important;
+}
+
+/* iPad/tablet DUPR badge parity — keep Court and Queue badges at their desktop
+   footprint and prevent tablet flex/grid sizing from stretching or squeezing them.
+   Scope is limited to badge layout; other responsive UI stays unchanged. */
+@media screen and (min-width: 600px) and (max-width: 1400px) {
+  html body #queueMainArea .queue-modern-item .queue-dupr-line {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 19px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #queueMainArea .queue-modern-item .queue-dupr-badge:not(.queue-dupr-edit-fields) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 19px !important;
+    min-height: 19px !important;
+    max-height: 19px !important;
+    margin: 0 !important;
+    padding: 0 5px !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+    transform: none !important;
+  }
+
+  html body .slot-player-identity .court-dupr-badge:not(.court-dupr-edit-fields),
+  html body .court-dupr-badge:not(.court-dupr-edit-fields) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: flex-start !important;
+    flex: 0 0 auto !important;
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 16px !important;
+    min-height: 16px !important;
+    max-height: 16px !important;
+    margin: 0 !important;
+    padding: 0 4px !important;
+    font-size: 7px !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+    transform: none !important;
+  }
+
+  html body .slot-player-identity > .court-dupr-inline-edit {
+    display: inline-flex !important;
+    align-items: center !important;
+    align-self: flex-start !important;
+    flex: 0 0 auto !important;
+    flex-wrap: nowrap !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+  }
+}
+
+
+
+/* iPad/tablet DUPR text-size parity — Court and Queue use the same 7px text.
+   Applies only to the tablet breakpoint; preserves badge layout and behavior. */
+@media screen and (min-width: 600px) and (max-width: 1400px) {
+  html body #queueMainArea .queue-modern-item .queue-dupr-badge:not(.queue-dupr-edit-fields),
+  html body #queueMainArea .queue-modern-item .queue-dupr-inline-edit .queue-dupr-edit-fields,
+  html body #queueMainArea .queue-modern-item .queue-dupr-inline-edit .queue-dupr-prefix,
+  html body #queueMainArea .queue-modern-item .queue-dupr-inline-edit .queue-dupr-editor-actions button {
+    font-size: 7px !important;
+    letter-spacing: 0 !important;
+  }
+
+  html body #queueMainArea .queue-modern-item .queue-dupr-inline-edit .queue-dupr-edit-fields input,
+  html body #queueMainArea .queue-modern-item .queue-dupr-inline-edit .queue-dupr-edit-fields input:focus,
+  html body #queueMainArea .queue-modern-item .queue-dupr-inline-edit .queue-dupr-edit-fields input:hover {
+    font-size: 7px !important;
+    line-height: 12px !important;
+    height: 12px !important;
+    min-height: 12px !important;
+    zoom: 1 !important;
+    letter-spacing: 0 !important;
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+  }
+
+  html body .court-dupr-badge:not(.court-dupr-edit-fields),
+  html body .court-dupr-inline-edit .court-dupr-edit-fields,
+  html body .court-dupr-inline-edit .court-dupr-prefix,
+  html body .court-dupr-inline-edit .court-dupr-editor-actions button,
+  html body .court-dupr-inline-edit .court-dupr-id-input,
+  html body .court-dupr-inline-edit .court-dupr-id-input:focus,
+  html body .court-dupr-inline-edit .court-dupr-id-input:hover {
+    font-size: 7px !important;
+  }
+}
+
+
+/* iPad DUPR editable text: use the desktop input rendering on both Court and Queue.
+   The 16px source size prevents iOS focus zoom; 0.5 zoom gives both inputs
+   the same compact rendered size. This overrides the earlier tablet-only 7px rule. */
+@media screen and (min-width: 600px) and (max-width: 1400px) {
+  html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields input,
+  html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields input:focus,
+  html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields input:hover,
+  html body[data-page="queueing"] .court-dupr-inline-edit .court-dupr-id-input,
+  html body[data-page="queueing"] .court-dupr-inline-edit .court-dupr-id-input:focus,
+  html body[data-page="queueing"] .court-dupr-inline-edit .court-dupr-id-input:hover {
+    font-size: 16px !important;
+    line-height: 24px !important;
+    height: 24px !important;
+    min-height: 24px !important;
+    zoom: 0.5 !important;
+    letter-spacing: 0 !important;
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+  }
+}
+
+/* iPad/touch-tablet DUPR editor stability fix (2026-10-29).
+   Avoid CSS zoom on editable text: Safari can reposition/resize text while typing.
+   Keep the native 16px input font to prevent focus zoom, then scale the control
+   visually to the badge text size. A fixed width prevents the Court editor from
+   shifting its Save/Cancel buttons on each keystroke. */
+@media screen and (min-width: 600px) and (max-width: 1400px) and (pointer: coarse) {
+  html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields input,
+  html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields input:focus,
+  html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields input:hover,
+  html body[data-page="queueing"] .court-dupr-inline-edit .court-dupr-id-input,
+  html body[data-page="queueing"] .court-dupr-inline-edit .court-dupr-id-input:focus,
+  html body[data-page="queueing"] .court-dupr-inline-edit .court-dupr-id-input:hover {
+    display: inline-block !important;
+    flex: 0 0 75px !important;
+    width: 75px !important;
+    min-width: 75px !important;
+    max-width: 75px !important;
+    height: 24px !important;
+    min-height: 24px !important;
+    max-height: 24px !important;
+    margin: 0 -42.1875px 0 0 !important;
+    padding: 0 !important;
+    font-size: 16px !important;
+    line-height: 24px !important;
+    letter-spacing: 0 !important;
+    zoom: 1 !important;
+    transform: scale(0.4375) !important;
+    -webkit-transform: scale(0.4375) !important;
+    transform-origin: left center !important;
+    -webkit-transform-origin: left center !important;
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+
+/* iPad follow-up: anchor DUPR text and its editor footprint while typing.
+   Left alignment prevents the text from appearing to drift as the ID grows;
+   disabling transitions avoids tiny sub-pixel movements on touch Safari. */
+@media screen and (min-width: 600px) and (max-width: 1400px) and (pointer: coarse) {
+  html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit,
+  html body[data-page="queueing"] .court-dupr-inline-edit {
+    align-items: center !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields input,
+  html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields input:focus,
+  html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields input:hover,
+  html body[data-page="queueing"] .court-dupr-inline-edit .court-dupr-id-input,
+  html body[data-page="queueing"] .court-dupr-inline-edit .court-dupr-id-input:focus,
+  html body[data-page="queueing"] .court-dupr-inline-edit .court-dupr-id-input:hover {
+    text-align: left !important;
+    text-indent: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    transition: none !important;
+    transform-origin: left center !important;
+    -webkit-transform-origin: left center !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+  }
+}
+
+/* DUPR visibility toggle: queue badge visibility is animated by the final
+   queue motion rule below; court badges retain their existing hide behavior. */
+html body.dupr-labels-hidden .court-dupr-badge,
+html body.dupr-labels-hidden .court-dupr-inline-edit {
+  /* Hidden badges must leave layout flow so slot-player-primary-line returns
+     to its normal single-line alignment when the DUPR labels are OFF. */
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+
+/* DUPR toggle court-layout guard (2026-10-29): the older tablet/mobile badge
+   rules use stronger selectors, so the original hide rule could lose at some
+   viewport widths. The #courtsList-scoped rules intentionally have higher
+   specificity and remove badge/editor elements from layout flow in every court. */
+html body.dupr-labels-hidden #courtsList .slot-player-identity .court-dupr-badge,
+html body.dupr-labels-hidden #courtsList .slot-player-identity .court-dupr-inline-edit,
+html body.dupr-labels-hidden #courtsList .match-player-identity .court-dupr-badge,
+html body.dupr-labels-hidden #courtsList .match-player-identity .court-dupr-inline-edit,
+html body.dupr-labels-hidden #courtsList .court-dupr-badge,
+html body.dupr-labels-hidden #courtsList .court-dupr-inline-edit {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* DUPR ON/OFF court stability fix (2026-10-29).
+   The badge is a second line under each player name when enabled. Keep filled
+   Ready/Up Next slots at the same outer height in both states so the court card
+   does not jump/reflow; when OFF, the badge itself is removed from flow and the
+   primary line naturally returns to the normal centered single-line position. */
+html body[data-page="queueing"] #courtsList .ready-match-sheet .ready-team-players .team-player.tap-slot.filled-slot {
+  min-height: 48px !important;
+  box-sizing: border-box !important;
+}
+@media (max-width: 600px) {
+  html body[data-page="queueing"] #courtsList .ready-match-sheet .ready-team-players .team-player.tap-slot.filled-slot {
+    min-height: 40px !important;
+  }
+}
+
+
+/* FINAL DUPR court geometry fix (2026-10-29).
+   Reserve the DUPR badge inside the existing slot instead of letting it add to
+   the slot's natural height. The court/card geometry stays fixed; only the
+   primary player line moves vertically between DUPR ON and OFF. */
+html body[data-page="queueing"] #courtsList .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+html body[data-page="queueing"] #courtsList .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot > .slot-player-name {
+  align-self: stretch !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+html body[data-page="queueing"] #courtsList .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-identity {
+  position: relative !important;
+  display: block !important;
+  align-self: stretch !important;
+  flex: 1 1 auto !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  gap: 0 !important;
+  overflow: visible !important;
+}
+html body[data-page="queueing"] #courtsList .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-primary-line {
+  position: absolute !important;
+  top: 50% !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  margin: 0 !important;
+  transform: translateY(-50%) !important;
+  transition: top 120ms ease !important;
+  z-index: 2 !important;
+}
+html body[data-page="queueing"]:not(.dupr-labels-hidden) #courtsList .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-primary-line {
+  /* Slightly lift only the name line to add breathing room above the DUPR badge. */
+  top: 18% !important;
+}
+html body[data-page="queueing"] #courtsList .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-identity > .court-dupr-badge,
+html body[data-page="queueing"] #courtsList .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-identity > .court-dupr-inline-edit {
+  position: absolute !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: 0 !important;
+  align-self: auto !important;
+  margin: 0 !important;
+  max-width: 100% !important;
+  z-index: 1 !important;
+}
+@media (max-width: 600px) {
+  html body[data-page="queueing"] #courtsList .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot {
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+  }
+  html body[data-page="queueing"]:not(.dupr-labels-hidden) #courtsList .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-primary-line {
+    /* Mobile slots are shorter, so lift the name line slightly more to keep a clear gap. */
+    top: 23% !important;
+  }
+}
+
+/* SAME-SIZE COURT PLAYER SLOTS (2026-10-30 v2).
+   Empty and occupied placeholders are the same physical slot. Do not let the
+   .empty-slot / .filled-slot class, player content, or DUPR visibility toggle
+   change the outer slot geometry. These shared values intentionally match the
+   existing filled-slot dimensions at each breakpoint. */
+html body[data-page="queueing"] #courtsList .ready-match-sheet .ready-team-players > .team-player.tap-slot {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  flex: 0 0 48px !important;
+  box-sizing: border-box !important;
+}
+@media (max-width: 600px) {
+  html body[data-page="queueing"] #courtsList .ready-match-sheet .ready-team-players > .team-player.tap-slot {
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    flex: 0 0 42px !important;
+  }
+}
+
+
+
+/* QUEUE DUPR COURT-PARITY MOTION (2026-10-30 v3).
+   Use the same 120ms ease movement as the Court player line. The queue badge
+   slides into its line with top: 0 and slides out by reversing to top: -19px.
+   Animate the third grid track as well, so the badge row and following content
+   move together instead of the badge popping into an already-sized auto row. */
+html body[data-page="queueing"] #queueMainArea .queue-modern-item {
+  grid-template-rows: auto auto minmax(0, 19px) auto auto !important;
+  transition: grid-template-rows 120ms ease !important;
+}
+html body[data-page="queueing"] #queueMainArea .queue-modern-item > .queue-main-info > .queue-dupr-line {
+  display: flex !important;
+  align-items: center !important;
+  align-self: stretch !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 19px !important;
+  min-height: 0 !important;
+  max-height: 19px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transition: height 120ms ease, max-height 120ms ease, opacity 120ms ease, visibility 0s linear 0s !important;
+  will-change: height, max-height, opacity;
+}
+html body[data-page="queueing"] #queueMainArea .queue-modern-item > .queue-main-info > .queue-dupr-line > .queue-dupr-badge,
+html body[data-page="queueing"] #queueMainArea .queue-modern-item > .queue-main-info > .queue-dupr-line > .queue-dupr-inline-edit {
+  position: relative !important;
+  top: 0 !important;
+  opacity: 1 !important;
+  transition: top 120ms ease, opacity 120ms ease !important;
+  will-change: top, opacity;
+}
+html body[data-page="queueing"].dupr-labels-hidden #queueMainArea .queue-modern-item {
+  grid-template-rows: auto auto minmax(0, 0px) auto auto !important;
+}
+html body[data-page="queueing"].dupr-labels-hidden #queueMainArea .queue-modern-item > .queue-main-info > .queue-dupr-line {
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: height 120ms ease, max-height 120ms ease, opacity 120ms ease, visibility 0s linear 120ms !important;
+}
+html body[data-page="queueing"].dupr-labels-hidden #queueMainArea .queue-modern-item > .queue-main-info > .queue-dupr-line > .queue-dupr-badge,
+html body[data-page="queueing"].dupr-labels-hidden #queueMainArea .queue-modern-item > .queue-main-info > .queue-dupr-line > .queue-dupr-inline-edit {
+  top: -19px !important;
+  opacity: 0 !important;
+}
+/* Keep the existing 3px visual spacing between stats and check-in lines when
+   the DUPR track collapses; all other queue row gaps remain unchanged. */
+html body[data-page="queueing"].dupr-labels-hidden #queueMainArea .queue-modern-item > .queue-main-info > .queue-time-line {
+  margin-top: -3px !important;
+  transition: margin-top 120ms ease !important;
+}
+html body[data-page="queueing"] #queueMainArea .queue-modern-item > .queue-main-info > .queue-time-line {
+  transition: margin-top 120ms ease !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html body[data-page="queueing"] #queueMainArea .queue-modern-item,
+  html body[data-page="queueing"] #queueMainArea .queue-modern-item > .queue-main-info > .queue-dupr-line,
+  html body[data-page="queueing"] #queueMainArea .queue-modern-item > .queue-main-info > .queue-dupr-line > .queue-dupr-badge,
+  html body[data-page="queueing"] #queueMainArea .queue-modern-item > .queue-main-info > .queue-dupr-line > .queue-dupr-inline-edit,
+  html body[data-page="queueing"] #queueMainArea .queue-modern-item > .queue-main-info > .queue-time-line {
+    transition: none !important;
+  }
+}
+
+
+/* 2026-10-30 cloud editor motion refinement — transform-only, synchronized slide.
+   Keep the records panel at a fixed width while it moves so player rows never
+   reflow mid-transition. Both panels share one gentle ease-in-out motion curve. */
+html body #cloudRecordsModal > .modal-box.cloud-records-modal-box {
+  width: min(560px, calc(100vw - 24px)) !important;
+  max-width: 560px !important;
+  translate: 0 0 !important;
+  transform: translate3d(0, 0, 0) !important;
+  transition: transform 680ms cubic-bezier(.4, 0, .2, 1) !important;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+html body #cloudRecordsModal.has-cloud-player-edit-panel > .modal-box.cloud-records-modal-box {
+  width: min(560px, calc(100vw - 24px)) !important;
+  max-width: 560px !important;
+  translate: 0 0 !important;
+  transform: translate3d(calc((var(--cloud-player-edit-panel-width) + var(--cloud-player-edit-gap)) / 2), 0, 0) !important;
+}
+/* Small screens keep the edit drawer as an overlay; the list only eases a few pixels. */
+html body #cloudRecordsModal.cloud-player-edit-overlay-mode.has-cloud-player-edit-panel > .modal-box.cloud-records-modal-box {
+  width: min(560px, calc(100vw - 24px)) !important;
+  max-width: 560px !important;
+  translate: 0 0 !important;
+  transform: translate3d(8px, 0, 0) !important;
+}
+html body #cloudRecordsModal > .cloud-player-edit-modal {
+  opacity: 0 !important;
+  transform: translate3d(-36px, 0, 0) !important;
+  transition:
+    opacity 460ms cubic-bezier(.4, 0, .2, 1),
+    transform 680ms cubic-bezier(.4, 0, .2, 1),
+    visibility 0s linear 700ms !important;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+html body #cloudRecordsModal > .cloud-player-edit-modal.is-open {
+  opacity: 1 !important;
+  transform: translate3d(0, 0, 0) !important;
+  transition:
+    opacity 460ms cubic-bezier(.4, 0, .2, 1),
+    transform 680ms cubic-bezier(.4, 0, .2, 1),
+    visibility 0s linear 0s !important;
+}
+/* Avoid a second nested slide: the drawer owns the movement; the form only fades in. */
+html body #cloudRecordsModal #cloudPlayerEditForm.cloud-player-edit-box {
+  opacity: 0 !important;
+  transform: none !important;
+  transition: opacity 420ms cubic-bezier(.4, 0, .2, 1) !important;
+}
+html body #cloudRecordsModal > .cloud-player-edit-modal.is-open #cloudPlayerEditForm.cloud-player-edit-box {
+  opacity: 1 !important;
+  transform: none !important;
+}
+@media (max-width: 620px) {
+  html body #cloudRecordsModal > .modal-box.cloud-records-modal-box,
+  html body #cloudRecordsModal.has-cloud-player-edit-panel > .modal-box.cloud-records-modal-box,
+  html body #cloudRecordsModal.cloud-player-edit-overlay-mode.has-cloud-player-edit-panel > .modal-box.cloud-records-modal-box {
+    width: calc(100vw - 24px) !important;
+    max-width: 560px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body #cloudRecordsModal > .modal-box.cloud-records-modal-box,
+  html body #cloudRecordsModal > .cloud-player-edit-modal,
+  html body #cloudRecordsModal #cloudPlayerEditForm.cloud-player-edit-box {
+    transition: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+}
+
+/* DUPR edit fields — amber dashed outline only. Keep fill, text, sizing, and behavior unchanged. */
+html body .court-dupr-inline-edit .court-dupr-edit-fields,
+html body .court-dupr-inline-edit .court-dupr-edit-fields.is-unrated,
+html body #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields,
+html body #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields.is-unrated {
+  border-color: #f59e0b !important;
+}
+
+
+/* DUPR edit mode — amber fill, label, and typed text.
+   Scoped only to the active Court and Queue inline editors; view-mode badges,
+   action buttons, dimensions, and editing behavior remain unchanged. */
+html body .court-dupr-inline-edit .court-dupr-edit-fields,
+html body .court-dupr-inline-edit .court-dupr-edit-fields.is-unrated,
+html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields,
+html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields.is-unrated {
+  background: #fff7e6 !important;
+  background-color: #fff7e6 !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+}
+
+html body .court-dupr-inline-edit .court-dupr-prefix,
+html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-prefix {
+  color: #b45309 !important;
+}
+
+html body .court-dupr-inline-edit .court-dupr-id-input,
+html body .court-dupr-inline-edit .court-dupr-id-input:focus,
+html body .court-dupr-inline-edit .court-dupr-id-input:hover,
+html body .court-dupr-inline-edit input,
+html body .court-dupr-inline-edit input:focus,
+html body .court-dupr-inline-edit input:hover,
+html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit #queueDuprIdInput,
+html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit #queueDuprIdInput:focus,
+html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit #queueDuprIdInput:hover,
+html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields input,
+html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields input:focus,
+html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-dupr-edit-fields input:hover {
+  color: #92400e !important;
+  -webkit-text-fill-color: #92400e !important;
+  caret-color: #b45309 !important;
+  background: transparent !important;
 }

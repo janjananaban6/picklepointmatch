@@ -4363,3 +4363,18 @@ html body #waitingCourtsList .court-diagram.pickleball-court.is-singles .court-p
   width: 100%;
   height: 100%;
 }
+
+
+/* Slightly reduce the queue-position number circle in Live View. */
+.queue-item > .queue-avatar-stack > .queue-position-badge {
+  width: 15px;
+  height: 15px;
+  font-size: 7px;
+}
+@media (max-width: 560px) {
+  .queue-item > .queue-avatar-stack > .queue-position-badge {
+    width: 14px;
+    height: 14px;
+    font-size: 7px;
+  }
+}

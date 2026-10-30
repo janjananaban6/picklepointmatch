@@ -2068,17 +2068,6 @@ html body.registration-page-body .registration-page-icon-float {
   box-shadow: none !important;
 }
 /* The intro heading matches index.html's #loginTitle / .login-heading h1 typography. */
-html body.registration-page-body .registration-page-intro h1 {
-  width: 100% !important;
-  margin: 0 0 8px !important;
-  color: #fff !important;
-  font-family: 'Manrope', sans-serif !important;
-  font-size: clamp(22px, 6vw, 24px) !important;
-  font-weight: 800 !important;
-  letter-spacing: -.035em !important;
-  line-height: 1.22 !important;
-  text-align: center !important;
-}
 /* The page uses the intro title instead of the removed panel heading. */
 html body.registration-page-body .registration-page-panel-heading,
 html body.registration-page-body .registration-page-form .registration-head {

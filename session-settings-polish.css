@@ -1,14 +1,5 @@
 /* Session start settings: restrained, no-jump interactions and monochrome mode icons. */
 
-#liveQueueStartScreen .live-queue-start-card,
-#liveQueueStartScreen .live-queue-start-panel,
-#liveQueueStartScreen .existing-live-queue,
-#liveQueueStartScreen .continue-live-queue-btn {
-  transform: none !important;
-  translate: none !important;
-  transition: box-shadow .34s cubic-bezier(.2,.75,.25,1), background-color .34s ease, border-color .34s ease, color .28s ease !important;
-}
-
 #liveQueueStartScreen .live-queue-choice,
 #liveQueueStartScreen .live-queue-game,
 #liveQueueStartScreen .live-queue-matching-option,
