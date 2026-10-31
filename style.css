@@ -20428,21 +20428,6 @@ html body[data-page="start"] #liveQueueStartScreen .brand-words > small {
    The slot is the 50px login-topbar equivalent;
 its inner login-brand uses the
    same absolute centering model, font metrics, logo sizes, and narrow-screen rules. */
-html body[data-page="start"] #liveQueueStartScreen > .live-queue-start-brand-slot {
-  position: relative !important;
-  display: flex !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  min-height: 50px !important;
-  flex: 0 0 auto !important;
-  align-items: center !important;
-  justify-content: center !important;
-  align-self: stretch !important;
-  margin: 0 auto 15px !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
 html body[data-page="start"] #liveQueueStartScreen .login-brand.live-queue-start-brand {
   position: absolute !important;
   top: 50% !important;
@@ -23807,7 +23792,6 @@ html body #cloudRecordsModal #cloudPlayerEditForm .cloud-edit-category-menu > bu
 html body #cloudRecordsModal #cloudPlayerEditForm .cloud-edit-category-menu > button.selected,
 html body #cloudRecordsModal #cloudPlayerEditForm .cloud-edit-category-menu > button[aria-selected="true"] {background:#e7f0fd!important;color:#283b53!important;font-weight:700!important;}
 html body #cloudRecordsModal #cloudPlayerEditForm .cloud-player-edit-dupr-field {gap:6px!important;margin-bottom:3px!important;}
-html body #cloudRecordsModal #cloudPlayerEditForm .cloud-edit-dupr-row {display:flex!important;align-items:center!important;gap:6px!important;width:100%!important;min-width:0!important;}
 html body #cloudRecordsModal #cloudPlayerEditForm .cloud-edit-dupr-logo {display:block!important;flex:0 0 48px!important;width:48px!important;height:24px!important;max-width:48px!important;overflow:hidden!important;border-radius:4px!important;}
 html body #cloudRecordsModal #cloudPlayerEditForm .cloud-edit-dupr-slots {display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;align-items:center!important;gap:4px!important;flex:1 1 auto!important;min-width:0!important;}
 html body #cloudRecordsModal #cloudPlayerEditForm .cloud-edit-dupr-slot {

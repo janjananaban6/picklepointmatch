@@ -30,7 +30,6 @@
   const organizerLogoPreview = document.getElementById('organizerLogoPreview');
   const organizerLogoPlaceholder = document.getElementById('organizerLogoPlaceholder');
   const removeOrganizerLogo = document.getElementById('removeOrganizerLogo');
-  const params = new URLSearchParams(window.location.search);
 
   let loginPending = false;
   let registerPending = false;
@@ -42,15 +41,6 @@
   let panelLoginAccount = null;
   let accountsLoaded = false;
   let accountsLoadError = false;
-
-  function safeNextPath() {
-    const next = String(params.get('next') || 'session.html');
-    if (!/^\/(session\.html|queueing\.html)(\?.*)?$/.test(next)) {
-      if (/^(session\.html|queueing\.html)(\?.*)?$/.test(next)) return `/${next}`;
-      return '/session.html';
-    }
-    return next;
-  }
 
   function setMessage(element, text, kind = 'error') {
     if (!element) return;
@@ -580,7 +570,7 @@
         throw new Error(status?.error || `Login service returned HTTP ${response.status}.`);
       }
       if (status.authenticated) {
-        window.location.replace(status.role === 'panel' ? '/panel.html' : safeNextPath());
+        window.location.replace(status.role === 'panel' ? '/panel.html' : '/dashboard.html');
         return;
       }
       if (!status.panelConfigured && !status.configured) {
@@ -630,7 +620,7 @@
       if (result.role !== 'panel' && result.role !== 'organizer') {
         throw new Error('The server response was incomplete. Please refresh the login page and try again.');
       }
-      window.location.replace(result.role === 'panel' ? '/panel.html' : safeNextPath());
+      window.location.replace(result.role === 'panel' ? '/panel.html' : '/dashboard.html');
     } catch (error) {
       const detail = String(error?.message || '');
       const userMessage = /failed to fetch|networkerror|load failed|fetch failed/i.test(detail)

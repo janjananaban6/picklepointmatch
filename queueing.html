@@ -10,6 +10,8 @@
       // Keep state-dependent queueing elements from painting their temporary
       // pre-hydration state. Geometry is preserved until local/shared state is ready.
       var root = document.documentElement;
+      var settingsShortcut = new URLSearchParams(window.location.search).get("settings") === "1";
+      if (settingsShortcut) root.classList.add("queueing-settings-shortcut");
       root.classList.add("queueing-startup-pending");
       var startupReleased = false;
       var releaseTimer = null;
@@ -43,7 +45,7 @@
 
       function updateQueueingDeviceAccess() {
         var isSmallScreen = window.matchMedia && window.matchMedia("(max-width: 767px)").matches;
-        document.documentElement.classList.toggle("queueing-mobile-blocked", !isIPad && (isPhone || isSmallScreen));
+        document.documentElement.classList.toggle("queueing-mobile-blocked", !settingsShortcut && !isIPad && (isPhone || isSmallScreen));
       }
 
       updateQueueingDeviceAccess();
@@ -62,6 +64,10 @@
   <style>
     /* Queueing-only mobile access notice; no styles are applied to other pages. */
     #queueingMobileBlock { display: none; }
+    html.queueing-settings-shortcut #queueingMobileBlock { display: none !important; }
+    html.queueing-settings-shortcut body[data-page="queueing"] { overflow: hidden !important; }
+    html.queueing-settings-shortcut body[data-page="queueing"] > :not(#courtSettingsModal):not(script):not(#tabletResultsModal) { visibility: hidden !important; pointer-events: none !important; }
+    html.queueing-settings-shortcut #courtSettingsModal { visibility: visible !important; pointer-events: auto !important; }
     html.queueing-mobile-blocked body[data-page="queueing"] { overflow: hidden !important; }
     html.queueing-mobile-blocked body[data-page="queueing"] > :not(#queueingMobileBlock) {
       display: none !important;
@@ -641,7 +647,7 @@ Maria Santos,Female"></textarea>
 
 <div class="toast" id="toast"></div>
 <script src="auth-session.js?v=organizer-display-name-20261024-1"></script>
-<script src="queueing-app-loader.js?v=queueing-refresh-stability-20261030-1-cloud-slide-ease&organizer-stat-text-only=20261029-1&queueing-startup-stability=20261029-1&cloud-category-full-labels=20261029-2-live-edit-follow&attendee-panel-no-auto-open=20261028-1&session-lifecycle-qr-guards=20261028-2&dupr-csv-export=20261028-3&dupr-location=20261026-1&organizer-logo-cache-20261026-1&event-rules-enabled-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&dupr-label-toggle-20261026-1&queue-dupr-toggle-header=20261026-2&queue-dupr-text-only=20261026-1&organizer-scoped-dupr-registration=20261028-1&end-session-attendee-panel=20261029-1-synced-motion&left-player-dupr-id=20261029-1&registered-cloud-dupr-inline-edit=20261029-2&cloud-dupr-stable-anchor=20261029-2&cloud-dupr-no-shift-final=20261029-1&queue-self-rating-removed=20261029-1&dupr-id-no-spaces=20261029-1&cloud-edit-side-panel=20261029-1-smooth-slide&cloud-player-edit-form=20261029-2-category-buttons&cloud-edit-live-preview=20261029-1&cloud-edit-gender-two-options=20261029-1&cloud-edit-dupr-empty-state=20261029-1&cloud-edit-live-follow-responsive=20261029-2-no-autofocus-fit-content&cloud-edit-width=20261029-1&cloud-edit-loading-animation=20261029-1&cloud-record-actions=20261029-1&court-dupr-input-text=20261029-1" defer></script>
+<script src="queueing-app-loader.js?v=queueing-dupr-location-archive-20261031-1&organizer-stat-text-only=20261029-1&queueing-startup-stability=20261029-1&cloud-category-full-labels=20261029-2-live-edit-follow&attendee-panel-no-auto-open=20261028-1&session-lifecycle-qr-guards=20261028-2&dupr-csv-export=20261028-3&dupr-location-archive=20261031-1&organizer-logo-cache-20261026-1&event-rules-enabled-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&dupr-label-toggle-20261026-1&queue-dupr-toggle-header=20261026-2&queue-dupr-text-only=20261026-1&organizer-scoped-dupr-registration=20261028-1&end-session-attendee-panel=20261029-1-synced-motion&left-player-dupr-id=20261029-1&registered-cloud-dupr-inline-edit=20261029-2&cloud-dupr-stable-anchor=20261029-2&cloud-dupr-no-shift-final=20261029-1&queue-self-rating-removed=20261029-1&dupr-id-no-spaces=20261029-1&cloud-edit-side-panel=20261029-1-smooth-slide&cloud-player-edit-form=20261029-2-category-buttons&cloud-edit-live-preview=20261029-1&cloud-edit-gender-two-options=20261029-1&cloud-edit-dupr-empty-state=20261029-1&cloud-edit-live-follow-responsive=20261029-2-no-autofocus-fit-content&cloud-edit-width=20261029-1&cloud-edit-loading-animation=20261029-1&cloud-record-actions=20261029-1&court-dupr-input-text=20261029-1" defer></script>
 
 
 

@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Organizer attendance and completed match records for Pickle Point Match.">
+  <title>Organizer Dashboard — Pickle Point Match</title>
+  <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css?v=session-created-time-range-fix-20261031-01">
+  <script src="dashboard.js?v=session-created-time-range-fix-20261031-01" defer></script>
+</head>
+<body class="organizer-dashboard-page">
+  <header class="dashboard-topbar">
+    <div class="dashboard-topbar-inner">
+      <a class="dashboard-brand" id="dashboardBrandLink" href="dashboard.html" title="Go to dashboard home" aria-label="Organizer dashboard home">
+        <span class="dashboard-brand-logo-wrap"><img id="organizerLogo" src="pickleball-p-emblem.png" alt="Organizer logo" decoding="async" draggable="false"></span>
+        <span class="dashboard-brand-copy">
+          <strong id="organizerClubName">Organizer Dashboard</strong>
+          <span class="dashboard-brand-meta">
+            <span class="dashboard-brand-username" id="organizerUsername"></span>
+            <span class="dashboard-brand-dupr-badge" id="organizerDuprBadge" hidden></span>
+          </span>
+        </span>
+      </a>
+      <nav class="dashboard-actions" aria-label="Organizer actions">
+        <a class="dashboard-action create-action" href="session.html" target="_blank" rel="noopener" aria-label="Create session" title="Create session">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Create Session</span>
+        </a>
+        <div class="dashboard-action-group" role="group" aria-label="Dashboard actions">
+          <button class="dashboard-action settings-action" id="openSettingsButton" type="button" aria-label="Settings">
+            <span class="settings-action-icon" aria-hidden="true">&#x2699;&#xFE0E;</span>
+            <span>Settings</span>
+          </button>
+          <button class="dashboard-action logout-action" id="logoutButton" type="button" aria-label="Log out" title="Log out">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M14 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></svg>
+            <span>Logout</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="dashboard-main">
+    <div class="dashboard-records-layout">
+      <section class="records-card records-toolbar-card" aria-label="Session selection">
+        <div class="records-toolbar">
+        <div class="session-picker-wrap">
+          <label for="sessionSelect">SELECT OPEN PLAY SESSION</label>
+          <div class="session-select-shell" id="sessionSelectShell">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M7.5 3v4M16.5 3v4M3.5 10h17"/></svg>
+            <input id="sessionSelectSearch" type="text" role="combobox" aria-label="Select session" aria-autocomplete="list" aria-controls="sessionSelectOptions" aria-expanded="false" autocomplete="off" spellcheck="false" placeholder="Search sessions…">
+            <button class="session-select-clear" id="sessionSelectClear" type="button" aria-label="Clear session search" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+            <button class="session-select-toggle" id="sessionSelectToggle" type="button" aria-label="Show sessions" aria-expanded="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.5 9 5.5 5.5L17.5 9"/></svg>
+            </button>
+            <select id="sessionSelect" class="session-native-select" aria-hidden="true" tabindex="-1">
+              <option value="">Loading sessions…</option>
+            </select>
+            <div class="session-select-options" id="sessionSelectOptions" role="listbox" aria-label="Available sessions" hidden></div>
+          </div>
+          <p id="selectedSessionMeta" class="selected-session-meta" aria-live="polite"></p>
+        </div>
+        </div>
+      </section>
+
+      <nav class="records-card dashboard-tabs-card" aria-label="Dashboard sections">
+        <div class="dashboard-tabs" role="tablist" aria-label="Dashboard records">
+        <button class="dashboard-tab is-active" id="attendanceTab" type="button" role="tab" aria-selected="true" aria-controls="attendanceView" data-tab="attendance">
+          <span class="tab-icon">▤</span> Attendance
+        </button>
+        <button class="dashboard-tab" id="matchesTab" type="button" role="tab" aria-selected="false" aria-controls="matchesView" data-tab="matches">
+          <span class="tab-icon">🏓</span> Matches
+        </button>
+        <button class="dashboard-tab" id="sessionsTab" type="button" role="tab" aria-selected="false" aria-controls="sessionsView" data-tab="sessions">
+          <span class="tab-icon">▣</span> Sessions
+        </button>
+        </div>
+      </nav>
+
+      <section class="records-card records-content-card" aria-label="Organizer session records">
+      <section class="records-view" id="attendanceView" role="tabpanel" aria-labelledby="attendanceTab">
+        <div class="view-heading">
+          <div class="view-heading-copy">
+            <div class="view-heading-title-line"><h2>Participants</h2><span class="queueCountBadge count-total-attendance" id="attendanceTotal">(0)</span></div>
+            <p id="attendanceSubtitle"></p>
+          </div>
+        </div>
+        <label class="records-search-wrap" for="attendanceSearch">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+          <input id="attendanceSearch" type="search" placeholder="Search participant name…" autocomplete="off">
+        </label>
+        <div class="participant-list" id="participantList" aria-live="polite">
+          <div class="dashboard-loading"><span class="loading-spinner"></span> Loading attendance…</div>
+        </div>
+      </section>
+
+      <section class="records-view" id="matchesView" role="tabpanel" aria-labelledby="matchesTab" hidden>
+        <div class="view-heading">
+          <div class="view-heading-copy">
+            <div class="view-heading-title-line"><h2>Match History</h2><span class="queueCountBadge count-total-attendance" id="matchesTotal">(0)</span></div>
+            <p id="matchesSubtitle"></p>
+          </div>
+        </div>
+        <div class="match-filter-toolbar" id="matchFilterToolbar" aria-label="Match date filters">
+          <div class="match-date-field"><label for="matchesFromDate">From</label><input id="matchesFromDate" type="datetime-local" step="1"></div>
+          <div class="match-date-field"><label for="matchesToDate">To</label><input id="matchesToDate" type="datetime-local" step="1"></div>
+          <div class="match-range-buttons" role="group" aria-label="Quick date range">
+            <button class="match-range-button" type="button" data-match-range="today" aria-pressed="false">Today</button>
+            <button class="match-range-button" type="button" data-match-range="7" aria-pressed="false">7 Days</button>
+            <button class="match-range-button" type="button" data-match-range="30" aria-pressed="false">30 Days</button>
+            <button class="match-range-button" type="button" data-match-range="all" aria-pressed="false">All Time</button>
+          </div>
+        </div>
+        <div class="matches-search-actions-row">
+          <label class="records-search-wrap matches-search-wrap" for="matchesSearch">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+            <input id="matchesSearch" type="search" placeholder="Search player name…" autocomplete="off">
+          </label>
+          <div class="match-filter-actions" aria-label="Match actions">
+            <button class="match-refresh-button" id="refreshMatchesButton" type="button"><span aria-hidden="true">↻</span> Refresh</button>
+            <button class="match-export-button" id="exportMatchesButton" type="button" disabled><span aria-hidden="true">⇩</span> Export DUPR CSV (<strong id="duprExportCount">0</strong>)</button>
+          </div>
+        </div>
+        <div class="matches-summary-card" aria-live="polite"><strong id="matchesPlayedCount">0</strong><span>Matches Played</span></div>
+        <div class="match-list" id="matchList" aria-live="polite">
+          <div class="dashboard-loading"><span class="loading-spinner"></span> Loading match history…</div>
+        </div>
+      </section>
+
+      <section class="records-view" id="sessionsView" role="tabpanel" aria-labelledby="sessionsTab" hidden>
+        <div class="view-heading">
+          <div class="view-heading-copy">
+            <div class="view-heading-title-line"><h2>Manage Sessions</h2><span class="queueCountBadge count-total-attendance" id="sessionsTotal">(0)</span></div>
+            <p>Edit session details or remove a session and its saved match records.</p>
+          </div>
+        </div>
+        <label class="records-search-wrap" for="sessionsSearch">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+          <input id="sessionsSearch" type="search" placeholder="Search session name…" autocomplete="off">
+        </label>
+        <div class="session-management-list" id="sessionManagementList" aria-live="polite">
+          <div class="dashboard-loading"><span class="loading-spinner"></span> Loading sessions…</div>
+        </div>
+      </section>
+      </section>
+    </div>
+    <footer class="dashboard-footer"><span>🏓 PICKLE POINT MATCH</span><span>Organizer Dashboard</span></footer>
+  </main>
+
+  <div class="dashboard-toast" id="dashboardToast" role="status" aria-live="polite"></div>
+
+  <div class="dashboard-modal-backdrop dupr-export-backdrop" id="duprExportModal" hidden>
+    <section class="dupr-export-modal" role="dialog" aria-modal="true" aria-labelledby="duprExportTitle">
+      <header class="dupr-export-header">
+        <div class="dupr-export-heading-copy">
+          <h2 id="duprExportTitle">Export to DUPR</h2>
+          <p id="duprExportSubheading">Preparing your DUPR-ready matches…</p>
+        </div>
+        <div class="dupr-export-header-actions">
+          <button class="dupr-export-refresh" id="refreshDuprIdsButton" type="button"><span aria-hidden="true">↻</span> Refresh IDs</button>
+          <button class="dupr-export-close" id="closeDuprExportModal" type="button" aria-label="Close export window">×</button>
+        </div>
+      </header>
+      <nav class="dupr-export-filters" id="duprExportFilters" aria-label="Filter DUPR matches">
+        <button class="dupr-export-filter is-active" type="button" data-dupr-export-filter="all" aria-pressed="true">All (<span id="duprExportCount-all">0</span>)</button>
+        <button class="dupr-export-filter" type="button" data-dupr-export-filter="not-submitted" aria-pressed="false">Not Submitted (<span id="duprExportCount-not-submitted">0</span>)</button>
+        <button class="dupr-export-filter" type="button" data-dupr-export-filter="already-submitted" aria-pressed="false">Already Submitted (<span id="duprExportCount-already-submitted">0</span>)</button>
+        <button class="dupr-export-filter" type="button" data-dupr-export-filter="all-have-dupr" aria-pressed="false">All Players Have DUPR (<span id="duprExportCount-all-have-dupr">0</span>)</button>
+        <button class="dupr-export-filter" type="button" data-dupr-export-filter="missing-dupr" aria-pressed="false">Missing DUPR (<span id="duprExportCount-missing-dupr">0</span>)</button>
+      </nav>
+      <div class="dupr-export-fields">
+        <label class="dupr-export-field"><span>EVENT NAME</span><input id="duprExportEventName" type="text" maxlength="180" autocomplete="off" placeholder="Use each session name when blank"></label>
+        <label class="dupr-export-field"><span>LOCATION</span><input id="duprExportLocation" type="text" maxlength="180" autocomplete="off" placeholder="Use each session location when blank"></label>
+        <label class="dupr-export-field"><span>SCORE TYPE</span><select id="duprExportScoreType"><option value="RALLY">RALLY</option><option value="SIDEOUT">SIDEOUT</option></select></label>
+      </div>
+      <main class="dupr-export-main">
+        <section class="dupr-missing-notice" id="duprMissingNotice" aria-live="polite" hidden>
+          <div class="dupr-missing-heading"><strong><span id="duprMissingPlayersCount">0</span> players missing a DUPR ID</strong><span>Update IDs in Registered Player Cloud</span></div>
+          <div class="dupr-missing-player-list" id="duprMissingPlayersList"></div>
+        </section>
+        <div class="dupr-export-table-wrap" id="duprExportTableWrap">
+          <table class="dupr-export-table"><thead><tr><th>#</th><th>TYPE</th><th>DATE</th><th>PLAYER A1</th><th>DUPR ID</th><th>PLAYER A2</th><th>DUPR ID</th><th>PLAYER B1</th><th>DUPR ID</th><th>PLAYER B2</th><th>DUPR ID</th><th>A</th><th>B</th></tr></thead><tbody id="duprExportTableBody"></tbody></table>
+        </div>
+        <div class="dupr-export-empty" id="duprExportEmpty" hidden>No matches found for this filter.</div>
+      </main>
+      <footer class="dupr-export-footer">
+        <p id="duprExportFooterCount">0 matches</p>
+        <div class="dupr-export-footer-actions"><button class="dupr-mark-submitted" id="duprMarkSubmittedButton" type="button" disabled>Mark as Submitted</button><button class="dupr-download-csv" id="duprExportDownloadButton" type="button" disabled><span aria-hidden="true">⇩</span> Download CSV</button></div>
+      </footer>
+    </section>
+  </div>
+
+  <div class="dashboard-modal-backdrop settings-modal-backdrop" id="sessionEditModal" hidden>
+    <section class="dashboard-modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="sessionEditTitle">
+      <form id="sessionEditForm" class="settings-organizer-form" autocomplete="off">
+        <div class="settings-modal-heading">
+          <h2 id="sessionEditTitle">Edit Session</h2>
+          <p>Update the session name or completion date.</p>
+        </div>
+        <div class="settings-field-group">
+          <label class="settings-field-label" for="sessionEditName">SESSION NAME</label>
+          <input class="dashboard-modal-input" id="sessionEditName" type="text" maxlength="200" required autocomplete="off" placeholder="Enter session name">
+        </div>
+        <div class="settings-field-group session-edit-range-group">
+          <label class="settings-field-label" for="sessionEditDateTrigger">SESSION DATE RANGE <span>(optional)</span></label>
+          <input id="sessionEditEndedAt" type="hidden">
+          <div class="session-edit-date-picker" id="sessionEditDatePicker">
+            <button class="session-edit-date-trigger" id="sessionEditDateTrigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="sessionEditCalendar">
+              <svg class="session-edit-calendar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M7.5 3v4M16.5 3v4M3.5 9.5h17"/></svg>
+              <span class="session-edit-date-trigger-copy">
+                <strong id="sessionEditDateLabel">Select a day</strong>
+              </span>
+              <svg class="session-edit-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+            </button>
+            <div class="session-edit-calendar" id="sessionEditCalendar" role="dialog" aria-label="Choose session date" hidden>
+              <div class="session-edit-calendar-header">
+                <strong id="sessionEditMonthLabel">October 2026</strong>
+                <div class="session-edit-calendar-nav">
+                  <button id="sessionEditPrevMonth" type="button" aria-label="Previous month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+                  <button id="sessionEditNextMonth" type="button" aria-label="Next month"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+                </div>
+              </div>
+              <div class="session-edit-weekdays" aria-hidden="true"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+              <div class="session-edit-calendar-grid" id="sessionEditCalendarGrid" role="group" aria-label="Calendar days"></div>
+              <div class="session-edit-calendar-footer">
+                <button class="session-edit-calendar-remove" id="sessionEditRemoveButton" type="button">Remove</button>
+                <button class="session-edit-calendar-done" id="sessionEditDoneButton" type="button">Done</button>
+              </div>
+            </div>
+          </div>
+          <div class="session-edit-time-range">
+            <div class="session-edit-time-field">
+              <label for="sessionEditStartTimePreview">Started at</label>
+              <output class="session-edit-time-output" id="sessionEditStartTimePreview">—</output>
+            </div>
+            <div class="session-edit-time-field">
+              <label for="sessionEditEndPreview">Ends at</label>
+              <output class="session-edit-time-output" id="sessionEditEndPreview" aria-live="polite">—</output>
+            </div>
+          </div>
+          <p class="session-edit-range-note">Changing the date shifts the session and its recorded matches together. Times stay unchanged.</p>
+        </div>
+        <div class="settings-modal-actions">
+          <button class="dashboard-modal-btn secondary settings-cancel-button" id="cancelSessionEditButton" type="button">Cancel</button>
+          <button class="dashboard-modal-btn primary settings-save-button" id="saveSessionEditButton" type="submit">Save Changes</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <datalist id="attendanceCloudPlayerSuggestions"></datalist>
+
+
+  <div class="dashboard-modal-backdrop settings-modal-backdrop" id="settingsModal" hidden>
+    <section class="dashboard-modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <form id="settingsForm" class="settings-organizer-form" autocomplete="off">
+        <div class="settings-modal-heading">
+          <h2 id="settingsTitle">Organizer Settings</h2>
+          <p>Update your organizer profile, logo, DUPR ID, or password.</p>
+        </div>
+
+        <div class="settings-logo-editor">
+          <span class="settings-logo-preview"><img id="settingsLogoPreview" src="pickleball-p-emblem.png" alt="Organizer logo"></span>
+          <div class="settings-logo-copy">
+            <strong>Organizer logo <span class="settings-required-note">Required</span></strong>
+            <p>A logo is required for your organizer profile. Most image formats are supported; the image is resized and compressed automatically before saving.</p>
+            <div class="settings-logo-actions">
+              <label class="settings-upload-button" for="settingsLogoInput">Replace Logo</label>
+              <button class="settings-remove-logo" id="removeSettingsLogoButton" type="button">Remove</button>
+            </div>
+            <input id="settingsLogoInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+          </div>
+        </div>
+
+        <div class="settings-identity-grid">
+          <div class="settings-field-group">
+            <label class="settings-field-label" for="settingsClubName">CLUB OR ORGANIZER NAME</label>
+            <input class="dashboard-modal-input" id="settingsClubName" type="text" maxlength="80" required autocomplete="organization" placeholder="e.g. Gensan Open Play">
+          </div>
+          <div class="settings-field-group">
+            <label class="settings-field-label" for="settingsUsername">USERNAME</label>
+            <input class="dashboard-modal-input is-readonly" id="settingsUsername" type="text" readonly disabled autocomplete="username" aria-describedby="settingsUsernameHelp">
+            <p class="settings-field-help" id="settingsUsernameHelp">Username cannot be edited.</p>
+          </div>
+        </div>
+
+        <section class="settings-password-section" aria-labelledby="settingsPasswordTitle">
+          <div class="settings-subheading">
+            <h3 id="settingsPasswordTitle">Change password</h3>
+            <p>Leave the password fields blank to keep your current password.</p>
+          </div>
+          <div class="settings-field-group">
+            <label class="settings-field-label" for="settingsCurrentPassword">CURRENT PASSWORD</label>
+            <input class="dashboard-modal-input settings-password-input" id="settingsCurrentPassword" type="password" maxlength="200" autocomplete="current-password" placeholder="Enter current password">
+          </div>
+          <div class="settings-password-grid">
+            <div class="settings-field-group">
+              <label class="settings-field-label" for="settingsNewPassword">NEW PASSWORD</label>
+              <input class="dashboard-modal-input settings-password-input" id="settingsNewPassword" type="password" minlength="8" maxlength="200" autocomplete="new-password" placeholder="Create a strong password">
+              <p class="settings-inline-note">8 characters minimum</p>
+            </div>
+            <div class="settings-field-group">
+              <label class="settings-field-label" for="settingsConfirmPassword">CONFIRM PASSWORD</label>
+              <input class="dashboard-modal-input settings-password-input" id="settingsConfirmPassword" type="password" minlength="8" maxlength="200" autocomplete="new-password" placeholder="Repeat your password">
+            </div>
+          </div>
+          <button class="settings-show-passwords" id="settingsShowPasswords" type="button" aria-pressed="false">Show passwords</button>
+        </section>
+
+        <div class="settings-dupr-section">
+          <label id="settingsDuprLabel" class="settings-field-label settings-dupr-label" for="settingsDuprSlot1">DUPR ID</label>
+          <div class="settings-dupr-row">
+            <svg class="settings-dupr-logo" viewBox="0 0 64 32" role="img" aria-label="DUPR logo"><rect width="64" height="32" rx="4" fill="#021861"/><text x="32" y="22" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="900" letter-spacing="-0.7" fill="#ffffff">DUPR</text></svg>
+            <div class="settings-dupr-slots" id="settingsDuprSlots" role="group" aria-labelledby="settingsDuprLabel" aria-describedby="settingsDuprHint">
+              <input id="settingsDuprSlot1" class="settings-dupr-slot" type="text" inputmode="text" maxlength="1" placeholder="1" aria-label="DUPR ID character 1 of 6" autocomplete="off" autocapitalize="characters" spellcheck="false">
+              <input id="settingsDuprSlot2" class="settings-dupr-slot" type="text" inputmode="text" maxlength="1" placeholder="A" aria-label="DUPR ID character 2 of 6" autocomplete="off" autocapitalize="characters" spellcheck="false">
+              <input id="settingsDuprSlot3" class="settings-dupr-slot" type="text" inputmode="text" maxlength="1" placeholder="2" aria-label="DUPR ID character 3 of 6" autocomplete="off" autocapitalize="characters" spellcheck="false">
+              <input id="settingsDuprSlot4" class="settings-dupr-slot" type="text" inputmode="text" maxlength="1" placeholder="B" aria-label="DUPR ID character 4 of 6" autocomplete="off" autocapitalize="characters" spellcheck="false">
+              <input id="settingsDuprSlot5" class="settings-dupr-slot" type="text" inputmode="text" maxlength="1" placeholder="3" aria-label="DUPR ID character 5 of 6" autocomplete="off" autocapitalize="characters" spellcheck="false">
+              <input id="settingsDuprSlot6" class="settings-dupr-slot" type="text" inputmode="text" maxlength="1" placeholder="C" aria-label="DUPR ID character 6 of 6" autocomplete="off" autocapitalize="characters" spellcheck="false">
+            </div>
+            <input id="settingsOrganizerDuprId" name="duprId" type="hidden" autocomplete="off">
+          </div>
+          <p class="settings-inline-note settings-dupr-required-note">Required · 6 characters</p>
+          <p class="settings-dupr-hint" id="settingsDuprHint">Enter all 6 characters of your organizer DUPR ID, for example 1A2B3C.</p>
+        </div>
+
+        <div class="settings-form-message" id="settingsFormMessage" role="status" aria-live="polite"></div>
+        <div class="settings-modal-actions">
+          <button class="dashboard-modal-btn secondary settings-cancel-button" id="cancelSettingsButton" type="button">Cancel</button>
+          <button class="dashboard-modal-btn primary settings-save-button" id="saveSettingsButton" type="submit">Save settings</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+</body>
+</html>

@@ -130,6 +130,33 @@ function flushCloudRecordsSync(){
     .catch(()=>{failed=true;cloudSyncPending=cloneSharedData(cloudRecords);scheduleSharedSyncRetry();})
     .finally(()=>{cloudSyncInFlight=false;if(cloudSyncPending&&!failed)flushCloudRecordsSync();});
 }
+async function waitForCloudRecordsSync(timeoutMs=25000){
+  if(!isHttpApp())return true;
+  const startedAt=Date.now();
+  let nextInitializationAttempt=0;
+  while(Date.now()-startedAt<timeoutMs){
+    if(!sharedSyncAvailable&&!sharedSyncInitializing&&Date.now()>=nextInitializationAttempt){
+      nextInitializationAttempt=Date.now()+5000;
+      initializeSharedDataSync();
+    }
+    if(sharedSyncAvailable){
+      if(!cloudSyncInFlight&&!cloudSyncPending&&!readLocalTimestamp(CLOUD_RECORDS_PENDING_SYNC_KEY))return true;
+    }
+    await new Promise(resolve=>window.setTimeout(resolve,75));
+  }
+  throw new Error('The completed session could not be confirmed on the cloud. Your live queue has been kept. Check your connection and press End Session again.');
+}
+async function waitForAppStateSync(timeoutMs=12000){
+  if(!isHttpApp())return true;
+  const startedAt=Date.now();
+  while(Date.now()-startedAt<timeoutMs){
+    if(sharedSyncAvailable){
+      if(!appSyncInFlight&&!appSyncPending&&!readLocalTimestamp(LOCAL_STATE_PENDING_SYNC_KEY))return true;
+    }
+    await new Promise(resolve=>window.setTimeout(resolve,75));
+  }
+  throw new Error('The completed session is saved, but the queue status is still syncing.');
+}
 function applySharedCloudRecords(payload,force=false){
   if(!payload||!payload.records)return;
   const revision=Number(payload.revision)||0;
@@ -285,9 +312,11 @@ async function initializeSharedDataSync(){if(!isHttpApp()){sharedSyncReady=true;
 function upsertCloudPlayer(p){if(!p||!p.name)return;loadCloudRecords();let a=cloudRecords.players.find(x=>x.name.toLowerCase()===p.name.toLowerCase());if(!a){a={cloudId:Date.now()+Math.floor(Math.random()*100000),name:p.name,matches:0,wins:0,losses:0};cloudRecords.players.push(a);}Object.assign(a,{name:p.name,nickname:p.nickname||a.nickname||'',gender:p.gender||a.gender||'',category:p.category||a.category||'',duprId:p.duprId||p.duprID||p.dupr_id||p.dupr||a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:p.selfRating||p.self_rating||a.selfRating||a.self_rating||''});const avatarId=getPlayerAvatarId(p);if(avatarId)a.avatarId=avatarId;saveCloudRecords();}
 function archiveLiveSession(){
   loadCloudRecords();
+  const sid=String(state.sessionId||createSessionId());
+  state.sessionId=sid;
   state.players.concat(state.left).forEach(upsertCloudPlayer);
   loadCloudRecords();
-  const sid=state.sessionId||createSessionId();
+  const alreadyArchived=cloudRecords.sessions.some(session=>String(session?.id||'')===sid);
   const getName=id=>(state.players.find(p=>p.id===id)||state.left.find(p=>p.id===id)||{}).name;
   const normalizeName=value=>String(value||'').trim().toLowerCase();
   const logs=state.logs.map(l=>{
@@ -297,22 +326,46 @@ function archiveLiveSession(){
     const losers=String(l.loser||'').split(' & ').map(normalizeName).filter(Boolean);
     const sc=String(l.score||'').split('-').map(Number);
     const scoreWinner=sc.length===2&&Number.isFinite(sc[0])&&Number.isFinite(sc[1])&&sc[0]!==sc[1]?(sc[0]>sc[1]?1:2):null;
-    [...team1Names.map(name=>({name,team:1})),...team2Names.map(name=>({name,team:2}))].forEach(v=>{
-      const a=cloudRecords.players.find(p=>normalizeName(p.name)===normalizeName(v.name));
-      if(!a)return;
-      a.matches=(a.matches||0)+1;
-      const isWinner=winners.includes(normalizeName(v.name));
-      const isLoser=losers.includes(normalizeName(v.name));
-      const won=isWinner&&!isLoser ? true : isLoser&&!isWinner ? false : scoreWinner!==null ? scoreWinner===v.team : null;
-      if(won===true)a.wins=(a.wins||0)+1;
-      else if(won===false)a.losses=(a.losses||0)+1;
-    });
-    return {...l,sessionId:sid,team1Names,team2Names,endedAt:l.endedAt||new Date().toISOString(),sessionName:l.sessionName||state.sessionName||''};
+    if(!alreadyArchived){
+      [...team1Names.map(name=>({name,team:1})),...team2Names.map(name=>({name,team:2}))].forEach(v=>{
+        const a=cloudRecords.players.find(p=>normalizeName(p.name)===normalizeName(v.name));
+        if(!a)return;
+        a.matches=(a.matches||0)+1;
+        const isWinner=winners.includes(normalizeName(v.name));
+        const isLoser=losers.includes(normalizeName(v.name));
+        const won=isWinner&&!isLoser ? true : isLoser&&!isWinner ? false : scoreWinner!==null ? scoreWinner===v.team : null;
+        if(won===true)a.wins=(a.wins||0)+1;
+        else if(won===false)a.losses=(a.losses||0)+1;
+      });
+    }
+    return {...l,sessionId:sid,organizerId:String(window.PPM_ORGANIZER_ID||''),team1Names,team2Names,endedAt:l.endedAt||new Date().toISOString(),sessionName:l.sessionName||state.sessionName||''};
   });
+  // Replace this session's existing archive on retries instead of appending
+  // duplicate match records when the first cloud request timed out.
+  cloudRecords.logs=cloudRecords.logs.filter(log=>String(log?.sessionId||'')!==sid);
   cloudRecords.logs.push(...logs);
-  cloudRecords.sessions.push({id:sid,endedAt:new Date().toISOString(),playerCount:state.players.length+state.left.length,matchCount:logs.length,sessionName:state.sessionName||''});
+  const participantMap=new Map();
+  state.players.concat(state.left).forEach((person,index)=>{
+    if(!person||!String(person.name||'').trim())return;
+    const identity=String(person.id??person.name).trim().toLocaleLowerCase();
+    if(participantMap.has(identity))return;
+    participantMap.set(identity,{
+      id:person.id??`participant-${index+1}`,
+      name:String(person.name||'').trim(),
+      nickname:String(person.nickname||'').trim(),
+      gender:String(person.gender||''),
+      category:String(person.category||''),
+      avatarId:String(person.avatarId||''),
+      duprId:String(person.duprId||person.duprID||person.dupr_id||person.dupr||'')
+    });
+  });
+  const sessionRecord={id:sid,organizerId:String(window.PPM_ORGANIZER_ID||''),startedAt:logs.map(log=>log.startedAt).filter(Boolean).sort()[0]||null,endedAt:new Date().toISOString(),playerCount:participantMap.size,matchCount:logs.length,sessionName:state.sessionName||'',duprLocation:String(state.duprLocation||'').trim(),participants:Array.from(participantMap.values())};
+  const existingSessionIndex=cloudRecords.sessions.findIndex(session=>String(session?.id||'')===sid);
+  if(existingSessionIndex>=0)cloudRecords.sessions[existingSessionIndex]={...cloudRecords.sessions[existingSessionIndex],...sessionRecord};
+  else cloudRecords.sessions.push(sessionRecord);
   saveCloudRecords();
 }
+
 /* Display full category names only inside the Registered Cloud and Left Players cloud modals. */
 function cloudCategoryCode(category){
   const value=String(category||'').trim().toUpperCase().replace(/[^A-Z]/g,'');
@@ -1030,9 +1083,26 @@ function closeEndSessionConfirmation(){
   if(modal)modal.classList.add('hidden');
 }
 
-function endSession(){
+let endSessionSaveInProgress=false;
+async function endSession(){
+  if(endSessionSaveInProgress)return;
+  endSessionSaveInProgress=true;
+  const confirmButton=$('endSessionConfirm');
+  const cancelButton=$('endSessionCancel');
+  const originalButtonText=confirmButton?.textContent||'End Session';
+  if(confirmButton){confirmButton.disabled=true;confirmButton.textContent='Saving session…';}
+  if(cancelButton)cancelButton.disabled=true;
+  try{
+    archiveLiveSession();
+    await waitForCloudRecordsSync();
+  }catch(error){
+    endSessionSaveInProgress=false;
+    if(confirmButton){confirmButton.disabled=false;confirmButton.textContent=originalButtonText;}
+    if(cancelButton)cancelButton.disabled=false;
+    toast(error?.message||'Unable to save the completed session. Your live queue has been kept.');
+    return;
+  }
   closeEndSessionConfirmation();
-  archiveLiveSession();
   try{LEGACY_STORAGE_KEYS.forEach(k=>localStorage.removeItem(k));}
   catch(e){console.warn('PickleQ reset cleanup failed',e);}
 
@@ -1071,7 +1141,10 @@ function endSession(){
   // Persist the empty queue to shared storage before any subsequent refresh.
   // Keeping the page alive avoids cancelling the just-started sync request.
   saveState();
+  try{await waitForAppStateSync();}
+  catch(error){console.warn('Completed session is archived; queue-state sync is still pending:',error);}
   publishLiveViewState(true);
+  endSessionSaveInProgress=false;
   if(document.body?.dataset.page==='queueing'){
     window.location.assign('session.html');
     return;
@@ -2095,6 +2168,9 @@ function importPlayers(){
 
 function removePlayer(id){
   const p=player(id); if(!p)return;
+  // Moving a player out of the queue also resets the registered-player filter.
+  const registeredSearch=$('registeredPlayerSearch');
+  if(registeredSearch)registeredSearch.value='';
   state.queue=state.queue.filter(x=>x!==id);
   state.courts.forEach(c=>c.players=c.players.filter(x=>x!==id));
   p.court=null;
@@ -2211,11 +2287,19 @@ function renderLeftPlayerRows(popup=false){
 }
 
 function openLeftPlayersPopup(){
+  const search=$('leftPlayersSearch');
+  if(search)search.value='';
   renderLeftPlayersPopup();
   $('leftPlayersModal').classList.remove('hidden');
   /* Keep search unfocused on open so mobile keyboards do not launch automatically. */
 }
-function closeLeftPlayersPopup(){ $('leftPlayersModal').classList.add('hidden'); }
+function closeLeftPlayersPopup(){
+  const search=$('leftPlayersSearch');
+  if(search)search.value='';
+  const summary=$('leftPlayersSearchSummary');
+  if(summary)summary.textContent='';
+  $('leftPlayersModal').classList.add('hidden');
+}
 function renderLeftPlayersPopup(){
   const list=$('leftPlayersPopupList'); if(!list)return;
   const count=$('leftPopupCount'); if(count)count.textContent=`(${getVisibleLeftPlayers().length})`;
@@ -4017,7 +4101,7 @@ function openCourtSettings(){
   $('courtSettingsModal').classList.remove('hidden');
   setTimeout(()=>{$('courtSettingsNameInput')?.focus();},0);
 }
-function closeCourtSettings(){ $('courtSettingsModal').classList.add('hidden'); courtSettingsDraft=null; }
+function closeCourtSettings(){ $('courtSettingsModal').classList.add('hidden'); courtSettingsDraft=null; if(IS_QUEUEING_PAGE&&new URLSearchParams(location.search).get('settings')==='1')window.location.replace('/dashboard.html'); }
 function draftCourt(id){return courtSettingsDraft?.find(c=>c.id===id);}
 function renderCourtSettings(){
   const pool=$('courtSettingsPool'), skills=$('courtSettingsSkills'), quick=$('courtSettingsQuickAdd');
@@ -4982,9 +5066,22 @@ $('saveCourt').onclick=saveCourt;
 $('historyCloseBtn').onclick=closeHistoryDetail;
 $('historySaveBtn').onclick=saveHistoryScore;
 
-$('importPlayersBtn').onclick=()=>{loadCloudRecords();$('cloudRecordsModal').classList.remove('hidden');renderCloudRecords();};
+$('importPlayersBtn').onclick=()=>{
+  const search=$('cloudRecordsSearch');
+  if(search)search.value='';
+  loadCloudRecords();
+  $('cloudRecordsModal').classList.remove('hidden');
+  renderCloudRecords();
+};
 $('topStats')?.addEventListener('click',e=>{const toggle=e.target.closest('#queueDuprLabelsToggle');if(!toggle||!isCurrentSessionDupr())return;state.duprLabelsEnabled=state.duprLabelsEnabled===false;saveState();syncQueueDuprLabelsToggle();toast(state.duprLabelsEnabled?'DUPR labels are ON.':'DUPR labels are OFF.');});
-$('cloudRecordsDone').onclick=()=>{pendingCloudDeleteId=null;cancelCloudPlayerEdit({immediate:true});$('cloudRecordsModal').classList.add('hidden');};$('cloudRecordsSearch').addEventListener('input',renderCloudRecords);window.addEventListener('resize',scheduleCloudPlayerEditPanelPosition,{passive:true});$('cloudRecordsModal')?.addEventListener('scroll',scheduleCloudPlayerEditPanelPosition,{passive:true});const leftPlayersSearch=$('leftPlayersSearch');if(leftPlayersSearch)leftPlayersSearch.addEventListener('input',renderLeftPlayersPopup);
+$('cloudRecordsDone').onclick=()=>{
+  pendingCloudDeleteId=null;
+  cancelCloudPlayerEdit({immediate:true});
+  const search=$('cloudRecordsSearch');
+  if(search)search.value='';
+  $('cloudRecordsModal').classList.add('hidden');
+  renderCloudRecords();
+};$('cloudRecordsSearch').addEventListener('input',renderCloudRecords);window.addEventListener('resize',scheduleCloudPlayerEditPanelPosition,{passive:true});$('cloudRecordsModal')?.addEventListener('scroll',scheduleCloudPlayerEditPanelPosition,{passive:true});const leftPlayersSearch=$('leftPlayersSearch');if(leftPlayersSearch)leftPlayersSearch.addEventListener('input',renderLeftPlayersPopup);
 $('importCancel').onclick=()=>$('importModal').classList.add('hidden');
 $('importSave').onclick=importPlayers;
 
@@ -5029,6 +5126,13 @@ window.addEventListener('scroll',()=>{
 $('podiumExpandBtn')?.addEventListener('click',openPodiumExpandModal);
 function setResultsTab(tabName,persist=true){
   const selected=tabName==='history'?'history':'ranking';
+  const current=document.querySelector('.results-panel .tab.active')?.dataset.tab;
+  // Match History starts fresh whenever the user leaves it and returns later.
+  if(current==='history'&&selected!=='history'){
+    const search=$('historySearchInput');
+    if(search)search.value='';
+    renderHistoryTable();
+  }
   document.querySelectorAll('.tab').forEach(tab=>{
     const active=tab.dataset.tab===selected;
     tab.classList.toggle('active',active);
@@ -5352,6 +5456,9 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeLiveVi
 render();
 publishLiveViewState();
 const sharedDataSyncReady = initializeSharedDataSync();
+if(IS_QUEUEING_PAGE&&new URLSearchParams(location.search).get('settings')==='1'){
+  Promise.resolve(sharedDataSyncReady).catch(()=>{}).finally(()=>setTimeout(()=>{if(typeof openCourtSettings==='function')openCourtSettings();},120));
+}
 // Keep the shared live snapshot available while an active event is running.
 // The server ignores unchanged heartbeats, so this does not repeatedly write data.
 setInterval(()=>{

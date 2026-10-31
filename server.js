@@ -16,7 +16,7 @@ const CLUB_ID_SEQUENCE_FILE = path.join(DATA_DIR, 'club-id-sequence.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
-const allowedFiles = new Set(['index.html','panel.html','panel.css','panel.js','session.html','session-brand.css','session-settings-polish.css','queueing-refresh.css','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js','network-validation.js','registration-avatar-01.png','registration-avatar-02.png','registration-avatar-03.png','registration-avatar-04.png','registration-avatar-05.png','registration-avatar-06.png','registration-avatar-07.png','registration-avatar-08.png','registration-avatar-09.png','registration-avatar-10.png','registration-avatar-11.png','registration-avatar-12.png','registration-avatar-13.png','registration-avatar-14.png','registration-avatar-15.png','registration-avatar-16.png','registration-avatar-17.png','registration-avatar-18.png','registration-avatar-19.png','registration-avatar-20.png','registration-avatar-21.png']);
+const allowedFiles = new Set(['index.html','dashboard.html','dashboard.css','dashboard.js','panel.html','panel.css','panel.js','session.html','session-brand.css','session-settings-polish.css','queueing-refresh.css','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js','network-validation.js','registration-avatar-01.png','registration-avatar-02.png','registration-avatar-03.png','registration-avatar-04.png','registration-avatar-05.png','registration-avatar-06.png','registration-avatar-07.png','registration-avatar-08.png','registration-avatar-09.png','registration-avatar-10.png','registration-avatar-11.png','registration-avatar-12.png','registration-avatar-13.png','registration-avatar-14.png','registration-avatar-15.png','registration-avatar-16.png','registration-avatar-17.png','registration-avatar-18.png','registration-avatar-19.png','registration-avatar-20.png','registration-avatar-21.png']);
 let latestState = null;
 let sharedAppState = null;
 let sharedAppRevision = 0;
@@ -37,6 +37,7 @@ let organizerAccounts = [];
 let nextClubIdSequence = 1;
 const organizerAppStates = new Map();
 const organizerLiveStates = new Map();
+const organizerAttendanceRecords = new Map();
 
 // Signed organizer and panel sessions. Credentials and the signing secret stay server-side.
 const AUTH_USERNAME = String(process.env.ORGANIZER_USERNAME || '').trim();
@@ -219,6 +220,14 @@ function decryptOrganizerPassword(envelope) {
 function normalizeOrganizerDuprId(value) {
   return String(value || '').trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
 }
+function organizerDuprIdFor(account) {
+  const candidates = [account?.duprId, account?.personalDuprId, account?.duprID, account?.dupr_id, account?.organizerDuprId, account?.organizer_dupr_id, account?.dupr];
+  for (const candidate of candidates) {
+    const normalized = normalizeOrganizerDuprId(candidate);
+    if (normalized) return normalized;
+  }
+  return '';
+}
 function formatClubId(sequence) {
   return String(sequence).padStart(4, '0');
 }
@@ -286,7 +295,7 @@ function organizerPublicRecord(account) {
     username:account.username,
     displayName:account.displayName || account.username,
     profileImage:organizerLogoFor(account),
-    duprId:String(account.duprId || '').trim() || null,
+    duprId:organizerDuprIdFor(account) || null,
     active,
     approvalStatus,
     adminApproved:account.adminApproved === true,
@@ -301,7 +310,7 @@ function organizerPanelRecord(account) {
   const passwordDisplay = decryptOrganizerPassword(account.passwordEncrypted);
   return {
     ...organizerPublicRecord(account),
-    duprId:normalizeOrganizerDuprId(account.duprId || account.personalDuprId || account.duprID || account.dupr_id) || null,
+    duprId:organizerDuprIdFor(account) || null,
     duprOrganizerId:String(account.duprOrganizerId || account.dupr_organizer_id || '').trim() || null,
     passwordDisplay,
     passwordAvailable:typeof passwordDisplay === 'string' && passwordDisplay.length > 0
@@ -334,6 +343,72 @@ function defaultAppEntry() { return {revision:0,updatedAt:null,clientId:null,sta
 function getOrganizerAppEntry(id) { return id ? (organizerAppStates.get(id) || defaultAppEntry()) : {revision:sharedAppRevision,updatedAt:sharedAppUpdatedAt,clientId:sharedAppClientId,state:sharedAppState}; }
 function getOrganizerLiveState(id) { return id ? (organizerLiveStates.get(id) || null) : latestState; }
 function organizerDataPath(prefix, id) { return path.join(DATA_DIR, `${prefix}-${String(id).replace(/[^a-zA-Z0-9_-]/g, '')}.json`); }
+function defaultOrganizerAttendance() { return {sessions:{}}; }
+function getOrganizerAttendance(id) {
+  if (!organizerAttendanceRecords.has(id)) organizerAttendanceRecords.set(id, defaultOrganizerAttendance());
+  return organizerAttendanceRecords.get(id);
+}
+async function saveOrganizerAttendance(id, entry) {
+  organizerAttendanceRecords.set(id, entry);
+  await saveStoredBatch([{key:`dashboard-attendance:${id}`,filePath:organizerDataPath('dashboard-attendance',id),value:entry}]);
+}
+function attendanceIdentity(person) {
+  if (person && person._attendanceKey) return String(person._attendanceKey);
+  if (person && person.id !== undefined && person.id !== null && String(person.id).trim() !== '') return `id:${String(person.id)}`;
+  const name = String(person?.name || person?.displayName || '').normalize('NFC').trim().replace(/\s+/g,' ').toLocaleLowerCase();
+  return `name:${name}`;
+}
+function attendancePersonSnapshot(person, index = 0) {
+  const name = String(person?.name || person?.displayName || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,100);
+  if (!name) return null;
+  const clone = JSON.parse(JSON.stringify(person || {}));
+  clone.name = name;
+  clone.nickname = String(person?.nickname || '').trim().slice(0,60);
+  clone.gender = String(person?.gender || '').trim();
+  clone.category = String(person?.category || '').trim();
+  clone._attendanceKey = attendanceIdentity({...person,name}) || `attendance:${index}`;
+  return clone;
+}
+function appStateAttendanceRoster(appState) {
+  const people = [...(Array.isArray(appState?.players) ? appState.players : []), ...(Array.isArray(appState?.left) ? appState.left : [])];
+  const seen = new Set();
+  return people.map((person,index)=>attendancePersonSnapshot(person,index)).filter(person=>{
+    if (!person) return false;
+    const key = attendanceIdentity(person);
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+}
+function getAttendanceBucket(attendance, sessionId, seedParticipants = []) {
+  attendance.sessions = attendance.sessions && typeof attendance.sessions === 'object' ? attendance.sessions : {};
+  let bucket = attendance.sessions[sessionId];
+  if (!bucket || typeof bucket !== 'object') {
+    bucket = {participants:[],removed:[]};
+    attendance.sessions[sessionId] = bucket;
+  }
+  bucket.participants = Array.isArray(bucket.participants) ? bucket.participants : [];
+  bucket.removed = Array.isArray(bucket.removed) ? bucket.removed : [];
+  if (!bucket.participants.length && seedParticipants.length) {
+    const removed = new Set(bucket.removed.map(String));
+    bucket.participants = seedParticipants.map(attendancePersonSnapshot).filter(person=>person && !removed.has(attendanceIdentity(person)));
+  }
+  return bucket;
+}
+function mergeAttendanceRoster(bucket, incoming) {
+  const removed = new Set(bucket.removed.map(String));
+  const present = new Set(bucket.participants.map(attendanceIdentity));
+  let changed = false;
+  for (const raw of incoming) {
+    const person = attendancePersonSnapshot(raw);
+    if (!person) continue;
+    const key = attendanceIdentity(person);
+    if (removed.has(key) || present.has(key)) continue;
+    bucket.participants.push(person);
+    present.add(key);
+    changed = true;
+  }
+  return changed;
+}
 async function saveOrganizerAppState(id, entry) {
   organizerAppStates.set(id, entry);
   await saveStoredBatch([{key:`app-state:${id}`,filePath:organizerDataPath('app-state',id),value:entry}]);
@@ -622,6 +697,11 @@ function sendJson(res, status, data) {
 function normalizePlayerName(value) {
   return String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
+function isRecordedMatchScore(log) {
+  if (String(log?.recordingMode || '').trim().toLowerCase() === 'win-only') return false;
+  const match = String(log?.score || '').trim().match(/^(\d+)\s*-\s*(\d+)$/);
+  return !!match && Number(match[1]) !== Number(match[2]);
+}
 function getSessionId(state) {
   return String(state && state.sessionId || '').trim();
 }
@@ -848,7 +928,8 @@ async function handle(req, res) {
       role:auth?.role || null,
       username:auth?.username || null,
       displayName:auth?.displayName || null,
-      organizerId:auth?.organizerId || null
+      organizerId:auth?.organizerId || null,
+      organizerLogo:auth?.role === 'organizer' ? organizerLogoFor(accountById(auth.organizerId)) : null
     });
   }
 
@@ -1274,6 +1355,448 @@ async function handle(req, res) {
     // The organizer scope authorizes the link; records remain in one shared cloud.
     return sendJson(res, 200, {ok:true, revision:sharedCloudRevision, records:sharedCloudRecords, updatedAt:sharedCloudUpdatedAt});
   }
+  if (url.pathname === '/api/organizer-dashboard' && req.method === 'GET') {
+    const auth = getAuthSession(req);
+    if (auth?.role !== 'organizer' || !auth.organizerId) return sendJson(res,401,{ok:false,error:'Organizer login required.'});
+    const organizerId = auth.organizerId;
+    const account = accountById(organizerId);
+    const activeOrganizers = organizerAccounts
+      .filter(item => item && item.active === true && effectiveApprovalStatus(item) === 'approved')
+      .sort((a,b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+    // Older cloud archives predate organizer scoping. Attribute those legacy
+    // archives to the original approved organizer, while all new archives carry
+    // an explicit organizerId and remain isolated from other clubs.
+    const legacyOwnerId = activeOrganizers[0]?.id || null;
+    const allSessions = Array.isArray(sharedCloudRecords?.sessions) ? sharedCloudRecords.sessions : [];
+    const sessions = allSessions.filter(session =>
+      String(session?.organizerId || '') === organizerId || (!session?.organizerId && legacyOwnerId === organizerId)
+    ).map(session => ({...session}));
+    const sessionIds = new Set(sessions.map(session => String(session.id || '')).filter(Boolean));
+    const allLogs = Array.isArray(sharedCloudRecords?.logs) ? sharedCloudRecords.logs : [];
+    const logs = allLogs.filter(log =>
+      String(log?.organizerId || '') === organizerId || (log?.sessionId && sessionIds.has(String(log.sessionId)))
+    );
+    const appEntry = getOrganizerAppEntry(organizerId);
+    const cloudPlayers = await loadRegisteredPlayersCsv();
+    const players = Array.isArray(cloudPlayers) ? cloudPlayers : (Array.isArray(sharedCloudRecords?.players) ? sharedCloudRecords.players : []);
+    const attendance = getOrganizerAttendance(organizerId);
+    let attendanceChanged = false;
+    const attendanceBySession = {};
+    for (const session of sessions) {
+      const id = String(session?.id || '').trim();
+      if (!id) continue;
+      const seed = Array.isArray(session.participants) ? session.participants : [];
+      const hasSavedAttendance = !!attendance.sessions?.[id];
+      const bucket = getAttendanceBucket(attendance,id,seed);
+      if (hasSavedAttendance || bucket.participants.length) attendanceBySession[id] = bucket.participants;
+    }
+    const liveState = appEntry.state;
+    const liveSessionId = liveState?.sessionActive === true && !isEndedSessionState(liveState) ? getSessionId(liveState) : '';
+    if (liveSessionId) {
+      const hasSavedAttendance = !!attendance.sessions?.[liveSessionId];
+      const bucket = getAttendanceBucket(attendance,liveSessionId,[]);
+      if (mergeAttendanceRoster(bucket,appStateAttendanceRoster(liveState))) attendanceChanged = true;
+      if (hasSavedAttendance || bucket.participants.length) attendanceBySession[liveSessionId] = bucket.participants;
+    }
+    if (attendanceChanged) await saveOrganizerAttendance(organizerId,attendance);
+    return sendJson(res,200,{
+      ok:true,
+      organizer:{id:organizerId,username:auth.username || account?.username || '',displayName:account?.displayName || auth.displayName || auth.username || 'Organizer',logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account?.showOnLeaderboard !== false},
+      appState:appEntry.state || null,
+      appRevision:appEntry.revision || 0,
+      records:{players,sessions,logs,attendanceBySession},
+      updatedAt:sharedCloudUpdatedAt
+    });
+  }
+  if (url.pathname === '/api/organizer-dashboard/cleanup-empty-sessions' && req.method === 'POST') {
+    // Keep the endpoint for compatibility with older dashboard clients, but
+    // never auto-delete completed sessions. Organizers may remove a session
+    // explicitly from the dashboard after reviewing its attendance/history.
+    try {
+      const auth = getAuthSession(req);
+      if (auth?.role !== 'organizer' || !auth.organizerId) return sendJson(res,401,{ok:false,error:'Organizer login required.'});
+      const organizerId = auth.organizerId;
+      const activeOrganizers = organizerAccounts
+        .filter(item => item && item.active === true && effectiveApprovalStatus(item) === 'approved')
+        .sort((a,b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+      const legacyOwnerId = activeOrganizers[0]?.id || null;
+      const retainedCount = (Array.isArray(sharedCloudRecords?.sessions) ? sharedCloudRecords.sessions : []).filter(session =>
+        session && (String(session.organizerId || '') === organizerId || (!session.organizerId && legacyOwnerId === organizerId))
+      ).length;
+      return sendJson(res,200,{ok:true,deletedCount:0,preservedCount:retainedCount,revision:sharedCloudRevision});
+    } catch (err) {
+      return sendJson(res,err.statusCode || 500,{ok:false,error:err.message||'Unable to verify session history.'});
+    }
+  }
+
+  if ((url.pathname === '/api/organizer-settings') && (req.method === 'GET' || req.method === 'PATCH')) {
+    try {
+      const auth = getAuthSession(req);
+      if (auth?.role !== 'organizer' || !auth.organizerId) return sendJson(res,401,{ok:false,error:'Organizer login required.'});
+      const account = accountById(auth.organizerId);
+      if (!account) return sendJson(res,404,{ok:false,error:'Organizer account not found.'});
+      if (req.method === 'GET') {
+        return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName || account.username,logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard !== false}});
+      }
+      const body = await readBody(req,4 * 1024 * 1024);
+      const displayName = String(body?.displayName || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,80);
+      if (!displayName) return sendJson(res,400,{ok:false,error:'Club or organizer name cannot be blank.'});
+      let duprId;
+      const submittedDuprId = body?.duprId ?? body?.personalDuprId ?? body?.dupr_id;
+      if (submittedDuprId !== undefined) {
+        duprId = normalizeOrganizerDuprId(submittedDuprId);
+        if (!/^[A-Z0-9]{6}$/.test(duprId)) return sendJson(res,400,{ok:false,error:'Organizer DUPR ID must contain exactly 6 letters or numbers.'});
+      }
+      if (body?.newPassword !== undefined && String(body.newPassword)) {
+        const currentPassword = String(body.currentPassword || '');
+        const newPassword = String(body.newPassword || '');
+        if (!currentPassword || !verifyPassword(currentPassword,account.passwordHash)) return sendJson(res,400,{ok:false,error:'Current password is incorrect.'});
+        if (newPassword.length < 8 || newPassword.length > 200) return sendJson(res,400,{ok:false,error:'New password must be 8–200 characters long.'});
+        account.passwordHash = hashPassword(newPassword);
+        account.passwordEncrypted = encryptOrganizerPassword(newPassword);
+      }
+      if (body?.profileImage !== undefined) {
+        const profileImage = body.profileImage === null ? '' : String(body.profileImage || '').trim();
+        if (profileImage && (profileImage.length > 3000000 || !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/i.test(profileImage))) {
+          return sendJson(res,400,{ok:false,error:'Choose a PNG, JPG, or WebP logo no larger than 2 MB.'});
+        }
+        account.profileImage = profileImage || null;
+      }
+      account.displayName = displayName;
+      if (duprId !== undefined) account.duprId = duprId;
+      account.showOnLeaderboard = body?.showOnLeaderboard !== false;
+      await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
+      return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName,logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard}});
+    } catch (err) {
+      return sendJson(res,err.statusCode || 500,{ok:false,error:err.statusCode===413?'Logo file is too large.':err.message||'Unable to save organizer settings.'});
+    }
+  }
+
+  const organizerParticipantMutationMatch = url.pathname.match(/^\/api\/organizer-dashboard\/sessions\/([^/]+)\/participants\/(\d+)$/);
+  if (organizerParticipantMutationMatch && (req.method === 'PATCH' || req.method === 'DELETE')) {
+    try {
+      const auth = getAuthSession(req);
+      if (auth?.role !== 'organizer' || !auth.organizerId) return sendJson(res,401,{ok:false,error:'Organizer login required.'});
+      let sessionId;
+      try { sessionId = decodeURIComponent(organizerParticipantMutationMatch[1]); }
+      catch (_) { return sendJson(res,400,{ok:false,error:'Invalid session ID.'}); }
+      const participantIndex = Number(organizerParticipantMutationMatch[2]);
+      if (!sessionId || sessionId.length > 200 || !Number.isSafeInteger(participantIndex) || participantIndex < 0) return sendJson(res,400,{ok:false,error:'Invalid attendance record.'});
+      const organizerId = auth.organizerId;
+      const appState = getOrganizerAppEntry(organizerId).state;
+      const isCurrentLiveSession = appState?.sessionActive === true && getSessionId(appState) === sessionId && !isEndedSessionState(appState);
+      const activeOrganizers = organizerAccounts.filter(item => item && item.active === true && effectiveApprovalStatus(item) === 'approved').sort((a,b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+      const legacyOwnerId = activeOrganizers[0]?.id || null;
+      const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
+      const archivedSession = (Array.isArray(currentRecords.sessions) ? currentRecords.sessions : []).find(session => String(session?.id || '') === sessionId);
+      if (!isCurrentLiveSession) {
+        if (!archivedSession) return sendJson(res,404,{ok:false,error:'Session not found.'});
+        if (!(String(archivedSession.organizerId || '') === organizerId || (!archivedSession.organizerId && legacyOwnerId === organizerId))) return sendJson(res,404,{ok:false,error:'Session not found.'});
+      }
+
+      const attendance = getOrganizerAttendance(organizerId);
+      const seedParticipants = isCurrentLiveSession ? [] : (Array.isArray(archivedSession?.participants) ? archivedSession.participants : []);
+      const bucket = getAttendanceBucket(attendance,sessionId,seedParticipants);
+      if (isCurrentLiveSession) mergeAttendanceRoster(bucket,appStateAttendanceRoster(appState));
+      if (participantIndex >= bucket.participants.length) return sendJson(res,404,{ok:false,error:'Attendance record not found. Refresh the dashboard and try again.'});
+
+      if (req.method === 'PATCH') {
+        const body = await readBody(req,16 * 1024);
+        const name = String(body?.name || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,100);
+        if (!name) return sendJson(res,400,{ok:false,error:'Participant name cannot be blank.'});
+        const nickname = String(body?.nickname || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,60);
+        const gender = String(body?.gender || '').trim();
+        const category = String(body?.category || '').trim().toUpperCase();
+        if (gender && !['Male','Female'].includes(gender)) return sendJson(res,400,{ok:false,error:'Choose a valid gender.'});
+        if (category && !['BEG','NOV','INT','ADV','EXP','BEGINNER','NOVICE','INTERMEDIATE','ADVANCED','EXPERT'].includes(category)) return sendJson(res,400,{ok:false,error:'Choose a valid skill category.'});
+        const participant = bucket.participants[participantIndex];
+        // Keep the attendance identity stable even when the displayed name is changed.
+        participant.name = name;
+        participant.nickname = nickname;
+        participant.gender = gender;
+        participant.category = category;
+      } else {
+        const [removed] = bucket.participants.splice(participantIndex,1);
+        const key = attendanceIdentity(removed);
+        if (key && !bucket.removed.includes(key)) bucket.removed.push(key);
+      }
+      await saveOrganizerAttendance(organizerId,attendance);
+      return sendJson(res,200,{ok:true,session:{id:sessionId,playerCount:bucket.participants.length,participants:bucket.participants},attendanceOnly:true,queueChanged:false,cloudPlayersChanged:false});
+    } catch (err) {
+      return sendJson(res,err.statusCode || 500,{ok:false,error:err.statusCode===413?'Request is too large.':err.message||'Unable to update attendance.'});
+    }
+  }
+
+  const organizerMatchMutationMatch = url.pathname.match(/^\/api\/organizer-dashboard\/sessions\/([^/]+)\/matches\/([^/]+)$/);
+  if (organizerMatchMutationMatch && (req.method === 'PATCH' || req.method === 'DELETE')) {
+    try {
+      const auth = getAuthSession(req);
+      if (auth?.role !== 'organizer' || !auth.organizerId) return sendJson(res,401,{ok:false,error:'Organizer login required.'});
+      let sessionId, matchId;
+      try { sessionId = decodeURIComponent(organizerMatchMutationMatch[1]); matchId = decodeURIComponent(organizerMatchMutationMatch[2]); }
+      catch (_) { return sendJson(res,400,{ok:false,error:'Invalid match reference.'}); }
+      if (!sessionId || sessionId.length > 200 || !matchId || matchId.length > 100) return sendJson(res,400,{ok:false,error:'Invalid match reference.'});
+      const organizerId = auth.organizerId;
+      const appEntry = getOrganizerAppEntry(organizerId);
+      const currentAppState = appEntry.state;
+      const isCurrentLiveSession = currentAppState?.sessionActive === true && getSessionId(currentAppState) === sessionId && !isEndedSessionState(currentAppState);
+      const applyScore = log => {
+        const bodyScore = pendingMatchBody?.score;
+        const score = String(bodyScore || '').trim();
+        if (score) {
+          const match = score.match(/^(\d{1,2})\s*-\s*(\d{1,2})$/);
+          if (!match) { const err = new Error('Each score must contain 1 or 2 digits (0-99), in the format 11-5.'); err.statusCode = 400; throw err; }
+          const scoreA = Number(match[1]), scoreB = Number(match[2]);
+          if (!Number.isSafeInteger(scoreA) || !Number.isSafeInteger(scoreB) || scoreA < 0 || scoreB < 0 || scoreA > 99 || scoreB > 99 || scoreA === scoreB) { const err = new Error('Enter a valid non-tied score between 0 and 99.'); err.statusCode = 400; throw err; }
+          log.score = `${scoreA}-${scoreB}`;
+          log.recordingMode = 'score';
+          log.winnerTeam = scoreA > scoreB ? 1 : 2;
+        } else {
+          const err = new Error('Only matches with a recorded score can be edited.'); err.statusCode = 400; throw err;
+        }
+        const getNames = side => {
+          const names = Array.isArray(log[`${side}Names`]) ? log[`${side}Names`] : [];
+          if (names.length) return names.map(name => String(name || 'Player'));
+          const players = Array.isArray(log[`${side}Players`]) ? log[`${side}Players`] : [];
+          return players.map(player => String(player?.name || 'Player'));
+        };
+        const namesA = getNames('team1'), namesB = getNames('team2');
+        if (Number(log.winnerTeam) === 1) { log.winner = namesA.join(' & '); log.loser = namesB.join(' & '); }
+        else if (Number(log.winnerTeam) === 2) { log.winner = namesB.join(' & '); log.loser = namesA.join(' & '); }
+      };
+      let pendingMatchBody = null;
+      if (req.method === 'PATCH') pendingMatchBody = await readBody(req,32 * 1024);
+      const loadedCloudPlayers = req.method === 'PATCH' ? await loadRegisteredPlayersCsv() : null;
+      const registeredCloudPlayers = Array.isArray(loadedCloudPlayers)
+        ? loadedCloudPlayers
+        : (Array.isArray(sharedCloudRecords?.players) ? sharedCloudRecords.players : []);
+
+      const applyPlayerEdits = (log, liveRoster=[]) => {
+        const sides=['team1','team2'];
+        let hasPlayerEdits=false;
+        const usedNames=new Set();
+        for (const side of sides) {
+          const field=`${side}Players`;
+          if (!Object.prototype.hasOwnProperty.call(pendingMatchBody || {},field)) continue;
+          hasPlayerEdits=true;
+          const submitted=pendingMatchBody[field];
+          if (!Array.isArray(submitted)) { const err=new Error('Player selections must be valid Registered Player Cloud entries.'); err.statusCode=400; throw err; }
+          const oldSnapshots=Array.isArray(log[field])?log[field]:[];
+          const oldNames=Array.isArray(log[`${side}Names`])?log[`${side}Names`]:[];
+          const oldIds=Array.isArray(log[`${side}Ids`])?log[`${side}Ids`]:[];
+          const expectedCount=Math.max(oldSnapshots.length,oldNames.length,oldIds.length);
+          if (submitted.length!==expectedCount || expectedCount<1 || expectedCount>2) {
+            const err=new Error('The selected player count does not match the original match lineup.'); err.statusCode=400; throw err;
+          }
+          const nextSnapshots=[];
+          const nextIds=[];
+          submitted.forEach((selection,index)=>{
+            const name=String(selection?.name||'').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,120);
+            if (!name) { const err=new Error('Every match player must have a name.'); err.statusCode=400; throw err; }
+            const nameKey=normalizePlayerName(name);
+            if (usedNames.has(nameKey)) { const err=new Error('A player cannot appear more than once in the same match.'); err.statusCode=400; throw err; }
+            usedNames.add(nameKey);
+            const originalSnapshot=oldSnapshots[index] && typeof oldSnapshots[index]==='object' ? oldSnapshots[index] : {};
+            const originalName=String(originalSnapshot.name||oldNames[index]||'').normalize('NFC').trim().replace(/\s+/g,' ');
+            const cloudId=String(selection?.cloudId||'').trim();
+            if (cloudId) {
+              const cloudPlayer=registeredCloudPlayers.find(player=>String(player?.cloudId||'').trim()===cloudId);
+              if (!cloudPlayer) { const err=new Error('The selected player is no longer in Registered Player Cloud. Refresh and select again.'); err.statusCode=400; throw err; }
+              const registeredName=String(cloudPlayer.name||'').normalize('NFC').trim().replace(/\s+/g,' ');
+              if (!registeredName || normalizePlayerName(name)!==normalizePlayerName(registeredName)) {
+                const err=new Error('The selected name does not match the registered cloud player. Choose a suggestion from the list.'); err.statusCode=400; throw err;
+              }
+              const livePlayer=(Array.isArray(liveRoster)?liveRoster:[]).find(person=>normalizePlayerName(person?.name)===normalizePlayerName(registeredName));
+              const stableId=livePlayer?.id??cloudPlayer.cloudId;
+              const snapshot={
+                id:stableId,
+                cloudId:cloudPlayer.cloudId,
+                name:registeredName,
+                nickname:String(cloudPlayer.nickname||''),
+                gender:String(cloudPlayer.gender||''),
+                category:String(cloudPlayer.category||''),
+                avatarId:String(cloudPlayer.avatarId||''),
+                duprId:String(cloudPlayer.duprId||cloudPlayer.duprID||cloudPlayer.dupr_id||cloudPlayer.dupr||'').trim().toUpperCase(),
+                selfRating:String(cloudPlayer.selfRating||cloudPlayer.self_rating||'')
+              };
+              nextSnapshots.push(snapshot);
+              nextIds.push(stableId);
+            } else {
+              if (!originalName || normalizePlayerName(name)!==normalizePlayerName(originalName)) {
+                const err=new Error('Player names must be selected from Registered Player Cloud suggestions.'); err.statusCode=400; throw err;
+              }
+              const snapshot={...originalSnapshot,name:originalName};
+              const stableId=oldIds[index]??originalSnapshot.id??null;
+              if (stableId!==null && stableId!==undefined) snapshot.id=stableId;
+              nextSnapshots.push(snapshot);
+              nextIds.push(stableId);
+            }
+          });
+          log[field]=nextSnapshots;
+          log[`${side}Names`]=nextSnapshots.map(player=>player.name);
+          log[`${side}Ids`]=nextIds;
+        }
+        if (hasPlayerEdits) {
+          const allNames=[...(Array.isArray(log.team1Names)?log.team1Names:[]),...(Array.isArray(log.team2Names)?log.team2Names:[])].map(normalizePlayerName).filter(Boolean);
+          if (new Set(allNames).size!==allNames.length) { const err=new Error('A player cannot appear more than once in the same match.'); err.statusCode=400; throw err; }
+        }
+      };
+
+      if (isCurrentLiveSession) {
+        const nextState = JSON.parse(JSON.stringify(currentAppState));
+        nextState.logs = Array.isArray(nextState.logs) ? nextState.logs : [];
+        const index = nextState.logs.findIndex(log => String(log?.id ?? '') === matchId);
+        if (index < 0) return sendJson(res,404,{ok:false,error:'Match not found.'});
+        if (req.method === 'PATCH' && !isRecordedMatchScore(nextState.logs[index])) return sendJson(res,400,{ok:false,error:'Only matches with a recorded score can be edited.'});
+        const oldLog=nextState.logs[index];
+        const oldWinner = Number(oldLog.winnerTeam);
+        const oldWinningSide=oldWinner===1?'team1':oldWinner===2?'team2':'';
+        const oldWinningIds=oldWinningSide&&Array.isArray(oldLog[`${oldWinningSide}Ids`])?oldLog[`${oldWinningSide}Ids`].slice():[];
+        if (req.method === 'PATCH') {
+          const liveRoster=[...(Array.isArray(nextState.players)?nextState.players:[]),...(Array.isArray(nextState.left)?nextState.left:[])];
+          applyPlayerEdits(oldLog,liveRoster);
+          applyScore(oldLog);
+          const newWinner=Number(oldLog.winnerTeam);
+          const newWinningSide=newWinner===1?'team1':newWinner===2?'team2':'';
+          const newWinningIds=newWinningSide&&Array.isArray(oldLog[`${newWinningSide}Ids`])?oldLog[`${newWinningSide}Ids`]:[];
+          const winDeltas=new Map();
+          oldWinningIds.forEach(id=>winDeltas.set(String(id),(winDeltas.get(String(id))||0)-1));
+          newWinningIds.forEach(id=>winDeltas.set(String(id),(winDeltas.get(String(id))||0)+1));
+          winDeltas.forEach((delta,id)=>{
+            if(!delta)return;
+            const person=liveRoster.find(item=>String(item?.id)===id);
+            if(person)person.wins=Math.max(0,(Number(person.wins)||0)+delta);
+          });
+        } else {
+          const log = nextState.logs[index];
+          const winningSide = Number(log.winnerTeam)===1?'team1':(Number(log.winnerTeam)===2?'team2':'');
+          if (winningSide) {
+            const ids = Array.isArray(log[`${winningSide}Ids`]) ? log[`${winningSide}Ids`] : [];
+            ids.forEach(id => {
+              const person = [...(nextState.players || []),...(nextState.left || [])].find(item => String(item?.id) === String(id));
+              if (person) person.wins = Math.max(0,(Number(person.wins)||0)-1);
+            });
+          }
+          nextState.logs.splice(index,1);
+        }
+        const entry = {revision:(Number(appEntry.revision)||0)+1,updatedAt:new Date().toISOString(),clientId:'organizer-dashboard-match-manager',state:nextState};
+        await saveOrganizerAppState(organizerId,entry);
+        broadcastNamedEvent('app-state',{revision:entry.revision,updatedAt:entry.updatedAt,clientId:entry.clientId,state:entry.state,organizerId},organizerId);
+        return sendJson(res,200,{ok:true,matchId,revision:entry.revision,updatedAt:entry.updatedAt});
+      }
+
+      const activeOrganizers = organizerAccounts.filter(item => item && item.active === true && effectiveApprovalStatus(item) === 'approved').sort((a,b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+      const legacyOwnerId = activeOrganizers[0]?.id || null;
+      const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
+      const session = (Array.isArray(currentRecords.sessions) ? currentRecords.sessions : []).find(item => String(item?.id || '') === sessionId);
+      if (!session || !(String(session.organizerId || '') === organizerId || (!session.organizerId && legacyOwnerId === organizerId))) return sendJson(res,404,{ok:false,error:'Session not found.'});
+      const records = JSON.parse(JSON.stringify(currentRecords));
+      records.logs = Array.isArray(records.logs) ? records.logs : [];
+      const logIndex = records.logs.findIndex(log => String(log?.sessionId || '') === sessionId && String(log?.id ?? '') === matchId);
+      if (logIndex < 0) return sendJson(res,404,{ok:false,error:'Match not found.'});
+      if (req.method === 'PATCH') {
+        const targetLog=records.logs[logIndex];
+        if (!isRecordedMatchScore(targetLog)) return sendJson(res,400,{ok:false,error:'Only matches with a recorded score can be edited.'});
+        applyPlayerEdits(targetLog,[]);
+        applyScore(targetLog);
+      } else records.logs.splice(logIndex,1);
+      const relatedLogs = records.logs.filter(log => String(log?.sessionId || '') === sessionId);
+      const targetSession = records.sessions.find(item => String(item?.id || '') === sessionId);
+      if (targetSession) targetSession.matchCount = relatedLogs.length;
+      sharedCloudRecords = records;
+      sharedCloudRevision += 1;
+      sharedCloudUpdatedAt = new Date().toISOString();
+      sharedCloudClientId = 'organizer-dashboard-match-manager';
+      await persistSharedCloudRecords();
+      broadcastNamedEvent('cloud-records',{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
+      return sendJson(res,200,{ok:true,matchId,revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt});
+    } catch (err) {
+      return sendJson(res,err.statusCode || 500,{ok:false,error:err.message||'Unable to update match record.'});
+    }
+  }
+
+  const organizerSessionMutationMatch = url.pathname.match(/^\/api\/organizer-dashboard\/sessions\/([^/]+)$/);
+  if (organizerSessionMutationMatch && (req.method === 'PATCH' || req.method === 'DELETE')) {
+    try {
+      const auth = getAuthSession(req);
+      if (auth?.role !== 'organizer' || !auth.organizerId) return sendJson(res,401,{ok:false,error:'Organizer login required.'});
+      let sessionId;
+      try { sessionId = decodeURIComponent(organizerSessionMutationMatch[1]); }
+      catch (_) { return sendJson(res,400,{ok:false,error:'Invalid session ID.'}); }
+      if (!sessionId || sessionId.length > 200) return sendJson(res,400,{ok:false,error:'Invalid session ID.'});
+
+      const organizerId = auth.organizerId;
+      const activeOrganizers = organizerAccounts
+        .filter(item => item && item.active === true && effectiveApprovalStatus(item) === 'approved')
+        .sort((a,b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+      const legacyOwnerId = activeOrganizers[0]?.id || null;
+      const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
+      const existing = (Array.isArray(currentRecords.sessions) ? currentRecords.sessions : [])
+        .find(session => String(session?.id || '') === sessionId);
+      if (!existing) return sendJson(res,404,{ok:false,error:'Session not found.'});
+      const belongsToOrganizer = String(existing.organizerId || '') === organizerId || (!existing.organizerId && legacyOwnerId === organizerId);
+      if (!belongsToOrganizer) return sendJson(res,404,{ok:false,error:'Session not found.'});
+
+      const appState = getOrganizerAppEntry(organizerId).state;
+      if (appState?.sessionActive === true && getSessionId(appState) === sessionId && !isEndedSessionState(appState)) {
+        return sendJson(res,409,{ok:false,error:'This session is still live. End it before editing or deleting it.'});
+      }
+
+      const records = JSON.parse(JSON.stringify(currentRecords));
+      records.sessions = Array.isArray(records.sessions) ? records.sessions : [];
+      records.logs = Array.isArray(records.logs) ? records.logs : [];
+      const sessionIndex = records.sessions.findIndex(session => String(session?.id || '') === sessionId);
+      if (sessionIndex < 0) return sendJson(res,404,{ok:false,error:'Session not found.'});
+
+      if (req.method === 'PATCH') {
+        const body = await readBody(req, 16 * 1024);
+        const sessionName = String(body?.sessionName || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,200);
+        if (!sessionName) return sendJson(res,400,{ok:false,error:'Session name cannot be blank.'});
+        const session = records.sessions[sessionIndex];
+        session.sessionName = sessionName;
+        let shiftedByMs = 0;
+        if (body?.endedAt !== undefined && String(body.endedAt || '').trim()) {
+          const requestedEnd = new Date(String(body.endedAt));
+          if (!Number.isFinite(requestedEnd.getTime())) return sendJson(res,400,{ok:false,error:'Please provide a valid session end date and time.'});
+          const previousEnd = session.endedAt ? new Date(session.endedAt) : null;
+          if (previousEnd && Number.isFinite(previousEnd.getTime())) shiftedByMs = requestedEnd.getTime() - previousEnd.getTime();
+          session.endedAt = requestedEnd.toISOString();
+          if (shiftedByMs && session.startedAt) {
+            const previousStart = new Date(session.startedAt);
+            if (Number.isFinite(previousStart.getTime())) session.startedAt = new Date(previousStart.getTime() + shiftedByMs).toISOString();
+          }
+        }
+        const relatedLogs = records.logs.filter(log => String(log?.sessionId || '') === sessionId);
+        relatedLogs.forEach(log => {
+          log.sessionName = sessionName;
+          if (shiftedByMs) {
+            ['startedAt','endedAt'].forEach(field => {
+              if (!log[field]) return;
+              const previous = new Date(log[field]);
+              if (Number.isFinite(previous.getTime())) log[field] = new Date(previous.getTime() + shiftedByMs).toISOString();
+            });
+          }
+        });
+        session.matchCount = relatedLogs.length;
+      } else {
+        records.sessions = records.sessions.filter(session => String(session?.id || '') !== sessionId);
+        records.logs = records.logs.filter(log => String(log?.sessionId || '') !== sessionId);
+      }
+
+      sharedCloudRecords = records;
+      sharedCloudRevision += 1;
+      sharedCloudUpdatedAt = new Date().toISOString();
+      sharedCloudClientId = 'organizer-dashboard-session-manager';
+      await persistSharedCloudRecords();
+      broadcastNamedEvent('cloud-records',{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
+      return sendJson(res,200,req.method === 'PATCH'
+        ? {ok:true,session:records.sessions.find(session => String(session?.id || '') === sessionId),revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt}
+        : {ok:true,deletedId:sessionId,revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt});
+    } catch (err) {
+      return sendJson(res,err.statusCode || 500,{ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to update organizer session.'});
+    }
+  }
+
   if (url.pathname === '/api/cloud-records' && req.method === 'POST') {
     try {
       const body = await readBody(req, 8 * 1024 * 1024);
@@ -1569,11 +2092,15 @@ async function handle(req, res) {
   const name = path.basename(pathname);
   if (!allowedFiles.has(name) || pathname.includes('..')) return sendJson(res,404,{ok:false,error:'Not found'});
   const auth = getAuthSession(req);
-  if (name === 'index.html' && auth?.role === 'organizer') return setRedirect(res, '/session.html');
+  if (name === 'index.html' && auth?.role === 'organizer') return setRedirect(res, '/dashboard.html');
   if (name === 'index.html' && auth?.role === 'panel') return setRedirect(res, '/panel.html');
   if (name === 'panel.html' && !isPanelAuthenticated(req)) {
-    if (auth?.role === 'organizer') return setRedirect(res, '/session.html');
+    if (auth?.role === 'organizer') return setRedirect(res, '/dashboard.html');
     return setRedirect(res, '/index.html');
+  }
+  if (name === 'dashboard.html' && auth?.role !== 'organizer') {
+    if (auth?.role === 'panel') return setRedirect(res, '/panel.html');
+    return setRedirect(res, `/index.html?next=${encodeURIComponent('dashboard.html')}`);
   }
   if ((name === 'session.html' || name === 'queueing.html') && auth?.role !== 'organizer') {
     const next = `${name}${url.search || ''}`;
@@ -1585,7 +2112,7 @@ async function handle(req, res) {
     if (!stat.isFile()) return sendJson(res,404,{ok:false,error:'Not found'});
     const extension=path.extname(filePath).toLowerCase();
     const mutableAsset=['.html','.js','.css'].includes(extension);
-    const noStorePage = ['index.html','panel.html','session.html','queueing.html'].includes(name);
+    const noStorePage = ['index.html','dashboard.html','panel.html','session.html','queueing.html'].includes(name);
     const cacheControl = noStorePage ? 'private, no-store, max-age=0' : (mutableAsset ? 'no-cache, must-revalidate' : 'public, max-age=300');
     res.writeHead(200, {'Content-Type':MIME[extension]||'application/octet-stream','Content-Length':stat.size,'Cache-Control':cacheControl,'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});
     if(req.method==='HEAD')return res.end();
@@ -1709,6 +2236,8 @@ async function handle(req, res) {
         if (JSON.stringify(cleanedOrgLive) !== JSON.stringify(orgLive)) await saveOrganizerLiveState(account.id,cleanedOrgLive);
         else organizerLiveStates.set(account.id,cleanedOrgLive);
       }
+      const orgAttendance = await loadStored(`dashboard-attendance:${account.id}`,organizerDataPath('dashboard-attendance',account.id));
+      if (orgAttendance && typeof orgAttendance === 'object') organizerAttendanceRecords.set(account.id,orgAttendance);
     }
     const migrationTarget = (AUTH_USERNAME && accountByUsername(AUTH_USERNAME)) || getDefaultOrganizer();
     if (migrationTarget && !organizerAppStates.has(migrationTarget.id) && savedApp?.state && typeof savedApp.state === 'object') {
