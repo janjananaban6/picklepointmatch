@@ -25877,3 +25877,90 @@ html body[data-page="queueing"] #queueMainArea .queue-dupr-inline-edit .queue-du
   caret-color: #b45309 !important;
   background: transparent !important;
 }
+
+
+/* Queueing lock icons — SVG silhouettes matching the supplied open-lock reference.
+   Keep the icon-only treatment scoped to queue.html's active queue controls. */
+html body[data-page="queueing"] #queueMainArea .queue-row-actions .queue-lock-open-btn .queue-lock-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  height: 20px !important;
+  line-height: 0 !important;
+}
+html body[data-page="queueing"] #queueMainArea .queue-lock-svg {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+}
+html body[data-page="queueing"] #queueMainArea .queue-modern-item button.queue-locked-partner-inline .queue-lock-icon-inline {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 9px !important;
+  height: 9px !important;
+  margin: 0 2px 0 0 !important;
+  vertical-align: -1px !important;
+  flex: 0 0 9px !important;
+  line-height: 0 !important;
+}
+html body[data-page="queueing"] #queueMainArea .queue-modern-item button.queue-locked-partner-inline .queue-lock-svg {
+  width: 9px !important;
+  height: 9px !important;
+}
+
+/* Replace every remaining legacy lock glyph on Queueing with the shared SVG lock art. */
+html body[data-page="queueing"] .queue-lock-svg{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  overflow:visible!important;
+}
+html body[data-page="queueing"] #queueMainArea .queue-lock-partner-option-state{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 14px!important;
+  width:14px!important;
+  height:14px!important;
+  line-height:0!important;
+}
+html body[data-page="queueing"] .team-player.tap-slot .slot-lock-icon{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 16px!important;
+  width:16px!important;
+  height:16px!important;
+  line-height:0!important;
+}
+html body[data-page="queueing"] .court-picker .picker-player-list .partner-inline-badge .partner-inline-lock{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 12px!important;
+  width:12px!important;
+  min-width:12px!important;
+  height:12px!important;
+  font-size:0!important;
+  line-height:0!important;
+}
+html body[data-page="queueing"] .ranking-list .ranking-name-line .queue-locked-partner-inline.queue-lock-icon-inline,
+html body[data-page="queueing"] .expanded-ranking-list .ranking-name-line .queue-locked-partner-inline.queue-lock-icon-inline{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 11px!important;
+  width:11px!important;
+  height:11px!important;
+  font-size:0!important;
+  line-height:0!important;
+}
+html body[data-page="queueing"] .ranking-list .ranking-name-line .queue-locked-partner-inline.queue-lock-icon-inline .queue-lock-svg,
+html body[data-page="queueing"] .expanded-ranking-list .ranking-name-line .queue-locked-partner-inline.queue-lock-icon-inline .queue-lock-svg{
+  width:11px!important;
+  height:11px!important;
+}
+
