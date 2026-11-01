@@ -1902,6 +1902,50 @@
   $('refreshMatchesButton').addEventListener('click',async()=>{const button=$('refreshMatchesButton');button.disabled=true;button.classList.add('is-refreshing');try{const refreshed=await loadDashboardData({silent:true});if(refreshed)showToast('Match history refreshed.');else showToast('Unable to refresh match history. Check your connection.');}finally{button.disabled=false;button.classList.remove('is-refreshing');}});
   $('exportMatchesButton').addEventListener('click',openDuprExportModal);
   $('closeDuprExportModal').addEventListener('click',closeDuprExportModal);
+  // Let desktop users drag the table left/right to reach the A and B score columns.
+  // Touch devices keep their native scrolling behavior.
+  const duprTableWrap=$('duprExportTableWrap');
+  if(duprTableWrap){
+    let duprDragPointerId=null;
+    let duprDragStartX=0;
+    let duprDragStartY=0;
+    let duprDragStartScrollLeft=0;
+    let duprDragActive=false;
+    duprTableWrap.addEventListener('pointerdown',event=>{
+      if(event.pointerType!=='mouse'||event.button!==0)return;
+      if(event.target.closest('button,a,input,select,textarea'))return;
+      if(duprTableWrap.scrollWidth<=duprTableWrap.clientWidth)return;
+      duprDragPointerId=event.pointerId;
+      duprDragStartX=event.clientX;
+      duprDragStartY=event.clientY;
+      duprDragStartScrollLeft=duprTableWrap.scrollLeft;
+      duprDragActive=false;
+      duprTableWrap.classList.add('is-pointer-down');
+      try{duprTableWrap.setPointerCapture(event.pointerId);}catch(_){/* Pointer capture is a progressive enhancement. */}
+    });
+    duprTableWrap.addEventListener('pointermove',event=>{
+      if(duprDragPointerId!==event.pointerId)return;
+      const deltaX=event.clientX-duprDragStartX;
+      const deltaY=event.clientY-duprDragStartY;
+      if(!duprDragActive&&Math.abs(deltaX)>5&&Math.abs(deltaX)>Math.abs(deltaY)){
+        duprDragActive=true;
+        duprTableWrap.classList.add('is-dragging');
+      }
+      if(duprDragActive){
+        event.preventDefault();
+        duprTableWrap.scrollLeft=duprDragStartScrollLeft-deltaX;
+      }
+    });
+    const finishDuprTableDrag=event=>{
+      if(duprDragPointerId===null||(event.pointerId!==undefined&&event.pointerId!==duprDragPointerId))return;
+      duprDragPointerId=null;
+      duprDragActive=false;
+      duprTableWrap.classList.remove('is-pointer-down','is-dragging');
+    };
+    duprTableWrap.addEventListener('pointerup',finishDuprTableDrag);
+    duprTableWrap.addEventListener('pointercancel',finishDuprTableDrag);
+    duprTableWrap.addEventListener('lostpointercapture',finishDuprTableDrag);
+  }
   $('refreshDuprIdsButton').addEventListener('click',event=>refreshDuprExportIds(event.currentTarget));
   $('duprExportDownloadButton').addEventListener('click',downloadDuprModalCsv);
   $('duprMarkSubmittedButton').addEventListener('click',markDuprModalMatchesSubmitted);

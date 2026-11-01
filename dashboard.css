@@ -1879,16 +1879,35 @@ body.organizer-dashboard-page.modal-open .dashboard-topbar{
 .dupr-missing-player-list{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
 .dupr-missing-player-chip{min-height:22px;display:inline-flex;align-items:center;padding:0 8px;border:1px solid rgba(222,92,111,.28);border-radius:99px;background:rgba(150,48,66,.16);color:#f39aa3;font-size:9px;font-weight:750;white-space:nowrap}
 .dupr-export-table-wrap{min-height:0;flex:1;overflow:auto;border:1px solid rgba(148,163,184,.12);border-radius:10px;background:#0e1a2e;overscroll-behavior:contain}
-.dupr-export-table{width:100%;min-width:1040px;border-collapse:separate;border-spacing:0;text-align:left;font-variant-numeric:tabular-nums}
-.dupr-export-table thead th{position:sticky;top:0;z-index:2;height:34px;padding:0 8px;background:#1b293d;color:#75999c;font-size:9px;font-weight:850;white-space:nowrap}
-.dupr-export-table tbody td{height:32px;padding:0 8px;border-top:1px solid rgba(148,163,184,.08);color:#d5deeb;font-size:10px;font-weight:600;white-space:nowrap}
+@media (hover:hover) and (pointer:fine){
+  .dupr-export-table-wrap{cursor:grab}
+  .dupr-export-table-wrap.is-pointer-down,.dupr-export-table-wrap.is-dragging{user-select:none;-webkit-user-select:none}
+  .dupr-export-table-wrap.is-dragging{cursor:grabbing}
+}
+.dupr-export-table{width:100%;min-width:1040px;table-layout:fixed;border-collapse:separate;border-spacing:0;text-align:left;font-variant-numeric:tabular-nums}
+.dupr-export-table thead th{position:sticky;top:0;z-index:2;height:34px;padding:0 8px;overflow:hidden;background:#1b293d;color:#75999c;font-size:9px;font-weight:850;text-overflow:ellipsis;white-space:nowrap}
+.dupr-export-table tbody td{height:32px;padding:0 8px;overflow:hidden;border-top:1px solid rgba(148,163,184,.08);color:#d5deeb;font-size:10px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+/* Keep every DUPR column in its lane; long player names must not push later headers off-screen. */
+.dupr-export-table thead th:nth-child(1),.dupr-export-table tbody td:nth-child(1){width:3%}
+.dupr-export-table thead th:nth-child(2),.dupr-export-table tbody td:nth-child(2){width:6%}
+.dupr-export-table thead th:nth-child(3),.dupr-export-table tbody td:nth-child(3){width:9%}
+.dupr-export-table thead th:nth-child(4),.dupr-export-table tbody td:nth-child(4),
+.dupr-export-table thead th:nth-child(6),.dupr-export-table tbody td:nth-child(6),
+.dupr-export-table thead th:nth-child(8),.dupr-export-table tbody td:nth-child(8),
+.dupr-export-table thead th:nth-child(10),.dupr-export-table tbody td:nth-child(10){width:11.75%}
+.dupr-export-table thead th:nth-child(5),.dupr-export-table tbody td:nth-child(5),
+.dupr-export-table thead th:nth-child(7),.dupr-export-table tbody td:nth-child(7),
+.dupr-export-table thead th:nth-child(9),.dupr-export-table tbody td:nth-child(9),
+.dupr-export-table thead th:nth-child(11),.dupr-export-table tbody td:nth-child(11){width:7%}
+.dupr-export-table thead th:nth-child(12),.dupr-export-table tbody td:nth-child(12),
+.dupr-export-table thead th:nth-child(13),.dupr-export-table tbody td:nth-child(13){width:3.5%}
 .dupr-export-table tbody tr:hover td{background:rgba(71,106,139,.1)}
 .dupr-export-number-cell{width:38px;color:#668b94!important}
 .dupr-export-type{min-width:20px;min-height:19px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;border-radius:5px;background:rgba(26,114,201,.2);color:#91c9ff;font-size:9px;font-weight:850}
 .dupr-export-type.is-singles{background:rgba(25,151,128,.16);color:#82d9c5}
 .dupr-export-date-cell{color:#9aabba!important}
-.dupr-export-player-cell{max-width:145px;overflow:hidden;text-overflow:ellipsis}
-.dupr-export-id-cell{color:#00df88!important;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:9px!important;font-weight:800!important}
+.dupr-export-player-cell{min-width:0;max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dupr-export-id-cell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#00df88!important;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:9px!important;font-weight:800!important}
 .dupr-export-id-cell.is-missing{color:#ff6575!important}
 .dupr-export-empty-cell{color:#60768c!important}
 .dupr-export-score{width:32px;text-align:center;color:#ff6575!important;font-size:10px!important;font-weight:850!important}
