@@ -569,10 +569,8 @@
       if (!response.ok || !status || status.ok === false) {
         throw new Error(status?.error || `Login service returned HTTP ${response.status}.`);
       }
-      if (status.authenticated) {
-        window.location.replace(status.role === 'panel' ? '/panel.html' : '/dashboard.html');
-        return;
-      }
+      // Do not redirect based on whichever role cookie happens to be present.
+      // The sign-in flow can now choose either role in this same browser tab.
       if (!status.panelConfigured && !status.configured) {
         setMessage(message, 'Login is not configured on the server. The administrator must set SESSION_SECRET and a valid login credential in the hosting settings.', 'info');
       }
@@ -592,6 +590,7 @@
       openOrganizerOptions(accountSearchInput.value);
       return;
     }
+
     setMessage(message, '');
     loginPending = true;
     submit.disabled = true;
@@ -620,7 +619,24 @@
       if (result.role !== 'panel' && result.role !== 'organizer') {
         throw new Error('The server response was incomplete. Please refresh the login page and try again.');
       }
-      window.location.replace(result.role === 'panel' ? '/panel.html' : '/dashboard.html');
+
+      if (typeof result.tabSession !== 'string' || !result.tabSession) {
+        throw new Error('The server did not return a secure tab session. Please refresh and try again.');
+      }
+      const panelTabKey = 'ppm-panel-tab-session-v1';
+      const organizerTabKey = 'ppm-organizer-tab-session-v1';
+      const ownTabKey = result.role === 'panel' ? panelTabKey : organizerTabKey;
+      const otherTabKey = result.role === 'panel' ? organizerTabKey : panelTabKey;
+      try {
+        window.sessionStorage.removeItem(otherTabKey);
+        window.sessionStorage.setItem(ownTabKey, result.tabSession);
+      } catch (_) {
+        throw new Error('This browser is blocking tab session storage. Enable site storage, then sign in again.');
+      }
+      const destination = result.role === 'panel' ? '/panel.html' : '/dashboard.html';
+      // Sign in navigates this same tab. The signed token is scoped to this
+      // tab, so typing either page URL in a new tab still requires sign-in.
+      window.location.replace(destination);
     } catch (error) {
       const detail = String(error?.message || '');
       const userMessage = /failed to fetch|networkerror|load failed|fetch failed/i.test(detail)

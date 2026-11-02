@@ -1136,6 +1136,9 @@ tbody td[data-label="Password"] { align-items: flex-start; }
 .registered-cloud-count { display:inline-flex; margin-top:8px; padding:4px 8px; border:1px solid #cdece1; border-radius:999px; background:#f0fbf6; color:#0b866b; font-size:10px; font-weight:850; }
 .registered-cloud-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex:0 0 auto; }
 .registered-cloud-actions .secondary-button, .registered-cloud-actions .primary-button { min-height:40px; padding-inline:13px; white-space:nowrap; }
+.registered-cloud-actions .secondary-button { gap:8px; }
+.panel-action-icon { display:block; flex:0 0 16px; width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.panel-list-icon { fill:currentColor; stroke:none; }
 .registered-cloud-download { box-shadow:0 5px 12px rgba(8,126,112,.13); }
 .registered-players-modal .registered-players-dialog { width:min(1180px, calc(100vw - 32px)); max-width:1180px; max-height:min(92dvh, 920px); padding:clamp(16px, 2vw, 24px); }
 .registered-players-modal-heading { align-items:center; margin-bottom:16px; }
@@ -1206,8 +1209,19 @@ body[data-theme="dark"] .registered-cloud-count { border-color:#28594f; backgrou
 .registered-players-export-header .dupr-export-heading-copy { min-width:0; }
 .registered-players-export-header .dupr-export-heading-copy h2 { margin:0; color:#f5f7fb; font-family:Manrope,"DM Sans",sans-serif; font-size:19px; font-weight:850; letter-spacing:-.03em; line-height:1.2; }
 .registered-players-export-header .dupr-export-heading-copy p { margin:4px 0 0; color:#719b9d; font-size:11px; font-weight:650; line-height:1.4; }
+.registered-players-header-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+.registered-players-missing-chevron { width:20px; height:20px; flex:0 0 20px; display:inline-flex; align-items:center; justify-content:center; padding:0; border:0; border-radius:5px; background:transparent; color:#a87984; cursor:pointer; transition:color .15s ease,background .15s ease; }
+.registered-players-missing-chevron:hover { background:rgba(190,71,93,.12); color:#ffc0c6; }
+.registered-players-missing-chevron:focus-visible { outline:2px solid rgba(222,92,111,.65); outline-offset:2px; }
+.registered-players-missing-chevron svg { width:15px; height:15px; display:block; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transition:transform .16s ease; }
+.registered-players-missing-chevron.is-expanded svg { transform:rotate(180deg); }
+.registered-players-missing-chevron[hidden] { display:none; }
 .registered-players-export-header .dupr-export-close { flex:0 0 28px; width:28px; height:30px; margin:0; padding:0; border:0; border-radius:0; background:transparent; color:#668c91; font-size:25px; font-weight:300; line-height:1; }
 .registered-players-export-header .dupr-export-close:hover { color:#e0f6f5; }
+.registered-players-filters { min-height:52px; display:flex; align-items:center; gap:7px; overflow-x:auto; padding:9px 18px; border-bottom:1px solid rgba(148,163,184,.1); scrollbar-width:thin; }
+.registered-players-filters .dupr-export-filter { min-height:31px; flex:0 0 auto; padding:0 11px; border:1px solid rgba(148,163,184,.14); border-radius:8px; background:rgba(148,163,184,.06); color:#78999b; font-size:10px; font-weight:800; white-space:nowrap; cursor:pointer; transition:background .15s ease,border-color .15s ease,color .15s ease; }
+.registered-players-filters .dupr-export-filter:hover { border-color:rgba(0,165,220,.35); color:#b0d6df; }
+.registered-players-filters .dupr-export-filter.is-active { border-color:rgba(0,158,220,.6); background:rgba(0,127,190,.15); color:#69cdf8; }
 .registered-players-toolbar { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:0; padding:13px 18px; border-bottom:1px solid rgba(148,163,184,.1); }
 .registered-players-modal .registered-players-search { width:min(430px,100%); min-height:38px; gap:9px; padding:0 11px; border:1px solid rgba(148,163,184,.15); border-radius:9px; background:#1b293d; color:#78999b; }
 .registered-players-modal .registered-players-search svg { width:16px; height:16px; flex:0 0 16px; stroke:#78999b; }
@@ -1218,35 +1232,73 @@ body[data-theme="dark"] .registered-cloud-count { border-color:#28594f; backgrou
 .registered-players-modal .registered-players-meta strong { color:#dbe6f2; font-size:11px; font-weight:850; }
 .registered-players-modal .registered-players-meta span { color:#719b9d; font-size:9px; }
 .registered-players-main { min-height:0; flex:1; display:flex; flex-direction:column; gap:10px; overflow:hidden; padding:14px 18px; }
-.registered-players-modal .registered-players-table-wrap { width:100%; min-height:0; flex:1; max-height:none; overflow:auto; border:1px solid rgba(148,163,184,.12); border-radius:10px; background:#0e1a2e; overscroll-behavior:contain; }
-.registered-players-modal .registered-players-table { width:100%; min-width:790px; table-layout:fixed; border-collapse:separate; border-spacing:0; text-align:left; font-variant-numeric:tabular-nums; }
-.registered-players-modal .registered-players-table thead { position:sticky; top:0; z-index:2; }
-.registered-players-modal .registered-players-table thead th { height:34px; padding:0 9px; overflow:hidden; border:0; border-bottom:1px solid rgba(148,163,184,.1); background:#1b293d; color:#75999c; font-size:9px; font-weight:850; letter-spacing:.055em; text-overflow:ellipsis; white-space:nowrap; }
-.registered-players-modal .registered-players-table tbody td { height:34px; padding:0 9px; overflow:hidden; border:0; border-top:1px solid rgba(148,163,184,.08); background:#0e1a2e; color:#d5deeb; font-size:10px; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
+.registered-players-missing-notice { flex:0 0 auto; width:100%; max-height:none; overflow:visible; box-sizing:border-box; padding:10px 12px; border:1px solid rgba(190,71,93,.28); border-radius:10px; background:rgba(100,35,57,.2); }
+.registered-players-missing-notice[hidden] { display:none; }
+.registered-players-missing-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0; }
+.registered-players-missing-heading>strong { min-width:0; color:#ff9ba2; font-size:12px; font-weight:850; }
+.registered-players-missing-heading-actions { min-width:0; display:flex; align-items:center; justify-content:flex-end; gap:6px; flex:0 0 auto; }
+.registered-players-missing-heading-actions>span { color:#a87984; font-size:9px; font-weight:650; white-space:nowrap; }
+.registered-players-missing-list { min-width:0; display:flex; align-items:center; flex-wrap:wrap; gap:5px; max-height:none; overflow:visible; }
+.registered-players-missing-list[hidden] { display:none; }
+.registered-players-missing-chip { min-height:22px; display:inline-flex; align-items:center; flex:0 1 auto; max-width:min(100%, 280px); padding:0 8px; overflow:hidden; border:1px solid rgba(222,92,111,.28); border-radius:99px; background:rgba(150,48,66,.16); color:#f39aa3; font-size:9px; font-weight:750; text-overflow:ellipsis; white-space:nowrap; }
+.registered-players-modal .registered-players-table-wrap {
+  position:relative; display:block; width:100%; min-width:0; min-height:0; flex:1; max-height:none;
+  overflow-x:auto; overflow-y:auto; overflow-anchor:none; scroll-behavior:auto; scrollbar-gutter:stable;
+  -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y; overscroll-behavior:contain;
+  border:1px solid rgba(148,163,184,.12); border-radius:10px; background:#0e1a2e;
+}
+.registered-players-modal .registered-players-table {
+  display:table; width:100%; min-width:820px; max-width:none; table-layout:fixed; box-sizing:border-box;
+  border-collapse:separate; border-spacing:0; text-align:left; font-variant-numeric:tabular-nums;
+}
+/* Keep the modal table's native table formatting even under the panel's
+   small-screen card-table rules. Mixing grid/block/flex with table rows can
+   force browser relayouts while the scroll container is moving. */
+.registered-players-modal .registered-players-table thead { display:table-header-group; position:static; width:auto; }
+.registered-players-modal .registered-players-table tbody { display:table-row-group; width:auto; gap:0; }
+.registered-players-modal .registered-players-table thead tr,
+.registered-players-modal .registered-players-table tbody tr {
+  display:table-row; width:auto; height:auto; padding:0; border:0; border-radius:0; background:transparent;
+}
+.registered-players-modal .registered-players-table thead th,
+.registered-players-modal .registered-players-table tbody td {
+  display:table-cell; width:auto; min-width:0; text-align:left;
+}
+.registered-players-modal .registered-players-table thead th { position:sticky; top:0; z-index:3; }
+.registered-players-modal .registered-players-table tbody td::before { display:none !important; content:none !important; }
+.registered-players-modal .registered-players-table col.registered-player-col-number { width:4.5%; }
+.registered-players-modal .registered-players-table col.registered-player-col-name { width:20%; }
+.registered-players-modal .registered-players-table col.registered-player-col-nickname { width:11.5%; }
+.registered-players-modal .registered-players-table col.registered-player-col-gender { width:8%; }
+.registered-players-modal .registered-players-table col.registered-player-col-category { width:13%; }
+.registered-players-modal .registered-players-table col.registered-player-col-dupr { width:14%; }
+.registered-players-modal .registered-players-table col.registered-player-col-matches { width:10%; }
+.registered-players-modal .registered-players-table col.registered-player-col-wins { width:9.5%; }
+.registered-players-modal .registered-players-table col.registered-player-col-losses { width:9.5%; }
+.registered-players-modal .registered-players-table thead { position:static; top:auto; z-index:auto; }
+.registered-players-modal .registered-players-table thead tr,
+.registered-players-modal .registered-players-table tbody tr { display:table-row; }
+.registered-players-modal .registered-players-table thead th { height:34px; min-width:0; padding:0 8px; overflow:hidden; box-sizing:border-box; border:0; border-bottom:1px solid rgba(148,163,184,.1); background:#1b293d; color:#75999c; font-size:9px; font-weight:850; letter-spacing:.055em; text-overflow:ellipsis; white-space:nowrap; }
+.registered-players-modal .registered-players-table tbody td { height:35px; min-width:0; padding:0 8px; overflow:hidden; box-sizing:border-box; border:0; border-top:1px solid rgba(148,163,184,.08); background:#0e1a2e; color:#d5deeb; font-size:10px; font-weight:600; line-height:1.25; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
 .registered-players-modal .registered-players-table tbody tr:hover td { background:rgba(71,106,139,.1); }
-.registered-players-modal .registered-players-table th:nth-child(1),.registered-players-modal .registered-players-table td:nth-child(1) { width:24%; }
-.registered-players-modal .registered-players-table th:nth-child(2),.registered-players-modal .registered-players-table td:nth-child(2) { width:13%; }
-.registered-players-modal .registered-players-table th:nth-child(3),.registered-players-modal .registered-players-table td:nth-child(3) { width:10%; }
-.registered-players-modal .registered-players-table th:nth-child(4),.registered-players-modal .registered-players-table td:nth-child(4) { width:14%; }
-.registered-players-modal .registered-players-table th:nth-child(5),.registered-players-modal .registered-players-table td:nth-child(5) { width:14%; }
-.registered-players-modal .registered-players-table th:nth-child(6),.registered-players-modal .registered-players-table td:nth-child(6) { width:9%; }
-.registered-players-modal .registered-players-table th:nth-child(7),.registered-players-modal .registered-players-table td:nth-child(7) { width:8%; }
-.registered-players-modal .registered-players-table th:nth-child(8),.registered-players-modal .registered-players-table td:nth-child(8) { width:8%; }
-.registered-players-modal .registered-player-name { display:block; max-width:100%; overflow:hidden; color:#edf2fa; font-size:10px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
-.registered-players-modal .registered-player-category { display:inline-flex; max-width:100%; padding:4px 6px; overflow:hidden; border:1px solid rgba(148,163,184,.12); border-radius:5px; background:rgba(148,163,184,.07); color:#c8d9e7; font-size:9px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
-.registered-players-modal .registered-player-dupr { color:#00df88; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:9px; font-weight:800; }
+.registered-players-modal .registered-player-number { color:#668b94; font-variant-numeric:tabular-nums; }
+.registered-players-modal .registered-player-name { display:block; width:100%; max-width:100%; min-width:0; overflow:hidden; color:#edf2fa; font-size:10px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
+.registered-players-modal .registered-player-category { display:inline-block; max-width:100%; min-width:0; padding:4px 6px; overflow:hidden; box-sizing:border-box; border:1px solid rgba(148,163,184,.12); border-radius:5px; background:rgba(148,163,184,.07); color:#c8d9e7; font-size:9px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
+.registered-players-modal .registered-player-dupr { display:inline-block; max-width:100%; overflow:hidden; color:#00df88; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:9px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
+/* Match Dashboard > dupr-export-id-cell.is-missing: red DUPR text only, with no badge fill or border. */
+.registered-players-modal .registered-player-missing-dupr,
+.registered-players-modal .dupr-export-id-cell.is-missing { display:inline-block; max-width:100%; padding:0; overflow:hidden; border:0; border-radius:0; background:transparent; color:#ff6575!important; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:9px!important; font-weight:800!important; letter-spacing:normal; text-overflow:ellipsis; text-transform:none; white-space:nowrap; vertical-align:middle; }
+.registered-players-modal .registered-players-table-wrap { scrollbar-width:none; -ms-overflow-style:none; }
+.registered-players-modal .registered-players-table-wrap::-webkit-scrollbar { width:0 !important; height:0 !important; display:none; }
 .registered-players-modal .empty-row { height:90px !important; color:#7898a1 !important; font-size:11px !important; font-weight:700 !important; text-align:center; }
 .registered-players-modal .registered-players-error { color:#ff8e98 !important; }
-.registered-import-report { flex:0 0 auto; max-height:190px; overflow:hidden; padding:10px 12px; border:1px solid rgba(0,190,130,.22); border-radius:10px; background:rgba(13,75,58,.18); }
-.registered-import-report[hidden],.registered-duplicates-section[hidden] { display:none !important; }
-.registered-import-report-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:7px; }
-.registered-import-report-heading strong { color:#83e7bd; font-size:11px; font-weight:850; }
-.registered-import-report-heading>span { color:#91bcae; font-size:9px; font-weight:700; }
-.registered-duplicates-section { min-height:0; }
+.registered-duplicates-section[hidden],.registered-players-table-wrap[hidden] { display:none !important; }
+.registered-duplicates-section { min-height:0; flex:1; display:flex; flex-direction:column; gap:9px; overflow:hidden; }
+.registered-duplicates-section:not([hidden]) { display:flex; }
 .registered-duplicates-heading { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px; }
 .registered-duplicates-heading strong { color:#ff9ba2; font-size:10px; font-weight:850; }
 .registered-duplicates-heading>span { color:#a87984; font-size:9px; font-weight:650; }
-.registered-duplicates-table-wrap { max-height:112px; overflow:auto; border:1px solid rgba(222,92,111,.2); border-radius:8px; background:#101b2d; }
+.registered-duplicates-table-wrap { min-height:0; flex:1; max-height:none; overflow:auto; border:1px solid rgba(222,92,111,.2); border-radius:8px; background:#101b2d; }
 .registered-duplicates-table { width:100%; min-width:690px; border-collapse:separate; border-spacing:0; table-layout:fixed; text-align:left; }
 .registered-duplicates-table th { position:sticky; top:0; z-index:1; height:27px; padding:0 8px; background:#263044; color:#b68d98; font-size:8px; font-weight:850; letter-spacing:.04em; white-space:nowrap; }
 .registered-duplicates-table td { height:27px; padding:3px 8px; border-top:1px solid rgba(148,163,184,.08); color:#d5deeb; font-size:9px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1276,6 +1328,8 @@ body[data-theme="dark"] .registered-cloud-count { border-color:#28594f; backgrou
 }
 @media (max-width:760px) {
   .registered-players-modal .registered-players-dialog { width:min(100%,1000px); }
+  .registered-players-filters { min-height:43px; gap:5px; padding:6px 14px; }
+  .registered-players-filters .dupr-export-filter { min-height:28px; padding:0 8px; font-size:9px; }
   .registered-players-toolbar { align-items:stretch; flex-direction:column; gap:8px; padding:10px 14px; }
   .registered-players-modal .registered-players-search { width:100%; }
   .registered-players-modal .registered-players-meta { align-items:flex-start; text-align:left; }
@@ -1291,10 +1345,14 @@ body[data-theme="dark"] .registered-cloud-count { border-color:#28594f; backgrou
   .registered-players-export-header .dupr-export-close { width:24px; height:28px; flex-basis:24px; font-size:22px; }
   .registered-players-toolbar { padding:9px 10px; }
   .registered-players-main { gap:8px; padding:9px 10px; }
-  .registered-import-report { max-height:155px; padding:8px; }
+  .registered-players-missing-heading { align-items:center; flex-direction:row; gap:7px; }
+  .registered-players-missing-heading>strong { font-size:10px; }
+  .registered-players-missing-heading-actions { gap:4px; }
+  .registered-players-missing-heading-actions>span { font-size:8px; }
+  .registered-players-missing-chevron { width:18px; height:18px; flex-basis:18px; }
   .registered-duplicates-heading>span { font-size:8px; }
   .registered-duplicates-table-wrap { max-height:88px; }
-  .registered-players-modal .registered-players-table { min-width:760px; }
+  .registered-players-modal .registered-players-table { min-width:820px; }
   .registered-players-modal .registered-players-table thead th { height:30px; padding:0 6px; font-size:8px; }
   .registered-players-modal .registered-players-table tbody td { height:29px; padding:0 6px; font-size:9px; }
   .registered-players-modal-footer { min-height:58px; align-items:stretch; flex-direction:column; gap:8px; padding:8px 10px; }
@@ -1314,3 +1372,94 @@ body[data-theme="dark"] .registered-cloud-count { border-color:#28594f; backgrou
 
 @keyframes registered-players-modal-in { from { opacity:0; transform:translateY(8px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
 .registered-players-modal .registered-players-dialog { animation:registered-players-modal-in .18s ease-out; }
+
+/* Duplicate report filters reuse the dashboard DUPR export filter treatment. */
+.registered-duplicates-filters { margin: 8px 0 9px; flex-wrap: wrap; }
+.registered-duplicates-filters .dupr-export-filter { flex: 0 0 auto; }
+
+/* Touch-device scroll stability: avoid sticky table-header repaint jumps in iOS Safari. */
+@media (hover: none), (pointer: coarse), (any-pointer: coarse) {
+  .registered-players-modal .registered-players-table-wrap {
+    overflow-anchor: none;
+    scrollbar-gutter: auto;
+    scroll-snap-type: none;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+  }
+  .registered-players-modal .registered-players-table,
+  .registered-players-modal .registered-players-table thead,
+  .registered-players-modal .registered-players-table tbody,
+  .registered-players-modal .registered-players-table tr,
+  .registered-players-modal .registered-players-table th,
+  .registered-players-modal .registered-players-table td {
+    overflow-anchor: none;
+  }
+  /* Keep the registered-player column headings visible while the body rows
+     scroll vertically. Horizontal swipes still move the full table together. */
+  .registered-players-modal .registered-players-table thead {
+    position: static !important;
+    top: auto !important;
+  }
+  .registered-players-modal .registered-players-table thead th {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
+    background: #1b293d !important;
+    background-clip: padding-box;
+  }
+}
+
+/* Use the stable small viewport on touch devices so Safari's browser bars
+   cannot resize the modal and shift table rows during an active scroll. */
+@supports (height: 100svh) {
+  @media (hover: none), (pointer: coarse), (any-pointer: coarse) {
+    .registered-players-modal .registered-players-dialog {
+      height: min(680px, calc(100svh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+      max-height: calc(100svh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    }
+    @media (max-width: 600px) {
+      .registered-players-modal .registered-players-dialog {
+        height: min(680px, calc(85svh - 16px));
+      }
+    }
+  }
+}
+
+/* Keep panel empty-state rows centered when responsive tables become cards. */
+@media (max-width: 720px) {
+  .table-wrap tbody td.empty-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100%;
+    min-height: 82px;
+    padding: 18px 12px !important;
+    border-bottom: 0 !important;
+    text-align: center !important;
+  }
+  .table-wrap tbody td.empty-row::before {
+    display: none !important;
+    content: none !important;
+  }
+}
+
+/* Keep registered-player search text compact and regular-weight. */
+.registered-players-search input {
+  font-family: 'DM Sans', Arial, sans-serif !important;
+  font-size: 10px !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  letter-spacing: normal !important;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+.registered-players-search input::placeholder {
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+

@@ -98,6 +98,6 @@
   if (window.PPM_AUTH_READY && typeof window.PPM_AUTH_READY.then === 'function') {
     window.PPM_AUTH_READY.then(loadQueueingApp);
   } else {
-    fetch('/api/auth-status', {cache:'no-store',credentials:'same-origin'}).then(response => response.json()).then(loadQueueingApp).catch(() => {});
+    fetch('/api/auth-status', {cache:'no-store',credentials:'same-origin',headers:{'X-PPM-Auth-Role':'organizer'}}).then(response => response.json()).then(loadQueueingApp).catch(() => {});
   }
 })();

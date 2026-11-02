@@ -4,6 +4,57 @@
   const $ = id => document.getElementById(id);
   let sessionDropdownOpen=false;
 
+  // Keep touch swipes within the DUPR table on iPad/iPhone. The table remains
+  // natively scrollable; this only blocks scroll chaining when a swipe reaches an edge.
+  function containTableTouchScroll(scroller) {
+    if (!scroller) return;
+    let startX = null;
+    let startY = null;
+    let touchId = null;
+
+    scroller.addEventListener('touchstart', event => {
+      if (event.touches.length !== 1) {
+        startX = startY = touchId = null;
+        return;
+      }
+      const touch = event.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      touchId = touch.identifier;
+    }, {passive:true});
+
+    scroller.addEventListener('touchmove', event => {
+      if (startX === null || startY === null || touchId === null || event.touches.length !== 1) return;
+      const touch = Array.from(event.touches).find(item => item.identifier === touchId);
+      if (!touch) return;
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 8) return;
+
+      const horizontal = Math.abs(deltaX) > Math.abs(deltaY);
+      const delta = horizontal ? deltaX : deltaY;
+      const maxScroll = Math.max(0, horizontal
+        ? scroller.scrollWidth - scroller.clientWidth
+        : scroller.scrollHeight - scroller.clientHeight);
+      const currentScroll = horizontal ? scroller.scrollLeft : scroller.scrollTop;
+      const atStart = currentScroll <= 1;
+      const atEnd = currentScroll >= maxScroll - 1;
+      const wouldScrollPastEdge = maxScroll <= 1 || (delta > 0 && atStart) || (delta < 0 && atEnd);
+
+      if (wouldScrollPastEdge && event.cancelable) event.preventDefault();
+    }, {passive:false});
+
+    const resetTouch = event => {
+      if (touchId === null || !event.changedTouches ||
+          Array.from(event.changedTouches).some(touch => touch.identifier === touchId) ||
+          event.touches.length === 0) {
+        startX = startY = touchId = null;
+      }
+    };
+    scroller.addEventListener('touchend', resetTouch, {passive:true});
+    scroller.addEventListener('touchcancel', resetTouch, {passive:true});
+  }
+
   const state = {
     tab:'attendance',
     auth:null,
@@ -35,7 +86,8 @@
     duprModalEventName:'',
     duprModalLocation:'',
     duprModalScoreType:'RALLY',
-    duprSubmittedMatchKeys:new Set()
+    duprSubmittedMatchKeys:new Set(),
+    duprMissingNoticeExpanded:false
   };
 
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
@@ -1542,7 +1594,19 @@
     const names=Array.from(unique.values());
     $('duprMissingPlayersCount').textContent=String(names.length);
     setMarkupWithoutJump($('duprMissingPlayersList'),names.map(name=>`<span class="dupr-missing-player-chip">${escapeHtml(name)}</span>`).join(''));
-    $('duprMissingNotice').hidden=!names.length;
+    const toggle=$('duprMissingNoticeToggle');
+    const notice=$('duprMissingNotice');
+    const list=$('duprMissingPlayersList');
+    if(!names.length)state.duprMissingNoticeExpanded=false;
+    notice.hidden=!names.length;
+    list.hidden=!names.length||!state.duprMissingNoticeExpanded;
+    if(toggle){
+      toggle.hidden=!names.length;
+      toggle.classList.toggle('is-expanded',state.duprMissingNoticeExpanded);
+      toggle.setAttribute('aria-expanded',String(state.duprMissingNoticeExpanded));
+      toggle.setAttribute('aria-label',state.duprMissingNoticeExpanded?'Hide missing DUPR player names':'Show missing DUPR player names');
+      toggle.title=state.duprMissingNoticeExpanded?'Hide missing DUPR player names':'Show missing DUPR player names';
+    }
   }
 
   function duprModalPlayerCell(player) {
@@ -1587,7 +1651,10 @@
       button.classList.toggle('is-active',active);
       button.setAttribute('aria-pressed',String(active));
     });
-    duprModalMissingPlayersMarkup(entries);
+    // Keep the missing-DUPR notice in sync with the exact rows rendered in the table.
+    // This respects the active export filter (All, Not Submitted, Already Submitted,
+    // All Players Have DUPR, or Missing DUPR) so names from hidden rows never appear.
+    duprModalMissingPlayersMarkup(filtered);
     setMarkupWithoutJump($('duprExportTableBody'),filtered.map((item,index)=>duprModalRowMarkup(item,index)).join(''));
     $('duprExportEmpty').hidden=filtered.length>0;
     $('duprExportTableWrap').hidden=!filtered.length;
@@ -1614,6 +1681,7 @@
     // Force the modal to refresh its session-specific defaults for this range.
     state.duprModalSessionId='';
     state.duprModalFilter='all';
+    state.duprMissingNoticeExpanded=false;
     showDashboardModal('duprExportModal');
     renderDuprExportModal();
     $('closeDuprExportModal')?.focus();
@@ -1932,6 +2000,7 @@
   // Let desktop users drag the table left/right to reach the A and B score columns.
   // Touch devices keep their native scrolling behavior.
   const duprTableWrap=$('duprExportTableWrap');
+  containTableTouchScroll(duprTableWrap);
   if(duprTableWrap){
     let duprDragPointerId=null;
     let duprDragStartX=0;
@@ -1974,6 +2043,18 @@
     duprTableWrap.addEventListener('lostpointercapture',finishDuprTableDrag);
   }
   $('refreshDuprIdsButton').addEventListener('click',event=>refreshDuprExportIds(event.currentTarget));
+  $('duprMissingNoticeToggle').addEventListener('click',()=>{
+    const hasMissing=Number($('duprMissingPlayersCount').textContent)>0;
+    if(!hasMissing)return;
+    state.duprMissingNoticeExpanded=!state.duprMissingNoticeExpanded;
+    const toggle=$('duprMissingNoticeToggle');
+    const list=$('duprMissingPlayersList');
+    list.hidden=!state.duprMissingNoticeExpanded;
+    toggle.classList.toggle('is-expanded',state.duprMissingNoticeExpanded);
+    toggle.setAttribute('aria-expanded',String(state.duprMissingNoticeExpanded));
+    toggle.setAttribute('aria-label',state.duprMissingNoticeExpanded?'Hide missing DUPR player names':'Show missing DUPR player names');
+    toggle.title=state.duprMissingNoticeExpanded?'Hide missing DUPR player names':'Show missing DUPR player names';
+  });
   $('duprExportDownloadButton').addEventListener('click',downloadDuprModalCsv);
   $('duprMarkSubmittedButton').addEventListener('click',markDuprModalMatchesSubmitted);
   $('duprExportFilters').addEventListener('click',event=>{
@@ -2187,7 +2268,8 @@
     const confirmed=window.confirm('Are you sure you want to log out?');
     if(!confirmed)return;
     $('logoutButton').disabled=true;
-    try{await fetch('/api/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});}catch(_){/* Local navigation still ends the visible session. */}
+    try{await fetch('/api/logout',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'X-PPM-Auth-Role':'organizer'}});}catch(_){/* Local navigation still ends the visible session. */}
+    try{window.sessionStorage.removeItem('ppm-organizer-tab-session-v1');}catch(_){/* The page still navigates away. */}
     window.location.replace('/index.html');
   });
 

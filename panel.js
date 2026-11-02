@@ -37,11 +37,65 @@
   let isSavingProfile = false;
   let registeredPlayers = [];
   let registeredPlayersFiltered = [];
-  let registeredPlayersShown = 50;
+  let registeredPlayersFilter = 'all';
+  let registeredPlayersDuplicateFilter = 'all';
+  let registeredPlayersDuplicateRows = [];
   let registeredPlayersLoading = false;
   let registeredPlayersReturnFocusTo = null;
-  const registeredPlayersPageSize = 50;
   let registeredPlayersLoadRequest = 0;
+  let registeredPlayersMissingExpanded = false;
+
+  // Keep touch scrolling inside the Registered Player Cloud table. On iPad/iPhone,
+  // older Safari versions may pass a table's edge-swipe to the modal/page behind it.
+  // Native table scrolling stays enabled; only an outward swipe at an edge is stopped.
+  function containTableTouchScroll(scroller) {
+    if (!scroller) return;
+    let startX = null;
+    let startY = null;
+    let touchId = null;
+
+    scroller.addEventListener('touchstart', event => {
+      if (event.touches.length !== 1) {
+        startX = startY = touchId = null;
+        return;
+      }
+      const touch = event.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      touchId = touch.identifier;
+    }, {passive:true});
+
+    scroller.addEventListener('touchmove', event => {
+      if (startX === null || startY === null || touchId === null || event.touches.length !== 1) return;
+      const touch = Array.from(event.touches).find(item => item.identifier === touchId);
+      if (!touch) return;
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 8) return;
+
+      const horizontal = Math.abs(deltaX) > Math.abs(deltaY);
+      const delta = horizontal ? deltaX : deltaY;
+      const maxScroll = Math.max(0, horizontal
+        ? scroller.scrollWidth - scroller.clientWidth
+        : scroller.scrollHeight - scroller.clientHeight);
+      const currentScroll = horizontal ? scroller.scrollLeft : scroller.scrollTop;
+      const atStart = currentScroll <= 1;
+      const atEnd = currentScroll >= maxScroll - 1;
+      const wouldScrollPastEdge = maxScroll <= 1 || (delta > 0 && atStart) || (delta < 0 && atEnd);
+
+      if (wouldScrollPastEdge && event.cancelable) event.preventDefault();
+    }, {passive:false});
+
+    const resetTouch = event => {
+      if (touchId === null || !event.changedTouches ||
+          Array.from(event.changedTouches).some(touch => touch.identifier === touchId) ||
+          event.touches.length === 0) {
+        startX = startY = touchId = null;
+      }
+    };
+    scroller.addEventListener('touchend', resetTouch, {passive:true});
+    scroller.addEventListener('touchcancel', resetTouch, {passive:true});
+  }
 
   function setNotice(message, error = false) {
     if (!message) return;
@@ -211,23 +265,91 @@
       registeredPlayerValue(player, 'duprId', ['dupr_id','duprID'])
     ].join(' ').toLocaleLowerCase();
   }
+  function getUniqueRegisteredPlayers(players) {
+    const seenNames = new Set();
+    const seenDuprIds = new Set();
+    return players.filter(player => {
+      const name = String(registeredPlayerValue(player, 'name')).trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+      const duprId = String(registeredPlayerValue(player, 'duprId', ['dupr_id','duprID'])).trim().toLocaleLowerCase();
+      if ((name && seenNames.has(name)) || (duprId && seenDuprIds.has(duprId))) return false;
+      if (name) seenNames.add(name);
+      if (duprId) seenDuprIds.add(duprId);
+      return true;
+    });
+  }
+  function syncRegisteredPlayersMissingNotice() {
+    const count = Number($('registeredPlayersMissingCount').textContent) || 0;
+    const hasMissing = count > 0;
+    const notice = $('registeredPlayersMissingNotice');
+    const list = $('registeredPlayersMissingList');
+    const toggle = $('registeredPlayersMissingToggle');
+    if (!hasMissing) registeredPlayersMissingExpanded = false;
+    notice.hidden = !hasMissing;
+    list.hidden = !hasMissing || !registeredPlayersMissingExpanded;
+    toggle.hidden = !hasMissing;
+    toggle.classList.toggle('is-expanded', registeredPlayersMissingExpanded);
+    toggle.setAttribute('aria-expanded', String(registeredPlayersMissingExpanded));
+    toggle.setAttribute('aria-label', registeredPlayersMissingExpanded ? 'Hide missing DUPR player names' : 'Show missing DUPR player names');
+    toggle.title = registeredPlayersMissingExpanded ? 'Hide missing DUPR player names' : 'Show missing DUPR player names';
+  }
+  function hideRegisteredPlayersMissingNotice() {
+    registeredPlayersMissingExpanded = false;
+    $('registeredPlayersMissingNotice').hidden = true;
+    $('registeredPlayersMissingList').hidden = true;
+    const toggle = $('registeredPlayersMissingToggle');
+    toggle.hidden = true;
+    toggle.classList.remove('is-expanded');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', 'Show missing DUPR player names');
+    toggle.title = 'Show missing DUPR player names';
+  }
+
   function renderRegisteredPlayers() {
     const query = $('registeredPlayersSearch').value.trim().toLocaleLowerCase();
-    registeredPlayersFiltered = query
-      ? registeredPlayers.filter(player => registeredPlayerSearchText(player).includes(query))
-      : registeredPlayers.slice();
-    const visible = registeredPlayersFiltered.slice(0, registeredPlayersShown);
+    const uniquePlayers = getUniqueRegisteredPlayers(registeredPlayers);
+    const hasDupr = player => !!String(registeredPlayerValue(player, 'duprId', ['dupr_id','duprID'])).trim();
+    const playersMissingDupr = uniquePlayers.filter(player => !hasDupr(player));
+    const allHaveDupr = uniquePlayers.length - playersMissingDupr.length;
+    $('registeredPlayersFilterCount-all').textContent = formatPlayerCount(uniquePlayers.length);
+    $('registeredPlayersFilterCount-all-have-dupr').textContent = formatPlayerCount(allHaveDupr);
+    $('registeredPlayersFilterCount-missing-dupr').textContent = formatPlayerCount(playersMissingDupr.length);
+    document.querySelectorAll('[data-registered-player-filter]').forEach(button => {
+      const active = button.dataset.registeredPlayerFilter === registeredPlayersFilter;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+    registeredPlayersFiltered = uniquePlayers.filter(player => {
+      const matchesSearch = !query || registeredPlayerSearchText(player).includes(query);
+      const matchesFilter = registeredPlayersFilter === 'all' ||
+        (registeredPlayersFilter === 'all-have-dupr' && hasDupr(player)) ||
+        (registeredPlayersFilter === 'missing-dupr' && !hasDupr(player));
+      return matchesSearch && matchesFilter;
+    });
+    // Render every row returned by the server; the table itself handles scrolling.
+    const visible = registeredPlayersFiltered;
+
+    // Keep the warning synchronized with the exact rows rendered in the table.
+    // This prevents unrelated filters/search results from leaking names into the notice.
+    const visibleMissingPlayers = visible.filter(player => !hasDupr(player));
+    $('registeredPlayersMissingCount').textContent = formatPlayerCount(visibleMissingPlayers.length);
+    $('registeredPlayersMissingNoun').textContent = visibleMissingPlayers.length === 1 ? 'player' : 'players';
+    $('registeredPlayersMissingList').innerHTML = visibleMissingPlayers.map(player => {
+      const name = registeredPlayerValue(player, 'name') || 'Unnamed player';
+      return `<span class="registered-players-missing-chip">${safeText(name)}</span>`;
+    }).join('');
+    syncRegisteredPlayersMissingNotice();
+
     $('registeredPlayersCountLabel').textContent = query
       ? `${formatPlayerCount(registeredPlayersFiltered.length)} match${registeredPlayersFiltered.length === 1 ? '' : 'es'}`
-      : `${formatPlayerCount(registeredPlayers.length)} registered player${registeredPlayers.length === 1 ? '' : 's'}`;
+      : `${formatPlayerCount(uniquePlayers.length)} registered player${uniquePlayers.length === 1 ? '' : 's'}`;
     $('registeredPlayersShowingLabel').textContent = registeredPlayersFiltered.length
       ? `Showing ${formatPlayerCount(visible.length)} of ${formatPlayerCount(registeredPlayersFiltered.length)}${query ? ' results' : ' players'}`
       : 'No players to show';
     const rows = $('registeredPlayersRows');
     if (!registeredPlayersFiltered.length) {
-      rows.innerHTML = `<tr><td colspan="8" class="empty-row">${query ? 'No registered players match your search.' : 'No registered players have been added yet.'}</td></tr>`;
+      rows.innerHTML = `<tr><td colspan="9" class="empty-row">${query ? 'No registered players match your search.' : 'No registered players have been added yet.'}</td></tr>`;
     } else {
-      rows.innerHTML = visible.map(player => {
+      rows.innerHTML = visible.map((player, index) => {
         const name = registeredPlayerValue(player, 'name') || 'Unnamed player';
         const nickname = registeredPlayerValue(player, 'nickname');
         const gender = registeredPlayerValue(player, 'gender');
@@ -237,19 +359,18 @@
         const wins = registeredPlayerValue(player, 'wins');
         const losses = registeredPlayerValue(player, 'losses');
         return `<tr>
-          <td data-label="Player"><span class="registered-player-name">${safeText(name)}</span></td>
-          <td data-label="Nickname">${safeText(nickname || '—')}</td>
+          <td class="registered-player-number" data-label="#">${index + 1}</td>
+          <td data-label="Player"><span class="registered-player-name" title="${safeText(name)}">${safeText(name)}</span></td>
+          <td data-label="Nickname" title="${safeText(nickname)}">${safeText(nickname || '—')}</td>
           <td data-label="Gender">${safeText(gender || '—')}</td>
-          <td data-label="Category"><span class="registered-player-category">${safeText(category || '—')}</span></td>
-          <td data-label="DUPR ID"><span class="registered-player-dupr">${safeText(duprId || '—')}</span></td>
+          <td data-label="Category"><span class="registered-player-category" title="${safeText(category)}">${safeText(category || '—')}</span></td>
+          <td data-label="DUPR ID">${duprId ? `<span class="registered-player-dupr" title="${safeText(duprId)}">${safeText(duprId)}</span>` : '<span class="registered-player-missing-dupr dupr-export-id-cell is-missing">MISSING</span>'}</td>
           <td data-label="Matches">${safeText(matches === '' ? '0' : matches)}</td>
           <td data-label="Wins">${safeText(wins === '' ? '0' : wins)}</td>
           <td data-label="Losses">${safeText(losses === '' ? '0' : losses)}</td>
         </tr>`;
       }).join('');
     }
-    $('registeredPlayersLoadMore').hidden = visible.length >= registeredPlayersFiltered.length;
-    $('registeredPlayersLoadMore').disabled = visible.length >= registeredPlayersFiltered.length;
   }
   async function loadRegisteredPlayerSummary() {
     try {
@@ -263,21 +384,24 @@
     if (registeredPlayersLoading) return;
     registeredPlayersLoading = true;
     const loadRequest = ++registeredPlayersLoadRequest;
-    $('registeredPlayersRows').innerHTML = '<tr><td colspan="8" class="empty-row">Loading registered players from the server…</td></tr>';
+    hideRegisteredPlayersMissingNotice();
+    $('registeredPlayersRows').innerHTML = '<tr><td colspan="9" class="empty-row">Loading registered players from the server…</td></tr>';
     $('registeredPlayersCountLabel').textContent = 'Loading players…';
     $('registeredPlayersShowingLabel').textContent = 'Please wait…';
     try {
       const data = await request('/api/panel/registered-players');
       if (loadRequest !== registeredPlayersLoadRequest) return;
       registeredPlayers = Array.isArray(data.players) ? data.players : [];
-      registeredPlayersShown = registeredPlayersPageSize;
+      $('registeredPlayersDuplicatesSection').hidden = true;
+      $('registeredPlayersTableView').hidden = false;
       const count = formatPlayerCount(registeredPlayers.length);
       $('registeredPlayersPageCount').textContent = `${count} registered player${registeredPlayers.length === 1 ? '' : 's'}`;
       $('registeredPlayersUpdatedLabel').textContent = data.updatedAt ? `Last cloud update: ${formatDate(data.updatedAt)}` : 'Cloud player directory';
       renderRegisteredPlayers();
     } catch (error) {
       if (loadRequest !== registeredPlayersLoadRequest) return;
-      $('registeredPlayersRows').innerHTML = `<tr><td colspan="8" class="empty-row registered-players-error">${safeText(error.message || 'Unable to load registered players.')}</td></tr>`;
+      hideRegisteredPlayersMissingNotice();
+      $('registeredPlayersRows').innerHTML = `<tr><td colspan="9" class="empty-row registered-players-error">${safeText(error.message || 'Unable to load registered players.')}</td></tr>`;
       $('registeredPlayersCountLabel').textContent = 'Unable to load players';
       $('registeredPlayersShowingLabel').textContent = 'Check the connection and try again.';
       setNotice(error.message || 'Unable to load registered players.', true);
@@ -288,11 +412,14 @@
   function openRegisteredPlayersModal() {
     if (!registeredPlayersModal.hidden) return;
     registeredPlayersReturnFocusTo = document.activeElement;
+    hideRegisteredPlayersMissingNotice();
     registeredPlayersModal.hidden = false;
     $('registeredPlayersSearch').value = '';
-    $('registeredPlayersImportReport').hidden = true;
+    $('registeredPlayersDuplicatesSection').hidden = true;
+    $('registeredPlayersTableView').hidden = false;
     $('registeredPlayersDuplicatesRows').innerHTML = '';
-    registeredPlayersShown = registeredPlayersPageSize;
+    registeredPlayersDuplicateRows = [];
+    registeredPlayersDuplicateFilter = 'all';
     syncModalLock();
     window.requestAnimationFrame(() => $('registeredPlayersSearch').focus({preventScroll:true}));
     // Always refresh when opened so the modal reflects current server-side records.
@@ -344,20 +471,37 @@
     }
   }
 
-  function renderRegisteredPlayersImportReport(data) {
-    const duplicates = Array.isArray(data?.duplicates) ? data.duplicates : [];
-    $('registeredPlayersImportedCount').textContent = formatPlayerCount(data?.importedCount || 0);
-    $('registeredPlayersDuplicateCount').textContent = `${formatPlayerCount(data?.duplicateCount ?? duplicates.length)} duplicate${(data?.duplicateCount ?? duplicates.length) === 1 ? '' : 's'} skipped`;
-    $('registeredPlayersDuplicatesHeadingCount').textContent = formatPlayerCount(duplicates.length);
-    $('registeredPlayersDuplicatesSection').hidden = !duplicates.length;
-    $('registeredPlayersDuplicatesRows').innerHTML = duplicates.map(item => `<tr>
+  function renderRegisteredPlayersDuplicateRows() {
+    const rows = registeredPlayersDuplicateRows.filter(item => {
+      if (registeredPlayersDuplicateFilter === 'dupr') return /dupr/i.test(item.matchedBy || '');
+      if (registeredPlayersDuplicateFilter === 'name') return /name/i.test(item.matchedBy || '');
+      if (registeredPlayersDuplicateFilter === 'cloud') return Boolean(item.existingInCloud);
+      return true;
+    });
+    $('registeredPlayersDuplicatesRows').innerHTML = rows.length ? rows.map(item => `<tr>
       <td>${safeText(item.rowNumber || '—')}</td>
       <td><span class="registered-duplicate-player-name">${safeText(item.name || 'Unnamed player')}</span></td>
       <td>${safeText(item.duprId || '—')}</td>
       <td><span class="registered-duplicate-reason">${safeText(item.matchedBy || 'Duplicate')}</span></td>
       <td>${safeText(item.existingName || '—')}</td>
-    </tr>`).join('');
-    $('registeredPlayersImportReport').hidden = false;
+    </tr>`).join('') : '<tr><td colspan="5" class="empty-row">No duplicates match this filter.</td></tr>' ;
+  }
+
+  function renderRegisteredPlayersDuplicateView(data) {
+    const duplicates = Array.isArray(data?.duplicates) ? data.duplicates : [];
+    registeredPlayersDuplicateRows = duplicates;
+    registeredPlayersDuplicateFilter = 'all';
+    $('registeredPlayersDuplicatesHeadingCount').textContent = formatPlayerCount(duplicates.length);
+    const counts = {all:duplicates.length, dupr:duplicates.filter(item => /dupr/i.test(item.matchedBy || '')).length, name:duplicates.filter(item => /name/i.test(item.matchedBy || '')).length, cloud:duplicates.filter(item => Boolean(item.existingInCloud)).length};
+    Object.entries(counts).forEach(([key, count]) => { const el = $(`registeredPlayersDuplicateFilterCount-${key}`); if (el) el.textContent = formatPlayerCount(count); });
+    $('registeredPlayersDuplicateFilters').querySelectorAll('[data-duplicate-filter]').forEach(button => { const active = button.dataset.duplicateFilter === registeredPlayersDuplicateFilter; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active)); });
+    $('registeredPlayersDuplicatesHeadingCount').textContent = formatPlayerCount(duplicates.length);
+    $('registeredPlayersDuplicatesSection').hidden = !duplicates.length;
+    hideRegisteredPlayersMissingNotice();
+    $('registeredPlayersTableView').hidden = duplicates.length > 0;
+    $('registeredPlayersCountLabel').textContent = `${formatPlayerCount(duplicates.length)} duplicate${duplicates.length === 1 ? '' : 's'} skipped`;
+    $('registeredPlayersShowingLabel').textContent = duplicates.length ? 'Showing skipped CSV rows' : 'No duplicate rows';
+    renderRegisteredPlayersDuplicateRows();
   }
 
   async function uploadRegisteredPlayersCsv(fileInput, button) {
@@ -378,11 +522,11 @@
         method:'POST',
         body:JSON.stringify({csv})
       });
-      renderRegisteredPlayersImportReport(data);
-      // Invalidate any pre-upload list request so an older response cannot replace the imported rows.
+      // Refresh the cloud list first, then show the duplicate table as its own view.
       registeredPlayersLoadRequest += 1;
       registeredPlayersLoading = false;
       await loadRegisteredPlayers();
+      renderRegisteredPlayersDuplicateView(data);
       const imported = Number(data.importedCount) || 0;
       const duplicates = Number(data.duplicateCount) || 0;
       setNotice(`CSV upload complete: ${formatPlayerCount(imported)} imported, ${formatPlayerCount(duplicates)} duplicate${duplicates === 1 ? '' : 's'} skipped.`);
@@ -968,17 +1112,37 @@
     if (typeof motionPreference.addEventListener === 'function') motionPreference.addEventListener('change', updateSystemMotion);
     else if (typeof motionPreference.addListener === 'function') motionPreference.addListener(updateSystemMotion);
   }
+  containTableTouchScroll($('registeredPlayersTableView'));
   $('openRegisteredPlayersModal').addEventListener('click', openRegisteredPlayersModal);
   $('closeRegisteredPlayersModal').addEventListener('click', closeRegisteredPlayersModal);
+  $('registeredPlayersMissingToggle').addEventListener('click', () => {
+    if (Number($('registeredPlayersMissingCount').textContent) <= 0) return;
+    registeredPlayersMissingExpanded = !registeredPlayersMissingExpanded;
+    syncRegisteredPlayersMissingNotice();
+  });
   registeredPlayersModal.querySelectorAll('[data-close-registered-players]').forEach(button => button.addEventListener('click', closeRegisteredPlayersModal));
   registeredPlayersModal.addEventListener('click', event => { if (event.target === registeredPlayersModal) closeRegisteredPlayersModal(); });
   $('registeredPlayersSearch').addEventListener('input', () => {
-    registeredPlayersShown = registeredPlayersPageSize;
     if (!registeredPlayersLoading) renderRegisteredPlayers();
   });
-  $('registeredPlayersLoadMore').addEventListener('click', () => {
-    registeredPlayersShown += registeredPlayersPageSize;
-    renderRegisteredPlayers();
+  $('registeredPlayersDuplicateFilters').addEventListener('click', event => {
+    const button = event.target.closest('[data-duplicate-filter]');
+    if (!button) return;
+    registeredPlayersDuplicateFilter = button.dataset.duplicateFilter || 'all';
+    $('registeredPlayersDuplicateFilters').querySelectorAll('[data-duplicate-filter]').forEach(filterButton => {
+      const active = filterButton === button;
+      filterButton.classList.toggle('is-active', active);
+      filterButton.setAttribute('aria-pressed', String(active));
+    });
+    renderRegisteredPlayersDuplicateRows();
+  });
+  $('registeredPlayersFilters').addEventListener('click', event => {
+    const button = event.target.closest('[data-registered-player-filter]');
+    if (!button) return;
+    registeredPlayersFilter = button.dataset.registeredPlayerFilter || 'all';
+    $('registeredPlayersDuplicatesSection').hidden = true;
+    $('registeredPlayersTableView').hidden = false;
+    if (!registeredPlayersLoading) renderRegisteredPlayers();
   });
   $('downloadRegisteredPlayersCsv').addEventListener('click', event => downloadRegisteredPlayersCsv(event.currentTarget));
   $('downloadRegisteredPlayersCsvModal').addEventListener('click', event => downloadRegisteredPlayersCsv(event.currentTarget));
@@ -996,10 +1160,11 @@
     button.disabled = true;
     button.textContent = 'Logging out…';
     try {
-      await fetch('/api/logout', {method:'POST', credentials:'same-origin', cache:'no-store', headers:{'Content-Type':'application/json'}});
+      await fetch('/api/logout', {method:'POST', credentials:'same-origin', cache:'no-store', headers:{'Content-Type':'application/json','X-PPM-Auth-Role':'panel'}});
     } catch (_) {
       // End the local panel session even if the server cannot be reached.
     }
+    try { window.sessionStorage.removeItem('ppm-panel-tab-session-v1'); } catch (_) {}
     window.location.replace('/index.html');
   });
   modal.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', closeModal));
@@ -1040,7 +1205,7 @@
   setTheme(loadTheme(), false);
   applyPanelSettings();
   selectSettingsPage('general');
-  fetch('/api/auth-status', {cache:'no-store', credentials:'same-origin'})
+  fetch('/api/auth-status', {cache:'no-store', credentials:'same-origin', headers:{'X-PPM-Auth-Role':'panel'}})
     .then(response => response.json())
     .then(status => {
       if (!status.authenticated || status.role !== 'panel') { window.location.replace('/index.html'); return; }

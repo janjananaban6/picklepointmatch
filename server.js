@@ -16,7 +16,7 @@ const CLUB_ID_SEQUENCE_FILE = path.join(DATA_DIR, 'club-id-sequence.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
-const allowedFiles = new Set(['index.html','dashboard.html','dashboard.css','dashboard.js','panel.html','panel.css','panel.js','session.html','session-brand.css','session-settings-polish.css','queueing-refresh.css','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js','network-validation.js','registration-avatar-01.png','registration-avatar-02.png','registration-avatar-03.png','registration-avatar-04.png','registration-avatar-05.png','registration-avatar-06.png','registration-avatar-07.png','registration-avatar-08.png','registration-avatar-09.png','registration-avatar-10.png','registration-avatar-11.png','registration-avatar-12.png','registration-avatar-13.png','registration-avatar-14.png','registration-avatar-15.png','registration-avatar-16.png','registration-avatar-17.png','registration-avatar-18.png','registration-avatar-19.png','registration-avatar-20.png','registration-avatar-21.png']);
+const allowedFiles = new Set(['index.html','dashboard.html','dashboard.css','dashboard.js','panel.html','panel.css','panel.js','session.html','session-brand.css','session-settings-polish.css','queueing-refresh.css','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js','network-validation.js','tab-auth.js','registration-avatar-01.png','registration-avatar-02.png','registration-avatar-03.png','registration-avatar-04.png','registration-avatar-05.png','registration-avatar-06.png','registration-avatar-07.png','registration-avatar-08.png','registration-avatar-09.png','registration-avatar-10.png','registration-avatar-11.png','registration-avatar-12.png','registration-avatar-13.png','registration-avatar-14.png','registration-avatar-15.png','registration-avatar-16.png','registration-avatar-17.png','registration-avatar-18.png','registration-avatar-19.png','registration-avatar-20.png','registration-avatar-21.png']);
 let latestState = null;
 let sharedAppState = null;
 let sharedAppRevision = 0;
@@ -46,6 +46,7 @@ const PANEL_USERNAME = String(process.env.PANEL_USERNAME || 'admin').trim();
 const PANEL_PASSWORD = String(process.env.PANEL_PASSWORD || '');
 const SESSION_SECRET = String(process.env.SESSION_SECRET || '');
 const AUTH_COOKIE = 'ppm_organizer_session';
+const PANEL_AUTH_COOKIE = 'ppm_panel_session';
 const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
 // Organizer approval was enabled at 2026-10-26 00:00 Asia/Manila (2026-10-25 16:00 UTC).
 // This cutoff lets us safely migrate applications created by an older deployment while
@@ -120,9 +121,23 @@ function accountByUsername(username) {
   const normalized = String(username || '').trim().toLocaleLowerCase();
   return organizerAccounts.find(account => account && String(account.username || '').trim().toLocaleLowerCase() === normalized) || null;
 }
-function getAuthSession(req) {
+function getAuthSession(req, requestedRole = 'organizer') {
   if (!SESSION_SECRET) return null;
-  const token = getCookieValue(req, AUTH_COOKIE);
+  const role = requestedRole === 'panel' ? 'panel' : 'organizer';
+  // Keep one signed session per role. This lets the Panel and Organizer
+  // remain authenticated in separate tabs without overwriting one another.
+  // The fallback to the old cookie for Panel accepts existing pre-update
+  // administrator sessions until they expire or are replaced by a new login.
+  // Panel and Dashboard pages use a tab-scoped signed token. Browser cookies
+  // are shared across tabs, so they cannot by themselves prove that this
+  // particular tab completed sign-in. Other legacy organizer pages may still
+  // use the role cookie when they do not send the tab-scoped marker.
+  const tabScoped = String(req.headers['x-ppm-tab-scoped'] || '').trim() === '1';
+  const token = tabScoped
+    ? String(req.headers['x-ppm-tab-session'] || '').trim()
+    : (role === 'panel'
+      ? (getCookieValue(req, PANEL_AUTH_COOKIE) || getCookieValue(req, AUTH_COOKIE))
+      : getCookieValue(req, AUTH_COOKIE));
   if (!token) return null;
   const parts = token.split('.');
   if (parts.length !== 2) return null;
@@ -132,10 +147,13 @@ function getAuthSession(req) {
   try {
     const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
     if (!payload || Number(payload.exp) <= Date.now()) return null;
-    if (payload.role === 'panel') {
-      if (panelIsConfigured() && payload.u === PANEL_USERNAME) return {role:'panel', username:PANEL_USERNAME, organizerId:null, exp:Number(payload.exp)};
+    if (role === 'panel') {
+      if (payload.role === 'panel' && panelIsConfigured() && payload.u === PANEL_USERNAME) {
+        return {role:'panel', username:PANEL_USERNAME, organizerId:null, exp:Number(payload.exp)};
+      }
       return null;
     }
+    if (payload.role === 'panel') return null;
     const account = payload.role === 'organizer' && payload.id ? accountById(payload.id) : (payload.role ? null : accountByUsername(payload.u));
     // A token from the previous single-organizer build remains valid until it expires,
     // provided the matching legacy account still exists and is active.
@@ -145,8 +163,11 @@ function getAuthSession(req) {
     return null;
   } catch (_) { return null; }
 }
-function isAuthenticated(req) { return getAuthSession(req)?.role === 'organizer'; }
-function isPanelAuthenticated(req) { return getAuthSession(req)?.role === 'panel'; }
+function isAuthenticated(req) { return getAuthSession(req, 'organizer')?.role === 'organizer'; }
+function isPanelAuthenticated(req) { return getAuthSession(req, 'panel')?.role === 'panel'; }
+function isTabAuthenticated(req, role) {
+  return String(req.headers['x-ppm-tab-scoped'] || '').trim() === '1' && getAuthSession(req, role)?.role === role;
+}
 function makeSessionToken(username, role = 'organizer', organizerId = null) {
   const now = Date.now();
   const payload = Buffer.from(JSON.stringify({
@@ -918,8 +939,21 @@ async function readBody(req, limit = 2 * 1024 * 1024) {
 async function handle(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
+  if (url.pathname.startsWith('/api/panel/') && !isTabAuthenticated(req, 'panel')) {
+    return sendJson(res, 401, {ok:false,error:'Panel administrator tab sign-in required.'});
+  }
+  const isOrganizerDashboardApi = url.pathname === '/api/organizer-dashboard'
+    || url.pathname.startsWith('/api/organizer-dashboard/')
+    || url.pathname === '/api/organizer-settings';
+  if (isOrganizerDashboardApi && !isTabAuthenticated(req, 'organizer')) {
+    return sendJson(res, 401, {ok:false,error:'Organizer dashboard tab sign-in required.'});
+  }
+
   if (url.pathname === '/api/auth-status' && req.method === 'GET') {
-    const auth = getAuthSession(req);
+    const requestedRole = String(req.headers['x-ppm-auth-role'] || '').trim().toLowerCase();
+    const auth = requestedRole === 'panel' || requestedRole === 'organizer'
+      ? getAuthSession(req, requestedRole)
+      : null;
     return sendJson(res, 200, {
       ok:true,
       configured:authIsConfigured(),
@@ -982,13 +1016,30 @@ async function handle(req, res) {
       }
       const authUsername = role === 'panel' ? PANEL_USERNAME : account.username;
       const authId = role === 'organizer' ? account.id : null;
+      const legacyPanelToken = !getCookieValue(req, PANEL_AUTH_COOKIE) && getAuthSession(req, 'panel')?.role === 'panel'
+        ? getCookieValue(req, AUTH_COOKIE)
+        : '';
+      const sessionCookies = [];
+      if (role === 'organizer' && legacyPanelToken) {
+        // Promote a pre-update Panel session before replacing the old shared
+        // cookie with the new Organizer session.
+        sessionCookies.push(`${PANEL_AUTH_COOKIE}=${legacyPanelToken}; ${cookieOptions(req, SESSION_MAX_AGE_SECONDS)}`);
+      }
+      if (role === 'panel' && legacyPanelToken) {
+        // The shared cookie currently contains the legacy Panel session, not
+        // an Organizer session, so retire it after issuing the role cookie.
+        sessionCookies.push(`${AUTH_COOKIE}=; ${cookieOptions(req, 0)}`);
+      }
+      const sessionCookieName = role === 'panel' ? PANEL_AUTH_COOKIE : AUTH_COOKIE;
+      const tabSession = makeSessionToken(authUsername,role,authId);
+      sessionCookies.push(`${sessionCookieName}=${tabSession}; ${cookieOptions(req, SESSION_MAX_AGE_SECONDS)}`);
       res.writeHead(200, {
         'Content-Type':'application/json; charset=utf-8',
         'Cache-Control':'no-store',
-        'Set-Cookie':`${AUTH_COOKIE}=${makeSessionToken(authUsername,role,authId)}; ${cookieOptions(req, SESSION_MAX_AGE_SECONDS)}`,
+        'Set-Cookie':sessionCookies,
         'X-Content-Type-Options':'nosniff'
       });
-      return res.end(JSON.stringify({ok:true,role,username:authUsername,displayName:role === 'organizer' ? (account.displayName || account.username) : null,organizerId:authId,expiresIn:SESSION_MAX_AGE_SECONDS}));
+      return res.end(JSON.stringify({ok:true,role,username:authUsername,displayName:role === 'organizer' ? (account.displayName || account.username) : null,organizerId:authId,expiresIn:SESSION_MAX_AGE_SECONDS,tabSession}));
     } catch (err) {
       const statusCode = err.statusCode || 503;
       const errorText = err.statusCode === 413
@@ -1127,6 +1178,7 @@ async function handle(req, res) {
       };
       currentPlayers.forEach(rememberPlayer);
 
+      const existingCloudPlayers = new Set(currentPlayers);
       const importedPlayers = [];
       const duplicates = [];
       for (let index = 0; index < incomingPlayers.length; index += 1) {
@@ -1143,6 +1195,7 @@ async function handle(req, res) {
             name:String(incoming?.name || '').trim(),
             duprId:String(duprValue(incoming)).trim(),
             matchedBy:nameMatch && duprMatch ? 'Name + DUPR ID' : (nameMatch ? 'Name' : 'DUPR ID'),
+            existingInCloud:matches.some(player => existingCloudPlayers.has(player)),
             existingName:existingNames.join(' / ') || 'Already registered'
           });
           continue;
@@ -1317,10 +1370,20 @@ async function handle(req, res) {
   }
 
   if (url.pathname === '/api/logout' && req.method === 'POST') {
+    const requestedRole = String(req.headers['x-ppm-auth-role'] || '').trim().toLowerCase();
+    const cookieName = requestedRole === 'panel' ? PANEL_AUTH_COOKIE : AUTH_COOKIE;
+    const expiredCookie = `${cookieName}=; ${cookieOptions(req, 0)}`;
+    const clearCookies = [expiredCookie];
+    // A previous release stored Panel sessions in the organizer cookie. Clear
+    // that legacy cookie only when it still contains a valid Panel session,
+    // never when it belongs to an Organizer tab.
+    if (requestedRole === 'panel' && !getCookieValue(req, PANEL_AUTH_COOKIE) && getAuthSession(req, 'panel')?.role === 'panel') {
+      clearCookies.push(`${AUTH_COOKIE}=; ${cookieOptions(req, 0)}`);
+    }
     res.writeHead(200, {
       'Content-Type':'application/json; charset=utf-8',
       'Cache-Control':'no-store',
-      'Set-Cookie':`${AUTH_COOKIE}=; ${cookieOptions(req, 0)}`,
+      'Set-Cookie':clearCookies,
       'X-Content-Type-Options':'nosniff'
     });
     return res.end(JSON.stringify({ok:true}));
@@ -2198,18 +2261,16 @@ async function handle(req, res) {
   if (pathname === '/') pathname = '/index.html';
   const name = path.basename(pathname);
   if (!allowedFiles.has(name) || pathname.includes('..')) return sendJson(res,404,{ok:false,error:'Not found'});
-  const auth = getAuthSession(req);
-  if (name === 'index.html' && auth?.role === 'organizer') return setRedirect(res, '/dashboard.html');
-  if (name === 'index.html' && auth?.role === 'panel') return setRedirect(res, '/panel.html');
+  // Keep the server-side role check as a first layer. The tab-auth.js gate
+  // adds the stricter per-tab check because browser cookies are shared across
+  // tabs and therefore cannot prove that this particular tab signed in.
   if (name === 'panel.html' && !isPanelAuthenticated(req)) {
-    if (auth?.role === 'organizer') return setRedirect(res, '/dashboard.html');
-    return setRedirect(res, '/index.html');
+    return setRedirect(res, '/index.html?next=panel.html');
   }
-  if (name === 'dashboard.html' && auth?.role !== 'organizer') {
-    if (auth?.role === 'panel') return setRedirect(res, '/panel.html');
+  if (name === 'dashboard.html' && !isAuthenticated(req)) {
     return setRedirect(res, `/index.html?next=${encodeURIComponent('dashboard.html')}`);
   }
-  if ((name === 'session.html' || name === 'queueing.html') && auth?.role !== 'organizer') {
+  if ((name === 'session.html' || name === 'queueing.html') && !isAuthenticated(req)) {
     const next = `${name}${url.search || ''}`;
     return setRedirect(res, `/index.html?next=${encodeURIComponent(next)}`);
   }

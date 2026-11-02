@@ -1852,6 +1852,12 @@ body.organizer-dashboard-page.modal-open .dashboard-topbar{
 .dupr-export-heading-copy h2{margin:0;color:#f5f7fb;font-family:Manrope,"DM Sans",sans-serif;font-size:19px;font-weight:850;letter-spacing:-.03em;line-height:1.2}
 .dupr-export-heading-copy p{margin:4px 0 0;color:#719b9d;font-size:11px;font-weight:650;line-height:1.4}
 .dupr-export-header-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.dupr-missing-chevron{width:20px;height:20px;flex:0 0 20px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:5px;background:transparent;color:#a87984;cursor:pointer;transition:color .15s ease,background .15s ease}
+.dupr-missing-chevron:hover{background:rgba(190,71,93,.12);color:#ffc0c6}
+.dupr-missing-chevron:focus-visible{outline:2px solid rgba(222,92,111,.65);outline-offset:2px}
+.dupr-missing-chevron svg{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .16s ease}
+.dupr-missing-chevron.is-expanded svg{transform:rotate(180deg)}
+.dupr-missing-chevron[hidden]{display:none}
 .dupr-export-refresh,.dupr-export-close{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}
 .dupr-export-refresh{min-height:32px;gap:6px;padding:0 11px;border:1px solid rgba(0,153,220,.3);border-radius:8px;background:rgba(0,125,185,.1);color:#67cafa;font-size:11px;font-weight:800}
 .dupr-export-refresh:hover:not(:disabled){border-color:rgba(0,174,239,.6);background:rgba(0,125,185,.2)}
@@ -1871,20 +1877,26 @@ body.organizer-dashboard-page.modal-open .dashboard-topbar{
 .dupr-export-field input:focus,.dupr-export-field select:focus{border-color:rgba(0,169,225,.58);box-shadow:0 0 0 2px rgba(0,153,220,.08)}
 .dupr-export-field select{color-scheme:dark;cursor:pointer}
 .dupr-export-main{min-height:0;flex:1;display:flex;flex-direction:column;gap:10px;overflow:hidden;padding:14px 18px}
-.dupr-missing-notice{flex:0 0 auto;max-height:92px;overflow:auto;padding:10px 12px;border:1px solid rgba(190,71,93,.28);border-radius:10px;background:rgba(100,35,57,.2)}
+.dupr-missing-notice{flex:0 0 auto;max-height:none;overflow:visible;padding:10px 12px;border:1px solid rgba(190,71,93,.28);border-radius:10px;background:rgba(100,35,57,.2)}
 .dupr-missing-notice[hidden]{display:none}
-.dupr-missing-heading{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:7px}
-.dupr-missing-heading>strong{color:#ff9ba2;font-size:12px;font-weight:850}
-.dupr-missing-heading>span{color:#a87984;font-size:9px;font-weight:650}
+.dupr-missing-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0}
+.dupr-missing-heading>strong{min-width:0;color:#ff9ba2;font-size:12px;font-weight:850}
+.dupr-missing-heading-actions{min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:0 0 auto}
+.dupr-missing-heading-actions>span{color:#a87984;font-size:9px;font-weight:650;white-space:nowrap}
 .dupr-missing-player-list{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.dupr-missing-player-list[hidden]{display:none}
 .dupr-missing-player-chip{min-height:22px;display:inline-flex;align-items:center;padding:0 8px;border:1px solid rgba(222,92,111,.28);border-radius:99px;background:rgba(150,48,66,.16);color:#f39aa3;font-size:9px;font-weight:750;white-space:nowrap}
-.dupr-export-table-wrap{min-height:0;flex:1;overflow:auto;border:1px solid rgba(148,163,184,.12);border-radius:10px;background:#0e1a2e;overscroll-behavior:contain}
+.dupr-export-table-wrap{position:relative;width:100%;min-width:0;max-width:100%;min-height:0;flex:1;overflow-x:auto;overflow-y:auto;overflow-anchor:none;scroll-behavior:auto;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;overscroll-behavior:contain;border:1px solid rgba(148,163,184,.12);border-radius:10px;background:#0e1a2e}
 @media (hover:hover) and (pointer:fine){
   .dupr-export-table-wrap{cursor:grab}
   .dupr-export-table-wrap.is-pointer-down,.dupr-export-table-wrap.is-dragging{user-select:none;-webkit-user-select:none}
   .dupr-export-table-wrap.is-dragging{cursor:grabbing}
 }
-.dupr-export-table{width:100%;min-width:1040px;table-layout:fixed;border-collapse:separate;border-spacing:0;text-align:left;font-variant-numeric:tabular-nums}
+.dupr-export-table{display:table;width:100%;min-width:1040px;table-layout:fixed;border-collapse:separate;border-spacing:0;text-align:left;font-variant-numeric:tabular-nums}
+.dupr-export-table thead{display:table-header-group}
+.dupr-export-table tbody{display:table-row-group}
+.dupr-export-table tr{display:table-row}
+.dupr-export-table th,.dupr-export-table td{display:table-cell;vertical-align:middle}
 .dupr-export-table thead th{position:sticky;top:0;z-index:2;height:34px;padding:0 8px;overflow:hidden;background:#1b293d;color:#75999c;font-size:9px;font-weight:850;text-overflow:ellipsis;white-space:nowrap}
 .dupr-export-table tbody td{height:32px;padding:0 8px;overflow:hidden;border-top:1px solid rgba(148,163,184,.08);color:#d5deeb;font-size:10px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
 /* Keep every DUPR column in its lane; long player names must not push later headers off-screen. */
@@ -1950,10 +1962,12 @@ body.organizer-dashboard-page.modal-open .dashboard-topbar{
   .dupr-export-field>span{font-size:8px}
   .dupr-export-field input,.dupr-export-field select{height:33px;padding:0 8px;border-radius:7px;font-size:10px}
   .dupr-export-main{gap:8px;padding:9px 10px}
-  .dupr-missing-notice{max-height:78px;padding:8px}
-  .dupr-missing-heading{margin-bottom:5px}
+  .dupr-missing-notice{max-height:none;overflow:visible;padding:8px}
+  .dupr-missing-heading{gap:7px}
   .dupr-missing-heading>strong{font-size:10px}
-  .dupr-missing-heading>span{font-size:8px}
+  .dupr-missing-heading-actions{gap:4px}
+  .dupr-missing-heading-actions>span{font-size:8px}
+  .dupr-missing-chevron{width:18px;height:18px;flex-basis:18px}
   .dupr-missing-player-chip{min-height:19px;padding:0 6px;font-size:8px}
   .dupr-export-table{min-width:900px}
   .dupr-export-table thead th{height:30px;padding:0 6px;font-size:8px}
@@ -2136,10 +2150,15 @@ body.organizer-dashboard-page{
 .dupr-export-field input,
 .dupr-export-field select{min-width:0;max-width:100%}
 .dupr-export-table-wrap{
+  position:relative;
   width:100%;
   min-width:0;
   max-width:100%;
-  overflow:auto;
+  overflow-x:auto;
+  overflow-y:auto;
+  overflow-anchor:none;
+  scroll-behavior:auto;
+  scrollbar-gutter:stable;
   overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
   touch-action:pan-x pan-y;
@@ -2446,3 +2465,80 @@ body.organizer-dashboard-page{
     padding-top:53px;
   }
 }
+
+/* Touch-device scroll stability: keep DUPR rows in normal flow while scrolling. */
+@media (hover: none), (pointer: coarse), (any-pointer: coarse) {
+  .dupr-export-table-wrap {
+    overflow-anchor: none;
+    scrollbar-gutter: auto;
+    scroll-snap-type: none;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+  }
+  .dupr-export-table,
+  .dupr-export-table thead,
+  .dupr-export-table tbody,
+  .dupr-export-table tr,
+  .dupr-export-table th,
+  .dupr-export-table td {
+    overflow-anchor: none;
+  }
+  /* Keep the column headings pinned while only the table body moves vertically.
+     The header remains part of the same wide table, so horizontal scrolling
+     still keeps every heading aligned with its column on iPad/iPhone. */
+  .dupr-export-table thead {
+    position: static !important;
+  }
+  .dupr-export-table thead th {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
+    background: #1b293d !important;
+    background-clip: padding-box;
+  }
+}
+
+/* Keep the export modal's scroll viewport fixed while mobile browser chrome moves. */
+@supports (height: 100svh) {
+  @media (hover: none), (pointer: coarse), (any-pointer: coarse) {
+    .dupr-export-modal {
+      height: min(680px, calc(100svh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+      max-height: calc(100svh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    }
+    @media (max-width: 760px) {
+      .dupr-export-modal {
+        height: min(650px, calc(100svh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+      }
+    }
+    @media (max-width: 600px) {
+      .dupr-export-modal {
+        height: calc(85svh - 40px);
+      }
+    }
+  }
+}
+
+/* Dashboard action icons: clean, single-color SVGs. */
+.dupr-export-refresh .button-icon,
+.match-refresh-button .button-icon,
+.dupr-download-csv .button-icon{
+  display:inline-flex;
+  flex:0 0 auto;
+  align-items:center;
+  justify-content:center;
+  line-height:0;
+}
+.dupr-export-refresh .button-icon svg,
+.match-refresh-button .button-icon svg,
+.dupr-download-csv .button-icon svg{
+  display:block;
+  width:16px;
+  height:16px;
+  color:currentColor;
+}
+.dupr-export-refresh .button-icon svg{width:15px;height:15px}
+.match-refresh-button .button-icon svg{width:16px;height:16px}
+.dupr-download-csv .button-icon svg{width:16px;height:16px}

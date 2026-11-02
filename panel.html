@@ -7,8 +7,10 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Organizer Management — Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="panel.css?v=panel-registered-players-csv-20261102-1">
-  <script src="panel.js?v=panel-registered-players-csv-20261102-1" defer></script>
+  <style id="ppm-tab-auth-curtain">html{visibility:hidden}</style>
+  <script src="tab-auth.js?v=tab-scoped-auth-20261102-1"></script>
+  <link rel="stylesheet" href="panel.css?v=panel-empty-row-search-20261102-1">
+  <script src="panel.js?v=panel-missing-notice-chevron-20261102-2" defer></script>
   <link rel="stylesheet" href="network-skeleton.css?v=network-validation-20261027-1">
   <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
   <script src="network-validation.js?v=network-validation-20261027-1"></script>
@@ -54,8 +56,8 @@
         </div>
       </div>
       <div class="registered-cloud-actions">
-        <button type="button" id="openRegisteredPlayersModal" class="secondary-button"><span aria-hidden="true">☷</span> View players</button>
-        <button type="button" id="downloadRegisteredPlayersCsv" class="primary-button registered-cloud-download"><span aria-hidden="true">↓</span> Download CSV</button>
+        <button type="button" id="openRegisteredPlayersModal" class="secondary-button"><svg class="panel-action-icon panel-list-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="3.5" cy="5.5" r="2"/><rect x="8" y="3.5" width="13" height="4" rx="2"/><circle cx="3.5" cy="12" r="2"/><rect x="8" y="10" width="13" height="4" rx="2"/><circle cx="3.5" cy="18.5" r="2"/><rect x="8" y="16.5" width="13" height="4" rx="2"/></svg> View players</button>
+        <button type="button" id="downloadRegisteredPlayersCsv" class="primary-button registered-cloud-download"><svg class="panel-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg> Download CSV</button>
       </div>
     </section>
 
@@ -227,44 +229,74 @@
           <h2 id="registeredPlayersModalTitle">Registered Player Cloud</h2>
           <p id="registeredPlayersModalDescription">Manage the shared player directory stored by Pickle Point Match.</p>
         </div>
-        <button type="button" id="closeRegisteredPlayersModal" class="dupr-export-close" aria-label="Close registered players">×</button>
+        <div class="registered-players-header-actions">
+          <button type="button" id="closeRegisteredPlayersModal" class="dupr-export-close" aria-label="Close registered players">×</button>
+        </div>
       </header>
+      <nav class="dupr-export-filters registered-players-filters" id="registeredPlayersFilters" aria-label="Filter registered players">
+        <button class="dupr-export-filter is-active" type="button" data-registered-player-filter="all" aria-pressed="true">All (<span id="registeredPlayersFilterCount-all">0</span>)</button>
+        <button class="dupr-export-filter" type="button" data-registered-player-filter="all-have-dupr" aria-pressed="false">All Players Have DUPR (<span id="registeredPlayersFilterCount-all-have-dupr">0</span>)</button>
+        <button class="dupr-export-filter" type="button" data-registered-player-filter="missing-dupr" aria-pressed="false">Missing DUPR (<span id="registeredPlayersFilterCount-missing-dupr">0</span>)</button>
+      </nav>
       <div class="registered-players-toolbar">
         <label class="registered-players-search" for="registeredPlayersSearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.7"/><path d="m16 16 4.4 4.4"/></svg><input id="registeredPlayersSearch" type="search" placeholder="Search name, nickname, DUPR ID…" autocomplete="off"></label>
         <div class="registered-players-meta"><strong id="registeredPlayersCountLabel">Loading players…</strong><span id="registeredPlayersUpdatedLabel"></span></div>
       </div>
       <main class="registered-players-main">
-        <section class="registered-import-report" id="registeredPlayersImportReport" aria-live="polite" hidden>
-          <div class="registered-import-report-heading">
-            <strong><span id="registeredPlayersImportedCount">0</span> players imported</strong>
-            <span id="registeredPlayersDuplicateCount">0 duplicates skipped</span>
+        <section class="registered-players-missing-notice" id="registeredPlayersMissingNotice" aria-live="polite" hidden>
+          <div class="registered-players-missing-heading">
+            <strong><span id="registeredPlayersMissingCount">0</span> <span id="registeredPlayersMissingNoun">players</span> missing a DUPR ID</strong>
+            <div class="registered-players-missing-heading-actions">
+              <span>Update IDs in Registered Player Cloud</span>
+              <button type="button" id="registeredPlayersMissingToggle" class="registered-players-missing-chevron" aria-controls="registeredPlayersMissingList" aria-expanded="false" aria-label="Show missing DUPR player names" title="Show missing DUPR player names">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 15 6-6 6 6"/></svg>
+              </button>
+            </div>
           </div>
-          <section class="registered-duplicates-section" id="registeredPlayersDuplicatesSection" hidden>
-            <div class="registered-duplicates-heading">
-              <strong>Duplicate players skipped (<span id="registeredPlayersDuplicatesHeadingCount">0</span>)</strong>
-              <span>Duplicates are not added to the cloud directory.</span>
-            </div>
-            <div class="registered-duplicates-table-wrap">
-              <table class="registered-duplicates-table">
-                <thead><tr><th>CSV ROW</th><th>UPLOADED PLAYER</th><th>DUPR ID</th><th>DUPLICATE BY</th><th>EXISTING PLAYER</th></tr></thead>
-                <tbody id="registeredPlayersDuplicatesRows"></tbody>
-              </table>
-            </div>
-          </section>
+          <div class="registered-players-missing-list" id="registeredPlayersMissingList" hidden></div>
         </section>
-        <div class="registered-players-table-wrap">
+        <div class="registered-players-table-wrap" id="registeredPlayersTableView">
           <table class="registered-players-table">
-            <thead><tr><th>PLAYER</th><th>NICKNAME</th><th>GENDER</th><th>CATEGORY</th><th>DUPR ID</th><th>MATCHES</th><th>WINS</th><th>LOSSES</th></tr></thead>
-            <tbody id="registeredPlayersRows"><tr><td colspan="8" class="empty-row">Loading registered players…</td></tr></tbody>
+            <colgroup>
+              <col class="registered-player-col-number">
+              <col class="registered-player-col-name">
+              <col class="registered-player-col-nickname">
+              <col class="registered-player-col-gender">
+              <col class="registered-player-col-category">
+              <col class="registered-player-col-dupr">
+              <col class="registered-player-col-matches">
+              <col class="registered-player-col-wins">
+              <col class="registered-player-col-losses">
+            </colgroup>
+            <thead><tr><th>#</th><th>PLAYER</th><th>NICKNAME</th><th>GENDER</th><th>CATEGORY</th><th>DUPR ID</th><th>MATCHES</th><th>WINS</th><th>LOSSES</th></tr></thead>
+            <tbody id="registeredPlayersRows"><tr><td colspan="9" class="empty-row">Loading registered players…</td></tr></tbody>
           </table>
         </div>
+        <section class="registered-duplicates-section" id="registeredPlayersDuplicatesSection" aria-live="polite" hidden>
+          <div class="registered-duplicates-heading">
+            <strong>Duplicate players skipped (<span id="registeredPlayersDuplicatesHeadingCount">0</span>)</strong>
+            <span>Duplicates are not added to the cloud directory.</span>
+          </div>
+          <nav class="dupr-export-filters registered-duplicates-filters" id="registeredPlayersDuplicateFilters" aria-label="Filter skipped duplicate players">
+            <button class="dupr-export-filter is-active" type="button" data-duplicate-filter="all" aria-pressed="true">All Duplicates (<span id="registeredPlayersDuplicateFilterCount-all">0</span>)</button>
+            <button class="dupr-export-filter" type="button" data-duplicate-filter="dupr" aria-pressed="false">Duplicate DUPR ID (<span id="registeredPlayersDuplicateFilterCount-dupr">0</span>)</button>
+            <button class="dupr-export-filter" type="button" data-duplicate-filter="name" aria-pressed="false">Duplicate Name (<span id="registeredPlayersDuplicateFilterCount-name">0</span>)</button>
+            <button class="dupr-export-filter" type="button" data-duplicate-filter="cloud" aria-pressed="false">Existing Player in Cloud (<span id="registeredPlayersDuplicateFilterCount-cloud">0</span>)</button>
+          </nav>
+          <div class="registered-duplicates-table-wrap">
+            <table class="registered-duplicates-table">
+              <thead><tr><th>CSV ROW</th><th>UPLOADED PLAYER</th><th>DUPR ID</th><th>DUPLICATE BY</th><th>EXISTING PLAYER</th></tr></thead>
+              <tbody id="registeredPlayersDuplicatesRows"></tbody>
+            </table>
+          </div>
+        </section>
       </main>
       <footer class="registered-players-modal-footer">
-        <div class="registered-players-pagination"><span id="registeredPlayersShowingLabel">—</span><button type="button" id="registeredPlayersLoadMore" class="dupr-export-filter" hidden>Load more</button></div>
+        <div class="registered-players-pagination"><span id="registeredPlayersShowingLabel">—</span></div>
         <div class="registered-players-footer-actions">
           <button type="button" class="registered-players-close-action" data-close-registered-players>Close</button>
-          <button type="button" id="uploadRegisteredPlayersCsvModal" class="registered-players-upload"><span aria-hidden="true">↑</span> Upload CSV</button>
-          <button type="button" id="downloadRegisteredPlayersCsvModal" class="dupr-download-csv"><span aria-hidden="true">⇩</span> Download CSV</button>
+          <button type="button" id="uploadRegisteredPlayersCsvModal" class="registered-players-upload"><svg class="panel-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4"/><path d="M4 4v5M14 2v6h6"/><path d="M2 12h12m-4-4 4 4-4 4"/></svg> Upload CSV</button>
+          <button type="button" id="downloadRegisteredPlayersCsvModal" class="dupr-download-csv"><svg class="panel-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg> Download CSV</button>
           <input id="uploadRegisteredPlayersCsvModalInput" type="file" accept=".csv,text/csv" hidden>
         </div>
       </footer>

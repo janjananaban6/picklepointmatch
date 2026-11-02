@@ -8,11 +8,13 @@
   <meta name="description" content="Organizer attendance and completed match records for Pickle Point Match.">
   <title>Organizer Dashboard — Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
+  <style id="ppm-tab-auth-curtain">html{visibility:hidden}</style>
+  <script src="tab-auth.js?v=tab-scoped-auth-20261102-1"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="dashboard.css?v=dashboard-scroll-stability-20261102-04">
-  <script src="dashboard.js?v=dashboard-scroll-stability-20261102-04" defer></script>
+  <link rel="stylesheet" href="dashboard.css?v=dashboard-sticky-table-head-20261102-1">
+  <script src="dashboard.js?v=dashboard-missing-notice-chevron-20261102-2" defer></script>
 </head>
 <body class="organizer-dashboard-page">
   <header class="dashboard-topbar">
@@ -125,8 +127,8 @@
             <input id="matchesSearch" type="search" placeholder="Search player name…" autocomplete="off">
           </label>
           <div class="match-filter-actions" aria-label="Match actions">
-            <button class="match-refresh-button" id="refreshMatchesButton" type="button"><span aria-hidden="true">↻</span> Refresh</button>
-            <button class="match-export-button" id="exportMatchesButton" type="button" disabled><span aria-hidden="true">⇩</span> Export DUPR CSV (<strong id="duprExportCount">0</strong>)</button>
+            <button class="match-refresh-button" id="refreshMatchesButton" type="button"><span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.7-2L20 12M4 12l2.7 5a7 7 0 0 0 11.7-2"/></svg></span> Refresh</button>
+            <button class="match-export-button" id="exportMatchesButton" type="button" disabled><svg class="match-export-icon" viewBox="42 42 428 428" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M 467 162 L 460 153 L 355 69 L 345 64 L 331 66 L 324 72 L 320 81 L 319 126 L 269 128 L 233 137 L 202 153 L 180 173 L 167 192 L 153 226 L 149 248 L 151 286 L 161 296 L 179 296 L 186 291 L 196 274 L 209 260 L 237 243 L 268 234 L 315 231 L 320 233 L 320 281 L 323 288 L 335 297 L 350 296 L 465 182 L 468 175 Z M 75 72 L 58 93 L 50 109 L 43 136 L 43 375 L 50 402 L 72 436 L 95 454 L 109 461 L 136 468 L 375 468 L 402 461 L 436 439 L 454 416 L 461 402 L 468 375 L 468 293 L 460 281 L 450 277 L 435 281 L 427 293 L 427 366 L 422 387 L 413 402 L 402 413 L 382 424 L 366 427 L 145 427 L 116 418 L 97 401 L 87 382 L 84 366 L 84 145 L 93 116 L 110 97 L 137 85 L 261 84 L 274 74 L 276 58 L 271 49 L 261 43 L 136 43 L 109 50 Z"/></svg> Export DUPR CSV (<strong id="duprExportCount">0</strong>)</button>
           </div>
         </div>
         <div class="matches-summary-card" aria-live="polite"><strong id="matchesPlayedCount">0</strong><span>Matches Played</span></div>
@@ -165,7 +167,7 @@
           <p id="duprExportSubheading">Preparing your DUPR-ready matches…</p>
         </div>
         <div class="dupr-export-header-actions">
-          <button class="dupr-export-refresh" id="refreshDuprIdsButton" type="button"><span aria-hidden="true">↻</span> Refresh IDs</button>
+          <button class="dupr-export-refresh" id="refreshDuprIdsButton" type="button"><span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.7-2L20 12M4 12l2.7 5a7 7 0 0 0 11.7-2"/></svg></span> Refresh IDs</button>
           <button class="dupr-export-close" id="closeDuprExportModal" type="button" aria-label="Close export window">×</button>
         </div>
       </header>
@@ -183,8 +185,16 @@
       </div>
       <main class="dupr-export-main">
         <section class="dupr-missing-notice" id="duprMissingNotice" aria-live="polite" hidden>
-          <div class="dupr-missing-heading"><strong><span id="duprMissingPlayersCount">0</span> players missing a DUPR ID</strong><span>Update IDs in Registered Player Cloud</span></div>
-          <div class="dupr-missing-player-list" id="duprMissingPlayersList"></div>
+          <div class="dupr-missing-heading">
+            <strong><span id="duprMissingPlayersCount">0</span> players missing a DUPR ID</strong>
+            <div class="dupr-missing-heading-actions">
+              <span>Update IDs in Registered Player Cloud</span>
+              <button class="dupr-missing-chevron" id="duprMissingNoticeToggle" type="button" aria-controls="duprMissingPlayersList" aria-expanded="false" aria-label="Show missing DUPR player names" title="Show missing DUPR player names">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 15 6-6 6 6"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="dupr-missing-player-list" id="duprMissingPlayersList" hidden></div>
         </section>
         <div class="dupr-export-table-wrap" id="duprExportTableWrap">
           <table class="dupr-export-table"><thead><tr><th>#</th><th>TYPE</th><th>DATE</th><th>PLAYER A1</th><th>DUPR ID</th><th>PLAYER A2</th><th>DUPR ID</th><th>PLAYER B1</th><th>DUPR ID</th><th>PLAYER B2</th><th>DUPR ID</th><th>A</th><th>B</th></tr></thead><tbody id="duprExportTableBody"></tbody></table>
@@ -193,7 +203,7 @@
       </main>
       <footer class="dupr-export-footer">
         <p id="duprExportFooterCount">0 matches</p>
-        <div class="dupr-export-footer-actions"><button class="dupr-mark-submitted" id="duprMarkSubmittedButton" type="button" disabled>Mark as Submitted</button><button class="dupr-download-csv" id="duprExportDownloadButton" type="button" disabled><span aria-hidden="true">⇩</span> Download CSV</button></div>
+        <div class="dupr-export-footer-actions"><button class="dupr-mark-submitted" id="duprMarkSubmittedButton" type="button" disabled>Mark as Submitted</button><button class="dupr-download-csv" id="duprExportDownloadButton" type="button" disabled><span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span> Download CSV</button></div>
       </footer>
     </section>
   </div>

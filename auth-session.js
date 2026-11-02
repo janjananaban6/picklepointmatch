@@ -24,7 +24,7 @@
       }
       if (!window.confirm('Log out of the organizer account?')) return;
       button.disabled = true;
-      try { await fetch('/api/logout', {method:'POST',credentials:'same-origin',cache:'no-store'}); } catch (_) {}
+      try { await fetch('/api/logout', {method:'POST',credentials:'same-origin',cache:'no-store',headers:{'X-PPM-Auth-Role':'organizer'}}); } catch (_) {}
       window.location.replace('/index.html');
     });
     if (sessionFooter) {
@@ -35,7 +35,7 @@
     }
   }
 
-  window.PPM_AUTH_READY = fetch('/api/auth-status', {cache:'no-store',credentials:'same-origin'}).then(response => response.json()).then(status => {
+  window.PPM_AUTH_READY = fetch('/api/auth-status', {cache:'no-store',credentials:'same-origin',headers:{'X-PPM-Auth-Role':'organizer'}}).then(response => response.json()).then(status => {
     if (!status.authenticated || status.role !== 'organizer') {
       const next = encodeURIComponent(window.location.pathname.slice(1) + window.location.search);
       window.location.replace(`/index.html?next=${next}`);
