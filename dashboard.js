@@ -184,25 +184,41 @@
     const username=String(organizer.username||'').trim();
     const duprId=String(organizer.duprId||organizer.personalDuprId||organizer.duprID||organizer.dupr_id||'').trim().replace(/^DUPR\s*:\s*/i,'').replace(/\s+/g,'').toUpperCase();
     const logo=$('organizerLogo');
-    $('organizerClubName').textContent=name;
+    const clubNameEl=$('organizerClubName');
+    if(clubNameEl&&clubNameEl.textContent!==name)clubNameEl.textContent=name;
+
+    // Dashboard data is refreshed every eight seconds. Avoid replacing the
+    // same header text or reassigning the same logo URL on every poll; those
+    // redundant DOM/image updates can trigger visible sticky-header repainting
+    // while the user is scrolling.
+    const usernameText=username?`@${username}`:'';
     const usernameEl=$('organizerUsername');
-    if(usernameEl)usernameEl.textContent=username?`@${username}`:'';
+    if(usernameEl&&usernameEl.textContent!==usernameText)usernameEl.textContent=usernameText;
+
     const duprBadge=$('organizerDuprBadge');
     if(duprBadge){
-      duprBadge.textContent=duprId?`DUPR ${duprId}`:'';
-      duprBadge.hidden=!duprId;
-      duprBadge.title=duprId?`Organizer DUPR ID: ${duprId}`:'';
+      const badgeText=duprId?`DUPR ${duprId}`:'';
+      const badgeTitle=duprId?`Organizer DUPR ID: ${duprId}`:'';
+      if(duprBadge.textContent!==badgeText)duprBadge.textContent=badgeText;
+      const badgeHidden=!duprId;
+      if(duprBadge.hidden!==badgeHidden)duprBadge.hidden=badgeHidden;
+      if(duprBadge.title!==badgeTitle)duprBadge.title=badgeTitle;
     }
+
     const brandLink=$('dashboardBrandLink');
     if(brandLink){
-      brandLink.setAttribute('aria-label',`${name} organizer dashboard home${username?`, username ${username}`:''}${duprId?`, DUPR ID ${duprId}`:''}`);
-      brandLink.title=`${name}${username?` · @${username}`:''}${duprId?` · DUPR ${duprId}`:''}`;
+      const ariaLabel=`${name} organizer dashboard home${username?`, username ${username}`:''}${duprId?`, DUPR ID ${duprId}`:''}`;
+      const linkTitle=`${name}${username?` · @${username}`:''}${duprId?` · DUPR ${duprId}`:''}`;
+      if(brandLink.getAttribute('aria-label')!==ariaLabel)brandLink.setAttribute('aria-label',ariaLabel);
+      if(brandLink.title!==linkTitle)brandLink.title=linkTitle;
     }
+
     const organizerLogoSrc=organizer.logo&&/^data:image\/(?:png|jpeg|webp);base64,/i.test(organizer.logo)?organizer.logo:'pickleball-p-emblem.png';
     if(logo){
-      logo.alt=`${name} logo`;
+      const logoAlt=`${name} logo`;
+      if(logo.alt!==logoAlt)logo.alt=logoAlt;
       logo.onerror=()=>{logo.onerror=null;logo.src='pickleball-p-emblem.png';};
-      logo.src=organizerLogoSrc;
+      if(logo.getAttribute('src')!==organizerLogoSrc)logo.src=organizerLogoSrc;
     }
   }
 
@@ -237,14 +253,14 @@
       return details.searchText.includes(normalized);
     });
     if(!options.length){
-      list.innerHTML='<div class="session-select-empty">No matching sessions found</div>';
+      setMarkupWithoutJump(list,'<div class="session-select-empty">No matching sessions found</div>');
     }else{
-      list.innerHTML=options.map(session=>{
+      setMarkupWithoutJump(list,options.map(session=>{
         const details=sessionOptionDetails(session);
         const selected=session.id===state.selection.session;
         const optionId=`session-option-${String(session.id||'').replace(/[^a-zA-Z0-9_-]/g,'-')}`;
         return `<button id="${escapeAttr(optionId)}" class="session-select-option${selected?' is-selected':''}" type="button" role="option" aria-selected="${selected?'true':'false'}" data-session-option data-session-id="${escapeAttr(session.id)}"><span class="session-select-option-name">${escapeHtml(details.title)}</span><span class="session-select-option-meta${session.isLive?' is-live':' is-complete'}">${escapeHtml(details.status)}</span></button>`;
-      }).join('');
+      }).join(''));
     }
     list.hidden=!sessionDropdownOpen;
     const search=$('sessionSelectSearch');
@@ -333,7 +349,7 @@
     const options=allSessions();
     if(!select)return;
     if(!options.length){
-      select.innerHTML='<option value="">No sessions recorded yet</option>';
+      setMarkupWithoutJump(select,'<option value="">No sessions recorded yet</option>');
       select.disabled=true;
       if(search){search.value='';search.disabled=true;search.placeholder='No sessions recorded yet';search.setAttribute('aria-expanded','false');}
       sessionDropdownOpen=false;
@@ -346,10 +362,10 @@
     }
     select.disabled=false;
     if(search){search.disabled=false;search.placeholder='Search sessions…';}
-    select.innerHTML=options.map(session=>{
+    setMarkupWithoutJump(select,options.map(session=>{
       const details=sessionOptionDetails(session);
       return `<option value="${escapeAttr(session.id)}">${escapeHtml(details.title)} · ${escapeHtml(details.date)}</option>`;
-    }).join('');
+    }).join(''));
     select.value=state.selection.session;
     const selected=selectedSession();
     if(selected){
@@ -409,7 +425,7 @@
         const details=[player.nickname,player.gender,player.category].filter(Boolean).join(' · ');
         return `<option value="${escapeAttr(name)}"${details?` label="${escapeAttr(details)}"`:''}></option>`;
       });
-    datalist.innerHTML=options.join('');
+    setMarkupWithoutJump(datalist,options.join(''));
   }
 
   function applyCloudPlayerSuggestion(form) {
@@ -463,6 +479,17 @@
     </article>`;
   }
 
+  // Avoid replacing unchanged live-refresh markup. When content does change,
+  // retain the list's scroll position so periodic syncs do not jump the user.
+  function setMarkupWithoutJump(element,markup) {
+    if(!element||element.innerHTML===markup)return;
+    const scrollTop=element.scrollTop;
+    const scrollLeft=element.scrollLeft;
+    element.innerHTML=markup;
+    element.scrollTop=scrollTop;
+    element.scrollLeft=scrollLeft;
+  }
+
   function emptyMarkup(title,description,icon='🏓') {
     return `<div class="empty-state"><span class="empty-state-icon" aria-hidden="true">${icon}</span><strong>${escapeHtml(title)}</strong><p>${escapeHtml(description)}</p></div>`;
   }
@@ -474,7 +501,7 @@
     if(!session){
       $('attendanceTotal').textContent='(0)';
       $('attendanceSubtitle').textContent='';
-      list.innerHTML=emptyMarkup('No attendance yet','Select a session to view its checked-in participants.','♧');
+      setMarkupWithoutJump(list,emptyMarkup('No attendance yet','Select a session to view its checked-in participants.','♧'));
       return;
     }
     const participants=Array.isArray(session.participants)?session.participants:[];
@@ -483,12 +510,12 @@
     $('attendanceSubtitle').textContent=String(session.sessionName||'');
     if(state.editingParticipant?.sessionId===session.id && list.querySelector('[data-participant-edit-form]'))return;
     const filtered=participants.map((person,index)=>({person,index})).filter(({person})=>`${fullName(person)} ${person.nickname||''} ${person.category||''}`.toLocaleLowerCase().includes(search));
-    if(filtered.length){list.innerHTML=filtered.map(({person,index})=>participantMarkup(person,index,session)).join('');return;}
+    if(filtered.length){setMarkupWithoutJump(list,filtered.map(({person,index})=>participantMarkup(person,index,session)).join(''));return;}
     if(!participants.length){
       const older=Number(session.playerCount)||0;
-      list.innerHTML=older?emptyMarkup('Attendance names not available',`This older session has ${older} participant record(s), but the name list was not saved at the time. New completed sessions include the full check-in list.`,'◷'):emptyMarkup('No participants recorded','This session has no saved participant check-ins.','♧');
+      setMarkupWithoutJump(list,older?emptyMarkup('Attendance names not available',`This older session has ${older} participant record(s), but the name list was not saved at the time. New completed sessions include the full check-in list.`,'◷'):emptyMarkup('No participants recorded','This session has no saved participant check-ins.','♧'));
     }else{
-      list.innerHTML=emptyMarkup('No participants found','Try another name or clear your search.','⌕');
+      setMarkupWithoutJump(list,emptyMarkup('No participants found','Try another name or clear your search.','⌕'));
     }
   }
 
@@ -829,10 +856,10 @@
       if(!targetStillVisible)state.editingMatch=null;
     }
     if(!filtered.length){
-      list.innerHTML=inRange.length?emptyMarkup('No matches found','Try another player name or clear your search.','⌕'):allEntries.length?emptyMarkup('No matches in this date range','Change the dates or choose All Time to view older match records.','🏓'):emptyMarkup('No match history yet','Completed matches recorded in Queueing will appear here.','🏓');
+      setMarkupWithoutJump(list,inRange.length?emptyMarkup('No matches found','Try another player name or clear your search.','⌕'):allEntries.length?emptyMarkup('No matches in this date range','Change the dates or choose All Time to view older match records.','🏓'):emptyMarkup('No match history yet','Completed matches recorded in Queueing will appear here.','🏓'));
       return;
     }
-    list.innerHTML=filtered.map(({log,session},index)=>matchMarkup(log,index,session,renderKey)).join('');
+    setMarkupWithoutJump(list,filtered.map(({log,session},index)=>matchMarkup(log,index,session,renderKey)).join(''));
   }
 
   function matchDateTimeInputValue(date) {
@@ -899,8 +926,8 @@
     const sessions=allSessions();
     $('sessionsTotal').textContent=`(${sessions.length})`;
     const filtered=sessions.filter(session=>`${session.sessionName||''} ${session.endedAt||''} ${session.startedAt||''}`.toLocaleLowerCase().includes(search));
-    if(filtered.length){list.innerHTML=filtered.map(sessionManageMarkup).join('');return;}
-    list.innerHTML=sessions.length?emptyMarkup('No sessions found','Try another session name or clear your search.','⌕'):emptyMarkup('No sessions to manage','Create your first session to see it listed here.','◷');
+    if(filtered.length){setMarkupWithoutJump(list,filtered.map(sessionManageMarkup).join(''));return;}
+    setMarkupWithoutJump(list,sessions.length?emptyMarkup('No sessions found','Try another session name or clear your search.','⌕'):emptyMarkup('No sessions to manage','Create your first session to see it listed here.','◷'));
   }
 
   function render() {
@@ -1514,7 +1541,7 @@
     }));
     const names=Array.from(unique.values());
     $('duprMissingPlayersCount').textContent=String(names.length);
-    $('duprMissingPlayersList').innerHTML=names.map(name=>`<span class="dupr-missing-player-chip">${escapeHtml(name)}</span>`).join('');
+    setMarkupWithoutJump($('duprMissingPlayersList'),names.map(name=>`<span class="dupr-missing-player-chip">${escapeHtml(name)}</span>`).join(''));
     $('duprMissingNotice').hidden=!names.length;
   }
 
@@ -1551,9 +1578,9 @@
     const filtered=duprModalFilteredEntries(entries);
     const readyCount=filtered.filter(item=>!!item.row).length;
     $('duprExportSubheading').textContent=readyCount?`${readyCount} matches ready. Download the CSV, then import that file in DUPR.`:'No eligible matches in this filter. Check scores and player DUPR IDs.';
-    $('duprExportEventName').value=state.duprModalEventName;
-    $('duprExportLocation').value=state.duprModalLocation;
-    $('duprExportScoreType').value=state.duprModalScoreType;
+    if($('duprExportEventName').value!==state.duprModalEventName)$('duprExportEventName').value=state.duprModalEventName;
+    if($('duprExportLocation').value!==state.duprModalLocation)$('duprExportLocation').value=state.duprModalLocation;
+    if($('duprExportScoreType').value!==state.duprModalScoreType)$('duprExportScoreType').value=state.duprModalScoreType;
     duprModalSetFilterCounts(entries);
     document.querySelectorAll('[data-dupr-export-filter]').forEach(button=>{
       const active=button.dataset.duprExportFilter===state.duprModalFilter;
@@ -1561,7 +1588,7 @@
       button.setAttribute('aria-pressed',String(active));
     });
     duprModalMissingPlayersMarkup(entries);
-    $('duprExportTableBody').innerHTML=filtered.map((item,index)=>duprModalRowMarkup(item,index)).join('');
+    setMarkupWithoutJump($('duprExportTableBody'),filtered.map((item,index)=>duprModalRowMarkup(item,index)).join(''));
     $('duprExportEmpty').hidden=filtered.length>0;
     $('duprExportTableWrap').hidden=!filtered.length;
     if(sessions.length===1){

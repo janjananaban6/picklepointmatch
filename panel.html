@@ -7,8 +7,8 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Organizer Management — Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="panel.css?v=panel-registered-players-csv-20261027-1">
-  <script src="panel.js?v=panel-registered-players-csv-20261027-1" defer></script>
+  <link rel="stylesheet" href="panel.css?v=panel-registered-players-csv-20261102-1">
+  <script src="panel.js?v=panel-registered-players-csv-20261102-1" defer></script>
   <link rel="stylesheet" href="network-skeleton.css?v=network-validation-20261027-1">
   <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
   <script src="network-validation.js?v=network-validation-20261027-1"></script>
@@ -222,23 +222,52 @@
   <div id="registeredPlayersModal" class="panel-modal registered-players-modal" hidden>
     <button class="panel-modal-scrim" type="button" data-close-registered-players aria-label="Close registered players"></button>
     <section class="panel-modal-dialog registered-players-dialog" role="dialog" aria-modal="true" aria-labelledby="registeredPlayersModalTitle" aria-describedby="registeredPlayersModalDescription" tabindex="-1">
-      <div class="modal-heading registered-players-modal-heading">
-        <div class="modal-heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-1.4A4.6 4.6 0 0 1 7.1 14h3.8a4.6 4.6 0 0 1 4.6 4.6V20M16 4.8a3.5 3.5 0 0 1 0 6.4M18.2 14.5a4.3 4.3 0 0 1 3.3 4.1V20"/></svg></div>
-        <div class="modal-heading-copy"><h2 id="registeredPlayersModalTitle">Registered players</h2><p id="registeredPlayersModalDescription">Shared player profiles currently stored by Pickle Point Match.</p></div>
-        <button type="button" id="closeRegisteredPlayersModal" class="modal-close" aria-label="Close registered players">×</button>
-      </div>
+      <header class="dupr-export-header registered-players-export-header">
+        <div class="dupr-export-heading-copy">
+          <h2 id="registeredPlayersModalTitle">Registered Player Cloud</h2>
+          <p id="registeredPlayersModalDescription">Manage the shared player directory stored by Pickle Point Match.</p>
+        </div>
+        <button type="button" id="closeRegisteredPlayersModal" class="dupr-export-close" aria-label="Close registered players">×</button>
+      </header>
       <div class="registered-players-toolbar">
         <label class="registered-players-search" for="registeredPlayersSearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.7"/><path d="m16 16 4.4 4.4"/></svg><input id="registeredPlayersSearch" type="search" placeholder="Search name, nickname, DUPR ID…" autocomplete="off"></label>
         <div class="registered-players-meta"><strong id="registeredPlayersCountLabel">Loading players…</strong><span id="registeredPlayersUpdatedLabel"></span></div>
       </div>
-      <div class="registered-players-table-wrap">
-        <table class="registered-players-table">
-          <thead><tr><th>Player</th><th>Nickname</th><th>Gender</th><th>Category</th><th>DUPR ID</th><th>Self rating</th><th>Matches</th><th>Wins</th><th>Losses</th></tr></thead>
-          <tbody id="registeredPlayersRows"><tr><td colspan="9" class="empty-row">Loading registered players…</td></tr></tbody>
-        </table>
-      </div>
-      <div class="registered-players-pagination"><span id="registeredPlayersShowingLabel">—</span><button type="button" id="registeredPlayersLoadMore" class="secondary-button" hidden>Load more</button></div>
-      <div class="registered-players-modal-footer"><span>Download a backup before changing hosting or database settings.</span><div class="modal-actions"><button type="button" class="secondary-button" data-close-registered-players>Close</button><button type="button" id="downloadRegisteredPlayersCsvModal" class="primary-button"><span aria-hidden="true">↓</span> Download CSV</button></div></div>
+      <main class="registered-players-main">
+        <section class="registered-import-report" id="registeredPlayersImportReport" aria-live="polite" hidden>
+          <div class="registered-import-report-heading">
+            <strong><span id="registeredPlayersImportedCount">0</span> players imported</strong>
+            <span id="registeredPlayersDuplicateCount">0 duplicates skipped</span>
+          </div>
+          <section class="registered-duplicates-section" id="registeredPlayersDuplicatesSection" hidden>
+            <div class="registered-duplicates-heading">
+              <strong>Duplicate players skipped (<span id="registeredPlayersDuplicatesHeadingCount">0</span>)</strong>
+              <span>Duplicates are not added to the cloud directory.</span>
+            </div>
+            <div class="registered-duplicates-table-wrap">
+              <table class="registered-duplicates-table">
+                <thead><tr><th>CSV ROW</th><th>UPLOADED PLAYER</th><th>DUPR ID</th><th>DUPLICATE BY</th><th>EXISTING PLAYER</th></tr></thead>
+                <tbody id="registeredPlayersDuplicatesRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+        <div class="registered-players-table-wrap">
+          <table class="registered-players-table">
+            <thead><tr><th>PLAYER</th><th>NICKNAME</th><th>GENDER</th><th>CATEGORY</th><th>DUPR ID</th><th>MATCHES</th><th>WINS</th><th>LOSSES</th></tr></thead>
+            <tbody id="registeredPlayersRows"><tr><td colspan="8" class="empty-row">Loading registered players…</td></tr></tbody>
+          </table>
+        </div>
+      </main>
+      <footer class="registered-players-modal-footer">
+        <div class="registered-players-pagination"><span id="registeredPlayersShowingLabel">—</span><button type="button" id="registeredPlayersLoadMore" class="dupr-export-filter" hidden>Load more</button></div>
+        <div class="registered-players-footer-actions">
+          <button type="button" class="registered-players-close-action" data-close-registered-players>Close</button>
+          <button type="button" id="uploadRegisteredPlayersCsvModal" class="registered-players-upload"><span aria-hidden="true">↑</span> Upload CSV</button>
+          <button type="button" id="downloadRegisteredPlayersCsvModal" class="dupr-download-csv"><span aria-hidden="true">⇩</span> Download CSV</button>
+          <input id="uploadRegisteredPlayersCsvModalInput" type="file" accept=".csv,text/csv" hidden>
+        </div>
+      </footer>
     </section>
   </div>
 

@@ -208,9 +208,7 @@
       registeredPlayerValue(player, 'nickname'),
       registeredPlayerValue(player, 'gender'),
       registeredPlayerValue(player, 'category'),
-      registeredPlayerValue(player, 'duprId', ['dupr_id','duprID']),
-      registeredPlayerValue(player, 'selfRating', ['self_rating']),
-      registeredPlayerValue(player, 'cloudId', ['id'])
+      registeredPlayerValue(player, 'duprId', ['dupr_id','duprID'])
     ].join(' ').toLocaleLowerCase();
   }
   function renderRegisteredPlayers() {
@@ -227,26 +225,23 @@
       : 'No players to show';
     const rows = $('registeredPlayersRows');
     if (!registeredPlayersFiltered.length) {
-      rows.innerHTML = `<tr><td colspan="9" class="empty-row">${query ? 'No registered players match your search.' : 'No registered players have been added yet.'}</td></tr>`;
+      rows.innerHTML = `<tr><td colspan="8" class="empty-row">${query ? 'No registered players match your search.' : 'No registered players have been added yet.'}</td></tr>`;
     } else {
       rows.innerHTML = visible.map(player => {
-        const cloudId = registeredPlayerValue(player, 'cloudId', ['id']);
         const name = registeredPlayerValue(player, 'name') || 'Unnamed player';
         const nickname = registeredPlayerValue(player, 'nickname');
         const gender = registeredPlayerValue(player, 'gender');
         const category = registeredPlayerValue(player, 'category');
         const duprId = registeredPlayerValue(player, 'duprId', ['dupr_id','duprID']);
-        const selfRating = registeredPlayerValue(player, 'selfRating', ['self_rating']);
-          const matches = registeredPlayerValue(player, 'matches');
+        const matches = registeredPlayerValue(player, 'matches');
         const wins = registeredPlayerValue(player, 'wins');
         const losses = registeredPlayerValue(player, 'losses');
         return `<tr>
-          <td data-label="Player"><span class="registered-player-name">${safeText(name)}</span>${cloudId !== '' ? `<small class="registered-player-cloud-id">ID ${safeText(cloudId)}</small>` : ''}</td>
+          <td data-label="Player"><span class="registered-player-name">${safeText(name)}</span></td>
           <td data-label="Nickname">${safeText(nickname || '—')}</td>
           <td data-label="Gender">${safeText(gender || '—')}</td>
           <td data-label="Category"><span class="registered-player-category">${safeText(category || '—')}</span></td>
-          <td data-label="DUPR ID">${safeText(duprId || '—')}</td>
-          <td data-label="Self rating">${safeText(selfRating || '—')}</td>
+          <td data-label="DUPR ID"><span class="registered-player-dupr">${safeText(duprId || '—')}</span></td>
           <td data-label="Matches">${safeText(matches === '' ? '0' : matches)}</td>
           <td data-label="Wins">${safeText(wins === '' ? '0' : wins)}</td>
           <td data-label="Losses">${safeText(losses === '' ? '0' : losses)}</td>
@@ -268,7 +263,7 @@
     if (registeredPlayersLoading) return;
     registeredPlayersLoading = true;
     const loadRequest = ++registeredPlayersLoadRequest;
-    $('registeredPlayersRows').innerHTML = '<tr><td colspan="9" class="empty-row">Loading registered players from the server…</td></tr>';
+    $('registeredPlayersRows').innerHTML = '<tr><td colspan="8" class="empty-row">Loading registered players from the server…</td></tr>';
     $('registeredPlayersCountLabel').textContent = 'Loading players…';
     $('registeredPlayersShowingLabel').textContent = 'Please wait…';
     try {
@@ -282,7 +277,7 @@
       renderRegisteredPlayers();
     } catch (error) {
       if (loadRequest !== registeredPlayersLoadRequest) return;
-      $('registeredPlayersRows').innerHTML = `<tr><td colspan="9" class="empty-row registered-players-error">${safeText(error.message || 'Unable to load registered players.')}</td></tr>`;
+      $('registeredPlayersRows').innerHTML = `<tr><td colspan="8" class="empty-row registered-players-error">${safeText(error.message || 'Unable to load registered players.')}</td></tr>`;
       $('registeredPlayersCountLabel').textContent = 'Unable to load players';
       $('registeredPlayersShowingLabel').textContent = 'Check the connection and try again.';
       setNotice(error.message || 'Unable to load registered players.', true);
@@ -295,6 +290,8 @@
     registeredPlayersReturnFocusTo = document.activeElement;
     registeredPlayersModal.hidden = false;
     $('registeredPlayersSearch').value = '';
+    $('registeredPlayersImportReport').hidden = true;
+    $('registeredPlayersDuplicatesRows').innerHTML = '';
     registeredPlayersShown = registeredPlayersPageSize;
     syncModalLock();
     window.requestAnimationFrame(() => $('registeredPlayersSearch').focus({preventScroll:true}));
@@ -342,6 +339,57 @@
     } catch (error) {
       setNotice(error.message || 'Unable to download registered players CSV.', true);
     } finally {
+      button.disabled = false;
+      button.innerHTML = originalHtml;
+    }
+  }
+
+  function renderRegisteredPlayersImportReport(data) {
+    const duplicates = Array.isArray(data?.duplicates) ? data.duplicates : [];
+    $('registeredPlayersImportedCount').textContent = formatPlayerCount(data?.importedCount || 0);
+    $('registeredPlayersDuplicateCount').textContent = `${formatPlayerCount(data?.duplicateCount ?? duplicates.length)} duplicate${(data?.duplicateCount ?? duplicates.length) === 1 ? '' : 's'} skipped`;
+    $('registeredPlayersDuplicatesHeadingCount').textContent = formatPlayerCount(duplicates.length);
+    $('registeredPlayersDuplicatesSection').hidden = !duplicates.length;
+    $('registeredPlayersDuplicatesRows').innerHTML = duplicates.map(item => `<tr>
+      <td>${safeText(item.rowNumber || '—')}</td>
+      <td><span class="registered-duplicate-player-name">${safeText(item.name || 'Unnamed player')}</span></td>
+      <td>${safeText(item.duprId || '—')}</td>
+      <td><span class="registered-duplicate-reason">${safeText(item.matchedBy || 'Duplicate')}</span></td>
+      <td>${safeText(item.existingName || '—')}</td>
+    </tr>`).join('');
+    $('registeredPlayersImportReport').hidden = false;
+  }
+
+  async function uploadRegisteredPlayersCsv(fileInput, button) {
+    const file = fileInput?.files?.[0];
+    if (!file || !button || button.disabled) return;
+    if (!/\.csv$/i.test(file.name) && file.type !== 'text/csv') {
+      setNotice('Please select a CSV file.', true);
+      fileInput.value = '';
+      return;
+    }
+    const originalHtml = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span aria-hidden="true">↑</span> Uploading…';
+    try {
+      const csv = await file.text();
+      if (!csv.trim()) throw new Error('The selected CSV file is empty.');
+      const data = await request('/api/panel/registered-players.csv', {
+        method:'POST',
+        body:JSON.stringify({csv})
+      });
+      renderRegisteredPlayersImportReport(data);
+      // Invalidate any pre-upload list request so an older response cannot replace the imported rows.
+      registeredPlayersLoadRequest += 1;
+      registeredPlayersLoading = false;
+      await loadRegisteredPlayers();
+      const imported = Number(data.importedCount) || 0;
+      const duplicates = Number(data.duplicateCount) || 0;
+      setNotice(`CSV upload complete: ${formatPlayerCount(imported)} imported, ${formatPlayerCount(duplicates)} duplicate${duplicates === 1 ? '' : 's'} skipped.`);
+    } catch (error) {
+      setNotice(error.message || 'Unable to upload registered players CSV.', true);
+    } finally {
+      fileInput.value = '';
       button.disabled = false;
       button.innerHTML = originalHtml;
     }
@@ -934,6 +982,8 @@
   });
   $('downloadRegisteredPlayersCsv').addEventListener('click', event => downloadRegisteredPlayersCsv(event.currentTarget));
   $('downloadRegisteredPlayersCsvModal').addEventListener('click', event => downloadRegisteredPlayersCsv(event.currentTarget));
+  $('uploadRegisteredPlayersCsvModal').addEventListener('click', () => $('uploadRegisteredPlayersCsvModalInput').click());
+  $('uploadRegisteredPlayersCsvModalInput').addEventListener('change', event => uploadRegisteredPlayersCsv(event.currentTarget, $('uploadRegisteredPlayersCsvModal')));
 
   $('panelLogout').addEventListener('click', openLogoutModal);
   $('closeLogoutConfirm').addEventListener('click', closeLogoutModal);

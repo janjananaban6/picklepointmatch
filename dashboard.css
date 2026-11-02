@@ -1935,7 +1935,7 @@ body.organizer-dashboard-page.modal-open .dashboard-topbar{
   .dupr-export-footer{padding:9px 14px}
 }
 @media(max-width:600px){
-  .dupr-export-backdrop{padding:160px;place-items:center}
+  .dupr-export-backdrop{padding:10px;place-items:center}
   .dupr-export-modal{height:calc(85dvh - 40px);max-height:calc(100dvh - 40px);border-radius:11px}
   .dupr-export-header{min-height:62px;padding:9px 11px;gap:8px}
   .dupr-export-heading-copy h2{font-size:16px}
@@ -2021,4 +2021,428 @@ body.organizer-dashboard-page.modal-open .dashboard-topbar{
   fill:currentColor;
   stroke:none;
   overflow:visible;
+}
+
+
+/* Dashboard responsive stability pass (2026-11-02).
+   Keep the existing visual theme while preventing narrow-screen overflow,
+   text collisions, mobile input zoom, and layout shifts during refreshes. */
+html,
+body.organizer-dashboard-page{
+  width:100%;
+  max-width:100%;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+body.organizer-dashboard-page{
+  overflow-x:clip;
+}
+@supports not (overflow:clip){
+  body.organizer-dashboard-page{overflow-x:hidden}
+}
+.dashboard-topbar-inner,
+.dashboard-main,
+.dashboard-records-layout,
+.records-card,
+.records-toolbar,
+.records-view,
+.view-heading,
+.view-heading-copy,
+.participant-row,
+.participant-copy,
+.match-card,
+.match-card-head,
+.match-teams,
+.match-team,
+.match-team-players,
+.match-player-line,
+.session-manage-card,
+.session-manage-copy,
+.session-manage-actions,
+.dashboard-modal,
+.dupr-export-modal,
+.dupr-export-main{
+  min-width:0;
+}
+.dashboard-records-layout{grid-template-columns:minmax(0,1fr)}
+.records-card{width:100%;max-width:100%}
+.records-view{width:100%;max-width:100%}
+.view-heading{flex-wrap:wrap;align-items:flex-start}
+.view-heading-copy{flex:1 1 180px;max-width:100%}
+.view-heading-title-line h2,
+.view-heading-copy>p,
+.session-manage-copy p,
+.settings-modal-heading p,
+.dupr-export-heading-copy p{
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.dashboard-tabs{min-width:0;flex-wrap:wrap}
+.dashboard-tab{min-width:0;max-width:100%}
+.participant-row{overflow-wrap:anywhere}
+.participant-copy{flex:1 1 50px}
+.participant-name{max-width:100%;overflow-wrap:anywhere}
+.participant-actions{min-width:0;flex:0 0 auto}
+.participant-inline-edit,
+.participant-inline-fields,
+.participant-inline-actions{min-width:0}
+.match-card-head{min-width:0;flex-wrap:wrap}
+.match-time{white-space:normal;text-align:right;overflow-wrap:anywhere}
+.match-teams{grid-template-columns:minmax(0,1fr) clamp(32px,7vw,58px) minmax(0,1fr)}
+.match-team{min-width:0;overflow:hidden}
+.match-team-players{width:100%;min-width:0}
+.match-player-line{min-width:0;flex-wrap:wrap;align-items:flex-start}
+.match-record-card .match-player-name{min-width:0;max-width:100%;overflow-wrap:anywhere;white-space:normal}
+.match-record-card .match-dupr-badge{flex:0 0 auto}
+.match-sync-row{min-width:0;flex-wrap:wrap}
+.match-record-meta{min-width:0;overflow-wrap:anywhere}
+.match-filter-toolbar,
+.matches-search-actions-row,
+.match-range-buttons,
+.match-filter-actions{min-width:0;max-width:100%}
+.match-range-button,
+.match-refresh-button,
+.match-export-button{max-width:100%}
+.session-manage-card{flex-wrap:wrap}
+.session-manage-copy{flex:1 1 180px}
+.session-manage-copy h3{max-width:100%;overflow-wrap:anywhere;white-space:normal}
+.session-manage-actions{flex:0 0 auto;max-width:100%}
+.dashboard-modal-backdrop,
+.settings-modal-backdrop,
+.dupr-export-backdrop{
+  box-sizing:border-box;
+  max-width:100%;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+.dashboard-modal,
+.settings-modal,
+.dupr-export-modal{box-sizing:border-box;max-width:100%}
+.settings-modal{overflow-x:hidden;overflow-y:auto}
+.dupr-export-backdrop{padding:clamp(8px,2vw,18px)}
+.dupr-export-modal{
+  width:min(95%,1000px);
+  max-height:calc(100dvh - 16px);
+  height:min(680px,calc(100dvh - 16px));
+}
+.dupr-export-header,
+.dupr-export-heading-copy,
+.dupr-export-fields,
+.dupr-export-footer,
+.dupr-export-footer-actions{min-width:0}
+.dupr-export-fields{grid-template-columns:repeat(3,minmax(0,1fr))}
+.dupr-export-field{min-width:0}
+.dupr-export-field input,
+.dupr-export-field select{min-width:0;max-width:100%}
+.dupr-export-table-wrap{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  overflow:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-x pan-y;
+}
+.dupr-export-table{table-layout:fixed}
+.dupr-export-table th,
+.dupr-export-table td{box-sizing:border-box}
+.dupr-export-player-cell,
+.dupr-export-id-cell{min-width:0;max-width:100%}
+.dupr-export-footer>p{flex:1 1 130px;white-space:normal;overflow-wrap:anywhere}
+.dupr-export-footer-actions{flex-wrap:wrap}
+
+@media(max-width:760px){
+  .dashboard-topbar-inner{width:calc(100% - 24px)}
+  .dashboard-main{width:calc(100% - 24px);padding-top:18px}
+  .records-toolbar{padding:13px 12px 11px}
+  .records-view{padding:14px 12px 16px}
+  .view-heading{gap:8px}
+  .match-filter-toolbar{align-items:stretch}
+  .match-date-field{flex:1 1 180px;min-width:0}
+  .match-range-buttons{flex-wrap:wrap}
+  .dupr-export-header{gap:8px;padding:10px 12px}
+  .dupr-export-fields{gap:8px;padding:11px 12px}
+  .dupr-export-main{padding:10px 12px}
+  .dupr-export-footer{padding:9px 12px}
+}
+
+@media(max-width:600px){
+  .dashboard-tabs{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:5px;
+    padding:7px 7px;
+  }
+  .dashboard-tab{
+    width:100%;
+    min-height:39px;
+    justify-content:center;
+    gap:5px;
+    padding:0 5px;
+    font-size:10px;
+    white-space:normal;
+    line-height:1.15;
+  }
+  .dashboard-tab .tab-icon-svg{width:15px;height:15px;flex-basis:15px}
+  .view-heading-title-line{flex-wrap:wrap}
+  .match-record-card .match-card-head{align-items:flex-start}
+  .match-record-meta{flex:1 1 150px;flex-wrap:wrap;white-space:normal;overflow:visible}
+  .match-card-actions{flex:0 0 auto}
+  .match-record-card .match-teams{grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr);gap:5px}
+  .match-record-card .match-team{padding:8px 6px;gap:5px}
+  .match-player-line{gap:4px}
+  .match-record-card .match-player-name{font-size:10px;line-height:1.25}
+  .match-score-center strong{font-size:15px}
+  .match-sync-row{align-items:center}
+  .session-manage-card{align-items:stretch;flex-direction:column;gap:9px;padding:12px}
+  .session-manage-actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .session-manage-btn{min-width:0;width:100%}
+  .dashboard-modal-backdrop{padding:10px}
+  .settings-modal-backdrop{padding:9px}
+  .dupr-export-backdrop{padding:8px}
+  .dupr-export-modal{width:95%;height:calc(85dvh - 16px);max-height:calc(85dvh - 16px);border-radius:11px}
+  .dupr-export-header{min-height:58px;flex-wrap:wrap;align-items:center}
+  .dupr-export-heading-copy{flex:1 1 160px}
+  .dupr-export-heading-copy h2{font-size:16px}
+  .dupr-export-heading-copy p{max-width:100%;overflow-wrap:anywhere}
+  .dupr-export-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dupr-export-field:last-child{grid-column:1/-1}
+  .dupr-export-footer{align-items:stretch;flex-wrap:wrap}
+  .dupr-export-footer>p{flex:1 1 100%;text-align:left}
+  .dupr-export-footer-actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dupr-mark-submitted,.dupr-download-csv{min-width:0;width:100%;white-space:normal;line-height:1.2}
+}
+
+@media(max-width:420px){
+  .dashboard-main{width:calc(100% - 18px)}
+  .dashboard-topbar-inner{width:calc(100% - 18px)}
+  .records-toolbar{padding-inline:9px}
+  .records-view{padding-inline:8px}
+  .participant-row{gap:6px;padding:7px 6px}
+  .participant-actions{gap:3px}
+  .participant-action{min-width:0;padding-inline:6px}
+  .match-record-card .match-teams{grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:3px}
+  .match-record-card .match-team{padding-inline:4px}
+  .match-outcome-mark{width:15px;height:15px;flex-basis:15px}
+  .match-record-card .match-player-name{font-size:9px}
+  .match-score-center{gap:2px}
+  .match-score-center strong{font-size:14px}
+  .dupr-export-fields{gap:6px;padding:8px}
+  .dupr-export-main{padding:8px}
+  .dupr-export-footer{padding:8px}
+}
+
+@media(max-width:360px){
+  .dashboard-brand{gap:5px}
+  .dashboard-brand-copy strong{font-size:9px}
+  .dashboard-action-group .dashboard-action,
+  .dashboard-actions>.create-action{width:28px;min-width:28px;max-width:28px;flex-basis:28px}
+  .dashboard-tabs{gap:3px;padding-inline:5px}
+  .dashboard-tab{gap:3px;padding-inline:3px;font-size:9px}
+  .dashboard-tab .tab-icon-svg{width:14px;height:14px;flex-basis:14px}
+  .participant-row{gap:4px;padding-inline:5px}
+  .participant-action{padding-inline:4px;font-size:8px}
+  .match-record-card .match-teams{grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);gap:2px}
+  .match-record-card .match-team{padding-inline:3px}
+}
+
+/* iOS Safari zooms focused text fields below 16px. Keep the field's visual
+   box dimensions and theme, but use a safe input size on phone/tablet widths. */
+@media(max-width:760px), (hover:none) and (pointer:coarse){
+  body.organizer-dashboard-page input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  body.organizer-dashboard-page textarea,
+  body.organizer-dashboard-page select{
+    font-size:16px!important;
+    line-height:1.2;
+    -webkit-text-size-adjust:100%;
+  }
+  .session-select-shell input{font-size:16px!important}
+  .participant-inline-input{font-size:16px!important}
+  .match-edit-player-field{font-size:16px!important}
+  .dupr-export-field input,
+  .dupr-export-field select{font-size:16px!important}
+  .settings-modal .dashboard-modal-input{font-size:16px!important}
+}
+
+@media(hover:none) and (pointer:coarse){
+  .dashboard-action:hover,
+  .participant-row:hover,
+  .session-manage-card:hover{transform:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .participant-row,
+  .dashboard-action,
+  .session-manage-card,
+  .match-record-card,
+  .dupr-export-modal{animation:none!important;transition:none!important}
+}
+
+
+/* Dashboard mobile/tablet refinements: session actions, form typography,
+   and compact match score/name alignment (2026-11-02). */
+@media(max-width:600px){
+  /* The copy block must size to its content after the card stacks vertically.
+     A leftover 180px flex-basis creates an oversized gap before the buttons. */
+  .session-manage-card{
+    align-items:stretch;
+    flex-direction:column;
+    gap:12px;
+  }
+  .session-manage-copy{
+    width:100%;
+    min-width:0;
+    flex:0 1 auto;
+    margin:0;
+  }
+  .session-manage-actions{
+    width:100%;
+    min-width:0;
+    flex:0 0 auto;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+    margin:0;
+  }
+  .session-manage-btn{
+    width:100%;
+    min-width:0;
+    min-height:36px;
+    margin:0;
+  }
+
+  /* Reserve enough center space for both score values and the separator. */
+  .match-record-card .match-teams{
+    grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr);
+    gap:4px;
+  }
+  .match-record-card .match-team{
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+  }
+  .match-record-card .match-team-players{
+    width:0;
+    min-width:0;
+    max-width:100%;
+    flex:1 1 0;
+    overflow:hidden;
+  }
+  .match-record-card .match-player-line{
+    display:flex;
+    flex-wrap:nowrap;
+    align-items:center;
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+  }
+  .match-record-card .match-player-name{
+    display:block;
+    min-width:0;
+    max-width:100%;
+    flex:1 1 auto;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    overflow-wrap:normal;
+    word-break:normal;
+  }
+  .match-record-card .match-dupr-badge{
+    flex:0 0 auto;
+  }
+  .match-record-card .match-score-center{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    gap:2px;
+    justify-content:center;
+    white-space:nowrap;
+    overflow:hidden;
+  }
+  .match-record-card .match-score-center strong{
+    flex:0 1 auto;
+    min-width:0;
+    font-size:14px;
+  }
+  .match-record-card .match-score-center>span{
+    flex:0 0 auto;
+    font-size:10px;
+  }
+}
+
+/* Keep mobile and iPad form typography consistent. A 16px editable value
+   avoids iOS focus zoom; the placeholder uses the same size but a lighter
+   weight so it reads as a hint rather than entered content. */
+@media(max-width:1024px), (hover:none) and (pointer:coarse){
+  body.organizer-dashboard-page input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  body.organizer-dashboard-page textarea,
+  body.organizer-dashboard-page select{
+    font-size:14px!important;
+    font-weight:450!important;
+    line-height:1.25;
+    letter-spacing:normal;
+    -webkit-text-size-adjust:100%;
+  }
+  body.organizer-dashboard-page input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"])::placeholder,
+  body.organizer-dashboard-page textarea::placeholder{
+    font-size:14px!important;
+    font-weight:450!important;
+    line-height:1.25;
+    letter-spacing:normal;
+    opacity:.82;
+  }
+}
+
+/* Keep match metadata anchored to the same top edge on mobile while the
+   edit buttons replace the compact view actions. The fixed edit header stays
+   intact; only its cross-axis alignment is matched to the normal mobile row. */
+@media(max-width:600px){
+  .match-record-card.is-editing>.match-card-head .match-record-meta{
+    align-self:flex-start;
+  }
+}
+
+
+/* Scroll-stable dashboard header.
+   Keep the sticky bar out of the backdrop-filter compositor path, which can
+   repaint unevenly during touch scrolling on mobile browsers. The nearly
+   opaque color preserves the existing dark header appearance. */
+.dashboard-topbar{
+  position:sticky;
+  top:0;
+  z-index:50;
+  isolation:isolate;
+  background:rgba(6,29,42,.98);
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  overflow-anchor:none;
+}
+
+
+/* Touch-device scroll stability: Safari on iPhone/iPad can visibly reposition
+   sticky elements while the browser's visual viewport changes during a swipe.
+   Use a fixed topbar on touch/tablet layouts and reserve its exact responsive
+   height in the document so content starts in the same place and never jumps. */
+@media (max-width:1024px), (hover:none) and (pointer:coarse){
+  body.organizer-dashboard-page{
+    padding-top:63px;
+  }
+  body.organizer-dashboard-page .dashboard-topbar{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    width:100%;
+    z-index:50;
+  }
+}
+@media (max-width:760px){
+  body.organizer-dashboard-page{
+    padding-top:57px;
+  }
+}
+@media (max-width:520px){
+  body.organizer-dashboard-page{
+    padding-top:53px;
+  }
 }

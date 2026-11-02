@@ -1093,6 +1093,113 @@ async function handle(req, res) {
     }
   }
 
+  if (url.pathname === '/api/panel/registered-players.csv' && req.method === 'POST') {
+    if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
+    try {
+      const body = await readBody(req, 8 * 1024 * 1024);
+      const csvText = typeof body?.csv === 'string' ? body.csv : '';
+      const incomingPlayers = parseRegisteredPlayersCsv(csvText);
+      if (!Array.isArray(incomingPlayers)) {
+        return sendJson(res, 400, {ok:false,error:'This is not a valid Registered Player Cloud CSV. Please use the downloaded player CSV template.'});
+      }
+      if (!incomingPlayers.length) {
+        return sendJson(res, 400, {ok:false,error:'No player rows with a valid name were found in this CSV.'});
+      }
+
+      const savedPlayers = await loadRegisteredPlayersCsv();
+      const currentPlayers = Array.isArray(savedPlayers)
+        ? savedPlayers
+        : (Array.isArray(sharedCloudRecords?.players) ? sharedCloudRecords.players : []);
+      const nameIndex = new Map();
+      const duprIndex = new Map();
+      const usedCloudIds = new Set();
+      const duprValue = player => [player?.duprId,player?.duprID,player?.dupr_id,player?.dupr]
+        .find(value => value !== undefined && value !== null && String(value).trim() !== '') || '';
+      const duprKey = player => String(duprValue(player))
+        .trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
+      const rememberPlayer = player => {
+        const nameKey = normalizePlayerName(player?.name);
+        const idKey = duprKey(player);
+        if (nameKey && !nameIndex.has(nameKey)) nameIndex.set(nameKey, player);
+        if (idKey && !duprIndex.has(idKey)) duprIndex.set(idKey, player);
+        const cloudId = Number(player?.cloudId ?? player?.id);
+        if (Number.isSafeInteger(cloudId) && cloudId > 0) usedCloudIds.add(cloudId);
+      };
+      currentPlayers.forEach(rememberPlayer);
+
+      const importedPlayers = [];
+      const duplicates = [];
+      for (let index = 0; index < incomingPlayers.length; index += 1) {
+        const incoming = withoutOpgFields(incomingPlayers[index]);
+        const nameKey = normalizePlayerName(incoming?.name);
+        const idKey = duprKey(incoming);
+        const nameMatch = nameKey ? nameIndex.get(nameKey) : null;
+        const duprMatch = idKey ? duprIndex.get(idKey) : null;
+        if (nameMatch || duprMatch) {
+          const matches = [nameMatch, duprMatch].filter(Boolean);
+          const existingNames = [...new Set(matches.map(player => String(player?.name || '').trim()).filter(Boolean))];
+          duplicates.push({
+            rowNumber:index + 2,
+            name:String(incoming?.name || '').trim(),
+            duprId:String(duprValue(incoming)).trim(),
+            matchedBy:nameMatch && duprMatch ? 'Name + DUPR ID' : (nameMatch ? 'Name' : 'DUPR ID'),
+            existingName:existingNames.join(' / ') || 'Already registered'
+          });
+          continue;
+        }
+
+        const imported = {...incoming};
+        let cloudId = Number(imported.cloudId ?? imported.id);
+        if (!Number.isSafeInteger(cloudId) || cloudId <= 0 || usedCloudIds.has(cloudId)) {
+          do { cloudId = Date.now() + Math.floor(Math.random() * 100000); }
+          while (usedCloudIds.has(cloudId));
+        }
+        imported.cloudId = cloudId;
+        delete imported.id;
+        importedPlayers.push(imported);
+        rememberPlayer(imported);
+      }
+
+      const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
+      const mergedPlayers = [...currentPlayers, ...importedPlayers];
+      sharedCloudRecords = {
+        ...currentRecords,
+        players:mergedPlayers,
+        logs:Array.isArray(currentRecords.logs) ? currentRecords.logs : [],
+        sessions:Array.isArray(currentRecords.sessions) ? currentRecords.sessions : []
+      };
+      if (importedPlayers.length) {
+        sharedCloudRevision += 1;
+        sharedCloudUpdatedAt = new Date().toISOString();
+        sharedCloudClientId = 'panel-csv-import';
+        await persistSharedCloudRecords();
+        broadcastNamedEvent('cloud-records', {
+          revision:sharedCloudRevision,
+          updatedAt:sharedCloudUpdatedAt,
+          clientId:sharedCloudClientId,
+          records:sharedCloudRecords
+        });
+      }
+      return sendJson(res, 200, {
+        ok:true,
+        importedCount:importedPlayers.length,
+        duplicateCount:duplicates.length,
+        duplicates,
+        count:mergedPlayers.length,
+        updatedAt:sharedCloudUpdatedAt
+      });
+    } catch (err) {
+      const statusCode = err.statusCode || 500;
+      if (statusCode >= 500) console.error('Unable to import registered players CSV:', err.message);
+      return sendJson(res, statusCode, {
+        ok:false,
+        error:statusCode === 413
+          ? 'The CSV file is too large. Please upload a file smaller than 8 MB.'
+          : (statusCode === 400 ? 'The CSV upload could not be read. Please check the file and try again.' : 'Unable to import registered players. Please check the database connection and try again.')
+      });
+    }
+  }
+
   if (url.pathname === '/api/panel/organizers' && req.method === 'GET') {
     if (!isPanelAuthenticated(req)) return sendJson(res, 401, {ok:false,error:'Panel administrator login required.'});
     return sendJson(res, 200, {ok:true,organizers:organizerAccounts.map(organizerPanelRecord)});
