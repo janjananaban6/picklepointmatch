@@ -2193,6 +2193,32 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll::-webkit-scrollbar
   height: 0 !important;
   background: transparent !important;
 }
+/* Desktop users can grab an empty area of a horizontal court strip and drag it.
+   Touch devices keep native, momentum-based horizontal swipe behavior. */
+@media (hover: hover) and (pointer: fine) {
+  html body #courtsList.courts-grid.is-horizontal-scroll,
+  html body #waitingCourtsList.courts-grid.is-horizontal-scroll {
+    cursor: grab;
+  }
+  html body #courtsList.courts-grid.is-horizontal-scroll.is-mouse-dragging,
+  html body #waitingCourtsList.courts-grid.is-horizontal-scroll.is-mouse-dragging {
+    cursor: grabbing;
+    scroll-snap-type: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+  html body #courtsList.courts-grid.is-horizontal-scroll.is-mouse-dragging *,
+  html body #waitingCourtsList.courts-grid.is-horizontal-scroll.is-mouse-dragging * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+  html body #courtsList.courts-grid.is-horizontal-scroll button,
+  html body #waitingCourtsList.courts-grid.is-horizontal-scroll button,
+  html body #courtsList.courts-grid.is-horizontal-scroll a,
+  html body #waitingCourtsList.courts-grid.is-horizontal-scroll a {
+    cursor: pointer;
+  }
+}
 @media (max-width: 560px) {/* Only mobile cards narrow enough to reveal the next court on the right. */
   html body #courtsList.courts-grid.is-horizontal-scroll > .court-card,
   html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card {
@@ -4377,4 +4403,207 @@ html body #waitingCourtsList .court-diagram.pickleball-court.is-singles .court-p
     height: 14px;
     font-size: 7px;
   }
+}
+
+/* LIVE VIEW WIDTH — match the 440px Live Queue start card on iPad and desktop.
+   Mobile sizing remains unchanged. */
+@media (min-width: 561px) {
+  html body.live-view-page .live-page-layout {
+    width: min(440px, 100%);
+    max-width: 440px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  html body.live-view-page .live-page-pinned {
+    width: 100%;
+    max-width: 440px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  html body.live-view-page .page-shell.live-content-scroll {
+    width: 100%;
+    max-width: 440px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  html body.live-view-page .live-content-scroll > .live-tab-panel {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+/* LIVE VIEW NARROW DESKTOP / IPAD LAYOUT PARITY (2026-11-04).
+   The page is intentionally capped at 440px to match the Live Queue start
+   card. Keep every inner section full-width inside that narrow frame so the
+   desktop two-column grids cannot squeeze player names and court details. */
+@media (min-width: 561px) {
+  html body.live-view-page .live-header {
+    width: min(440px, 100%);
+    max-width: 440px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  html body.live-view-page .content-grid,
+  html body.live-view-page .support-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html body.live-view-page .support-grid > .section-card,
+  html body.live-view-page .content-grid > .section-card {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin-top: 0 !important;
+  }
+
+  html body.live-view-page #courtsList.courts-grid:not(.is-horizontal-scroll),
+  html body.live-view-page #waitingCourtsList.courts-grid:not(.is-horizontal-scroll) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html body.live-view-page #courtsList.courts-grid:not(.is-horizontal-scroll) > .court-card,
+  html body.live-view-page #waitingCourtsList.courts-grid:not(.is-horizontal-scroll) > .court-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html body.live-view-page .section-card {
+    padding: 13px !important;
+  }
+
+  html body.live-view-page .section-card.queue-section #queueList > .queue-item {
+    display: grid !important;
+    grid-template-columns: 30px minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    column-gap: 8px !important;
+    row-gap: 4px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html body.live-view-page .section-card.queue-section #queueList > .queue-item > .queue-avatar-stack {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  html body.live-view-page .section-card.queue-section #queueList > .queue-item > .queue-player-wrap {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html body.live-view-page .section-card.queue-section #queueList > .queue-item > .queue-player-wrap > .queue-player-line {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 4px 6px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html body.live-view-page .section-card.queue-section #queueList .queue-player-line > .queue-player {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+    line-height: 1.3 !important;
+  }
+
+  html body.live-view-page .section-card.queue-section #queueList > .queue-item > .queue-waiting-time {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    align-self: center !important;
+    margin-left: 0 !important;
+    padding-left: 4px !important;
+    white-space: nowrap !important;
+    font-size: 9px !important;
+  }
+}
+
+
+/* LIVE VIEW ORDER + COURT LAYOUT TOGGLE ACCESS (2026-11-04).
+   Keep the Next Up / waiting courts section above the queue, with the queue
+   as the final section. Expose court layout controls on desktop and iPad too. */
+@media (min-width: 561px) {
+  html body.live-view-page .support-grid > .waiting-courts-section {
+    order: 1 !important;
+  }
+
+  html body.live-view-page .support-grid > .queue-section {
+    order: 2 !important;
+  }
+
+  html body.live-view-page .section-card.court-section > .section-heading.court-section-heading > .court-section-heading-main > #courtLayoutToggle:not([hidden]),
+  html body.live-view-page .section-card.waiting-courts-section > .section-heading.waiting-court-section-heading > .waiting-court-section-heading-main > #waitingCourtLayoutToggle:not([hidden]) {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+
+/* COURT LAYOUT TOGGLE — SAME HORIZONTAL SCROLL MODE ON ALL DEVICES.
+   Match the mobile peek-and-swipe behavior on iPad and desktop as well.
+   A fixed 88% card width leaves the next court visible as a scroll cue. */
+html body .section-card.court-section .section-heading.court-section-heading .court-section-heading-main > #courtLayoutToggle:not([hidden]),
+html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .waiting-court-section-heading-main > #waitingCourtLayoutToggle:not([hidden]) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body #courtsList.courts-grid.is-horizontal-scroll > .court-card,
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card {
+  flex: 0 0 88% !important;
+  width: 88% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  scroll-snap-align: start !important;
+  height: var(--court-layout-fixed-height, auto) !important;
+  min-height: 0 !important;
+  box-sizing: border-box !important;
+}
+html body #courtsList.courts-grid.is-horizontal-scroll > .court-card .court-diagram,
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card .court-diagram {
+  height: var(--court-layout-diagram-height, auto) !important;
+  aspect-ratio: 2.72 / 1 !important;
+  min-height: clamp(64px, 25vw, 88px) !important;
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
+}
+html body #courtsList.courts-grid.is-horizontal-scroll,
+html body #waitingCourtsList.courts-grid.is-horizontal-scroll {
+  touch-action: pan-x pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-x: contain !important;
+  scroll-snap-type: x mandatory !important;
+}
+html body #courtLayoutToggle[hidden],
+html body #waitingCourtLayoutToggle[hidden] {
+  display: none !important;
 }

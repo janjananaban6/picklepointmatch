@@ -321,3 +321,704 @@ html body[data-page="queueing"] header.topbar #eventOrganizerName {
   white-space: inherit !important;
 }
 
+
+/* QUEUEING DESKTOP + IPAD — prevent scrollbar-width and smooth-scroll jumps.
+   Item nodes are reconciled by stable IDs in script.js, so keep native panel
+   scrolling predictable without altering the mobile layout. */
+html.queueing-desktop-ipad body[data-page="queueing"] #queueMainArea .queue-list,
+html.queueing-desktop-ipad body[data-page="queueing"] .workspace > .courts-panel > #courtsList {
+    scrollbar-gutter: stable !important;
+    scroll-behavior: auto !important;
+    overflow-anchor: auto !important;
+}
+html.queueing-desktop-ipad body[data-page="queueing"] #queueMainArea .queue-modern-item,
+html.queueing-desktop-ipad body[data-page="queueing"] #courtsList > .court-card,
+html.queueing-desktop-ipad body[data-page="queueing"] #courtsList > .waiting-courts-section > .court-card {
+  scroll-margin-block: 0 !important;
+}
+
+/* Queueing leaderboard filter toggle — closed by default; Queueing page only. */
+html body[data-page="queueing"] #rankingView .leaderboard-filter-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 23px !important;
+  width: 23px !important;
+  height: 23px !important;
+  margin: 0 0 0 auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #657382 !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition: color .14s ease !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-filter-toggle:hover,
+html body[data-page="queueing"] #rankingView .leaderboard-filter-toggle.is-open {
+  border: 0 !important;
+  background: transparent !important;
+  color: #203746 !important;
+  box-shadow: none !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-filter-toggle-icon {
+  display: block !important;
+  flex: 0 0 15px !important;
+  width: 15px !important;
+  height: 15px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.8 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  overflow: visible !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-filter-toggle-icon circle {
+  fill: #fff !important;
+  stroke: currentColor !important;
+}
+html body[data-page="queueing"] #rankingView #leaderboardFilterControls[hidden] {
+  display: none !important;
+}
+/* Queueing leaderboard filters — compact, balanced styling; Queueing page only. */
+html body[data-page="queueing"] #rankingView .leaderboard-heading {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 0 6px !important;
+  padding: 0 1px !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-heading .leaderboard-medal {
+  display: block !important;
+  flex: 0 0 15px !important;
+  width: 15px !important;
+  height: 18px !important;
+  object-fit: contain !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-heading h2 {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  font-size: 12px !important;
+  line-height: 1.15 !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-search-wrap {
+  display: flex !important;
+  align-items: center !important;
+  align-self: stretch !important;
+  flex: 0 0 28px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  margin: 0 !important;
+  padding: 0 8px !important;
+  gap: 5px !important;
+  border: 1px solid #e1e7ed !important;
+  border-radius: 10px !important;
+  -webkit-border-radius: 10px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-search-icon {
+  flex: 0 0 12px !important;
+  width: 12px !important;
+  height: 12px !important;
+  fill: none !important;
+  stroke: #8794a0 !important;
+  stroke-width: 1.8 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+html body[data-page="queueing"] #rankingView #leaderboardSearchInput {
+  display: block !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  -webkit-border-radius: 6px !important;
+  outline: 0 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  color: #344454 !important;
+  font-family: inherit !important;
+  font-size: 9px !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  box-shadow: none !important;
+}
+html body[data-page="queueing"] #rankingView #leaderboardSearchInput::placeholder {
+  color: #98a3ad !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
+}
+html body[data-page="queueing"] #rankingView #leaderboardSearchInput::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-filter-controls {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 4px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 0 7px !important;
+  padding: 0 1px !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-filter-row {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-filter-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  height: 25px !important;
+  margin: 0 !important;
+  padding: 0 9px !important;
+  border: 1px solid #e5e9ee !important;
+  border-radius: 999px !important;
+  background: #fff !important;
+  color: #657382 !important;
+  font: 750 8.5px/1 Arial, sans-serif !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition: background .14s ease, border-color .14s ease, color .14s ease !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-category-filters .leaderboard-filter-chip {
+  height: 21px !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-filter-chip:active {
+  transform: scale(.98) !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-category-filters .category-all.active,
+html body[data-page="queueing"] #rankingView .leaderboard-player-filters .player-everyone.active {
+  border-color: #203746 !important;
+  background: #203746 !important;
+  color: #fff !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-category-filters .category-beg { color: #247eae !important; border-color: #d5e9f5 !important; background: #f1f8fc !important; }
+html body[data-page="queueing"] #rankingView .leaderboard-category-filters .category-nov { color: #258673 !important; border-color: #d0eee6 !important; background: #f0faf7 !important; }
+html body[data-page="queueing"] #rankingView .leaderboard-category-filters .category-int { color: #a27a25 !important; border-color: #f0e5c4 !important; background: #fcf8ed !important; }
+html body[data-page="queueing"] #rankingView .leaderboard-category-filters .category-adv { color: #b87837 !important; border-color: #f4e1cd !important; background: #fcf6ef !important; }
+html body[data-page="queueing"] #rankingView .leaderboard-category-filters .category-exp { color: #bd6268 !important; border-color: #f2dadd !important; background: #fcf4f5 !important; }
+html body[data-page="queueing"] #rankingView .leaderboard-category-filters .category-beg.active { color: #fff !important; border-color: #2685c3 !important; background: #2685c3 !important; }
+html body[data-page="queueing"] #rankingView .leaderboard-category-filters .category-nov.active { color: #fff !important; border-color: #159b83 !important; background: #159b83 !important; }
+html body[data-page="queueing"] #rankingView .leaderboard-category-filters .category-int.active { color: #fff !important; border-color: #d69a16 !important; background: #d69a16 !important; }
+html body[data-page="queueing"] #rankingView .leaderboard-category-filters .category-adv.active { color: #fff !important; border-color: #e88a2e !important; background: #e88a2e !important; }
+html body[data-page="queueing"] #rankingView .leaderboard-category-filters .category-exp.active { color: #fff !important; border-color: #e26066 !important; background: #e26066 !important; }
+html body[data-page="queueing"] #rankingView .leaderboard-player-filters .player-solo,
+html body[data-page="queueing"] #rankingView .leaderboard-player-filters .player-lockin {
+  background: #fff !important;
+  color: #657382 !important;
+  border-color: #e5e9ee !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-player-filters .player-solo.active,
+html body[data-page="queueing"] #rankingView .leaderboard-player-filters .player-lockin.active {
+  border-color: #203746 !important;
+  background: #203746 !important;
+  color: #fff !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-player-filters .player-lockin span {
+  margin-right: 3px !important;
+  font-size: 8px !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-filter-empty {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 42px !important;
+  padding: 10px !important;
+  color: #8a98a5 !important;
+  font-size: 9px !important;
+  text-align: center !important;
+}
+@media (max-width: 380px) {
+  html body[data-page="queueing"] #rankingView .leaderboard-heading { gap: 5px !important; }
+  html body[data-page="queueing"] #rankingView .leaderboard-filter-row { gap: 3px !important; }
+  html body[data-page="queueing"] #rankingView .leaderboard-filter-chip { height: 24px !important; padding: 0 8px !important; font-size: 8px !important; }
+  html body[data-page="queueing"] #rankingView .leaderboard-category-filters .leaderboard-filter-chip { height: 21px !important; }
+}
+
+/* Queueing page search fields — keep the normal border neutral and show the
+   blue 1.5px active border only while the field (or its wrapper) is focused.
+   Inner inputs inside icon wrappers remain borderless so the layout is unchanged. */
+
+/* Keep the requested 10px corner radius without changing default border colors. */
+html body[data-page="queueing"] #queueMainArea #registeredPlayerSearch,
+html body[data-page="queueing"] #historyView #historySearchInput,
+html body[data-page="queueing"] #endSessionModal .end-session-attendee-search,
+html body[data-page="queueing"] #queueMainArea .queue-lock-partner-search,
+html body[data-page="queueing"] .court-picker .picker-search {
+  border-radius: 10px !important;
+  -webkit-border-radius: 10px !important;
+  transition: border-color .16s ease, border-width .16s ease !important;
+}
+
+/* These controls draw their border on the outer wrapper, not the inner input. */
+html body[data-page="queueing"] #rankingView .leaderboard-search-wrap,
+html body[data-page="queueing"] #leftPlayersModal .left-players-search-wrap,
+html body[data-page="queueing"] #cloudRecordsModal .cloud-search-wrap {
+  border-radius: 10px !important;
+  -webkit-border-radius: 10px !important;
+  transition: border-color .16s ease, border-width .16s ease !important;
+}
+
+/* Blue border appears only on click/focus. Unfocused fields retain their own
+   original neutral border color and width. */
+html body[data-page="queueing"] #queueMainArea #registeredPlayerSearch:focus,
+html body[data-page="queueing"] #queueMainArea #registeredPlayerSearch:focus-visible,
+html body[data-page="queueing"] #historyView #historySearchInput:focus,
+html body[data-page="queueing"] #historyView #historySearchInput:focus-visible,
+html body[data-page="queueing"] #endSessionModal .end-session-attendee-search:focus,
+html body[data-page="queueing"] #endSessionModal .end-session-attendee-search:focus-visible,
+html body[data-page="queueing"] #queueMainArea .queue-lock-partner-search:focus,
+html body[data-page="queueing"] #queueMainArea .queue-lock-partner-search:focus-visible,
+html body[data-page="queueing"] .court-picker .picker-search:focus,
+html body[data-page="queueing"] .court-picker .picker-search:focus-visible {
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  border-color: #38bdf8 !important;
+}
+
+/* The leaderboard, Cloud, and Left Players borders belong to their wrappers. */
+html body[data-page="queueing"] #rankingView .leaderboard-search-wrap:focus-within,
+html body[data-page="queueing"] #leftPlayersModal .left-players-search-wrap:focus-within,
+html body[data-page="queueing"] #cloudRecordsModal .cloud-search-wrap:focus-within {
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  border-color: #38bdf8 !important;
+}
+
+/* Keep wrapped search inputs borderless; the wrapper supplies the focus border. */
+html body[data-page="queueing"] #rankingView #leaderboardSearchInput,
+html body[data-page="queueing"] #leftPlayersModal #leftPlayersSearch,
+html body[data-page="queueing"] #cloudRecordsModal #cloudRecordsSearch {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+/* Queue court picker — match the leaderboard's distinct active category colors.
+   Keep these rules scoped to category and gender filters; wait filters stay unchanged. */
+html body[data-page="queueing"] .court-picker .category-filters .picker-filter.active,
+html body[data-page="queueing"] .court-picker .gender-filters .picker-filter.active {
+  background: #203746 !important;
+  border-color: #203746 !important;
+  color: #fff !important;
+}
+html body[data-page="queueing"] .court-picker .category-filters .picker-filter.skill-beg.active {
+  background: #2685c3 !important;
+  border-color: #2685c3 !important;
+  color: #fff !important;
+}
+html body[data-page="queueing"] .court-picker .category-filters .picker-filter.skill-nov.active {
+  background: #159b83 !important;
+  border-color: #159b83 !important;
+  color: #fff !important;
+}
+html body[data-page="queueing"] .court-picker .category-filters .picker-filter.skill-int.active {
+  background: #d69a16 !important;
+  border-color: #d69a16 !important;
+  color: #fff !important;
+}
+html body[data-page="queueing"] .court-picker .category-filters .picker-filter.skill-adv.active {
+  background: #e88a2e !important;
+  border-color: #e88a2e !important;
+  color: #fff !important;
+}
+html body[data-page="queueing"] .court-picker .category-filters .picker-filter.skill-exp.active {
+  background: #e26066 !important;
+  border-color: #e26066 !important;
+  color: #fff !important;
+}
+html body[data-page="queueing"] .court-picker .gender-filters .picker-filter.gender-male.active {
+  background: #2875d0 !important;
+  border-color: #2875d0 !important;
+  color: #fff !important;
+}
+html body[data-page="queueing"] .court-picker .gender-filters .picker-filter.gender-female.active {
+  background: #d74f83 !important;
+  border-color: #d74f83 !important;
+  color: #fff !important;
+}
+html body[data-page="queueing"] .court-picker .category-filters .picker-filter.active:hover,
+html body[data-page="queueing"] .court-picker .gender-filters .picker-filter.active:hover {
+  color: #fff !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+html body[data-page="queueing"] .court-picker .category-filters .picker-filter.skill-beg.active:hover { background: #2685c3 !important; border-color: #2685c3 !important; }
+html body[data-page="queueing"] .court-picker .category-filters .picker-filter.skill-nov.active:hover { background: #159b83 !important; border-color: #159b83 !important; }
+html body[data-page="queueing"] .court-picker .category-filters .picker-filter.skill-int.active:hover { background: #d69a16 !important; border-color: #d69a16 !important; }
+html body[data-page="queueing"] .court-picker .category-filters .picker-filter.skill-adv.active:hover { background: #e88a2e !important; border-color: #e88a2e !important; }
+html body[data-page="queueing"] .court-picker .category-filters .picker-filter.skill-exp.active:hover { background: #e26066 !important; border-color: #e26066 !important; }
+html body[data-page="queueing"] .court-picker .gender-filters .picker-filter.gender-male.active:hover { background: #2875d0 !important; border-color: #2875d0 !important; }
+html body[data-page="queueing"] .court-picker .gender-filters .picker-filter.gender-female.active:hover { background: #d74f83 !important; border-color: #d74f83 !important; }
+
+/* Queue picker gender icons: switch Male/Female symbols to white only while selected. */
+html body[data-page="queueing"] .court-picker .gender-filters .picker-filter.active .gender-symbol,
+html body[data-page="queueing"] .court-picker .gender-filters .picker-filter.active .gender-symbol * {
+  color: #fff !important;
+  stroke: #fff !important;
+}
+
+
+/* 2026-11-03 — Remove the divider between each popup header and its search row. */
+html body[data-page="queueing"] #cloudRecordsModal .cloud-records-head,
+html body[data-page="queueing"] #leftPlayersModal .left-players-head {
+  border-bottom: 0 !important;
+}
+
+
+/* FINAL QUEUEING MODAL ALIGNMENT — Registered Player Cloud and Left Players.
+   Both modal inner columns use the same horizontal inset. Header and search rows
+   stretch to the same content edges, with a small consistent gap and no dividers. */
+html body[data-page="queueing"] #cloudRecordsModal.modal > .modal-box.cloud-records-modal-box,
+html body[data-page="queueing"] #leftPlayersModal.modal > .modal-box.left-players-modal-box {
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .cloud-records-head,
+html body[data-page="queueing"] #leftPlayersModal .left-players-head,
+html body[data-page="queueing"] #cloudRecordsModal .cloud-search-summary,
+html body[data-page="queueing"] #leftPlayersModal .left-players-search-summary,
+html body[data-page="queueing"] #cloudRecordsModal .cloud-records-content,
+html body[data-page="queueing"] #leftPlayersModal #leftPlayersPopupList {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  align-self: stretch !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .cloud-records-head,
+html body[data-page="queueing"] #leftPlayersModal .left-players-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin: 0 0 6px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .cloud-search-summary,
+html body[data-page="queueing"] #leftPlayersModal .left-players-search-summary {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 0 !important;
+  margin: 0 0 6px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .cloud-search-wrap,
+html body[data-page="queueing"] #leftPlayersModal .left-players-search-wrap {
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .cloud-records-content,
+html body[data-page="queueing"] #leftPlayersModal #leftPlayersPopupList {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Registered Cloud and Left Players category filter controls — Queueing page only. */
+html body[data-page="queueing"] #cloudRecordsModal .cloud-search-summary,
+html body[data-page="queueing"] #leftPlayersModal .left-players-search-summary {
+  grid-template-columns: 23px minmax(0, 1fr) !important;
+  column-gap: 6px !important;
+  align-items: center !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-toggle,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 23px !important;
+  width: 23px !important;
+  min-width: 23px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #657382 !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition: color .14s ease !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-toggle:hover,
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-toggle.is-open,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-toggle:hover,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-toggle.is-open {
+  border: 0 !important;
+  background: transparent !important;
+  color: #203746 !important;
+  box-shadow: none !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-toggle .leaderboard-filter-toggle-icon,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-toggle .leaderboard-filter-toggle-icon {
+  display: block !important;
+  flex: 0 0 15px !important;
+  width: 15px !important;
+  height: 15px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.8 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  overflow: visible !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-toggle .leaderboard-filter-toggle-icon circle,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-toggle .leaderboard-filter-toggle-icon circle {
+  fill: #fff !important;
+  stroke: currentColor !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-controls,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-controls {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: -1px 0 7px !important;
+  padding: 0 1px !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-controls[hidden],
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-controls[hidden] {
+  display: none !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-row,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-row {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  height: 21px !important;
+  margin: 0 !important;
+  padding: 0 9px !important;
+  border: 1px solid #e5e9ee !important;
+  border-radius: 999px !important;
+  background: #fff !important;
+  color: #657382 !important;
+  font: 750 8.5px/1 Arial, sans-serif !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition: background .14s ease, border-color .14s ease, color .14s ease !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-all.active,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-all.active {
+  border-color: #203746 !important;
+  background: #203746 !important;
+  color: #fff !important;
+}
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-beg,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-beg { color: #247eae !important; border-color: #d5e9f5 !important; background: #f1f8fc !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-nov,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-nov { color: #258673 !important; border-color: #d0eee6 !important; background: #f0faf7 !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-int,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-int { color: #a27a25 !important; border-color: #f0e5c4 !important; background: #fcf8ed !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-adv,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-adv { color: #b87837 !important; border-color: #f4e1cd !important; background: #fcf6ef !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-exp,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-exp { color: #bd6268 !important; border-color: #f2dadd !important; background: #fcf4f5 !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-beg.active,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-beg.active { color: #fff !important; border-color: #2685c3 !important; background: #2685c3 !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-nov.active,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-nov.active { color: #fff !important; border-color: #159b83 !important; background: #159b83 !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-int.active,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-int.active { color: #fff !important; border-color: #d69a16 !important; background: #d69a16 !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-adv.active,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-adv.active { color: #fff !important; border-color: #e88a2e !important; background: #e88a2e !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-exp.active,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-exp.active { color: #fff !important; border-color: #e26066 !important; background: #e26066 !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip:active,
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip:active {
+  transform: scale(.98) !important;
+}
+@media (max-width: 380px) {
+  html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-row,
+  html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-row { gap: 3px !important; }
+  html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip,
+  html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip { padding: 0 8px !important; font-size: 8px !important; }
+}
+
+/* SHARED DESKTOP + IPAD MODAL GEOMETRY — SINGLE SOURCE OF TRUTH
+   Desktop and iPad landscape retain the previously verified 10px dialog gaps.
+   iPad portrait uses the measured, live topbar height in the rule below. */
+@media screen and (min-width: 768px) {
+  html body[data-page="queueing"] #podiumExpandModal.modal:not(.hidden),
+  html body[data-page="queueing"] #cloudRecordsModal.modal:not(.hidden),
+  html body[data-page="queueing"] #leftPlayersModal.modal:not(.hidden) {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    padding: 85px 10px 10px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  html body[data-page="queueing"] #podiumExpandModal > .modal-box.podium-expand-modal-box,
+  html body[data-page="queueing"] #cloudRecordsModal > .modal-box.cloud-records-modal-box,
+  html body[data-page="queueing"] #leftPlayersModal > .modal-box.left-players-modal-box {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    flex: 0 1 auto !important;
+    width: min(500px, calc(100vw - 20px)) !important;
+    min-width: 0 !important;
+    max-width: 500px !important;
+    height: calc(96vh - 78px) !important;
+    height: calc(96dvh - 78px) !important;
+    min-height: 0 !important;
+    max-height: calc(96vh - 78px) !important;
+    max-height: calc(96dvh - 78px) !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  html body[data-page="queueing"] #cloudRecordsModal .cloud-records-content,
+  html body[data-page="queueing"] #leftPlayersModal #leftPlayersPopupList {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* IPAD PORTRAIT — align all 3 dialogs to the real rendered topbar.
+   The topbar can wrap/reflow at portrait widths, so a hard-coded 58px/68px
+   offset is not reliable. A small ResizeObserver writes its actual height to
+   --queueing-topbar-height; the dialog then starts exactly 10px below it and
+   ends exactly 10px above the viewport bottom. */
+@media screen and (min-width: 768px) and (max-width: 1100px) and (orientation: portrait) {
+  html body[data-page="queueing"] #podiumExpandModal.modal:not(.hidden),
+  html body[data-page="queueing"] #cloudRecordsModal.modal:not(.hidden),
+  html body[data-page="queueing"] #leftPlayersModal.modal:not(.hidden) {
+    padding-top: calc(var(--queueing-topbar-height, 76px) + 33px) !important;
+    padding-right: 10px !important;
+    padding-bottom: 10px !important;
+    padding-left: 10px !important;
+  }
+
+  html body[data-page="queueing"] #podiumExpandModal > .modal-box.podium-expand-modal-box,
+  html body[data-page="queueing"] #cloudRecordsModal > .modal-box.cloud-records-modal-box,
+  html body[data-page="queueing"] #cloudRecordsModal.has-cloud-player-edit-panel > .modal-box.cloud-records-modal-box,
+  html body[data-page="queueing"] #cloudRecordsModal.cloud-player-edit-overlay-mode.has-cloud-player-edit-panel > .modal-box.cloud-records-modal-box,
+  html body[data-page="queueing"] #leftPlayersModal > .modal-box.left-players-modal-box {
+    flex: 0 0 auto !important;
+    width: min(530px, calc(95vw - 20px)) !important;
+    min-width: 0 !important;
+    max-width: 530px !important;
+    height: calc(95vh - var(--queueing-topbar-height, 76px) - 20px) !important;
+    height: calc(95dvh - var(--queueing-topbar-height, 76px) - 20px) !important;
+    min-height: 0 !important;
+    max-height: calc(95vh - var(--queueing-topbar-height, 76px) - 20px) !important;
+    max-height: calc(95dvh - var(--queueing-topbar-height, 76px) - 20px) !important;
+    margin: 0 auto !important;
+  }
+
+  /* Fill the remaining podium interior; only the ranking list scrolls. */
+  html body[data-page="queueing"] #podiumExpandModal .podium-expanded-content {
+    display: flex !important;
+    flex: 1 1 0% !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding-bottom: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html body[data-page="queueing"] #podiumExpandModal .expanded-podium-stage,
+  html body[data-page="queueing"] #podiumExpandModal .expanded-list-head {
+    flex: 0 0 auto !important;
+  }
+
+  html body[data-page="queueing"] #podiumExpandModal .expanded-ranking-list {
+    display: flex !important;
+    flex: 1 1 0% !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  html body[data-page="queueing"] #podiumExpandModal .expanded-ranking-row {
+    flex: 0 0 auto !important;
+  }
+}

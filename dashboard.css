@@ -423,6 +423,9 @@ body.organizer-dashboard-page.modal-open{overflow:hidden}
 .match-export-button{border-color:rgba(28,174,222,.3);background:rgba(16,98,129,.24);color:#64c9f3}
 .match-export-button>span{font-size:15px;line-height:1}
 .match-export-button strong{font-weight:900}
+.match-export-button>.match-export-label,.match-export-button>.match-export-count{font-size:inherit;line-height:1}
+.match-export-count{display:inline;white-space:nowrap}
+.match-export-count strong{font-weight:900}
 .match-export-button:hover:not(:disabled){border-color:rgba(28,174,222,.5);background:rgba(16,98,129,.36)}
 .match-export-button:disabled,.match-refresh-button:disabled{opacity:.38;cursor:not-allowed}
 .matches-search-wrap{margin-bottom:13px}
@@ -1869,9 +1872,18 @@ body.organizer-dashboard-page.modal-open .dashboard-topbar{
 .dupr-export-filters{min-height:52px;display:flex;align-items:center;gap:7px;overflow-x:auto;padding:9px 18px;border-bottom:1px solid rgba(148,163,184,.1);scrollbar-width:thin}
 .dupr-export-filter{min-height:31px;flex:0 0 auto;padding:0 11px;border:1px solid rgba(148,163,184,.14);border-radius:8px;background:rgba(148,163,184,.06);color:#78999b;font-size:10px;font-weight:800;white-space:nowrap;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}
 .dupr-export-filter:hover{border-color:rgba(0,165,220,.35);color:#b0d6df}
-.dupr-export-filter.is-active{border-color:rgba(0,158,220,.6);background:rgba(0,127,190,.15);color:#69cdf8}
-.dupr-export-fields{display:grid;grid-template-columns:1fr 1fr .8fr;gap:11px;padding:15px 18px 16px;border-bottom:1px solid rgba(148,163,184,.1)}
+.dupr-export-filter.is-active,.dupr-export-filter[aria-pressed="true"]{border-color:rgba(0,158,220,.6);background:rgba(0,127,190,.15);color:#69cdf8}
+.dupr-export-fields{position:relative;z-index:4;display:grid;grid-template-columns:1fr 1fr .8fr;gap:11px;padding:15px 18px 16px;border-bottom:1px solid rgba(148,163,184,.1)}
 .dupr-export-field{display:flex;min-width:0;flex-direction:column;gap:5px}
+.dupr-score-type-shell{position:relative;z-index:1;min-width:0}
+.dupr-score-type-shell.is-open{z-index:100}
+.dupr-score-type-trigger{width:100%;height:38px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 10px;border:1px solid rgba(39,212,193,.24);border-radius:9px;outline:0;background:#1b293d;color:#edf2fa;font:600 12px/1.3 "DM Sans",sans-serif;text-align:left;cursor:pointer;transition:border-color .16s ease,box-shadow .16s ease}
+.dupr-score-type-trigger:hover,.dupr-score-type-shell.is-open .dupr-score-type-trigger,.dupr-score-type-trigger:focus-visible{border-color:rgba(39,212,193,.68);box-shadow:0 0 0 3px rgba(39,212,193,.08)}
+.dupr-score-type-trigger>svg{width:16px;height:16px;flex:0 0 16px;fill:none;stroke:#27d4c1;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s ease}
+.dupr-score-type-shell.is-open .dupr-score-type-trigger>svg{transform:rotate(180deg)}
+.dupr-score-type-options{top:calc(100% + 8px);z-index:120;max-height:150px}
+.dupr-score-type-option{min-height:39px}
+.dupr-score-type-option .session-select-option-meta[hidden]{display:none}
 .dupr-export-field>span{color:#779b9d;font-size:9px;font-weight:850;letter-spacing:.06em}
 .dupr-export-field input,.dupr-export-field select{width:100%;height:38px;min-width:0;padding:0 10px;border:1px solid rgba(148,163,184,.15);border-radius:9px;outline:0;background:#1b293d;color:#edf2fa;font-size:12px;font-weight:600}
 .dupr-export-field input:focus,.dupr-export-field select:focus{border-color:rgba(0,169,225,.58);box-shadow:0 0 0 2px rgba(0,153,220,.08)}
@@ -1960,7 +1972,7 @@ body.organizer-dashboard-page.modal-open .dashboard-topbar{
   .dupr-export-fields{grid-template-columns:1fr 1fr;gap:7px;padding:10px}
   .dupr-export-field:last-child{grid-column:1/-1}
   .dupr-export-field>span{font-size:8px}
-  .dupr-export-field input,.dupr-export-field select{height:33px;padding:0 8px;border-radius:7px;font-size:10px}
+  .dupr-export-field input,.dupr-export-field select,.dupr-score-type-trigger{height:33px;padding:0 8px;border-radius:7px;font-size:10px}
   .dupr-export-main{gap:8px;padding:9px 10px}
   .dupr-missing-notice{max-height:none;overflow:visible;padding:8px}
   .dupr-missing-heading{gap:7px}
@@ -2280,7 +2292,8 @@ body.organizer-dashboard-page{
   .participant-inline-input{font-size:16px!important}
   .match-edit-player-field{font-size:16px!important}
   .dupr-export-field input,
-  .dupr-export-field select{font-size:16px!important}
+  .dupr-export-field select,
+  .dupr-score-type-trigger{font-size:16px!important}
   .settings-modal .dashboard-modal-input{font-size:16px!important}
 }
 
@@ -2542,3 +2555,32 @@ body.organizer-dashboard-page{
 .dupr-export-refresh .button-icon svg{width:15px;height:15px}
 .match-refresh-button .button-icon svg{width:16px;height:16px}
 .dupr-download-csv .button-icon svg{width:16px;height:16px}
+
+/* Keep the DUPR export dropdowns above the scrollable table on iPad and mobile.
+   The table's sticky header creates its own stacking layer; isolate that layer
+   below the fields so it cannot paint over either floating option list. */
+.dupr-export-fields{
+  position:relative;
+  z-index:20;
+}
+.dupr-export-table-wrap{
+  position:relative;
+  z-index:0;
+  isolation:isolate;
+}
+.dupr-score-type-shell.is-open{
+  z-index:200;
+}
+.dupr-score-type-options{
+  z-index:220;
+}
+.session-select-options{
+  z-index:220;
+}
+
+@media (hover:none), (pointer:coarse), (any-pointer:coarse){
+  .dupr-export-fields{z-index:20}
+  .dupr-export-table-wrap{z-index:0;isolation:isolate}
+  .dupr-score-type-shell.is-open{z-index:200}
+  .dupr-score-type-options,.session-select-options{z-index:220}
+}

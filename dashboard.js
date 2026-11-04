@@ -3,6 +3,7 @@
 
   const $ = id => document.getElementById(id);
   let sessionDropdownOpen=false;
+  let duprScoreTypeDropdownOpen=false;
 
   // Keep touch swipes within the DUPR table on iPad/iPhone. The table remains
   // natively scrollable; this only blocks scroll chaining when a swipe reaches an edge.
@@ -1561,14 +1562,43 @@
     });
   }
 
+  // Build one canonical missing-player directory from the player IDs used by
+  // the missing-player chips. The filter and its count both consult this same
+  // directory, so neither can drift from the names displayed in the notice.
+  function duprModalMissingPlayerList(entries) {
+    const unique=new Map();
+    entries.forEach((item,itemIndex)=>item.missingPlayers.forEach((player,playerIndex)=>{
+      const name=String(player.name||'').trim();
+      const key=normalizeName(name)||`missing-${item.key||itemIndex}-${playerIndex}`;
+      if(!unique.has(key))unique.set(key,name||'Unnamed player');
+    }));
+    return unique;
+  }
+
+  function duprModalHasMissingPlayer(item,missingPlayerList) {
+    return item.missingPlayers.some((player,playerIndex)=>{
+      const key=normalizeName(player.name)||`missing-${item.key||''}-${playerIndex}`;
+      return missingPlayerList.has(key);
+    });
+  }
+
   function duprModalFilteredEntries(entries) {
+    const missingPlayerList=duprModalMissingPlayerList(entries);
     switch(state.duprModalFilter){
       case 'not-submitted':return entries.filter(item=>!item.submitted);
       case 'already-submitted':return entries.filter(item=>item.submitted);
       case 'all-have-dupr':return entries.filter(item=>item.players.length>0&&item.players.every(player=>!!player.duprId));
-      case 'missing-dupr':return entries.filter(item=>item.missingPlayers.length>0);
+      case 'missing-dupr':return entries.filter(item=>duprModalHasMissingPlayer(item,missingPlayerList));
       default:return entries;
     }
+  }
+
+  function duprModalSyncFilterButtons() {
+    document.querySelectorAll('[data-dupr-export-filter]').forEach(button=>{
+      const active=button.dataset.duprExportFilter===state.duprModalFilter;
+      button.classList.toggle('is-active',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
   }
 
   function duprModalSetFilterCounts(entries) {
@@ -1576,8 +1606,7 @@
       all:entries.length,
       'not-submitted':entries.filter(item=>!item.submitted).length,
       'already-submitted':entries.filter(item=>item.submitted).length,
-      'all-have-dupr':entries.filter(item=>item.players.length>0&&item.players.every(player=>!!player.duprId)).length,
-      'missing-dupr':entries.filter(item=>item.missingPlayers.length>0).length
+      'all-have-dupr':entries.filter(item=>item.players.length>0&&item.players.every(player=>!!player.duprId)).length
     };
     Object.entries(counts).forEach(([filter,count])=>{
       const node=$(`duprExportCount-${filter}`);
@@ -1586,17 +1615,17 @@
   }
 
   function duprModalMissingPlayersMarkup(entries) {
-    const unique=new Map();
-    entries.forEach(item=>item.missingPlayers.forEach(player=>{
-      const key=normalizeName(player.name)||`missing-${unique.size}`;
-      if(!unique.has(key))unique.set(key,player.name||'Unnamed player');
-    }));
+    const unique=duprModalMissingPlayerList(entries);
     const names=Array.from(unique.values());
     $('duprMissingPlayersCount').textContent=String(names.length);
-    setMarkupWithoutJump($('duprMissingPlayersList'),names.map(name=>`<span class="dupr-missing-player-chip">${escapeHtml(name)}</span>`).join(''));
+    const list=$('duprMissingPlayersList');
+    setMarkupWithoutJump(list,names.map(name=>`<span class="dupr-missing-player-chip">${escapeHtml(name)}</span>`).join(''));
+    // The Missing DUPR filter badge mirrors the actual player chips shown in
+    // the missing-player list, never the number of match-table rows.
+    const missingPlayerCount=list.querySelectorAll('.dupr-missing-player-chip').length;
+    $('duprExportCount-missing-dupr').textContent=String(missingPlayerCount);
     const toggle=$('duprMissingNoticeToggle');
     const notice=$('duprMissingNotice');
-    const list=$('duprMissingPlayersList');
     if(!names.length)state.duprMissingNoticeExpanded=false;
     notice.hidden=!names.length;
     list.hidden=!names.length||!state.duprMissingNoticeExpanded;
@@ -1622,6 +1651,39 @@
     return `<tr class="${item.submitted?'is-submitted':''}"><td class="dupr-export-number-cell">${index+1}</td><td><span class="dupr-export-type ${item.type==='S'?'is-singles':''}">${item.type}</span></td><td class="dupr-export-date-cell">${date?escapeHtml(formatDate(date)):'—'}</td>${duprModalPlayerCell(item.playersA[0])}${item.type==='D'?duprModalPlayerCell(item.playersA[1]):'<td class="dupr-export-empty-cell">—</td><td class="dupr-export-id-cell">—</td>'}${duprModalPlayerCell(item.playersB[0])}${item.type==='D'?duprModalPlayerCell(item.playersB[1]):'<td class="dupr-export-empty-cell">—</td><td class="dupr-export-id-cell">—</td>'}<td class="dupr-export-score ${item.score&&Number(item.score[1])>Number(item.score[2])?'is-winning':''}">${escapeHtml(scoreA)}</td><td class="dupr-export-score ${item.score&&Number(item.score[2])>Number(item.score[1])?'is-winning':''}">${escapeHtml(scoreB)}</td></tr>`;
   }
 
+  function syncDuprScoreTypePicker() {
+    const select=$('duprExportScoreType');
+    const label=$('duprExportScoreTypeLabel');
+    const shell=$('duprScoreTypeShell');
+    const toggle=$('duprExportScoreTypeToggle');
+    const options=$('duprExportScoreTypeOptions');
+    if(!select||!label||!shell||!toggle||!options)return;
+    label.textContent=select.value||'RALLY';
+    options.querySelectorAll('[data-dupr-score-type]').forEach(option=>{
+      const selected=option.dataset.duprScoreType===select.value;
+      option.classList.toggle('is-selected',selected);
+      option.setAttribute('aria-selected',String(selected));
+      const marker=option.querySelector('.session-select-option-meta');
+      if(marker)marker.hidden=!selected;
+    });
+    shell.classList.toggle('is-open',duprScoreTypeDropdownOpen);
+    toggle.setAttribute('aria-expanded',String(duprScoreTypeDropdownOpen));
+    options.hidden=!duprScoreTypeDropdownOpen;
+  }
+
+  function closeDuprScoreTypePicker({restoreFocus=false}={}) {
+    if(!duprScoreTypeDropdownOpen)return;
+    duprScoreTypeDropdownOpen=false;
+    syncDuprScoreTypePicker();
+    if(restoreFocus)$('duprExportScoreTypeToggle')?.focus();
+  }
+
+  function openDuprScoreTypePicker() {
+    duprScoreTypeDropdownOpen=true;
+    syncDuprScoreTypePicker();
+    $('duprExportScoreTypeOptions')?.querySelector('[data-dupr-score-type].is-selected')?.focus();
+  }
+
   function renderDuprExportModal() {
     const modal=$('duprExportModal');
     if(!modal||modal.hidden)return;
@@ -1645,12 +1707,9 @@
     if($('duprExportEventName').value!==state.duprModalEventName)$('duprExportEventName').value=state.duprModalEventName;
     if($('duprExportLocation').value!==state.duprModalLocation)$('duprExportLocation').value=state.duprModalLocation;
     if($('duprExportScoreType').value!==state.duprModalScoreType)$('duprExportScoreType').value=state.duprModalScoreType;
+    syncDuprScoreTypePicker();
     duprModalSetFilterCounts(entries);
-    document.querySelectorAll('[data-dupr-export-filter]').forEach(button=>{
-      const active=button.dataset.duprExportFilter===state.duprModalFilter;
-      button.classList.toggle('is-active',active);
-      button.setAttribute('aria-pressed',String(active));
-    });
+    duprModalSyncFilterButtons();
     // Keep the missing-DUPR notice in sync with the exact rows rendered in the table.
     // This respects the active export filter (All, Not Submitted, Already Submitted,
     // All Players Have DUPR, or Missing DUPR) so names from hidden rows never appear.
@@ -1682,6 +1741,7 @@
     state.duprModalSessionId='';
     state.duprModalFilter='all';
     state.duprMissingNoticeExpanded=false;
+    duprScoreTypeDropdownOpen=false;
     showDashboardModal('duprExportModal');
     renderDuprExportModal();
     $('closeDuprExportModal')?.focus();
@@ -1690,6 +1750,7 @@
   function closeDuprExportModal() {
     const modal=$('duprExportModal');
     if(!modal||modal.hidden)return;
+    closeDuprScoreTypePicker();
     hideDashboardModal('duprExportModal');
     $('exportMatchesButton')?.focus();
   }
@@ -1980,6 +2041,7 @@
   });
   document.addEventListener('pointerdown',event=>{
     if(!event.target.closest('#sessionSelectShell')&&sessionDropdownOpen)closeSessionPicker();
+    if(!event.target.closest('#duprScoreTypeShell')&&duprScoreTypeDropdownOpen)closeDuprScoreTypePicker();
   });
   $('attendanceSearch').addEventListener('input',renderAttendance);
   $('matchesSearch').addEventListener('input',renderMatches);
@@ -2065,7 +2127,43 @@
   });
   $('duprExportEventName').addEventListener('input',event=>{state.duprModalEventName=event.currentTarget.value;});
   $('duprExportLocation').addEventListener('input',event=>{state.duprModalLocation=event.currentTarget.value;});
-  $('duprExportScoreType').addEventListener('change',event=>{state.duprModalScoreType=event.currentTarget.value;});
+  $('duprExportScoreTypeToggle').addEventListener('click',()=>{
+    if(duprScoreTypeDropdownOpen){closeDuprScoreTypePicker();return;}
+    openDuprScoreTypePicker();
+  });
+  $('duprExportScoreTypeOptions').addEventListener('click',event=>{
+    const option=event.target.closest('[data-dupr-score-type]');
+    if(!option)return;
+    $('duprExportScoreType').value=option.dataset.duprScoreType||'RALLY';
+    $('duprExportScoreType').dispatchEvent(new Event('change',{bubbles:true}));
+    closeDuprScoreTypePicker({restoreFocus:true});
+  });
+  $('duprExportScoreTypeToggle').addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&duprScoreTypeDropdownOpen){event.preventDefault();event.stopPropagation();closeDuprScoreTypePicker();}
+    else if(['ArrowDown','ArrowUp','Enter',' '].includes(event.key)){
+      event.preventDefault();
+      if(!duprScoreTypeDropdownOpen)openDuprScoreTypePicker();
+    }
+  });
+  $('duprExportScoreTypeOptions').addEventListener('keydown',event=>{
+    const current=event.target.closest('[data-dupr-score-type]');
+    if(!current)return;
+    const options=Array.from($('duprExportScoreTypeOptions').querySelectorAll('[data-dupr-score-type]'));
+    const index=options.indexOf(current);
+    if(event.key==='ArrowDown'||event.key==='ArrowUp'){
+      event.preventDefault();
+      const nextIndex=(index+(event.key==='ArrowDown'?1:-1)+options.length)%options.length;
+      options[nextIndex]?.focus();
+    }else if(event.key==='Escape'){
+      event.preventDefault();event.stopPropagation();closeDuprScoreTypePicker({restoreFocus:true});
+    }else if(event.key==='Tab'){
+      closeDuprScoreTypePicker();
+    }
+  });
+  $('duprExportScoreType').addEventListener('change',event=>{
+    state.duprModalScoreType=event.currentTarget.value;
+    syncDuprScoreTypePicker();
+  });
   $('sessionsSearch').addEventListener('input',renderSessions);
   $('sessionManagementList').addEventListener('click',event=>{
     const button=event.target.closest('[data-session-action]');

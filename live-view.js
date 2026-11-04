@@ -807,9 +807,9 @@
       applyTheme(event.newValue);
     }
   });
-  const courtLayoutMediaQuery = typeof window.matchMedia === 'function'
-    ? window.matchMedia('(max-width: 560px)')
-    : { matches: false };
+  // Court layout switching is available on every viewport. The toggle is
+  // intentionally not tied to a phone-only media query, so desktop, iPad,
+  // and mobile all use the same horizontal swipe/scroll behavior.
   const courtLayoutReducedMotion = typeof window.matchMedia === 'function'
     ? window.matchMedia('(prefers-reduced-motion: reduce)')
     : null;
@@ -833,7 +833,7 @@
     }
 
     function applyLockedGeometry() {
-      if (!horizontalMode || !courtLayoutMediaQuery.matches) return;
+      if (!horizontalMode) return;
       const cards = Array.from(list.querySelectorAll(':scope > .court-card'));
       cards.forEach((card, index) => {
         const signature = geometrySignature(card);
@@ -946,23 +946,9 @@
     async function setMode(horizontal, animate = true) {
       const token = ++transitionToken;
       const wasHorizontalMode = horizontalMode;
-      const isMobile = Boolean(courtLayoutMediaQuery.matches);
-      horizontalMode = isMobile && Boolean(horizontal);
+      horizontalMode = Boolean(horizontal);
       updateToggle();
       cancelAnimations();
-
-      // Both controls are phone-only. Always restore the normal grid outside
-      // the mobile breakpoint, without carrying horizontal state to desktop.
-      if (!isMobile) {
-        list.classList.remove('is-horizontal-scroll');
-        resetScrollToFirstCard();
-        lockedGeometry = [];
-        list.querySelectorAll('.court-card').forEach(card => {
-          card.style.removeProperty('--court-layout-fixed-height');
-          card.style.removeProperty('--court-layout-diagram-height');
-        });
-        return;
-      }
 
       const reduceMotion = Boolean(courtLayoutReducedMotion && courtLayoutReducedMotion.matches);
       const cards = Array.from(list.querySelectorAll('.court-card'));
@@ -1075,7 +1061,7 @@
     }
 
     function refreshLockedGeometryFromCurrentCards() {
-      if (!horizontalMode || !courtLayoutMediaQuery.matches) return;
+      if (!horizontalMode) return;
 
       // render() replaces every court card when new live state arrives. If a
       // court changes from empty to assigned (or gets cleared), its new diagram
@@ -1119,7 +1105,7 @@
       // Cards are re-rendered from live state. Invalidate any animation tied to
       // detached card nodes, then remeasure current content so showing/canceling
       // a diagram works immediately in either layout without a second toggle.
-      if (horizontalMode && courtLayoutMediaQuery.matches) {
+      if (horizontalMode) {
         if (animations.length || list.classList.contains('is-court-layout-transitioning')) {
           transitionToken += 1;
           cancelAnimations();
@@ -1133,18 +1119,76 @@
       if (cardCount <= 1 && horizontalMode) setMode(false, false);
     }
 
-    function resetForViewport() {
-      // Entering or leaving the phone breakpoint starts from the stable grid.
-      setMode(false, false);
-    }
+    // Add desktop mouse click-and-drag scrolling to the same horizontal
+    // court strip used by native touch scrolling on phones and iPads. Only
+    // start from non-interactive card space so court buttons remain clickable.
+    let mouseDragPointerId = null;
+    let mouseDragStartX = 0;
+    let mouseDragStartY = 0;
+    let mouseDragStartScrollLeft = 0;
+    let mouseDragActive = false;
+    let mouseDragMoved = false;
+    let suppressClickUntil = 0;
+
+    const isCourtControlTarget = target => Boolean(target && target.closest && target.closest(
+      'button, a, input, select, textarea, summary, [role="button"], [contenteditable="true"], [draggable="true"], [data-no-court-scroll-drag], .team-player, .court-slot, .slot-remove'
+    ));
+
+    list.addEventListener('pointerdown', event => {
+      if (!horizontalMode || event.pointerType !== 'mouse' || event.button !== 0) return;
+      if (isCourtControlTarget(event.target)) return;
+
+      mouseDragPointerId = event.pointerId;
+      mouseDragStartX = event.clientX;
+      mouseDragStartY = event.clientY;
+      mouseDragStartScrollLeft = list.scrollLeft;
+      mouseDragActive = false;
+      mouseDragMoved = false;
+    });
+
+    window.addEventListener('pointermove', event => {
+      if (mouseDragPointerId === null || event.pointerId !== mouseDragPointerId) return;
+      const deltaX = event.clientX - mouseDragStartX;
+      const deltaY = event.clientY - mouseDragStartY;
+
+      if (!mouseDragActive && Math.abs(deltaX) > 6 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        mouseDragActive = true;
+        mouseDragMoved = true;
+        list.classList.add('is-mouse-dragging');
+      } else if (!mouseDragActive && Math.abs(deltaY) > 8 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        // A primarily vertical gesture should remain available to the page.
+        mouseDragPointerId = null;
+        return;
+      }
+
+      if (mouseDragActive) {
+        event.preventDefault();
+        list.scrollLeft = mouseDragStartScrollLeft - deltaX;
+      }
+    }, { passive: false });
+
+    const finishMouseDrag = event => {
+      if (mouseDragPointerId === null || (event.pointerId !== undefined && event.pointerId !== mouseDragPointerId)) return;
+      if (mouseDragMoved && mouseDragActive) suppressClickUntil = performance.now() + 250;
+      mouseDragPointerId = null;
+      mouseDragActive = false;
+      mouseDragMoved = false;
+      list.classList.remove('is-mouse-dragging');
+    };
+    window.addEventListener('pointerup', finishMouseDrag);
+    window.addEventListener('pointercancel', finishMouseDrag);
+    list.addEventListener('click', event => {
+      if (!suppressClickUntil || performance.now() > suppressClickUntil) return;
+      suppressClickUntil = 0;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    }, true);
 
     updateToggle();
     setMode(false, false);
-    toggle.addEventListener('click', () => {
-      if (!courtLayoutMediaQuery.matches) return;
-      setMode(!horizontalMode);
-    });
-    return { resetForViewport, syncCardCount };
+    toggle.addEventListener('click', () => setMode(!horizontalMode));
+    return { syncCardCount };
   }
 
   const courtLayoutController = createCourtLayoutController(
@@ -1153,16 +1197,6 @@
   const waitingCourtLayoutController = createCourtLayoutController(
     $('waitingCourtLayoutToggle'), $('waitingCourtsList'), 'waiting courts'
   );
-  function resetCourtLayoutsForViewport() {
-    courtLayoutController?.resetForViewport();
-    waitingCourtLayoutController?.resetForViewport();
-  }
-  if (typeof courtLayoutMediaQuery.addEventListener === 'function') {
-    courtLayoutMediaQuery.addEventListener('change', resetCourtLayoutsForViewport);
-  } else if (typeof courtLayoutMediaQuery.addListener === 'function') {
-    courtLayoutMediaQuery.addListener(resetCourtLayoutsForViewport);
-  }
-
   const queueCollapseToggle = $('queueCollapseToggle');
   const queueListViewport = $('queueListViewport');
 
