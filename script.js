@@ -40,6 +40,8 @@ let leaderboardCategoryFilter='ALL';
 let leaderboardScopeFilter='EVERYONE';
 let cloudRecordsCategoryFilter='ALL';
 let leftPlayersCategoryFilter='ALL';
+let cloudRecordsGenderFilter='ALL';
+let leftPlayersGenderFilter='ALL';
 
 const ORGANIZER_STORAGE_SUFFIX=String(window.PPM_ORGANIZER_ID||'').replace(/[^a-zA-Z0-9_-]/g,'');
 const STORAGE_KEY=`pickleq_v11_state${ORGANIZER_STORAGE_SUFFIX?`_${ORGANIZER_STORAGE_SUFFIX}`:''}`;
@@ -202,9 +204,14 @@ function flushSharedAppStateSync(){
       const data=await response.json();
       if(response.status===409&&data.conflict){
         const localSnapshot=getSharedAppStateSnapshot();
-        if(isExplicitSessionEndState(data.state)||sessionIdentityDiffers(data.state,localSnapshot))applySharedAppState({revision:data.revision,updatedAt:data.updatedAt,clientId:null,state:data.state},true);
-        else if(hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,data.updatedAt))sharedAppRevision=Math.max(sharedAppRevision,Number(data.revision)||0);
-        else applySharedAppState({revision:data.revision,updatedAt:data.updatedAt,clientId:null,state:data.state});
+        if(isExplicitSessionEndState(data.state)||sessionIdentityDiffers(data.state,localSnapshot))applySharedAppState({revision:data.revision,updatedAt:data.updatedAt,clientId:data.clientId||null,state:data.state},true);
+        else if(hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,data.updatedAt)){
+          sharedAppRevision=Math.max(sharedAppRevision,Number(data.revision)||0);
+          if(data.clientId==='registration-page'||[...(Array.isArray(data.state?.players)?data.state.players:[]),...(Array.isArray(data.state?.left)?data.state.left:[])].some(player=>player?.registeredCloudId)){
+            const mergedRegistrationState=mergeRegistrationQueuePlayers(data.state);
+            if(mergedRegistrationState)applyMergedRegistrationQueueState(mergedRegistrationState);
+          }
+        }else applySharedAppState({revision:data.revision,updatedAt:data.updatedAt,clientId:data.clientId||null,state:data.state});
       }
       if(!response.ok)throw new Error(`Application state sync failed (${response.status})`);
       sharedAppRevision=Math.max(sharedAppRevision,Number(data.revision)||0);
@@ -251,17 +258,174 @@ function sharedStateMatchesCurrentExceptDuprLabelsEnabled(incomingState){
   });
   return JSON.stringify(stableStateValue(incomingComparable))===JSON.stringify(stableStateValue(currentComparable));
 }
+function normalizeSharedPlayerName(value){
+  return String(value||'').normalize('NFC').trim().replace(/\s+/g,' ').toLocaleLowerCase();
+}
+function mergeRegistrationQueuePlayers(incomingState){
+  if(!IS_QUEUEING_PAGE||!incomingState||incomingState.sessionActive!==true||state.sessionActive!==true)return null;
+  const current=getSharedAppStateSnapshot();
+  if(!getSessionId(current)||getSessionId(current)!==getSessionId(incomingState))return null;
+  const merged=cloneSharedData(current);
+  merged.players=Array.isArray(merged.players)?merged.players:[];
+  merged.left=Array.isArray(merged.left)?merged.left:[];
+  merged.queue=Array.isArray(merged.queue)?merged.queue:[];
+  merged.courts=Array.isArray(merged.courts)?merged.courts:[];
+  merged.sessionMetrics=merged.sessionMetrics&&typeof merged.sessionMetrics==='object'?merged.sessionMetrics:{cloudCheckins:0,newRegistered:0};
+  const remotePlayers=Array.isArray(incomingState.players)?incomingState.players:[];
+  const remotePlayerById=new Map(remotePlayers.map(player=>[String(player?.id),player]));
+  const remoteQueue=Array.isArray(incomingState.queue)?incomingState.queue:[];
+  const remoteLeft=Array.isArray(incomingState.left)?incomingState.left:[];
+  const leftNames=new Set(merged.left.map(player=>normalizeSharedPlayerName(player?.name)).filter(Boolean));
+  const courtIds=new Set(merged.courts.flatMap(court=>Array.isArray(court?.players)?court.players.map(String):[]));
+  const localIds=new Set([...merged.players,...merged.left].map(player=>String(player?.id)));
+  let changed=false;
+  const registeredMarker=player=>String(player?.registeredCloudId||player?.registrationCloudId||'').trim();
+  const assignLocalId=remotePlayer=>{
+    let assignedId=remotePlayer?.id;
+    if(!Number.isSafeInteger(Number(assignedId))||Number(assignedId)<1||localIds.has(String(assignedId))){
+      let nextId=Math.max(1,Math.floor(Number(merged.nextPlayer)||1));
+      while(localIds.has(String(nextId)))nextId+=1;
+      assignedId=nextId;
+    }
+    localIds.add(String(assignedId));
+    merged.nextPlayer=Math.max(Number(merged.nextPlayer)||1,Number(assignedId)+1);
+    return assignedId;
+  };
+  for(const remoteId of remoteQueue){
+    const remotePlayer=remotePlayerById.get(String(remoteId));
+    if(!remotePlayer)continue;
+    const nameKey=normalizeSharedPlayerName(remotePlayer.name);
+    if(!nameKey||leftNames.has(nameKey))continue;
+    // Match by name first. A local unsynced player may have claimed the same
+    // numeric ID as the server-created registration; that is an ID collision.
+    const existing=merged.players.find(player=>normalizeSharedPlayerName(player?.name)===nameKey);
+    if(existing){
+      const marker=registeredMarker(remotePlayer);
+      if(marker&&!registeredMarker(existing)){existing.registeredCloudId=marker;changed=true;}
+      const existingId=String(existing.id);
+      if(!courtIds.has(existingId)&&!merged.queue.some(id=>String(id)===existingId)){
+        merged.queue.push(existing.id);
+        changed=true;
+      }
+      continue;
+    }
+    const assignedId=assignLocalId(remotePlayer);
+    const addedPlayer={...cloneSharedData(remotePlayer),id:assignedId};
+    if(!addedPlayer.registeredCloudId&&registeredMarker(remotePlayer))addedPlayer.registeredCloudId=registeredMarker(remotePlayer);
+    merged.players.push(addedPlayer);
+    merged.queue.push(assignedId);
+    changed=true;
+  }
+  // If a registered player was moved to Left Players before this browser
+  // processed the sync event, merge that location too instead of resurrecting
+  // the player in Queue or dropping them from the local snapshot.
+  for(const remotePlayer of remoteLeft){
+    if(!remotePlayer||!normalizeSharedPlayerName(remotePlayer.name))continue;
+    const nameKey=normalizeSharedPlayerName(remotePlayer.name);
+    const marker=registeredMarker(remotePlayer);
+    const existingLeft=merged.left.find(player=>normalizeSharedPlayerName(player?.name)===nameKey);
+    if(existingLeft){
+      if(marker&&!registeredMarker(existingLeft)){existingLeft.registeredCloudId=marker;changed=true;}
+      continue;
+    }
+    const existingQueuePlayer=merged.players.find(player=>normalizeSharedPlayerName(player?.name)===nameKey);
+    if(existingQueuePlayer){
+      const existingId=String(existingQueuePlayer.id);
+      merged.players=merged.players.filter(player=>String(player?.id)!==existingId);
+      merged.queue=merged.queue.filter(id=>String(id)!==existingId);
+      const movedPlayer={...existingQueuePlayer};
+      if(marker&&!registeredMarker(movedPlayer))movedPlayer.registeredCloudId=marker;
+      merged.left.push(movedPlayer);
+      leftNames.add(nameKey);
+      changed=true;
+      continue;
+    }
+    const assignedId=assignLocalId(remotePlayer);
+    const addedLeftPlayer={...cloneSharedData(remotePlayer),id:assignedId};
+    if(!addedLeftPlayer.registeredCloudId&&marker)addedLeftPlayer.registeredCloudId=marker;
+    merged.left.push(addedLeftPlayer);
+    leftNames.add(nameKey);
+    changed=true;
+  }
+  const incomingNewRegistered=Number(incomingState.sessionMetrics?.newRegistered)||0;
+  const currentNewRegistered=Number(merged.sessionMetrics.newRegistered)||0;
+  if(incomingNewRegistered>currentNewRegistered){
+    merged.sessionMetrics.newRegistered=incomingNewRegistered;
+    changed=true;
+  }
+  const maxPlayerId=[...merged.players,...merged.left].reduce((max,player)=>Math.max(max,Number(player?.id)||0),0);
+  merged.nextPlayer=Math.max(Number(merged.nextPlayer)||1,Number(incomingState.nextPlayer)||1,maxPlayerId+1);
+  return changed?merged:null;
+}
+function revealRegisteredQueueItem(){
+  if(!IS_QUEUEING_PAGE)return;
+  // Registration must be visible even when the organizer had a queue search
+  // active or was scrolled somewhere else in the list.
+  const search=$('registeredPlayerSearch');
+  if(search&&search.value){search.value='';}
+  if(typeof renderQueue==='function')renderQueue();
+  const queueList=$('queueList');
+  if(queueList)requestAnimationFrame(()=>{queueList.scrollTop=queueList.scrollHeight;});
+}
+function applyMergedRegistrationQueueState(mergedRegistrationState){
+  if(!mergedRegistrationState)return false;
+  appSyncPending=null;
+  applyingRemoteAppState=true;
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(mergedRegistrationState));
+    loadState();
+    render();
+    publishLiveViewState();
+  }catch(error){console.warn('Could not merge registration-page queue update:',error);return false;}
+  finally{applyingRemoteAppState=false;}
+  // Re-save the merged snapshot at the current server revision so our pending
+  // local edits and the registration both survive the next optimistic write.
+  saveState();
+  syncLiveQueueStartScreen();
+  revealRegisteredQueueItem();
+  const cloudModal=$('cloudRecordsModal');
+  if(IS_QUEUEING_PAGE&&cloudModal&&!cloudModal.classList.contains('hidden'))renderCloudRecords();
+  syncOrganizerQrSessionStatus();
+  return true;
+}
 function applySharedAppState(payload,force=false){
   if(!payload||!payload.state||typeof payload.state!=='object')return;
   const revision=Number(payload.revision)||0;
   if(!force&&revision<=sharedAppRevision)return;
   sharedAppRevision=Math.max(sharedAppRevision,revision);
   const incomingState=payload.state;
+  const localStateBeforeUpdate=getSharedAppStateSnapshot();
+  const localRegisteredMarkers=new Set([...(localStateBeforeUpdate.players||[]),...(localStateBeforeUpdate.left||[])].map(player=>String(player?.registeredCloudId||'')).filter(Boolean));
+  const localRegisteredNames=new Set([...(localStateBeforeUpdate.players||[]),...(localStateBeforeUpdate.left||[])].map(player=>normalizeSharedPlayerName(player?.name)).filter(Boolean));
+  const incomingQueueIds=new Set((Array.isArray(incomingState.queue)?incomingState.queue:[]).map(String));
+  const incomingPeople=[...(Array.isArray(incomingState.players)?incomingState.players:[]),...(Array.isArray(incomingState.left)?incomingState.left:[])];
+  const hasNewRegisteredPlayer=IS_QUEUEING_PAGE&&incomingPeople.some(player=>{
+    const marker=String(player?.registeredCloudId||'');
+    const name=normalizeSharedPlayerName(player?.name);
+    return (marker&&!localRegisteredMarkers.has(marker))||(!marker&&name&&!localRegisteredNames.has(name)&&incomingQueueIds.has(String(player?.id)));
+  });
+  const hasNewRegisteredQueuePlayer=IS_QUEUEING_PAGE&&(Array.isArray(incomingState.players)?incomingState.players:[]).some(player=>{
+    const marker=String(player?.registeredCloudId||'');
+    const name=normalizeSharedPlayerName(player?.name);
+    return incomingQueueIds.has(String(player?.id))&&((marker&&!localRegisteredMarkers.has(marker))||(!marker&&name&&!localRegisteredNames.has(name)));
+  });
+  const isRegistrationQueueUpdate=IS_QUEUEING_PAGE&&!force&&(payload.clientId==='registration-page'||payload.clientId==='registration-page-merge'||hasNewRegisteredPlayer);
   const isExplicitSessionEnd=isExplicitSessionEndState(incomingState);
   // A confirmed remote End Session must beat stale, locally pending queue data.
   // Otherwise a second device could re-upload its old queue and keep the session alive.
   const sessionChanged=sessionIdentityDiffers(incomingState);
-  if(!isExplicitSessionEnd&&!sessionChanged&&hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt)&&(!force||readLocalTimestamp(LOCAL_STATE_SAVED_AT_KEY)>sharedSyncStartedAt)){
+  const hasPendingLocalQueue= !isExplicitSessionEnd&&!sessionChanged&&
+    hasFreshLocalPending(LOCAL_STATE_SAVED_AT_KEY,LOCAL_STATE_PENDING_SYNC_KEY,payload.updatedAt)&&
+    (!force||readLocalTimestamp(LOCAL_STATE_SAVED_AT_KEY)>sharedSyncStartedAt);
+  if(hasPendingLocalQueue){
+    // A registration page writes a new player directly into the organizer's
+    // server queue. Preserve any newer local queue edits, but merge that newly
+    // registered player before this browser uploads its pending snapshot; this
+    // prevents an older local snapshot from silently removing the registration.
+    if(payload.clientId==='registration-page'||payload.clientId==='registration-page-merge'||hasNewRegisteredPlayer){
+      const mergedRegistrationState=mergeRegistrationQueuePlayers(incomingState);
+      if(mergedRegistrationState&&applyMergedRegistrationQueueState(mergedRegistrationState))return;
+    }
     appSyncPending=getSharedAppStateSnapshot();
     if(sharedSyncAvailable)flushSharedAppStateSync();
     return;
@@ -311,15 +475,21 @@ function applySharedAppState(payload,force=false){
     }
   }catch(e){console.warn('Could not apply shared queue state',e);}
   finally{applyingRemoteAppState=false;}
+  // Queue membership determines the Cloud action state. Refresh an open Cloud
+  // modal after organizer-scoped app-state events, including no-op revisions,
+  // so a registration-page check-in immediately appears as checked in.
+  if(isRegistrationQueueUpdate&&hasNewRegisteredQueuePlayer)revealRegisteredQueueItem();
+  const cloudModal=$('cloudRecordsModal');
+  if(IS_QUEUEING_PAGE&&cloudModal&&!cloudModal.classList.contains('hidden'))renderCloudRecords();
   syncOrganizerQrSessionStatus();
 }
 function scheduleSharedSyncRetry(){if(sharedSyncRetryTimer!==null||!isHttpApp())return;sharedSyncRetryTimer=setTimeout(()=>{sharedSyncRetryTimer=null;if(!sharedSyncAvailable){initializeSharedDataSync();return;}flushSharedAppStateSync();flushCloudRecordsSync();},5000);}
 async function initializeSharedDataSync(){if(!isHttpApp()){sharedSyncReady=true;return;}if(sharedSyncInitializing||sharedSyncAvailable)return;sharedSyncInitializing=true;if(!sharedSyncStartedAt)sharedSyncStartedAt=Date.now();try{const responses=await Promise.all([fetch(`/api/app-state?_=${Date.now()}`,{cache:'no-store'}),fetch(`/api/cloud-records?_=${Date.now()}`,{cache:'no-store'})]);if(responses.some(response=>!response.ok))throw new Error('Shared data API is not available');const [remoteApp,remoteCloud]=await Promise.all(responses.map(response=>response.json()));
-  if(remoteApp.state&&typeof remoteApp.state==='object'){applySharedAppState({revision:remoteApp.revision,updatedAt:remoteApp.updatedAt,clientId:null,state:remoteApp.state},true);}else{const response=await fetch('/api/app-state',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({state:getSharedAppStateSnapshot(),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize shared queue state');const seeded=await response.json();sharedAppRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.state)applySharedAppState({revision:seeded.revision,updatedAt:seeded.updatedAt,clientId:null,state:seeded.state},true);}
+  if(remoteApp.state&&typeof remoteApp.state==='object'){applySharedAppState({revision:remoteApp.revision,updatedAt:remoteApp.updatedAt,clientId:remoteApp.clientId||null,state:remoteApp.state},true);}else{const response=await fetch('/api/app-state',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({state:getSharedAppStateSnapshot(),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize shared queue state');const seeded=await response.json();sharedAppRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.state)applySharedAppState({revision:seeded.revision,updatedAt:seeded.updatedAt,clientId:null,state:seeded.state},true);}
   if(remoteCloud.records&&typeof remoteCloud.records==='object'){applySharedCloudRecords({revision:remoteCloud.revision,updatedAt:remoteCloud.updatedAt,clientId:null,records:remoteCloud.records},true);}else{const response=await fetch('/api/cloud-records',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({records:cloneSharedData(cloudRecords),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize Registered Player Cloud');const seeded=await response.json();sharedCloudRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.records)applySharedCloudRecords({revision:seeded.revision,updatedAt:seeded.updatedAt,clientId:null,records:seeded.records},true);}
   sharedSyncAvailable=true;sharedSyncReady=true;sharedEvents=new EventSource('/api/shared-events');sharedEvents.addEventListener('app-state',event=>{try{applySharedAppState(JSON.parse(event.data));}catch(e){}});sharedEvents.addEventListener('cloud-records',event=>{try{applySharedCloudRecords(JSON.parse(event.data));}catch(e){}});publishLiveViewState();flushSharedAppStateSync();flushCloudRecordsSync();
  }catch(error){sharedSyncReady=true;console.warn('Shared device sync is temporarily unavailable:',error);scheduleSharedSyncRetry();}finally{sharedSyncInitializing=false;}}
-function upsertCloudPlayer(p){if(!p||!p.name)return;loadCloudRecords();let a=cloudRecords.players.find(x=>x.name.toLowerCase()===p.name.toLowerCase());if(!a){a={cloudId:Date.now()+Math.floor(Math.random()*100000),name:p.name,matches:0,wins:0,losses:0};cloudRecords.players.push(a);}Object.assign(a,{name:p.name,nickname:p.nickname||a.nickname||'',gender:p.gender||a.gender||'',category:p.category||a.category||'',duprId:p.duprId||p.duprID||p.dupr_id||p.dupr||a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:p.selfRating||p.self_rating||a.selfRating||a.self_rating||''});const avatarId=getPlayerAvatarId(p);if(avatarId)a.avatarId=avatarId;saveCloudRecords();}
+function upsertCloudPlayer(p){if(!p||!p.name)return;loadCloudRecords();let a=cloudRecords.players.find(x=>x.name.toLowerCase()===p.name.toLowerCase());if(!a){a={cloudId:Date.now()+Math.floor(Math.random()*100000),registeredAt:new Date().toISOString(),name:p.name,matches:0,wins:0,losses:0};cloudRecords.players.push(a);}Object.assign(a,{name:p.name,nickname:p.nickname||a.nickname||'',gender:p.gender||a.gender||'',category:p.category||a.category||'',duprId:p.duprId||p.duprID||p.dupr_id||p.dupr||a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:p.selfRating||p.self_rating||a.selfRating||a.self_rating||''});const avatarId=getPlayerAvatarId(p);if(avatarId)a.avatarId=avatarId;saveCloudRecords();}
 function archiveLiveSession(){
   loadCloudRecords();
   const sid=String(state.sessionId||createSessionId());
@@ -377,6 +547,12 @@ function archiveLiveSession(){
 }
 
 /* Display full category names only inside the Registered Cloud and Left Players cloud modals. */
+function playerGenderCode(gender){
+  const value=String(gender||'').trim().toLowerCase();
+  if(['female','f','woman','women'].includes(value))return 'Female';
+  if(['male','m','man','men'].includes(value))return 'Male';
+  return '';
+}
 function cloudCategoryCode(category){
   const value=String(category||'').trim().toUpperCase().replace(/[^A-Z]/g,'');
   if(/^(BEG|BEGINNER|BEGINNERS)/.test(value))return 'BEG';
@@ -390,21 +566,71 @@ function cloudCategoryLabel(category){
   const code=cloudCategoryCode(category);
   return ({BEG:'BEGINNERS',NOV:'NOVICE',INT:'INTERMEDIATE',ADV:'ADVANCE',EXP:'EXPERT'})[code]||String(category||'').trim()||'—';
 }
+function formatCloudRegisteredOn(player){
+  const savedValue=player?.registeredAt||player?.registered_at||player?.createdAt||player?.created_at||'';
+  let timestamp=toTimestamp(savedValue);
+  // Older cloud IDs were generated from Date.now(); use that embedded creation time
+  // only when no explicit registration timestamp was saved.
+  if(!timestamp){
+    const legacyId=Number(player?.cloudId);
+    if(Number.isFinite(legacyId)&&legacyId>=1577836800000&&legacyId<=Date.now()+600000)timestamp=legacyId;
+  }
+  if(!timestamp)return '';
+  const date=new Date(timestamp);
+  if(!Number.isFinite(date.getTime()))return '';
+  const dateLabel=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'}).format(date);
+  const timeLabel=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}).format(date);
+  return `Registered on: ${dateLabel} · ${timeLabel}`;
+}
+function normalizeCloudPlayerName(value){
+  return String(value||'').normalize('NFC').trim().replace(/\s+/g,' ').toLocaleLowerCase();
+}
+function isCloudPlayerInLeftPlayers(cloudPlayer){
+  const targetName=normalizeCloudPlayerName(cloudPlayer?.name);
+  if(!targetName)return false;
+  return (Array.isArray(state.left)?state.left:[]).some(leftPlayer=>
+    normalizeCloudPlayerName(leftPlayer?.name)===targetName
+  );
+}
+function isCloudPlayerCheckedIn(cloudPlayer){
+  const targetName=normalizeCloudPlayerName(cloudPlayer?.name);
+  if(!targetName)return false;
+  const queueIds=Array.isArray(state.queue)?state.queue:[];
+  const courts=Array.isArray(state.courts)?state.courts:[];
+  return (Array.isArray(state.players)?state.players:[]).some(activePlayer=>{
+    if(normalizeCloudPlayerName(activePlayer?.name)!==targetName)return false;
+    const playerId=activePlayer?.id;
+    return queueIds.some(id=>String(id)===String(playerId)) || !!activePlayer?.court ||
+      courts.some(court=>(Array.isArray(court?.players)?court.players:[]).some(id=>String(id)===String(playerId)));
+  });
+}
+function cloudPlayerDeleteBlockReason(cloudPlayer){
+  if(isCloudPlayerInLeftPlayers(cloudPlayer))return 'Cannot delete a player in Left Players.';
+  if(isCloudPlayerCheckedIn(cloudPlayer))return 'Cannot delete a checked-in player.';
+  return '';
+}
 function renderCloudRecords(){
   loadCloudRecords();
+  if(pendingCloudDeleteId!==null){
+    const pendingPlayer=cloudRecords.players.find(player=>Number(player.cloudId)===Number(pendingCloudDeleteId));
+    if(pendingPlayer&&cloudPlayerDeleteBlockReason(pendingPlayer))pendingCloudDeleteId=null;
+  }
   const count=$('cloudRecordsCount');
   if(count)count.textContent=`(${cloudRecords.players.length})`;
   const q=($('cloudRecordsSearch')?.value||'').trim().toLowerCase();
   const players=cloudRecords.players.filter(p=>
     (cloudRecordsCategoryFilter==='ALL'||cloudCategoryCode(p.category)===cloudRecordsCategoryFilter) &&
+    (cloudRecordsGenderFilter==='ALL'||playerGenderCode(p.gender)===cloudRecordsGenderFilter) &&
     [p.name,p.nickname,p.gender,p.category,p.duprId,p.duprID,p.dupr_id,p.dupr].join(' ').toLowerCase().includes(q)
   );
   $('cloudRecordsContent').innerHTML=players.map((p,index)=>{
     const catCode=cloudCategoryCode(p.category);
     const cat=cloudCategoryLabel(p.category);
     const cls=({BEG:'beg',NOV:'nov',INT:'int',ADV:'adv',EXP:'exp'})[catCode]||'nov';
-    const active=state.players.find(sp=>String(sp.name||'').trim().toLowerCase()===String(p.name||'').trim().toLowerCase()&&(state.queue.includes(sp.id)||!!sp.court||(state.courts||[]).some(c=>(c.players||[]).includes(sp.id))));
-    const alreadyQueued=!!active;
+    const alreadyQueued=isCloudPlayerCheckedIn(p);
+    const inLeftPlayers=isCloudPlayerInLeftPlayers(p);
+    const cloudDeleteDisabled=alreadyQueued||inLeftPlayers;
+    const cloudDeleteDisabledTitle=inLeftPlayers?'Cannot delete a player in Left Players':alreadyQueued?'Cannot delete a checked-in player':'Delete player';
     const rawDuprId=String(p.duprId||p.duprID||p.dupr_id||p.dupr||'').replace(/\s+/g,'').toUpperCase();
     const duprId=rawDuprId==='NR'?'':rawDuprId;
     const playerId=Number(p.cloudId);
@@ -420,7 +646,8 @@ function renderCloudRecords(){
     // Keep the original badge in the flex row in both modes. The editor overlays it,
     // so switching to edit mode cannot reflow the summary row or push the badge left.
     const duprBadge=`<span class="cloud-dupr-slot"><span class="cloud-dupr-badge cloud-dupr-slot-anchor ${duprId?'':'is-unrated'}" aria-label="DUPR ID" title="DUPR ID: ${esc(duprId||'NR')}"><span>DUPR: ${esc(duprId||'NR')}</span></span></span>`;
-    return `<article class="cloud-player-card${selectedForEdit?' is-edit-selected':''}" data-cloud-player-id="${playerId}"><div class="cloud-player-main"><div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${avatarMarkup}</div><div class="cloud-player-ident"><b><span class="cloud-player-name-and-nickname">${highlightSearchMatch(p.name,q)}${p.nickname?` (${highlightSearchMatch(p.nickname,q)})`:''}</span> <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b><small class="cloud-player-summary"><span class="cloud-category-badge skill-${cls}">${esc(cat)}</span>${duprBadge}</small></div><div class="cloud-player-actions">${selectedForEdit?'':`<button type="button" class="cloud-edit-btn cloud-icon-action" onclick="event.stopPropagation();openCloudPlayerEditModal(${playerId})" aria-label="Edit ${esc(p.name||'player')} details" title="Edit player"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg></button>`}<button type="button" class="cloud-checkin-btn cloud-icon-action" ${alreadyQueued?'disabled aria-disabled="true" title="Player is already checked in or playing on court"':''} aria-label="${alreadyQueued?'Checked in':'Check in'} ${esc(p.name||'player')}" onclick="checkInCloudPlayer(${playerId})"><span class="cloud-action-icon cloud-checkin-icon ${alreadyQueued?'is-checked-in':'is-check-in'}${animateCheckInState?' is-state-changing':''}" aria-hidden="true">${alreadyQueued?`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12.3 2.5 2.5 5.5-5.5"></path></svg>`:`<svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"></circle><path d="M2.5 21v-2a4.5 4.5 0 0 1 4.5-4.5h4a4.5 4.5 0 0 1 4.5 4.5v2"></path><path d="M19 8v6M16 11h6"></path></svg>`}</span></button>${Number(pendingCloudDeleteId)===playerId?'':`<button type="button" class="cloud-delete-btn cloud-icon-action" ${alreadyQueued?'disabled aria-disabled="true" title="Cannot delete a checked-in player"':''} onclick="requestDeleteCloudPlayer(${playerId})" aria-label="Delete ${esc(p.name||'player')}" title="Delete player"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg></button>`}</div></div>${Number(pendingCloudDeleteId)===playerId?`<div class="cloud-delete-warning">Delete this registered profile? Match history will be kept. <button onclick="deleteCloudPlayer(${playerId})">Confirm</button> <button onclick="cancelDeleteCloudPlayer()">Cancel</button></div>`:''}</article>`;
+    const registeredOn=formatCloudRegisteredOn(p);
+    return `<article class="cloud-player-card${selectedForEdit?' is-edit-selected':''}" data-cloud-player-id="${playerId}"><div class="cloud-player-main"><div class="cloud-avatar"><span class="cloud-avatar-number">${index+1}</span>${avatarMarkup}</div><div class="cloud-player-ident"><b><span class="cloud-player-name-and-nickname">${highlightSearchMatch(p.name,q)}${p.nickname?` (${highlightSearchMatch(p.nickname,q)})`:''}</span> <span class="cloud-gender ${p.gender==='Female'?'gender-female':'gender-male'}">${genderSvgIcon(p.gender)}</span></b><small class="cloud-player-summary"><span class="cloud-category-badge skill-${cls}">${esc(cat)}</span>${duprBadge}</small>${registeredOn?`<small class="cloud-player-registered-on">${esc(registeredOn)}</small>`:''}</div><div class="cloud-player-actions">${selectedForEdit?'':`<button type="button" class="cloud-edit-btn cloud-icon-action" onclick="event.stopPropagation();openCloudPlayerEditModal(${playerId})" aria-label="Edit ${esc(p.name||'player')} details" title="Edit player"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg></button>`}<button type="button" class="cloud-checkin-btn cloud-icon-action" ${alreadyQueued?'disabled aria-disabled="true" title="Player is already checked in or playing on court"':''} aria-label="${alreadyQueued?'Checked in':'Check in'} ${esc(p.name||'player')}" onclick="checkInCloudPlayer(${playerId})"><span class="cloud-action-icon cloud-checkin-icon ${alreadyQueued?'is-checked-in':'is-check-in'}${animateCheckInState?' is-state-changing':''}" aria-hidden="true">${alreadyQueued?`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8 12.3 2.5 2.5 5.5-5.5"></path></svg>`:`<svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"></circle><path d="M2.5 21v-2a4.5 4.5 0 0 1 4.5-4.5h4a4.5 4.5 0 0 1 4.5 4.5v2"></path><path d="M19 8v6M16 11h6"></path></svg>`}</span></button>${Number(pendingCloudDeleteId)===playerId?'':`<button type="button" class="cloud-delete-btn cloud-icon-action" ${cloudDeleteDisabled?`disabled aria-disabled="true" title="${cloudDeleteDisabledTitle}"`:''} onclick="requestDeleteCloudPlayer(${playerId})" aria-label="Delete ${esc(p.name||'player')}" title="${cloudDeleteDisabled?cloudDeleteDisabledTitle:'Delete player'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg></button>`}</div></div>${Number(pendingCloudDeleteId)===playerId&&!inLeftPlayers?`<div class="cloud-delete-warning">Delete this registered profile? Match history will be kept. <button onclick="deleteCloudPlayer(${playerId})">Confirm</button> <button onclick="cancelDeleteCloudPlayer()">Cancel</button></div>`:''}</article>`;
   }).join('')||(cloudRecords.players.length
     ? '<div class="cloud-empty"><div class="cloud-empty-icon">🏓</div><div>No registered players match this search or category.</div></div>'
     : '<div class="cloud-empty"><div class="cloud-empty-icon">🏓</div><div>No registered player records found.</div></div>');
@@ -757,10 +984,37 @@ async function saveCloudPlayerEdit(){
   }
 }
 function closeCloudMatchModal(){const el=$('cloudMatchActionModal');if(el){el.classList.add('hidden');el.classList.remove('cloud-match-edit-modal');}window._cloudMatchAction=null;}
-function requestDeleteCloudPlayer(id){pendingCloudDeleteId=id;renderCloudRecords();}
+function requestDeleteCloudPlayer(id){
+  loadCloudRecords();
+  const cloudPlayer=cloudRecords.players.find(player=>Number(player.cloudId)===Number(id));
+  if(!cloudPlayer)return;
+  const deleteBlockReason=cloudPlayerDeleteBlockReason(cloudPlayer);
+  if(deleteBlockReason){
+    pendingCloudDeleteId=null;
+    toast(deleteBlockReason);
+    renderCloudRecords();
+    return;
+  }
+  pendingCloudDeleteId=id;
+  renderCloudRecords();
+}
 function cancelDeleteCloudPlayer(){pendingCloudDeleteId=null;renderCloudRecords();}
-function deleteCloudPlayer(id){loadCloudRecords();cloudRecords.players=cloudRecords.players.filter(p=>Number(p.cloudId)!==Number(id));pendingCloudDeleteId=null;saveCloudRecords();renderCloudRecords();}
-function checkInCloudPlayer(id){loadCloudRecords();const a=cloudRecords.players.find(p=>Number(p.cloudId)===Number(id));if(!a)return;let p=state.players.find(p=>p.name.toLowerCase()===a.name.toLowerCase());if(!p){const left=state.left.find(p=>p.name.toLowerCase()===a.name.toLowerCase());if(left){left.avatarId=left.avatarId||getPlayerAvatarId(a);checkIn(left.id,true);state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();renderCloudRecords();return;}p={id:state.nextPlayer++,name:a.name,nickname:a.nickname||'',wins:a.wins||0,court:null,gender:a.gender||'Male',category:a.category||'',avatarId:getPlayerAvatarId(a),duprId:a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:a.selfRating||a.self_rating||'',queuedAt:Date.now(),waitingSince:Date.now()};state.players.push(p);}else{p.avatarId=p.avatarId||getPlayerAvatarId(a);p.duprId=p.duprId||a.duprId||a.duprID||a.dupr_id||a.dupr||'';p.selfRating=p.selfRating||a.selfRating||a.self_rating||'';}if(p.court){toast('Player is already on court.');return;}if(!state.queue.includes(p.id))state.queue.push(p.id);p.queuedAt=Date.now();p.waitingSince=p.queuedAt;state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();render();renderCloudRecords();toast(`${p.name} checked in.`);}
+function deleteCloudPlayer(id){
+  loadCloudRecords();
+  const cloudPlayer=cloudRecords.players.find(player=>Number(player.cloudId)===Number(id));
+  const deleteBlockReason=cloudPlayer?cloudPlayerDeleteBlockReason(cloudPlayer):'';
+  if(deleteBlockReason){
+    pendingCloudDeleteId=null;
+    toast(deleteBlockReason);
+    renderCloudRecords();
+    return;
+  }
+  cloudRecords.players=cloudRecords.players.filter(p=>Number(p.cloudId)!==Number(id));
+  pendingCloudDeleteId=null;
+  saveCloudRecords();
+  renderCloudRecords();
+}
+function checkInCloudPlayer(id,countAsCloudCheckin=true){loadCloudRecords();const a=cloudRecords.players.find(p=>Number(p.cloudId)===Number(id));if(!a)return;if(isCloudPlayerCheckedIn(a)){renderCloudRecords();return;}let p=state.players.find(p=>normalizeCloudPlayerName(p.name)===normalizeCloudPlayerName(a.name));if(!p){const left=state.left.find(p=>p.name.toLowerCase()===a.name.toLowerCase());if(left){left.avatarId=left.avatarId||getPlayerAvatarId(a);checkIn(left.id,countAsCloudCheckin);if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();renderCloudRecords();return;}p={id:state.nextPlayer++,name:a.name,nickname:a.nickname||'',wins:a.wins||0,court:null,gender:a.gender||'Male',category:a.category||'',avatarId:getPlayerAvatarId(a),duprId:a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:a.selfRating||a.self_rating||'',queuedAt:Date.now(),waitingSince:Date.now()};state.players.push(p);}else{p.avatarId=p.avatarId||getPlayerAvatarId(a);p.duprId=p.duprId||a.duprId||a.duprID||a.dupr_id||a.dupr||'';p.selfRating=p.selfRating||a.selfRating||a.self_rating||'';}if(p.court){toast('Player is already on court.');return;}if(!state.queue.includes(p.id))state.queue.push(p.id);if(countAsCloudCheckin||!p.queuedAt){p.queuedAt=Date.now();p.waitingSince=p.queuedAt;}if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();render();renderCloudRecords();toast(`${p.name} checked in.`);}
 
 let openCategoryPlayerId=null;
 let openGenderPlayerId=null;
@@ -801,10 +1055,8 @@ function initQueueNetworkStatus(){
 
 let endSessionAttendeePeople=[];
 let endSessionAttendeePanelOpen=false;
-let endSessionAttendeeAnimationTimer=null;
 let endSessionAttendeeResizeObserver=null;
 let endSessionAttendeePositionFrame=null;
-const END_SESSION_ATTENDEE_ANIMATION_MS=420;
 function renderEndSessionAttendees(checkins, matches){
   loadCloudRecords();
   const avatarStack=$('endSessionAttendeeAvatars');
@@ -849,15 +1101,12 @@ function renderEndSessionAttendees(checkins, matches){
       avatarStack.appendChild(avatar);
     }
     if(total>3){
-      const more=document.createElement('button');
-      more.type='button';
+      // Display-only overflow count. The attendee roster is already visible
+      // beside the End Session dialog whenever the dialog is open.
+      const more=document.createElement('span');
       more.className='end-session-avatar end-session-avatar-overflow';
       more.textContent=`+${total-3}`;
-      more.setAttribute('aria-label',`Show attendee list; ${total-3} more players`);
-      more.setAttribute('aria-controls','endSessionAttendeePanel');
-      more.setAttribute('aria-expanded',String(endSessionAttendeePanelOpen));
-      more.title='Show all session attendees';
-      more.addEventListener('click',toggleEndSessionAttendeePanel);
+      more.setAttribute('aria-hidden','true');
       avatarStack.appendChild(more);
     }
     avatarStack.setAttribute('aria-label',`${total} session players`);
@@ -941,8 +1190,7 @@ function positionEndSessionAttendeePanel(){
   const panel=$('endSessionAttendeePanel');
   if(!modal||!box||!panel)return;
 
-  // The open/close handler owns the state class. Do not re-open the layout from
-  // inside this measurement function while the drawer is closing.
+  // Keep the separate attendee panel aligned with the dialog as the viewport changes.
   const viewportWidth=Math.max(280,Math.round(document.documentElement.clientWidth||window.innerWidth||280));
   const gap=viewportWidth<=560?6:(viewportWidth<=900?8:10);
   const panelWidth=Math.max(88,Math.min(280,Math.round(viewportWidth*0.30),viewportWidth-220));
@@ -951,9 +1199,7 @@ function positionEndSessionAttendeePanel(){
   panel.style.setProperty('width',`${panelWidth}px`,'important');
   panel.style.setProperty('max-width',`${panelWidth}px`,'important');
 
-  // Re-read the live modal rectangle on every layout change. The modal's width
-  // animates when the attendee drawer opens, which can also change its height
-  // as the text wraps. The ResizeObserver below keeps both edges locked together.
+  // Measure both sibling elements so the dialog and attendee panel stay side by side.
   const modalRect=modal.getBoundingClientRect();
   const boxRect=box.getBoundingClientRect();
   const groupShift=(panelWidth+gap)/2;
@@ -966,9 +1212,7 @@ function positionEndSessionAttendeePanel(){
 }
 
 function scheduleEndSessionAttendeePanelPosition(){
-  // Coalesce resize, scroll, and ResizeObserver notifications into one layout
-  // read/write per frame. This prevents the drawer from chasing intermediate
-  // modal measurements on smaller or slower devices.
+  // Coalesce resize, scroll, and ResizeObserver notifications into one layout pass.
   if(endSessionAttendeePositionFrame!==null)return;
   endSessionAttendeePositionFrame=requestAnimationFrame(()=>{
     endSessionAttendeePositionFrame=null;
@@ -988,7 +1232,7 @@ function observeEndSessionAttendeeModalSize(){
   if(!endSessionAttendeeResizeObserver){
     endSessionAttendeeResizeObserver=new ResizeObserver(()=>{
       const panel=$('endSessionAttendeePanel');
-      const shouldTrack=endSessionAttendeePanelOpen||panel?.dataset.animationState==='closing';
+      const shouldTrack=endSessionAttendeePanelOpen;
       if(shouldTrack&&panel)scheduleEndSessionAttendeePanelPosition();
     });
   }
@@ -996,86 +1240,43 @@ function observeEndSessionAttendeeModalSize(){
   endSessionAttendeeResizeObserver.observe(box);
 }
 
-function setEndSessionAttendeePanelOpen(shouldOpen, options={}){
+function setEndSessionAttendeePanelOpen(shouldOpen){
   const panel=$('endSessionAttendeePanel');
-  if(!panel)return;
-  const opening=Boolean(shouldOpen);
   const modal=$('endSessionModal');
+  if(!panel||!modal)return;
+
+  const opening=Boolean(shouldOpen);
   const search=$('endSessionAttendeeSearch');
-  const wasOpen=endSessionAttendeePanelOpen||panel.classList.contains('is-open')||
-    panel.dataset.animationState==='opening'||panel.dataset.animationState==='open';
   endSessionAttendeePanelOpen=opening;
-  if(endSessionAttendeeAnimationTimer){
-    clearTimeout(endSessionAttendeeAnimationTimer);
-    endSessionAttendeeAnimationTimer=null;
-  }
-
-  const toggle=$('endSessionAttendeeAvatars')?.querySelector('.end-session-avatar-overflow');
-  if(toggle)toggle.setAttribute('aria-expanded',String(opening));
-
-  // A closed drawer must stay fully closed when the End Session modal first
-  // opens. Previously every call with `false` entered the closing animation
-  // state, whose CSS intentionally makes the panel visible for the slide-out.
-  // That made the attendee list flash/show even when +N had never been clicked.
-  const resetImmediately=!opening&&(options.immediate===true||!wasOpen||modal?.classList.contains('hidden'));
-  if(resetImmediately){
-    if(modal)modal.classList.remove('has-attendee-panel');
-    panel.classList.remove('is-open');
-    panel.dataset.animationState='closed';
-    panel.setAttribute('aria-hidden','true');
-    panel.inert=true;
-    if(search)search.value='';
-    if(endSessionAttendeePositionFrame!==null){
-      cancelAnimationFrame(endSessionAttendeePositionFrame);
-      endSessionAttendeePositionFrame=null;
-    }
-    return;
-  }
-
-  // Let CSS animate the state change while JS tracks direction so a quick
-  // re-click reverses smoothly from the current position instead of jumping.
-  panel.dataset.animationState=opening?'opening':'closing';
-  if(modal)modal.classList.toggle('has-attendee-panel',opening);
+  modal.classList.toggle('has-attendee-panel',opening);
   panel.classList.toggle('is-open',opening);
+  panel.dataset.animationState=opening?'open':'closed';
   panel.setAttribute('aria-hidden',String(!opening));
   panel.inert=!opening;
 
   if(opening){
     const viewportWidth=Math.max(280,document.documentElement.clientWidth||window.innerWidth||280);
     if(search)search.placeholder=viewportWidth<=360?'Search…':(viewportWidth<=560?'Search names…':'Search player names…');
+    renderEndSessionAttendeeList();
     observeEndSessionAttendeeModalSize();
     positionEndSessionAttendeePanel();
-    renderEndSessionAttendeeList();
     requestAnimationFrame(()=>{
-      if(endSessionAttendeePanelOpen){
+      if(endSessionAttendeePanelOpen&&!modal.classList.contains('hidden')){
         positionEndSessionAttendeePanel();
-        panel.dataset.animationState='open';
-        // Keep focus on the +N trigger; opening the drawer must not jump into search.
       }
     });
   }else{
     if(search)search.value='';
-    // Keep the closing direction active until the slow rightward slide ends.
-    const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    endSessionAttendeeAnimationTimer=window.setTimeout(()=>{
-      if(!endSessionAttendeePanelOpen){
-        panel.dataset.animationState='closed';
-      }
-      endSessionAttendeeAnimationTimer=null;
-    },reducedMotion?0:END_SESSION_ATTENDEE_ANIMATION_MS+50);
+    if(endSessionAttendeePositionFrame!==null){
+      cancelAnimationFrame(endSessionAttendeePositionFrame);
+      endSessionAttendeePositionFrame=null;
+    }
   }
-}
-
-function toggleEndSessionAttendeePanel(){
-  setEndSessionAttendeePanelOpen(!endSessionAttendeePanelOpen);
 }
 
 function openEndSessionConfirmation(){
   const modal=$('endSessionModal');
   if(!modal)return;
-  // Reset without animating a close that may have been interrupted while the
-  // modal was hidden; the roster should only appear after the +N trigger.
-  setEndSessionAttendeePanelOpen(false,{immediate:true});
   const checkins=Number(state.sessionMetrics?.cloudCheckins)||0;
   const matches=Array.isArray(state.logs)?state.logs.length:0;
   const eventNameInput=$('endSessionCsvEventNameInput');
@@ -1089,11 +1290,13 @@ function openEndSessionConfirmation(){
   }
   renderEndSessionAttendees(checkins,matches);
   modal.classList.remove('hidden');
+  // Show the separate attendee panel at the same time as the End Session dialog.
+  setEndSessionAttendeePanelOpen(true);
   syncDuprCsvDownloadButtons();
 }
 
 function closeEndSessionConfirmation(){
-  setEndSessionAttendeePanelOpen(false,{immediate:true});
+  setEndSessionAttendeePanelOpen(false);
   const modal=$('endSessionModal');
   if(modal)modal.classList.add('hidden');
 }
@@ -2279,7 +2482,8 @@ function renderLeftPlayerRows(popup=false){
   const filtered=popup?visibleLeft.filter(p=>{
     const duprId=duprSession?getLeftPlayerDuprId(p):'';
     const categoryMatches=leftPlayersCategoryFilter==='ALL'||cloudCategoryCode(p.category)===leftPlayersCategoryFilter;
-    return categoryMatches&&[p.name,p.nickname,p.gender,p.category,duprId].join(' ').toLowerCase().includes(query);
+    const genderMatches=leftPlayersGenderFilter==='ALL'||playerGenderCode(p.gender)===leftPlayersGenderFilter;
+    return categoryMatches&&genderMatches&&[p.name,p.nickname,p.gender,p.category,duprId].join(' ').toLowerCase().includes(query);
   }):visibleLeft;
   if(!filtered.length)return '<div class="left-empty-state"><div class="left-empty-icon" aria-hidden="true">↩️</div><div class="left-empty-text">No matching left players found</div></div>';
   return filtered.map((p,index)=>{
@@ -2319,8 +2523,8 @@ function closePopupCategoryFilter(toggleId,controlsId,label){
   if(controls)controls.hidden=true;
   if(toggle){
     toggle.setAttribute('aria-expanded','false');
-    toggle.setAttribute('aria-label',`Open ${label} category filters`);
-    toggle.setAttribute('title','Filter by category');
+    toggle.setAttribute('aria-label',`Open ${label} filters`);
+    toggle.setAttribute('title','Filter players');
     toggle.classList.remove('is-open');
   }
 }
@@ -3536,10 +3740,10 @@ function saveRegisteredPlayer(){
   const duplicate=cloudRecords.players.find(p=>String(p.name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase()===normalizedFullname);
   if(duplicate){updateRegistrationSaveButton();toast(`This user is already registered: ${duplicate.name}`);return;}
 
-  // Registration only creates a profile in Registered Player Cloud. It must not
-  // modify state.players, state.queue, session metrics, or the active queue.
-  cloudRecords.players.push({
+  // Save the profile to Registered Player Cloud, then check the new player in.
+  const registeredCloudPlayer={
     cloudId:Date.now()+Math.floor(Math.random()*100000),
+    registeredAt:new Date().toISOString(),
     name:fullname,
     nickname,
     gender:registrationGender,
@@ -3549,7 +3753,8 @@ function saveRegisteredPlayer(){
     matches:0,
     wins:0,
     losses:0
-  });
+  };
+  cloudRecords.players.push(registeredCloudPlayer);
   saveCloudRecords();
   if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
 
@@ -3563,7 +3768,9 @@ function saveRegisteredPlayer(){
   });
   updateRegistrationSaveButton();
   showQueueMain();
-  toast(`${fullname} saved to Registered Player Cloud. Use Check in to add the player to the queue.`);
+  // A player registered from the Queue workspace is checked in immediately.
+  // Do not count this as a separate Cloud Records check-in metric.
+  checkInCloudPlayer(registeredCloudPlayer.cloudId,false);
 }
 function renderRegisteredSearch(){
   const area=$('registeredPlayerResults'); if(!area)return;
@@ -3660,6 +3867,15 @@ function queueLockSvgMarkup(isLocked, uniqueKey='default'){
   </svg>`;
 }
 
+function renderLockedPartnerNameBadge(playerId, uniqueKey){
+  const partnerId=getLockedPartnerId(playerId);
+  if(!partnerId)return '';
+  const lockedPartner=player(partnerId)||{name:'partner'};
+  const fullName=displayPlayerName(lockedPartner);
+  const shortName=String(lockedPartner.name||'').trim().split(/\s+/)[0]||fullName;
+  return `<span class="queue-locked-partner-inline queue-lock-icon-inline" title="Locked in with ${esc(fullName)}" aria-label="Locked in with ${esc(fullName)}" role="img">${queueLockSvgMarkup(true, uniqueKey)}<span class="queue-locked-partner-name">${esc(shortName)}</span></span>`;
+}
+
 function renderLockInPartnerChoices(playerId){
   const partnerId=getLockedPartnerId(playerId);
   // Only show Queue List players who do not already have a locked-in partner.
@@ -3744,7 +3960,7 @@ function saveDuprDetails(id,surface=null){
   loadCloudRecords();
   let record=cloudRecords.players.find(item=>String(item.name||'').trim().toLowerCase()===normalizedName);
   if(!record){
-    record={cloudId:Date.now()+Math.floor(Math.random()*100000),name:target.name,nickname:target.nickname||'',gender:target.gender||'',category:target.category||'',matches:0,wins:0,losses:0};
+    record={cloudId:Date.now()+Math.floor(Math.random()*100000),registeredAt:new Date().toISOString(),name:target.name,nickname:target.nickname||'',gender:target.gender||'',category:target.category||'',matches:0,wins:0,losses:0};
     cloudRecords.players.push(record);
   }
   record.duprId=duprId;record.duprID='';record.dupr_id='';record.dupr='';
@@ -4541,7 +4757,7 @@ function renderExpandedPodium(){
             <b>${esc(displayPlayerName(p))}</b>
             <span class="expanded-ranking-gender ${p.gender==='Female'?'female':'male'}" aria-label="${p.gender==='Female'?'Female':'Male'}">${genderSvgIcon(p.gender)}</span>
             ${p.category?`<span class="rank-category skill-${String(p.category).toLowerCase()}">${esc(p.category)}</span>`:''}
-            ${getLockedPartnerId(p.id)?`<span class="queue-locked-partner-inline queue-lock-icon-inline" title="Locked in with ${esc(displayPlayerName(player(getLockedPartnerId(p.id))||{name:'partner'}))}" aria-label="Locked in with partner" role="img">${queueLockSvgMarkup(true, `expanded-ranking-${p.id}`)}</span>`:''}
+            ${renderLockedPartnerNameBadge(p.id, `expanded-ranking-${p.id}`)}
             ${isPlayerPlaying(p)?'<span class="playing-badge">Playing</span>':''}
           </div>
           <div class="expanded-ranking-secondary">
@@ -4563,6 +4779,8 @@ function renderResults(){
   // Rank all known players, including those temporarily moved to Left Players.
   const rankingPlayers=[...new Map([...state.players,...state.left].map(p=>[String(p.id),p])).values()];
   const r=rankingPlayers.filter(p=>(stats.get(p.id)?.matches||0)>0).sort((a,b)=>compareLeaderboardPlayers(a,b,stats));
+  const leaderboardHeading=document.querySelector('#rankingView .leaderboard-heading');
+  if(leaderboardHeading)leaderboardHeading.hidden=r.length===0;
 
   const podium=$('podiumList');
   if(podium){
@@ -4608,7 +4826,7 @@ function renderResults(){
       <div class="ranking-position">${rank<=3?['🥇','🥈','🥉'][rank-1]:`#${rank}`}</div>
       <div class="ranking-player">
         <div class="ranking-player-main">
-          <div class="ranking-name-line"><b>${esc(displayPlayerName(p))}</b>${p.category?`<span class="rank-category skill-${String(p.category).toLowerCase()}">${esc(p.category)}</span>`:''}${getLockedPartnerId(p.id)?`<span class="queue-locked-partner-inline queue-lock-icon-inline" title="Locked in with ${esc(displayPlayerName(player(getLockedPartnerId(p.id))||{name:'partner'}))}" aria-label="Locked in with partner" role="img">${queueLockSvgMarkup(true, `ranking-${p.id}`)}</span>`:''}${isPlayerPlaying(p)?'<span class="playing-badge">Playing</span>':''}${level?`<span class="ranking-level">${esc(String(level).startsWith('Lv')?String(level):`Lv${level}`)}</span>`:''}</div>
+          <div class="ranking-name-line"><b>${esc(displayPlayerName(p))}</b>${p.category?`<span class="rank-category skill-${String(p.category).toLowerCase()}">${esc(p.category)}</span>`:''}${renderLockedPartnerNameBadge(p.id, `ranking-${p.id}`)}${isPlayerPlaying(p)?'<span class="playing-badge">Playing</span>':''}${level?`<span class="ranking-level">${esc(String(level).startsWith('Lv')?String(level):`Lv${level}`)}</span>`:''}</div>
           <div class="ranking-secondary">
             <div class="ranking-progress"><div class="progress-track"><span style="width:${st.winRate}%"></span></div></div>
             <div class="ranking-meta"><span class="ranking-play-time"><span class="play-time-icon" aria-hidden="true">⏱︎</span>${formatTotalMatchMinutes(st.totalSeconds)}</span></div>
@@ -5335,8 +5553,8 @@ function bindPopupCategoryFilter(toggleId,controlsId,dataAttribute,onChange,labe
     const isOpening=controls.hidden;
     controls.hidden=!isOpening;
     toggle.setAttribute('aria-expanded',String(isOpening));
-    toggle.setAttribute('aria-label',`${isOpening?'Close':'Open'} ${label} category filters`);
-    toggle.setAttribute('title',isOpening?'Close category filters':'Filter by category');
+    toggle.setAttribute('aria-label',`${isOpening?'Close':'Open'} ${label} filters`);
+    toggle.setAttribute('title',isOpening?'Close filters':'Filter players');
     toggle.classList.toggle('is-open',isOpening);
   });
   controls.addEventListener('click',event=>{
@@ -5359,6 +5577,30 @@ bindPopupCategoryFilter('leftPlayersFilterToggle','leftPlayersFilterControls','d
   leftPlayersCategoryFilter=category;
   renderLeftPlayersPopup();
 },'left player');
+function bindPopupGenderFilter(controlsId,dataAttribute,onChange){
+  const controls=$(controlsId);
+  if(!controls)return;
+  const selector=`[${dataAttribute}]`;
+  controls.addEventListener('click',event=>{
+    const selected=event.target.closest(selector);
+    if(!selected||!controls.contains(selected))return;
+    const gender=selected.getAttribute(dataAttribute)||'ALL';
+    controls.querySelectorAll(selector).forEach(button=>{
+      const active=button===selected;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
+    onChange(gender);
+  });
+}
+bindPopupGenderFilter('cloudRecordsFilterControls','data-cloud-records-gender',gender=>{
+  cloudRecordsGenderFilter=gender;
+  renderCloudRecords();
+});
+bindPopupGenderFilter('leftPlayersFilterControls','data-left-player-gender',gender=>{
+  leftPlayersGenderFilter=gender;
+  renderLeftPlayersPopup();
+});
 
 $('podiumExpandBtn')?.addEventListener('click',openPodiumExpandModal);
 const leaderboardFilterToggle=$('leaderboardFilterToggle');

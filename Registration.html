@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="live-view.css?v=panel-count-light-transparent-20261022-10&mzoom=20261024-1">
   <link rel="stylesheet" href="style.css?v=stability-cleanup-20261030-1&previous=registration-area-shared-20261020-1&mzoom=20261024-1">
-  <link rel="stylesheet" href="registration-page.css?v=stability-cleanup-20261030-1&previous=registration-avatar-scrollbar-hidden-20261029-5&mzoom=20261024-1">
+  <link rel="stylesheet" href="registration-page.css?v=organizer-queue-auto-register-20261104-1&avatar-carousel-optional-20261104-1">
   <link rel="stylesheet" href="network-skeleton.css?v=network-validation-20261027-1">
   <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
   <script src="network-validation.js?v=network-validation-20261027-1"></script>
@@ -39,20 +39,20 @@
     <div class="registration-page-panel-icon registration-page-icon-float" aria-hidden="true"><img src="registration-page-panel-icon.png?v=registration-panel-icon-float-20261026-2" alt=""></div>
     <section class="event-heading registration-page-intro">
       <h1 id="registrationPageTitle">Register as a Player</h1>
-      <p>Complete your player profile to save it to Registered Player Cloud. An organizer can check you in to the queue when ready.</p>
+      <p>Complete your player profile to join this organizer’s live queue. Your profile will also be saved to Registered Player Cloud.</p>
     </section>
 
     <div id="registrationLinkNotice" class="registration-link-notice" role="alert" hidden></div>
 
     <section class="registration-page-panel" id="registrationPagePanel" aria-labelledby="registrationPageTitle">
       <div class="registration-area registration-page-form" id="registrationArea">
-        <section class="registration-avatar-picker" aria-label="Choose profile avatar">
+        <section class="registration-avatar-picker" aria-label="Optional profile avatar selection">
           <div class="registration-avatar-picker-head">
-            <span class="registration-field-label">PROFILE AVATAR</span>
-            <span class="registration-avatar-picker-hint"><span aria-hidden="true">↔</span> Swipe to choose</span>
+            <span class="registration-field-label">PROFILE AVATAR <span class="registration-avatar-optional">OPTIONAL</span></span>
+            <span class="registration-avatar-picker-hint"><span aria-hidden="true">↔</span> Skip to auto-assign</span>
           </div>
           <div class="registration-avatar-carousel" id="registrationAvatarCarousel" role="group" aria-label="Swipe or scroll to choose an avatar">
-            <button type="button" class="registration-avatar-option is-selected" data-avatar-id="avatar-01" aria-label="Choose avatar 01" aria-pressed="true"><img src="registration-avatar-01.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
+            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-01" aria-label="Choose avatar 01" aria-pressed="false"><img src="registration-avatar-01.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
             <button type="button" class="registration-avatar-option" data-avatar-id="avatar-02" aria-label="Choose avatar 02" aria-pressed="false"><img src="registration-avatar-02.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
             <button type="button" class="registration-avatar-option" data-avatar-id="avatar-03" aria-label="Choose avatar 03" aria-pressed="false"><img src="registration-avatar-03.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
             <button type="button" class="registration-avatar-option" data-avatar-id="avatar-04" aria-label="Choose avatar 04" aria-pressed="false"><img src="registration-avatar-04.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
@@ -74,9 +74,9 @@
             <button type="button" class="registration-avatar-option" data-avatar-id="avatar-20" aria-label="Choose avatar 20" aria-pressed="false"><img src="registration-avatar-20.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
             <button type="button" class="registration-avatar-option" data-avatar-id="avatar-21" aria-label="Choose avatar 21" aria-pressed="false"><img src="registration-avatar-21.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
           </div>
-          <div class="registration-avatar-selected-line" aria-live="polite" aria-atomic="true">
-            <span class="registration-avatar-selected-check" aria-hidden="true">✓</span>
-            <span id="registrationAvatarSelectedLabel">Avatar 01 selected</span>
+          <div class="registration-avatar-selected-line is-auto-assigned" aria-live="polite" aria-atomic="true">
+            <span class="registration-avatar-selected-check" aria-hidden="true">✦</span>
+            <span id="registrationAvatarSelectedLabel">No avatar selected · System will assign one automatically</span>
           </div>
         </section>
 
@@ -137,11 +137,11 @@
         </div>
       </div>
 
-      <div class="registration-page-footnote"><span aria-hidden="true">☁</span> Your profile is saved to Registered Player Cloud. Registration does not automatically add you to the waiting queue.</div>
+      <div class="registration-page-footnote"><span aria-hidden="true">☁</span> Your profile is saved to Registered Player Cloud and added to this organizer’s live waiting queue.</div>
     </section>
     <span id="registrationConnectionStatus" class="connection-status registration-connection-footer" role="status" aria-live="polite"><i aria-hidden="true"></i><span>Connecting</span></span>
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
   </main>
-  <script src="registration-app.js?v=avatar-carousel-registration-20261029-2-smooth" defer></script>
+  <script src="registration-app.js?v=organizer-queue-auto-register-20261104-1&avatar-carousel-optional-20261104-1&queue-confirmation-20261104-2" defer></script>
 </body>
 </html>

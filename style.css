@@ -1365,8 +1365,9 @@ body{overflow-y:auto;}
 .ranking-player-main{min-width:0;}
 .ranking-name-line{display:flex;align-items:center;gap:5px;min-width:0;line-height:1.15;}
 .ranking-name-line b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:#273646;}
-/* Lock-in partner indicator: icon only, with no background or border. */
-.ranking-list .ranking-name-line .queue-locked-partner-inline,.expanded-ranking-list .ranking-name-line .queue-locked-partner-inline{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;margin-left:0;padding:0;border:0;border-radius:0;background:transparent;color:inherit;font-size:9px;line-height:1.1;}
+/* Lock-in partner indicator: shared lock icon plus the partner name. */
+.ranking-list .ranking-name-line .queue-locked-partner-inline,.expanded-ranking-list .ranking-name-line .queue-locked-partner-inline{display:inline-flex;align-items:center;justify-content:flex-start;gap:2px;flex:0 1 auto;min-width:0;max-width:86px;margin-left:0;padding:1px 4px;border:1px solid #e5d5ff;border-radius:999px;background:#f1eaff;color:#6d28d9;font-size:7px;line-height:1.25;white-space:nowrap;overflow:hidden;vertical-align:middle;}
+.ranking-list .ranking-name-line .queue-locked-partner-inline .queue-locked-partner-name,.expanded-ranking-list .ranking-name-line .queue-locked-partner-inline .queue-locked-partner-name{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .ranking-secondary{display:flex;align-items:center;gap:8px;min-width:0;margin-top:5px;}
 .ranking-meta{display:flex;align-items:center;gap:6px;flex:0 0 auto;color:#9aa4ae;font-size:7px;white-space:nowrap;}
 .ranking-xp{display:none!important;}
@@ -5474,6 +5475,7 @@ light-gray background. */
 #cloudRecordsModal .cloud-gender{display:inline-block;margin-left:3px;color:#5d7185;font-weight:700;}
 #cloudRecordsModal .cloud-player-ident small{font-size:12px;color:#7e8b99;line-height:1.35;}
 #cloudRecordsModal .cloud-player-summary{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:10px!important;line-height:1.25!important;color:#7e8b99;}
+#cloudRecordsModal .cloud-player-ident .cloud-player-registered-on{display:block;margin:0;color:#a3acb6!important;font-size:9px!important;font-weight:400!important;line-height:1.25!important;white-space:normal;}
 #cloudRecordsModal .cloud-player-summary .cloud-category-badge{padding:2px 5px;font-size:9px;line-height:1.1;}
 #cloudRecordsModal .cloud-category-badge{display:inline-flex;align-items:center;border-radius:5px;padding:4px 8px;font-size:11px;font-weight:800;line-height:1.2;}
 #cloudRecordsModal .cloud-category-badge.skill-beg{background:#E8F3FF;color:#2B6CB0;border:1px solid #BCE0FD;}
@@ -10884,59 +10886,6 @@ when scrolling
   margin-left: 0 !important;
   margin-right: 0 !important;
 }
-/* Minimal player-name search for Match History. Keep the existing header/cards unchanged. */
-#historyView .history-search-wrap {
-  position: relative !important;
-  flex: 0 0 auto !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-  margin: -1px 0 7px !important;
-}
-#historyView .history-search-icon {
-  position: absolute !important;
-  z-index: 1;
-  left: 10px;
-  top: 50%;
-  width: 13px;
-  height: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: translateY(-50%);
-  color: #98a5b3;
-  pointer-events: none;
-}
-#historyView .history-search-icon svg {
-  display: block;
-  width: 13px;
-  height: 13px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-#historyView .history-search-input {
-  display: block !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  height: 29px !important;
-  box-sizing: border-box !important;
-  border: 1px solid #e2e8ee !important;
-  border-radius: 8px !important;
-  outline: none !important;
-  background: #fbfcfd !important;
-  color: #263442 !important;
-  padding: 0 10px 0 29px !important;
-  font-family: inherit !important;
-  font-size: 10px !important;
-  line-height: 1.2 !important;
-  box-shadow: none !important;
-  transition: border-color .15s ease, background .15s ease !important;
-}
-#historyView .history-search-input::placeholder { color: #9aa6b2 !important; opacity: 1; }
-#historyView .history-search-input:focus { border-color: #b9d9d8 !important; background: #fff !important; }
 #historyView .history-search-empty {
   flex: 0 0 auto;
   width: 100%;
@@ -10962,8 +10911,6 @@ when scrolling
   margin-bottom: 1px;
 }
 #historyView:has(.history-empty) #historySearchWrap { display: none !important; }
-@media (max-width: 760px) {#historyView .history-search-input { height: 28px !important; font-size: 10px !important; }
-#historyView .history-search-wrap { margin-bottom: 6px !important; }}
 /* Unified search icons: match every search field to Match History player search. */
 .registered-search-icon,
 .cloud-search-icon,
@@ -10972,7 +10919,6 @@ when scrolling
   color: #98a5b3 !important;
 }
 .registered-search-icon svg,
-.history-search-icon svg,
 .cloud-search-icon svg,
 .picker-search-icon svg {
   display: block !important;
@@ -10993,17 +10939,14 @@ when scrolling
   stroke-linecap: round !important;
   stroke-linejoin: round !important;
 }
-/* Final normalization: use the exact thin outlined magnifier from Match History
-   in every search input, while preserving each field's existing placement. */
+/* Final normalization: use one thin outlined magnifier style across search inputs. */
 .registered-search-icon,
-.history-search-icon,
 .cloud-search-icon,
 .picker-search-icon {
   color: #98a5b3 !important;
   line-height: 0 !important;
 }
 .registered-search-icon svg,
-.history-search-icon svg,
 .cloud-search-icon svg,
 .picker-search-icon svg,
 #queueMainArea .queue-lock-partner-search-icon {
@@ -17625,8 +17568,6 @@ html body .waiting-courts-title span {
   color: #087f80 !important;
 }
 /* Show the teal search treatment only when the input is focused, matching cloudRecordsSearch. */
-html body #historyView #historySearchInput:focus,
-html body #historyView #historySearchInput:focus-visible,
 html body #queueMainArea #registeredPlayerSearch:focus,
 html body #queueMainArea #registeredPlayerSearch:focus-visible {
   border-color: #27bdb1 !important;
@@ -18451,7 +18392,6 @@ html body .live-view-qr-close:focus-visible {
   html body .registered-search > input,
   html body .court-picker .picker-search,
   html body #queueMainArea .queue-lock-partner-search,
-  html body #historyView .history-search-input,
   html body #cloudRecordsModal .cloud-search-wrap input,
   html body #leftPlayersModal .left-players-search-wrap input {
     font-size: 12px !important;
@@ -18461,7 +18401,6 @@ html body .live-view-qr-close:focus-visible {
    Keep layout and search behavior untouched. Hover/focus use the same border treatment;
 all search-bar shadows stay disabled per the earlier request. */
 html body #queueMainArea #registeredPlayerSearch,
-html body #historyView #historySearchInput,
 html body #cloudRecordsModal #cloudRecordsSearch,
 html body #leftPlayersModal #leftPlayersSearch {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
@@ -18476,7 +18415,6 @@ html body #leftPlayersModal #leftPlayersSearch {
   transition: border-color .16s ease, background-color .16s ease !important;
 }
 html body #queueMainArea #registeredPlayerSearch::placeholder,
-html body #historyView #historySearchInput::placeholder,
 html body #cloudRecordsModal #cloudRecordsSearch::placeholder,
 html body #leftPlayersModal #leftPlayersSearch::placeholder {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
@@ -18500,7 +18438,6 @@ html body #leftPlayersModal .left-players-search-wrap {
 }
 /* Hover: subtle border only. No shadow, movement, or layout change. */
 html body #queueMainArea #registeredPlayerSearch:hover:not(:focus),
-html body #historyView #historySearchInput:hover:not(:focus),
 html body #cloudRecordsModal .cloud-search-wrap:hover:not(:focus-within),
 html body #leftPlayersModal .left-players-search-wrap:hover:not(:focus-within) {
   border-color: #b7c9d6 !important;
@@ -18509,9 +18446,7 @@ html body #leftPlayersModal .left-players-search-wrap:hover:not(:focus-within) {
 }
 /* Click/focus: match the Registered Player Search teal border and white field. */
 html body #queueMainArea #registeredPlayerSearch:focus,
-html body #queueMainArea #registeredPlayerSearch:focus-visible,
-html body #historyView #historySearchInput:focus,
-html body #historyView #historySearchInput:focus-visible {
+html body #queueMainArea #registeredPlayerSearch:focus-visible {
   border-color: #27bdb1 !important;
   background: #fff !important;
   outline: none !important;
@@ -18533,7 +18468,6 @@ html body #leftPlayersModal #leftPlayersSearch {
 /* Keep iPad/tablet entered text compact to match the normalized placeholders. */
 @media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
   html body #queueMainArea #registeredPlayerSearch,
-  html body #historyView #historySearchInput,
   html body #cloudRecordsModal #cloudRecordsSearch,
   html body #leftPlayersModal #leftPlayersSearch {
     font-size: 12px !important;
@@ -18582,9 +18516,6 @@ html body .live-ranking-search:focus-within {
   html body #queueMainArea #registeredPlayerSearch::placeholder,
   html body #queueMainArea #registeredPlayerSearch::-webkit-input-placeholder,
   html body #queueMainArea #registeredPlayerSearch::-moz-placeholder,
-  html body #historyView #historySearchInput::placeholder,
-  html body #historyView #historySearchInput::-webkit-input-placeholder,
-  html body #historyView #historySearchInput::-moz-placeholder,
   html body #cloudRecordsModal #cloudRecordsSearch::placeholder,
   html body #cloudRecordsModal #cloudRecordsSearch::-webkit-input-placeholder,
   html body #cloudRecordsModal #cloudRecordsSearch::-moz-placeholder,
@@ -18634,8 +18565,7 @@ html body .live-ranking-search:focus-within {
   html body #queueMainArea .queue-lock-partner-search,
   html body #courtPickerSearch,
   html body #registeredPlayerSearch,
-  html body #historySearchInput,
-  html body #cloudRecordsSearch,
+    html body #cloudRecordsSearch,
   html body #leftPlayersSearch {
     font-size: 12px !important;
     font-weight: 400 !important;
@@ -25933,17 +25863,40 @@ html body[data-page="queueing"] .ranking-list .ranking-name-line .queue-locked-p
 html body[data-page="queueing"] .expanded-ranking-list .ranking-name-line .queue-locked-partner-inline.queue-lock-icon-inline{
   display:inline-flex!important;
   align-items:center!important;
-  justify-content:center!important;
-  flex:0 0 11px!important;
-  width:11px!important;
-  height:11px!important;
-  font-size:0!important;
-  line-height:0!important;
+  justify-content:flex-start!important;
+  gap:2px!important;
+  flex:0 1 auto!important;
+  min-width:0!important;
+  max-width:86px!important;
+  width:auto!important;
+  min-height:11px!important;
+  height:auto!important;
+  padding:1px 4px!important;
+  border:1px solid #e5d5ff!important;
+  border-radius:999px!important;
+  background:#f1eaff!important;
+  color:#6d28d9!important;
+  font-size:7px!important;
+  line-height:1.25!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
 }
 html body[data-page="queueing"] .ranking-list .ranking-name-line .queue-locked-partner-inline.queue-lock-icon-inline .queue-lock-svg,
 html body[data-page="queueing"] .expanded-ranking-list .ranking-name-line .queue-locked-partner-inline.queue-lock-icon-inline .queue-lock-svg{
-  width:11px!important;
-  height:11px!important;
+  display:block!important;
+  flex:0 0 9px!important;
+  width:9px!important;
+  height:9px!important;
+}
+html body[data-page="queueing"] .ranking-list .ranking-name-line .queue-locked-partner-inline.queue-lock-icon-inline .queue-locked-partner-name,
+html body[data-page="queueing"] .expanded-ranking-list .ranking-name-line .queue-locked-partner-inline.queue-lock-icon-inline .queue-locked-partner-name{
+  display:block!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font-size:7px!important;
+  line-height:1.25!important;
 }
 
 /* Queue DUPR editor — left-align typed IDs on desktop only.
@@ -26526,4 +26479,69 @@ html body[data-page="queueing"] .court-picker .picker-player-list .partner-inlin
     min-height: 0 !important;
     overscroll-behavior: contain !important;
   }
+}
+
+
+/* END SESSION ATTENDEES: KEEP THE ROSTER AS A SEPARATE SIDE-BY-SIDE PANEL.
+   Both siblings appear together; no avatar click or slide/width animation. */
+html body #endSessionModal > .end-session-modal-box {
+  transition: none !important;
+}
+html body #endSessionModal.has-attendee-panel > .end-session-modal-box {
+  transition: none !important;
+}
+html body #endSessionModal .end-session-attendee-panel {
+  transition: none !important;
+  transform: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  will-change: auto !important;
+}
+html body #endSessionModal .end-session-attendee-panel.is-open {
+  height: var(--end-session-attendee-panel-height, 0px) !important;
+  max-height: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transition: none !important;
+}
+
+
+/* END SESSION AVATAR SUMMARY — display only; no hover, focus, or click affordance. */
+html body #endSessionModal .end-session-avatar-stack,
+html body #endSessionModal .end-session-avatar-stack .end-session-avatar {
+  pointer-events: none !important;
+  cursor: default !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  transition: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+html body #endSessionModal .end-session-avatar-stack .end-session-avatar-overflow,
+html body #endSessionModal .end-session-avatar-stack .end-session-avatar-overflow:hover,
+html body #endSessionModal .end-session-avatar-stack .end-session-avatar-overflow:focus,
+html body #endSessionModal .end-session-avatar-stack .end-session-avatar-overflow:focus-visible,
+html body #endSessionModal .end-session-avatar-stack .end-session-avatar-overflow:active {
+  cursor: default !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: none !important;
+  background: #242537 !important;
+  color: #b9bbcd !important;
+}
+/* Keep an empty-state message directly below search, not after the flexing roster list. */
+html body #endSessionModal .end-session-attendee-empty {
+  order: 0 !important;
+  flex: 0 0 auto !important;
+  align-self: stretch !important;
+  margin: 2px 0 6px !important;
+  padding: 8px 8px 6px !important;
+  text-align: left !important;
+}
+html body #endSessionModal .end-session-attendee-list {
+  order: 1 !important;
 }

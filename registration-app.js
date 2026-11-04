@@ -62,7 +62,7 @@
   const SKILLS = new Set(['BEG', 'NOV', 'INT', 'ADV', 'EXP']);
   let selectedGender = '';
   let selectedSkill = '';
-  let selectedAvatarId = 'avatar-01';
+  let selectedAvatarId = '';
   let cloudPlayers = [];
   let appPlayers = [];
   let serviceReady = false;
@@ -280,16 +280,24 @@
   }
 
   function selectAvatar(avatarId) {
-    const value = String(avatarId || '');
-    if (!/^avatar-(?:0[1-9]|1[0-9]|2[01])$/.test(value)) return;
+    const value = String(avatarId || '').trim();
+    if (value && !/^avatar-(?:0[1-9]|1[0-9]|2[01])$/.test(value)) return;
     selectedAvatarId = value;
     document.querySelectorAll('.registration-avatar-option').forEach(button => {
-      const selected = button.dataset.avatarId === value;
+      const selected = !!value && button.dataset.avatarId === value;
       button.classList.toggle('is-selected', selected);
       button.setAttribute('aria-pressed', String(selected));
     });
     const selectedLabel = $('registrationAvatarSelectedLabel');
-    if (selectedLabel) selectedLabel.textContent = `Avatar ${value.slice(-2)} selected`;
+    const selectedLine = document.querySelector('.registration-avatar-selected-line');
+    if (selectedLabel) selectedLabel.textContent = value
+      ? `Avatar ${value.slice(-2)} selected`
+      : 'No avatar selected · System will assign one automatically';
+    if (selectedLine) {
+      selectedLine.classList.toggle('is-auto-assigned', !value);
+      const marker = selectedLine.querySelector('.registration-avatar-selected-check');
+      if (marker) marker.textContent = value ? '✓' : '✦';
+    }
   }
 
   function bindAvatarPicker() {
@@ -504,7 +512,7 @@
     $('registerSelfRating').value = '';
     selectedGender = '';
     selectedSkill = '';
-    selectAvatar('avatar-01');
+    selectAvatar('');
     document.querySelectorAll('.gender-choice').forEach(button => {
       button.classList.remove('selected');
       button.setAttribute('aria-pressed', 'false');
@@ -564,7 +572,7 @@
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         cache: 'no-store',
-        body: JSON.stringify({name: fullname, nickname: $('registerNickname').value.trim(), gender: selectedGender, category: selectedSkill, avatarId:selectedAvatarId, duprId, selfRating, duprMatch:registrationDuprSession, organizerId:organizerScope, sessionId:registrationSessionId})
+        body: JSON.stringify({name: fullname, nickname: $('registerNickname').value.trim(), gender: selectedGender, category: selectedSkill, avatarId:selectedAvatarId || '', duprId, selfRating, duprMatch:registrationDuprSession, organizerId:organizerScope, sessionId:registrationSessionId})
       });
       const data = await response.json().catch(() => ({}));
       if (response.status === 409 && data.noActiveSession) {
@@ -578,6 +586,8 @@
           if (!duplicateDuprPlayer(player.duprId || duprId)) cloudPlayers.push({...player, duprId:player.duprId || duprId});
           updateSubmitButton();
           showFeedback('DUPR ID already registered', `This DUPR ID: ${duprId} is already registered under the name: ${player.name}.`, true);
+        } else if (data.duplicateType === 'organizerQueue') {
+          showFeedback('Player already in this queue', `${player.name} is already in this organizer’s live session. No duplicate was added.`, true);
         } else {
           if (!duplicatePlayer(player.name)) cloudPlayers.push(player);
           updateDuplicateMessage();
@@ -586,11 +596,12 @@
         return;
       }
       if (!response.ok || !data.ok) throw new Error(data.error || 'Unable to register this player. Please try again.');
+      if (data.queued !== true) throw new Error('The profile was saved, but the organizer queue did not confirm the check-in. Please retry or contact the organizer.');
 
       if (!cloudPlayers.some(player => normalizedName(player && player.name) === normalizedName(data.player.name))) {
         cloudPlayers.push(data.player);
       }
-      showFeedback('Registered Player', `${data.player.name} was Registered.`);
+      showFeedback('Registered & Queued', `${data.player.name} was added to this organizer’s live queue.`);
       resetForm();
       $('registerFullname').focus();
     } catch (error) {

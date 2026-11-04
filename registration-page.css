@@ -2445,6 +2445,14 @@ html body.registration-page-body .registration-avatar-picker-head .registration-
   letter-spacing: .075em;
   line-height: 1.3;
 }
+html body.registration-page-body .registration-avatar-optional {
+  display: inline-block;
+  margin-left: 4px;
+  color: #99a6aa;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .035em;
+}
 html body.registration-page-body .registration-avatar-picker-hint {
   color: #829399;
   font-family: 'DM Sans', Arial, sans-serif;
@@ -2576,6 +2584,10 @@ html body.registration-page-body .registration-avatar-selected-line {
   font-weight: 700;
   line-height: 1.35;
 }
+html body.registration-page-body .registration-avatar-selected-line.is-auto-assigned {
+  color: #87969b;
+  font-weight: 500;
+}
 html body.registration-page-body .registration-avatar-selected-check {
   display: inline-grid;
   place-items: center;
@@ -2587,6 +2599,10 @@ html body.registration-page-body .registration-avatar-selected-check {
   color: #078b83;
   font-size: 10px;
   font-weight: 900;
+}
+html body.registration-page-body .registration-avatar-selected-line.is-auto-assigned .registration-avatar-selected-check {
+  background: #eef2f3;
+  color: #87969b;
 }
 @media (max-width: 480px) {
   html body.registration-page-body .registration-avatar-picker { margin-bottom: 15px; }

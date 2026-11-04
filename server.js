@@ -38,6 +38,25 @@ let nextClubIdSequence = 1;
 const organizerAppStates = new Map();
 const organizerLiveStates = new Map();
 const organizerAttendanceRecords = new Map();
+// Serialize queue-state writes per organizer. Registration-page commits and
+// normal queue autosaves must not both read the same revision and overwrite
+// each other's state before either write becomes visible.
+const organizerAppStateWriteQueues = new Map();
+let registeredPlayerCommitQueue = Promise.resolve();
+function withOrganizerAppStateWriteLock(organizerId, task) {
+  const key = String(organizerId || '');
+  const previous = organizerAppStateWriteQueues.get(key) || Promise.resolve();
+  const next = previous.catch(() => {}).then(task);
+  organizerAppStateWriteQueues.set(key, next);
+  return next.finally(() => {
+    if (organizerAppStateWriteQueues.get(key) === next) organizerAppStateWriteQueues.delete(key);
+  });
+}
+function withRegisteredPlayerCommitLock(task) {
+  const next = registeredPlayerCommitQueue.catch(() => {}).then(task);
+  registeredPlayerCommitQueue = next.catch(() => {});
+  return next;
+}
 
 // Signed organizer and panel sessions. Credentials and the signing secret stay server-side.
 const AUTH_USERNAME = String(process.env.ORGANIZER_USERNAME || '').trim();
@@ -434,6 +453,106 @@ async function saveOrganizerAppState(id, entry) {
   organizerAppStates.set(id, entry);
   await saveStoredBatch([{key:`app-state:${id}`,filePath:organizerDataPath('app-state',id),value:entry}]);
 }
+function registeredCloudIdOf(player) {
+  return String(player?.registeredCloudId || player?.registrationCloudId || '').trim();
+}
+function mergeRegisteredQueuePlayersIntoSnapshot(incomingState, currentState) {
+  if (!incomingState || !currentState || incomingState.sessionActive !== true || currentState.sessionActive !== true) return null;
+  const sessionId = getSessionId(currentState);
+  if (!sessionId || getSessionId(incomingState) !== sessionId) return null;
+
+  const merged = JSON.parse(JSON.stringify(incomingState));
+  merged.players = Array.isArray(merged.players) ? merged.players : [];
+  merged.left = Array.isArray(merged.left) ? merged.left : [];
+  merged.queue = Array.isArray(merged.queue) ? merged.queue : [];
+  merged.courts = Array.isArray(merged.courts) ? merged.courts : [];
+  merged.sessionMetrics = merged.sessionMetrics && typeof merged.sessionMetrics === 'object'
+    ? merged.sessionMetrics : {cloudCheckins:0,newRegistered:0};
+
+  const currentPlayers = Array.isArray(currentState.players) ? currentState.players : [];
+  const currentLeft = Array.isArray(currentState.left) ? currentState.left : [];
+  const currentQueue = new Set((Array.isArray(currentState.queue) ? currentState.queue : []).map(String));
+  const currentCourts = Array.isArray(currentState.courts) ? currentState.courts : [];
+  const registeredPlayers = [...currentPlayers, ...currentLeft].filter(player => registeredCloudIdOf(player));
+  if (!registeredPlayers.length) return null;
+
+  const allMergedPeople = () => [...merged.players, ...merged.left];
+  const samePerson = (a, b) => {
+    const markerA = registeredCloudIdOf(a);
+    const markerB = registeredCloudIdOf(b);
+    if (markerA && markerB && markerA === markerB) return true;
+    const nameA = normalizePlayerName(a?.name);
+    const nameB = normalizePlayerName(b?.name);
+    return !!nameA && nameA === nameB;
+  };
+  const hasIdCollision = (id, name) => allMergedPeople().some(person =>
+    String(person?.id) === String(id) && normalizePlayerName(person?.name) !== normalizePlayerName(name)
+  );
+  const findCourtForPlayer = id => currentCourts.find(court =>
+    Array.isArray(court?.players) && court.players.some(playerId => String(playerId) === String(id))
+  );
+  let changed = false;
+
+  for (const serverPlayer of registeredPlayers) {
+    const marker = registeredCloudIdOf(serverPlayer);
+    const serverId = serverPlayer?.id;
+    // If the snapshot already contains this person (including in Left Players),
+    // keep its current location. Only restore registrations that the stale
+    // snapshot omitted entirely; this must not undo a deliberate move to Left.
+    const existing = allMergedPeople().find(person => samePerson(person, serverPlayer));
+    if (existing) {
+      if (!registeredCloudIdOf(existing)) {
+        existing.registeredCloudId = marker;
+        changed = true;
+      }
+      continue;
+    }
+
+    let assignedId = serverId;
+    if (assignedId === undefined || assignedId === null || String(assignedId).trim() === '' || hasIdCollision(assignedId, serverPlayer.name)) {
+      let nextId = Math.max(1, Math.floor(Number(merged.nextPlayer) || 1));
+      while (allMergedPeople().some(person => String(person?.id) === String(nextId))) nextId += 1;
+      assignedId = nextId;
+    }
+    const restoredPlayer = {...JSON.parse(JSON.stringify(serverPlayer)), id:assignedId, registeredCloudId:marker};
+    const isInLeft = currentLeft.some(player => samePerson(player, serverPlayer) || String(player?.id) === String(serverId));
+    if (isInLeft) {
+      merged.left.push(restoredPlayer);
+    } else {
+      merged.players.push(restoredPlayer);
+      const serverCourt = findCourtForPlayer(serverId);
+      if (currentQueue.has(String(serverId))) {
+        if (!merged.queue.some(id => String(id) === String(assignedId))) merged.queue.push(assignedId);
+      } else if (serverCourt) {
+        const matchingCourt = merged.courts.find(court => String(court?.id) === String(serverCourt.id));
+        const sourceSlot = serverCourt.players.findIndex(id => String(id) === String(serverId));
+        if (matchingCourt && sourceSlot >= 0) {
+          matchingCourt.players = Array.isArray(matchingCourt.players) ? matchingCourt.players : [];
+          while (matchingCourt.players.length <= sourceSlot) matchingCourt.players.push(null);
+          if (!matchingCourt.players[sourceSlot] || String(matchingCourt.players[sourceSlot]) === String(serverId)) {
+            matchingCourt.players[sourceSlot] = assignedId;
+            restoredPlayer.court = matchingCourt.id;
+          } else if (!merged.queue.some(id => String(id) === String(assignedId))) {
+            merged.queue.push(assignedId);
+          }
+        } else if (!merged.queue.some(id => String(id) === String(assignedId))) {
+          merged.queue.push(assignedId);
+        }
+      }
+    }
+    changed = true;
+  }
+
+  const currentNewRegistered = Number(currentState.sessionMetrics?.newRegistered) || 0;
+  const incomingNewRegistered = Number(merged.sessionMetrics?.newRegistered) || 0;
+  if (currentNewRegistered > incomingNewRegistered) {
+    merged.sessionMetrics.newRegistered = currentNewRegistered;
+    changed = true;
+  }
+  const maxPlayerId = allMergedPeople().reduce((max, person) => Math.max(max, Number(person?.id) || 0), 0);
+  merged.nextPlayer = Math.max(Number(merged.nextPlayer) || 1, Number(currentState.nextPlayer) || 1, maxPlayerId + 1);
+  return changed ? merged : null;
+}
 async function saveOrganizerLiveState(id, snapshot) {
   organizerLiveStates.set(id, snapshot);
   await saveStoredBatch([{key:`live-state:${id}`,filePath:organizerDataPath('live-state',id),value:snapshot}]);
@@ -653,7 +772,7 @@ async function loadRegisteredPlayersCsv() {
   }
 }
 
-function persistSharedCloudRecords() {
+function persistSharedCloudRecords(additionalEntries = []) {
   const current = sharedCloudRecords || {players:[],logs:[],sessions:[]};
   const snapshot = JSON.parse(JSON.stringify({
     players:Array.isArray(current.players) ? current.players : [],
@@ -670,6 +789,7 @@ function persistSharedCloudRecords() {
     // cloud envelope for match logs/session history and sync metadata only.
     records:{players:[],logs:snapshot.logs,sessions:snapshot.sessions}
   };
+  const extraEntries = Array.isArray(additionalEntries) ? additionalEntries.filter(entry => entry && entry.key && entry.filePath) : [];
   const job = async () => {
     await fs.promises.mkdir(DATA_DIR, {recursive:true});
     if (dbPool) {
@@ -678,7 +798,8 @@ function persistSharedCloudRecords() {
         await client.query('BEGIN');
         for (const entry of [
           {key:'registered-player-csv', value:{csv,updatedAt:snapshotUpdatedAt}},
-          {key:'cloud-records', value:cloudEnvelope}
+          {key:'cloud-records', value:cloudEnvelope},
+          ...extraEntries
         ]) {
           await client.query(
             `INSERT INTO pickle_point_storage (storage_key, payload, updated_at)
@@ -695,16 +816,16 @@ function persistSharedCloudRecords() {
       } finally {
         client.release();
       }
-      // The database row above is durable on hosted deployments. Keep a real
-      // CSV file on the instance as an easy-to-inspect/export mirror; it is
-      // regenerated from the durable CSV payload after a restart/deploy.
+      // The database rows above are durable on hosted deployments. Keep a real
+      // CSV file on the instance as an easy-to-inspect/export mirror.
       try { await writeFileAtomic(REGISTERED_PLAYERS_CSV_FILE, csv); }
       catch (err) { console.warn('Could not refresh registered-players.csv mirror:', err.message); }
       return;
     }
     await Promise.all([
       writeFileAtomic(REGISTERED_PLAYERS_CSV_FILE, csv),
-      writeFileAtomic(CLOUD_RECORDS_FILE, JSON.stringify(cloudEnvelope))
+      writeFileAtomic(CLOUD_RECORDS_FILE, JSON.stringify(cloudEnvelope)),
+      ...extraEntries.map(entry => writeFileAtomic(entry.filePath, JSON.stringify(entry.value)))
     ]);
   };
   sharedCloudPersistenceQueue = sharedCloudPersistenceQueue.catch(() => {}).then(job);
@@ -1439,7 +1560,7 @@ async function handle(req, res) {
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     if (!organizerId) return sendJson(res,401,{ok:false,error:'An organizer-specific registration link or organizer login is required.'});
     const entry = getOrganizerAppEntry(organizerId);
-    return sendJson(res, 200, {ok:true,revision:entry.revision,state:entry.state,updatedAt:entry.updatedAt,organizerId});
+    return sendJson(res, 200, {ok:true,revision:entry.revision,state:entry.state,updatedAt:entry.updatedAt,clientId:entry.clientId||null,organizerId});
   }
   if (url.pathname === '/api/app-state' && req.method === 'POST') {
     try {
@@ -1453,63 +1574,84 @@ async function handle(req, res) {
           !Array.isArray(incoming.queue) || !Array.isArray(incoming.courts) || !Array.isArray(incoming.logs)) {
         return sendJson(res, 400, {ok:false,error:'Invalid shared application state'});
       }
-      const currentEntry = getOrganizerAppEntry(organizerId);
-      if (body.onlyIfEmpty && currentEntry.state) {
-        return sendJson(res, 200, {ok:true,accepted:false,unchanged:true,revision:currentEntry.revision,state:currentEntry.state,updatedAt:currentEntry.updatedAt});
-      }
-      const snapshot = withoutOpgFields(JSON.parse(JSON.stringify(incoming)));
-      snapshot.sessionId = getSessionId(snapshot) || null;
-      if (isStaleSessionWrite(currentEntry, snapshot, body)) {
-        return sendJson(res, 409, {ok:false,conflict:true,staleSession:true,error:'This update belongs to an older session',revision:currentEntry.revision,state:currentEntry.state,updatedAt:currentEntry.updatedAt});
-      }
-      const startsFreshSessionAfterEnd = isEndedSessionState(currentEntry.state) &&
-        snapshot.sessionActive === true && !!getSessionId(snapshot) &&
-        getSessionId(snapshot) !== getSessionId(currentEntry.state);
-      // A device may still hold the previous revision when another device ends
-      // the session. A newly identified session is allowed to start from that
-      // terminal state instead of being blocked by the stale revision alone.
-      // Competing new sessions are still serialized by the session-ID guard.
-      if (!body.onlyIfEmpty && !startsFreshSessionAfterEnd && Number.isFinite(Number(body.baseRevision)) && Number(body.baseRevision) !== currentEntry.revision) {
-        return sendJson(res, 409, {ok:false,conflict:true,error:'Queue state changed on another device',revision:currentEntry.revision,state:currentEntry.state,updatedAt:currentEntry.updatedAt});
-      }
-      // A terminal end marker is authoritative. Never allow stale arrays to
-      // survive as an apparently active queue on another device.
-      if (isEndedSessionState(snapshot)) {
-        snapshot.players = [];
-        snapshot.left = [];
-        snapshot.queue = [];
-        snapshot.lockedPartners = [];
-        snapshot.courts = [];
-        snapshot.logs = [];
-        snapshot.nextPlayer = 1;
-        snapshot.nextCourt = 1;
-        snapshot.nextWaitingCourt = 1;
-        snapshot.nextLog = 1;
-        snapshot.sessionMetrics = {cloudCheckins:0,newRegistered:0};
-      }
-      let entry = currentEntry;
-      if (JSON.stringify(currentEntry.state) !== JSON.stringify(snapshot)) {
-        const previousSessionId = getSessionId(currentEntry.state);
-        entry = {revision:currentEntry.revision+1,updatedAt:new Date().toISOString(),clientId:String(body.clientId||'').slice(0,100)||null,state:snapshot};
-        await saveOrganizerAppState(organizerId,entry);
-        // Storage writes can overlap with another device's next revision. Only
-        // publish transition snapshots/events while this entry is still current.
-        if (getOrganizerAppEntry(organizerId).revision === entry.revision) {
-          const nextSessionId = getSessionId(snapshot);
-          const sessionChanged = previousSessionId !== nextSessionId;
-          if (isEndedSessionState(snapshot) || sessionChanged) {
-            const transitionLiveState = makeSessionTransitionLiveSnapshot(snapshot, getOrganizerLiveState(organizerId), entry.updatedAt);
-            await saveOrganizerLiveState(organizerId, transitionLiveState);
-            if (getOrganizerAppEntry(organizerId).revision === entry.revision && getOrganizerLiveState(organizerId) === transitionLiveState) {
-              broadcast(transitionLiveState, organizerId);
+      return await withOrganizerAppStateWriteLock(organizerId, async () => {
+        const currentEntry = getOrganizerAppEntry(organizerId);
+        if (body.onlyIfEmpty && currentEntry.state) {
+          return sendJson(res, 200, {ok:true,accepted:false,unchanged:true,revision:currentEntry.revision,state:currentEntry.state,updatedAt:currentEntry.updatedAt});
+        }
+        let snapshot = withoutOpgFields(JSON.parse(JSON.stringify(incoming)));
+        snapshot.sessionId = getSessionId(snapshot) || null;
+        if (isStaleSessionWrite(currentEntry, snapshot, body)) {
+          return sendJson(res, 409, {ok:false,conflict:true,staleSession:true,error:'This update belongs to an older session',revision:currentEntry.revision,state:currentEntry.state,updatedAt:currentEntry.updatedAt,clientId:currentEntry.clientId||null});
+        }
+        const startsFreshSessionAfterEnd = isEndedSessionState(currentEntry.state) &&
+          snapshot.sessionActive === true && !!getSessionId(snapshot) &&
+          getSessionId(snapshot) !== getSessionId(currentEntry.state);
+        // A registration QR writes directly to the organizer queue. If an older
+        // queue autosave arrives after that commit, merge the registration into
+        // the stale snapshot instead of returning a conflict that older clients
+        // may retry by overwriting the new player. The lock above also closes
+        // the race where both requests previously read the same revision.
+        let registrationSnapshotProtected = false;
+        if (!body.onlyIfEmpty && !startsFreshSessionAfterEnd) {
+          // Some already-open queue tabs receive the registration event, advance
+          // their revision, then upload an older local snapshot. Revision checks
+          // alone cannot detect that echo because it now carries the latest
+          // revision. Protect this one immediate registration echo as well.
+          if (currentEntry.clientId === 'registration-page' || currentEntry.clientId === 'registration-page-merge') {
+            const immediateMerge = mergeRegisteredQueuePlayersIntoSnapshot(snapshot, currentEntry.state);
+            if (immediateMerge) {
+              snapshot = immediateMerge;
+              registrationSnapshotProtected = true;
             }
           }
-          if (getOrganizerAppEntry(organizerId).revision === entry.revision) {
-            broadcastNamedEvent('app-state',{revision:entry.revision,updatedAt:entry.updatedAt,clientId:entry.clientId,state:entry.state,organizerId},organizerId);
+          if (!registrationSnapshotProtected && Number.isFinite(Number(body.baseRevision)) && Number(body.baseRevision) !== currentEntry.revision) {
+            const mergedSnapshot = mergeRegisteredQueuePlayersIntoSnapshot(snapshot, currentEntry.state);
+            if (mergedSnapshot) {
+              snapshot = mergedSnapshot;
+              registrationSnapshotProtected = true;
+            } else {
+              return sendJson(res, 409, {ok:false,conflict:true,error:'Queue state changed on another device',revision:currentEntry.revision,state:currentEntry.state,updatedAt:currentEntry.updatedAt,clientId:currentEntry.clientId||null});
+            }
           }
         }
-      }
-      return sendJson(res, 200, {ok:true,accepted:true,revision:entry.revision,updatedAt:entry.updatedAt,unchanged:JSON.stringify(entry.state)===JSON.stringify(snapshot)});
+        // A terminal end marker is authoritative. Never allow stale arrays to
+        // survive as an apparently active queue on another device.
+        if (isEndedSessionState(snapshot)) {
+          snapshot.players = [];
+          snapshot.left = [];
+          snapshot.queue = [];
+          snapshot.lockedPartners = [];
+          snapshot.courts = [];
+          snapshot.logs = [];
+          snapshot.nextPlayer = 1;
+          snapshot.nextCourt = 1;
+          snapshot.nextWaitingCourt = 1;
+          snapshot.nextLog = 1;
+          snapshot.sessionMetrics = {cloudCheckins:0,newRegistered:0};
+        }
+        let entry = currentEntry;
+        if (JSON.stringify(currentEntry.state) !== JSON.stringify(snapshot)) {
+          const previousSessionId = getSessionId(currentEntry.state);
+          entry = {revision:currentEntry.revision+1,updatedAt:new Date().toISOString(),clientId:registrationSnapshotProtected?'registration-page-merge':(String(body.clientId||'').slice(0,100)||null),state:snapshot};
+          await saveOrganizerAppState(organizerId,entry);
+          if (getOrganizerAppEntry(organizerId).revision === entry.revision) {
+            const nextSessionId = getSessionId(snapshot);
+            const sessionChanged = previousSessionId !== nextSessionId;
+            if (isEndedSessionState(snapshot) || sessionChanged) {
+              const transitionLiveState = makeSessionTransitionLiveSnapshot(snapshot, getOrganizerLiveState(organizerId), entry.updatedAt);
+              await saveOrganizerLiveState(organizerId, transitionLiveState);
+              if (getOrganizerAppEntry(organizerId).revision === entry.revision && getOrganizerLiveState(organizerId) === transitionLiveState) {
+                broadcast(transitionLiveState, organizerId);
+              }
+            }
+            if (getOrganizerAppEntry(organizerId).revision === entry.revision) {
+              broadcastNamedEvent('app-state',{revision:entry.revision,updatedAt:entry.updatedAt,clientId:entry.clientId,state:entry.state,organizerId},organizerId);
+            }
+          }
+        }
+        return sendJson(res, 200, {ok:true,accepted:true,revision:entry.revision,updatedAt:entry.updatedAt,unchanged:JSON.stringify(entry.state)===JSON.stringify(snapshot)});
+      });
     } catch (err) { return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to save organizer queue state'}); }
   }
 
@@ -1993,8 +2135,8 @@ async function handle(req, res) {
       return sendJson(res, 200, {ok:true,accepted:true,revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,unchanged:JSON.stringify(sharedCloudRecords)===JSON.stringify(records)});
     } catch (err) { return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to save Registered Player Cloud records'}); }
   }
-  // Register a player profile in the global Registered Player Cloud only.
-  // Queue check-in remains an organizer-controlled action from queueing.html.
+  // Register a player profile in the shared cloud and immediately add it to
+  // the live queue belonging to the organizer selected by this registration link.
   if (url.pathname === '/api/register-player' && req.method === 'POST') {
     try {
       const body = await readBody(req, 16 * 1024);
@@ -2002,20 +2144,14 @@ async function handle(req, res) {
       const nickname = String(body?.nickname || '').normalize('NFC').trim().replace(/\s+/g, ' ').slice(0, 80);
       const gender = String(body?.gender || '');
       const category = String(body?.category || '').toUpperCase();
-      const requestedAvatarId = String(body?.avatarId || 'avatar-01');
-      const avatarId = /^avatar-(?:0[1-9]|1[0-9]|2[01])$/.test(requestedAvatarId) ? requestedAvatarId : 'avatar-01';
+      const requestedAvatarId = String(body?.avatarId || '').trim();
+      const avatarId = normalizeAvatarId(requestedAvatarId) || fallbackAvatarIdForPlayer({name,gender});
       const requestedScope = String(url.searchParams.get('organizer') || body?.organizerId || '').trim();
       if (!requestedScope) return sendJson(res, 400, {ok:false,error:'Organizer-specific registration link required. Please scan the QR code or use the link provided by your organizer.'});
       const organizerId = accountById(requestedScope)?.id || null;
       if (!organizerId) return sendJson(res, 400, {ok:false,error:'Organizer link is invalid or inactive. Ask the organizer for an updated registration link.'});
 
-      // Registration links generated by the organizer are tied to one session.
-      // The active session check is server-side, so a stale QR or already-open
-      // registration form cannot submit after End Session.
       const requestedSessionId = String(url.searchParams.get('session') || body?.sessionId || '').trim();
-      let registrationSessionStatus = getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId);
-      if (!registrationSessionStatus.active) return sendJson(res, 409, registrationSessionUnavailableResponse(registrationSessionStatus));
-
       const requestedDuprMode = url.searchParams.get('dupr');
       const isDuprSession = requestedDuprMode === null
         ? body?.duprMatch === true
@@ -2028,57 +2164,83 @@ async function handle(req, res) {
       if (isDuprSession && !/^[A-Z0-9]{6}$/.test(duprId)) return sendJson(res, 400, {ok:false,error:'DUPR ID must contain exactly 6 letters or numbers (for example, 1A2B3C).'});
       if (isDuprSession && selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) return sendJson(res, 400, {ok:false,error:'Enter self rating as a number or a numeric range, such as 2.5/4.0.'});
 
-      // Registration is reachable only through an organizer-specific link.
-      // Its records intentionally remain in the single shared Registered Player Cloud.
-      const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
-      const currentPlayers = Array.isArray(currentRecords.players) ? currentRecords.players : [];
-      const duplicateDupr = isDuprSession && duprId ? currentPlayers.find(p => {
-        const registeredId = String(p?.duprId ?? p?.duprID ?? p?.dupr_id ?? '')
-          .trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
-        return registeredId === duprId;
-      }) : null;
-      if (duplicateDupr) {
-        const registeredId = String(duplicateDupr.duprId ?? duplicateDupr.duprID ?? duplicateDupr.dupr_id ?? duprId).trim().toUpperCase();
-        return sendJson(res, 409, {
-          ok:false,
-          duplicate:true,
-          duplicateType:'duprId',
-          error:`This DUPR ID: ${duprId} is already registered under the name: ${duplicateDupr.name}.`,
-          player:{name:duplicateDupr.name,duprId:registeredId}
-        });
-      }
-      const duplicate = currentPlayers.find(p => normalizePlayerName(p?.name) === normalizePlayerName(name));
-      if (duplicate) return sendJson(res, 409, {ok:false,duplicate:true,duplicateType:'name',error:'This user is already registered in Registered Player Cloud',player:{name:duplicate.name}});
+      // Serialize Registered Player Cloud creation and the organizer queue
+      // write together, with the same lock used by normal queue autosaves.
+      return await withRegisteredPlayerCommitLock(() => withOrganizerAppStateWriteLock(organizerId, async () => {
+        let registrationSessionStatus = getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId);
+        if (!registrationSessionStatus.active) return sendJson(res, 409, registrationSessionUnavailableResponse(registrationSessionStatus));
 
-      // Re-check immediately before committing the record. This closes the gap
-      // where the organizer ends or replaces the session while the form is open.
-      registrationSessionStatus = getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId);
-      if (!registrationSessionStatus.active) return sendJson(res, 409, registrationSessionUnavailableResponse(registrationSessionStatus));
+        const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
+        const currentPlayers = Array.isArray(currentRecords.players) ? currentRecords.players : [];
+        const duplicateDupr = isDuprSession && duprId ? currentPlayers.find(player => {
+          const registeredId = String(player?.duprId ?? player?.duprID ?? player?.dupr_id ?? '')
+            .trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
+          return registeredId === duprId;
+        }) : null;
+        if (duplicateDupr) {
+          const registeredId = String(duplicateDupr.duprId ?? duplicateDupr.duprID ?? duplicateDupr.dupr_id ?? duprId).trim().toUpperCase();
+          return sendJson(res, 409, {ok:false,duplicate:true,duplicateType:'duprId',error:`This DUPR ID: ${duprId} is already registered under the name: ${duplicateDupr.name}.`,player:{name:duplicateDupr.name,duprId:registeredId}});
+        }
+        const duplicate = currentPlayers.find(player => normalizePlayerName(player?.name) === normalizePlayerName(name));
+        if (duplicate) return sendJson(res, 409, {ok:false,duplicate:true,duplicateType:'name',error:'This user is already registered in Registered Player Cloud',player:{name:duplicate.name}});
 
-      const records = JSON.parse(JSON.stringify(currentRecords));
-      records.players = Array.isArray(records.players) ? records.players : [];
-      records.logs = Array.isArray(records.logs) ? records.logs : [];
-      records.sessions = Array.isArray(records.sessions) ? records.sessions : [];
-      const cloudId = Date.now() + Math.floor(Math.random() * 100000);
-      const cloudPlayer = {cloudId,name,nickname,gender,category,avatarId,duprId,selfRating,matches:0,wins:0,losses:0};
-      records.players.push(cloudPlayer);
+        registrationSessionStatus = getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId);
+        if (!registrationSessionStatus.active) return sendJson(res, 409, registrationSessionUnavailableResponse(registrationSessionStatus));
+        const organizerEntry = getOrganizerAppEntry(organizerId);
+        const organizerState = organizerEntry?.state ? JSON.parse(JSON.stringify(organizerEntry.state)) : null;
+        if (!organizerState || organizerState.sessionActive !== true || getSessionId(organizerState) !== registrationSessionStatus.sessionId) {
+          return sendJson(res, 409, registrationSessionUnavailableResponse(getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId)));
+        }
+        organizerState.players = Array.isArray(organizerState.players) ? organizerState.players : [];
+        organizerState.left = Array.isArray(organizerState.left) ? organizerState.left : [];
+        organizerState.queue = Array.isArray(organizerState.queue) ? organizerState.queue : [];
+        const alreadyInOrganizerSession = [...organizerState.players, ...organizerState.left].find(player =>
+          normalizePlayerName(player?.name) === normalizePlayerName(name)
+        );
+        if (alreadyInOrganizerSession) {
+          return sendJson(res, 409, {ok:false,duplicate:true,duplicateType:'organizerQueue',error:`${alreadyInOrganizerSession.name} is already in this organizer’s live session.`,player:{name:alreadyInOrganizerSession.name}});
+        }
 
-      sharedCloudRecords = records;
-      sharedCloudRevision += 1;
-      sharedCloudUpdatedAt = new Date().toISOString();
-      sharedCloudClientId = 'registration-page';
-      await persistSharedCloudRecords();
-      broadcastNamedEvent('cloud-records',{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
+        const records = JSON.parse(JSON.stringify(currentRecords));
+        records.players = Array.isArray(records.players) ? records.players : [];
+        records.logs = Array.isArray(records.logs) ? records.logs : [];
+        records.sessions = Array.isArray(records.sessions) ? records.sessions : [];
+        const registeredAt = new Date().toISOString();
+        const now = Date.now();
+        const cloudId = now + Math.floor(Math.random() * 100000);
+        const cloudPlayer = {cloudId,registeredAt,name,nickname,gender,category,avatarId,duprId,selfRating,matches:0,wins:0,losses:0};
+        records.players.push(cloudPlayer);
 
-      return sendJson(res, 200, {
-        ok:true,
-        player:cloudPlayer,
-        queued:false,
-        cloudOnly:true,
-        cloudCount:sharedCloudRecords.players.length,
-        cloudRevision:sharedCloudRevision,
-        organizerId
-      });
+        let nextPlayerId = Math.max(1, Math.floor(Number(organizerState.nextPlayer) || 1));
+        const occupiedIds = new Set([...organizerState.players, ...organizerState.left].map(player => String(player?.id)));
+        while (occupiedIds.has(String(nextPlayerId))) nextPlayerId += 1;
+        const queuePlayer = {
+          id:nextPlayerId,name,nickname,wins:0,court:null,gender,category,avatarId,duprId,selfRating,
+          queuedAt:now,waitingSince:now,registeredCloudId:cloudId
+        };
+        organizerState.players.push(queuePlayer);
+        if (!organizerState.queue.some(id => String(id) === String(nextPlayerId))) organizerState.queue.push(nextPlayerId);
+        organizerState.nextPlayer = nextPlayerId + 1;
+        organizerState.sessionMetrics = organizerState.sessionMetrics && typeof organizerState.sessionMetrics === 'object'
+          ? {...organizerState.sessionMetrics} : {cloudCheckins:0,newRegistered:0};
+        organizerState.sessionMetrics.cloudCheckins = Number(organizerState.sessionMetrics.cloudCheckins) || 0;
+        organizerState.sessionMetrics.newRegistered = (Number(organizerState.sessionMetrics.newRegistered) || 0) + 1;
+
+        const nextOrganizerEntry = {revision:(Number(organizerEntry.revision) || 0) + 1,updatedAt:registeredAt,clientId:'registration-page',state:organizerState};
+        sharedCloudRecords = records;
+        sharedCloudRevision += 1;
+        sharedCloudUpdatedAt = registeredAt;
+        sharedCloudClientId = 'registration-page';
+        await persistSharedCloudRecords([{
+          key:`app-state:${organizerId}`,
+          filePath:organizerDataPath('app-state',organizerId),
+          value:nextOrganizerEntry
+        }]);
+        organizerAppStates.set(organizerId,nextOrganizerEntry);
+        broadcastNamedEvent('cloud-records',{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
+        broadcastNamedEvent('app-state',{revision:nextOrganizerEntry.revision,updatedAt:nextOrganizerEntry.updatedAt,clientId:nextOrganizerEntry.clientId,state:nextOrganizerEntry.state,organizerId},organizerId);
+        return sendJson(res, 200, {ok:true,player:cloudPlayer,queuePlayer,queued:true,queuePosition:organizerState.queue.length,cloudOnly:false,cloudCount:sharedCloudRecords.players.length,cloudRevision:sharedCloudRevision,appRevision:nextOrganizerEntry.revision,organizerId});
+      }));
     } catch (err) {
       return sendJson(res, err.statusCode || 500, {ok:false,error:err.statusCode===413?'Payload too large':err.message||'Unable to register player'});
     }

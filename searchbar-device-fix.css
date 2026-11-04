@@ -10,7 +10,6 @@
 /* Match Registered Player Search typography. Reset iOS's native search control
    appearance, which can otherwise ignore some browser-specific input styling. */
 html body #queueMainArea #registeredPlayerSearch,
-html body #historySearchInput,
 html body #cloudRecordsSearch,
 html body #leftPlayersSearch,
 html body #pageRankingSearch,
@@ -30,13 +29,11 @@ html body #pageMatchesSearch {
 }
 
 html body #queueMainArea #registeredPlayerSearch::placeholder,
-html body #historySearchInput::placeholder,
 html body #cloudRecordsSearch::placeholder,
 html body #leftPlayersSearch::placeholder,
 html body #pageRankingSearch::placeholder,
 html body #pageMatchesSearch::placeholder,
 html body #queueMainArea #registeredPlayerSearch::-webkit-input-placeholder,
-html body #historySearchInput::-webkit-input-placeholder,
 html body #cloudRecordsSearch::-webkit-input-placeholder,
 html body #leftPlayersSearch::-webkit-input-placeholder,
 html body #pageRankingSearch::-webkit-input-placeholder,
@@ -53,8 +50,7 @@ html body #pageMatchesSearch::-webkit-input-placeholder {
 
 /* Keep each control's own layout. Only normalize the visible border/background
    states. The cloud and left-player border belongs to their wrapping label. */
-html body #queueMainArea #registeredPlayerSearch,
-html body #historySearchInput {
+html body #queueMainArea #registeredPlayerSearch {
   border-color: #ccd8df !important;
   background-color: #fff !important;
   transition: border-color .16s ease, background-color .16s ease, color .16s ease !important;
@@ -69,7 +65,6 @@ html body #leftPlayersModal .left-players-search-wrap {
 
 /* Hover state for mouse/trackpad devices; no shadow is used. */
 html body #queueMainArea #registeredPlayerSearch:hover:not(:focus),
-html body #historySearchInput:hover:not(:focus),
 html body #cloudRecordsModal .cloud-search-wrap:hover:not(:focus-within),
 html body #leftPlayersModal .left-players-search-wrap:hover:not(:focus-within),
 html body .live-ranking-search:hover:not(:focus-within) {
@@ -81,8 +76,6 @@ html body .live-ranking-search:hover:not(:focus-within) {
 /* Click/focus state works on touch devices where :hover is unavailable. */
 html body #queueMainArea #registeredPlayerSearch:focus,
 html body #queueMainArea #registeredPlayerSearch:focus-visible,
-html body #historySearchInput:focus,
-html body #historySearchInput:focus-visible,
 html body #cloudRecordsModal .cloud-search-wrap:focus-within,
 html body #leftPlayersModal .left-players-search-wrap:focus-within,
 html body .live-ranking-search:focus-within {
@@ -94,7 +87,6 @@ html body .live-ranking-search:focus-within {
 }
 
 html body #queueMainArea #registeredPlayerSearch:active,
-html body #historySearchInput:active,
 html body #cloudRecordsModal .cloud-search-wrap:active,
 html body #leftPlayersModal .left-players-search-wrap:active,
 html body .live-ranking-search:active {
@@ -131,7 +123,6 @@ html:not([data-theme="light"]) body #pageMatchesSearch::-webkit-input-placeholde
 /* Keep entered text and placeholder typography compact on tablets/touch devices. */
 @media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
   html body #queueMainArea #registeredPlayerSearch,
-  html body #historySearchInput,
   html body #cloudRecordsSearch,
   html body #leftPlayersSearch,
   html body #pageRankingSearch,
@@ -141,13 +132,11 @@ html:not([data-theme="light"]) body #pageMatchesSearch::-webkit-input-placeholde
   }
 
   html body #queueMainArea #registeredPlayerSearch::placeholder,
-  html body #historySearchInput::placeholder,
   html body #cloudRecordsSearch::placeholder,
   html body #leftPlayersSearch::placeholder,
   html body #pageRankingSearch::placeholder,
   html body #pageMatchesSearch::placeholder,
   html body #queueMainArea #registeredPlayerSearch::-webkit-input-placeholder,
-  html body #historySearchInput::-webkit-input-placeholder,
   html body #cloudRecordsSearch::-webkit-input-placeholder,
   html body #leftPlayersSearch::-webkit-input-placeholder,
   html body #pageRankingSearch::-webkit-input-placeholder,

@@ -410,7 +410,8 @@ html body[data-page="queueing"] #rankingView .leaderboard-heading h2 {
   font-weight: 800 !important;
   white-space: nowrap !important;
 }
-html body[data-page="queueing"] #rankingView .leaderboard-search-wrap {
+html body[data-page="queueing"] #rankingView .leaderboard-search-wrap,
+html body[data-page="queueing"] #historyView .leaderboard-search-wrap {
   display: flex !important;
   align-items: center !important;
   align-self: stretch !important;
@@ -432,7 +433,13 @@ html body[data-page="queueing"] #rankingView .leaderboard-search-wrap {
   overflow: hidden !important;
   box-sizing: border-box !important;
 }
-html body[data-page="queueing"] #rankingView .leaderboard-search-icon {
+/* Give Match History search a small breathing gap before the first history card. */
+html body[data-page="queueing"] #historyView #historySearchWrap {
+  margin-bottom: 7px !important;
+}
+
+html body[data-page="queueing"] #rankingView .leaderboard-search-icon,
+html body[data-page="queueing"] #historyView .leaderboard-search-icon {
   flex: 0 0 12px !important;
   width: 12px !important;
   height: 12px !important;
@@ -442,7 +449,8 @@ html body[data-page="queueing"] #rankingView .leaderboard-search-icon {
   stroke-linecap: round !important;
   stroke-linejoin: round !important;
 }
-html body[data-page="queueing"] #rankingView #leaderboardSearchInput {
+html body[data-page="queueing"] #rankingView #leaderboardSearchInput,
+html body[data-page="queueing"] #historyView #historySearchInput {
   display: block !important;
   flex: 1 1 auto !important;
   width: 100% !important;
@@ -464,12 +472,14 @@ html body[data-page="queueing"] #rankingView #leaderboardSearchInput {
   line-height: 1.2 !important;
   box-shadow: none !important;
 }
-html body[data-page="queueing"] #rankingView #leaderboardSearchInput::placeholder {
+html body[data-page="queueing"] #rankingView #leaderboardSearchInput::placeholder,
+html body[data-page="queueing"] #historyView #historySearchInput::placeholder {
   color: #98a3ad !important;
   opacity: 1 !important;
   font-weight: 500 !important;
 }
-html body[data-page="queueing"] #rankingView #leaderboardSearchInput::-webkit-search-cancel-button {
+html body[data-page="queueing"] #rankingView #leaderboardSearchInput::-webkit-search-cancel-button,
+html body[data-page="queueing"] #historyView #historySearchInput::-webkit-search-cancel-button {
   cursor: pointer;
 }
 html body[data-page="queueing"] #rankingView .leaderboard-filter-controls {
@@ -545,9 +555,16 @@ html body[data-page="queueing"] #rankingView .leaderboard-player-filters .player
   background: #203746 !important;
   color: #fff !important;
 }
-html body[data-page="queueing"] #rankingView .leaderboard-player-filters .player-lockin span {
-  margin-right: 3px !important;
-  font-size: 8px !important;
+html body[data-page="queueing"] #rankingView .leaderboard-player-filters .player-lockin .leaderboard-filter-lock-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 10px !important;
+  width: 10px !important;
+  height: 10px !important;
+  margin: 0 4px 0 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
 }
 html body[data-page="queueing"] #rankingView .leaderboard-filter-empty {
   display: flex !important;
@@ -572,7 +589,6 @@ html body[data-page="queueing"] #rankingView .leaderboard-filter-empty {
 
 /* Keep the requested 10px corner radius without changing default border colors. */
 html body[data-page="queueing"] #queueMainArea #registeredPlayerSearch,
-html body[data-page="queueing"] #historyView #historySearchInput,
 html body[data-page="queueing"] #endSessionModal .end-session-attendee-search,
 html body[data-page="queueing"] #queueMainArea .queue-lock-partner-search,
 html body[data-page="queueing"] .court-picker .picker-search {
@@ -583,6 +599,7 @@ html body[data-page="queueing"] .court-picker .picker-search {
 
 /* These controls draw their border on the outer wrapper, not the inner input. */
 html body[data-page="queueing"] #rankingView .leaderboard-search-wrap,
+html body[data-page="queueing"] #historyView .leaderboard-search-wrap,
 html body[data-page="queueing"] #leftPlayersModal .left-players-search-wrap,
 html body[data-page="queueing"] #cloudRecordsModal .cloud-search-wrap {
   border-radius: 10px !important;
@@ -594,8 +611,6 @@ html body[data-page="queueing"] #cloudRecordsModal .cloud-search-wrap {
    original neutral border color and width. */
 html body[data-page="queueing"] #queueMainArea #registeredPlayerSearch:focus,
 html body[data-page="queueing"] #queueMainArea #registeredPlayerSearch:focus-visible,
-html body[data-page="queueing"] #historyView #historySearchInput:focus,
-html body[data-page="queueing"] #historyView #historySearchInput:focus-visible,
 html body[data-page="queueing"] #endSessionModal .end-session-attendee-search:focus,
 html body[data-page="queueing"] #endSessionModal .end-session-attendee-search:focus-visible,
 html body[data-page="queueing"] #queueMainArea .queue-lock-partner-search:focus,
@@ -609,6 +624,7 @@ html body[data-page="queueing"] .court-picker .picker-search:focus-visible {
 
 /* The leaderboard, Cloud, and Left Players borders belong to their wrappers. */
 html body[data-page="queueing"] #rankingView .leaderboard-search-wrap:focus-within,
+html body[data-page="queueing"] #historyView .leaderboard-search-wrap:focus-within,
 html body[data-page="queueing"] #leftPlayersModal .left-players-search-wrap:focus-within,
 html body[data-page="queueing"] #cloudRecordsModal .cloud-search-wrap:focus-within {
   border-width: 1.5px !important;
@@ -618,6 +634,7 @@ html body[data-page="queueing"] #cloudRecordsModal .cloud-search-wrap:focus-with
 
 /* Keep wrapped search inputs borderless; the wrapper supplies the focus border. */
 html body[data-page="queueing"] #rankingView #leaderboardSearchInput,
+html body[data-page="queueing"] #historyView #historySearchInput,
 html body[data-page="queueing"] #leftPlayersModal #leftPlayersSearch,
 html body[data-page="queueing"] #cloudRecordsModal #cloudRecordsSearch {
   border: 0 !important;
@@ -831,7 +848,9 @@ html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-control
   display: none !important;
 }
 html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-row,
-html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-row {
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-row,
+html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-row,
+html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-row {
   display: flex !important;
   align-items: center !important;
   flex-wrap: wrap !important;
@@ -840,7 +859,9 @@ html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-row {
   min-width: 0 !important;
 }
 html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip,
-html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip {
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip,
+html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-chip,
+html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -861,7 +882,9 @@ html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip {
   transition: background .14s ease, border-color .14s ease, color .14s ease !important;
 }
 html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-all.active,
-html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-all.active {
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-all.active,
+html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-chip.gender-all.active,
+html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip.gender-all.active {
   border-color: #203746 !important;
   background: #203746 !important;
   color: #fff !important;
@@ -876,6 +899,22 @@ html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.c
 html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-adv { color: #b87837 !important; border-color: #f4e1cd !important; background: #fcf6ef !important; }
 html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-exp,
 html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-exp { color: #bd6268 !important; border-color: #f2dadd !important; background: #fcf4f5 !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-chip.gender-male,
+html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip.gender-male { color: #2875d0 !important; border-color: #cfe0ff !important; background: #f5f9ff !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-chip.gender-female,
+html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip.gender-female { color: #d74f83 !important; border-color: #f5cadd !important; background: #fff6fa !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-chip.gender-male.active,
+html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip.gender-male.active { color: #fff !important; border-color: #2875d0 !important; background: #2875d0 !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-chip.gender-female.active,
+html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip.gender-female.active { color: #fff !important; border-color: #d74f83 !important; background: #d74f83 !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-row,
+html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-row { margin-top: 5px !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-chip .gender-symbol,
+html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip .gender-symbol { width: 11px !important; height: 11px !important; flex: 0 0 11px !important; margin-right: 4px !important; fill: none !important; stroke: currentColor !important; stroke-width: 1.7 !important; stroke-linecap: round !important; stroke-linejoin: round !important; }
+html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-chip.active .gender-symbol,
+html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-chip.active .gender-symbol *,
+html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip.active .gender-symbol,
+html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip.active .gender-symbol * { stroke: #fff !important; }
 html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-beg.active,
 html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-beg.active { color: #fff !important; border-color: #2685c3 !important; background: #2685c3 !important; }
 html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-nov.active,
@@ -887,14 +926,20 @@ html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.ca
 html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip.category-exp.active,
 html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip.category-exp.active { color: #fff !important; border-color: #e26066 !important; background: #e26066 !important; }
 html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip:active,
-html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip:active {
+html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip:active,
+html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-chip:active,
+html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip:active {
   transform: scale(.98) !important;
 }
 @media (max-width: 380px) {
   html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-row,
-  html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-row { gap: 3px !important; }
+  html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-row,
+  html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-row,
+  html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-row { gap: 3px !important; }
   html body[data-page="queueing"] #cloudRecordsModal .popup-category-filter-chip,
-  html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip { padding: 0 8px !important; font-size: 8px !important; }
+  html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip,
+  html body[data-page="queueing"] #cloudRecordsModal .popup-gender-filter-chip,
+  html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip { padding: 0 8px !important; font-size: 8px !important; }
 }
 
 /* SHARED DESKTOP + IPAD MODAL GEOMETRY — SINGLE SOURCE OF TRUTH
@@ -1021,4 +1066,10 @@ html body[data-page="queueing"] #leftPlayersModal .popup-category-filter-chip:ac
   html body[data-page="queueing"] #podiumExpandModal .expanded-ranking-row {
     flex: 0 0 auto !important;
   }
+}
+
+
+/* Keep the leaderboard controls hidden until the first ranked player exists. */
+html body[data-page="queueing"] #rankingView .leaderboard-heading[hidden] {
+  display: none !important;
 }
