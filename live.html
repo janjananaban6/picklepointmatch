@@ -256,6 +256,10 @@
       let historyLoaded = false;
       let historyRevision = -1;
       let totalMatchCount = null;
+      // The queueing-page Live Matches switch is the source of truth.
+      // Keep the flag from both the public live snapshot and the full app-state stream.
+      let liveMatchesEnabled = null;
+      let liveSessionActive = null;
       let lastRenderedSignature = '';
       let lastRenderedMarkup = '';
       let preservedScrollTop = 0;
@@ -313,19 +317,36 @@
       const render = () => {
         const term = String(search?.value || '').trim();
         const matches = getFilteredMatches();
-        const countValue = historyLoaded
-          ? (term ? matches.length : Math.max(matches.length, totalMatchCount ?? 0))
-          : (totalMatchCount !== null ? totalMatchCount : list.querySelectorAll('.live-match-row').length);
+        const matchesAvailable = liveMatchesEnabled !== false && liveSessionActive !== false;
+        const countValue = !matchesAvailable
+          ? 0
+          : (historyLoaded
+            ? (term ? matches.length : Math.max(matches.length, totalMatchCount ?? 0))
+            : (totalMatchCount !== null ? totalMatchCount : list.querySelectorAll('.live-match-row').length));
         const nextCount = `(${Math.max(0, Number(countValue) || 0)})`;
         if (count.textContent !== nextCount) count.textContent = nextCount;
 
-        if (!historyLoaded) return;
-        const signature = JSON.stringify([term, matches.map(match => [match.id, match.court, match.winner, match.loser, match.team1Names, match.team2Names, match.score, match.endedAt, match.duration])]);
+        if (!historyLoaded) {
+          if (!matchesAvailable) {
+            const unavailableMarkup = '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>Matches unavailable</strong><span>Live matches are currently disabled for this moment.</span><span>Request on QM to enable the live matches.</span></div>';
+            if (list.innerHTML !== unavailableMarkup) {
+              list.innerHTML = unavailableMarkup;
+              list.scrollTop = 0;
+              preservedScrollTop = 0;
+            }
+            lastRenderedMarkup = unavailableMarkup;
+          }
+          return;
+        }
+
+        const signature = JSON.stringify([matchesAvailable, term, matches.map(match => [match.id, match.court, match.winner, match.loser, match.team1Names, match.team2Names, match.score, match.endedAt, match.duration])]);
         if (signature === lastRenderedSignature && list.innerHTML === lastRenderedMarkup) return;
         lastRenderedSignature = signature;
 
         let markup;
-        if (!allHistoryMatches.length) {
+        if (!matchesAvailable) {
+          markup = '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>Matches unavailable</strong><span>Live matches are currently disabled for this moment.</span><span>Request on QM to enable the live matches.</span></div>';
+        } else if (!allHistoryMatches.length) {
           markup = '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>No recorded matches yet</strong><span>Finished matches will appear here after they are recorded.</span></div>';
         } else if (!matches.length) {
           markup = `<div class="live-ranking-empty"><span aria-hidden="true">🔎</span><strong>No matches found</strong><span>No player names match “${escapeText(term)}”. Try another name.</span></div>`;
@@ -358,6 +379,9 @@
         const revision = Number(payload?.revision);
         if (Number.isFinite(revision) && revision < historyRevision) return false;
         if (Number.isFinite(revision)) historyRevision = revision;
+        if (typeof state.liveMatchesEnabled === 'boolean') liveMatchesEnabled = state.liveMatchesEnabled;
+        else if (liveMatchesEnabled === null) liveMatchesEnabled = true;
+        if (typeof state.sessionActive === 'boolean') liveSessionActive = state.sessionActive;
         allHistoryMatches = state.logs.slice().reverse().map(logToMatch);
         historyLoaded = true;
         totalMatchCount = allHistoryMatches.length;
@@ -366,11 +390,14 @@
         return true;
       };
       const applyLiveCount = state => {
-        const value = Number(state?.matchCount);
-        if (Number.isFinite(value) && value >= 0) {
-          totalMatchCount = Math.floor(value);
-          render();
-        }
+        if (!state || typeof state !== 'object') return;
+        if (typeof state.liveMatchesEnabled === 'boolean') liveMatchesEnabled = state.liveMatchesEnabled;
+        if (typeof state.active === 'boolean') liveSessionActive = state.active;
+        const value = Number(state.matchCount);
+        if (Number.isFinite(value) && value >= 0) totalMatchCount = Math.floor(value);
+        // Apply the queueing-page switch immediately, even before the slower
+        // complete-history app-state event arrives.
+        render();
       };
       const fetchLiveSnapshot = async () => {
         if (liveStateRequestInFlight || !['http:', 'https:'].includes(location.protocol)) return;
