@@ -14,6 +14,12 @@
   let renderedRegularCourtsSignature = null;
   let renderedWaitingCourtsSignature = null;
   let renderedQueueSignature = null;
+  // Keep manual court expansions stable while fresh live snapshots rebuild cards.
+  const expandedCourtKeys = new Set();
+  const knownCourtCollapseKeys = new Set();
+  // Next Up courts have their own collapse state so their default can remain
+  // compact without changing the default-expanded state of regular courts.
+  const expandedWaitingCourtKeys = new Set();
   let serverConnected = false;
   let serverTried = false;
   let channel = null;
@@ -270,6 +276,11 @@
     try { return JSON.stringify(comparable); } catch (error) { return ''; }
   }
 
+  function courtCollapseKey(court) {
+    const stableId = court?.id ?? court?.courtId ?? court?.number ?? court?.name ?? 'court';
+    return `${court?.waitingOnly ? 'waiting-court' : 'court'}:${String(stableId).trim()}`;
+  }
+
   function renderCourtCard(c) {
     // Mirror the Queueing page: regular courts are READY until playing;
     // waiting-court slots are labeled Up Next.
@@ -306,9 +317,9 @@
         : '';
       return `<span class="court-player-marker ${slotClass}${player ? '' : ' is-empty'}" title="${escapeHTML(accessibleName)}" aria-label="${escapeHTML(accessibleName)}"><span class="court-player-initial">${player ? playerAvatarMarkup(player) : '+'}</span>${categoryBadge}${genderBadge}</span>`;
     };
-    // Number only regular courts in the visual header; waiting courts keep their existing generic label.
+    // Both regular and Next Up cards use their actual court number when available.
     const courtNumber = Number(c.number);
-    const courtName = c.waitingOnly ? 'Court #' : (Number.isFinite(courtNumber) && courtNumber > 0 ? `Court ${courtNumber}` : 'Court #');
+    const courtName = Number.isFinite(courtNumber) && courtNumber > 0 ? `Court ${courtNumber}` : 'Court #';
     const timer = c.playing
       ? `<span class="court-mini-timer ${timerClass(c.start)}" data-start="${escapeHTML(c.start || '')}" title="Match duration">${elapsed(c.start)}</span>`
       : '';
@@ -331,18 +342,47 @@
           ${singlesMarkers}
         </div>`
       : '<div class="court-diagram-empty-message" role="status">No players assigned yet</div>';
-    return `<article class="court-card court-visual-card${c.playing ? ' playing' : ''}${c.waitingOnly ? ' waiting-only' : ''}${hasPlayers ? '' : ' is-empty-court'}">
-      <div class="court-visual-header">
-        <div class="court-visual-heading"><strong class="court-visual-name">${escapeHTML(courtName)}</strong>${timer}</div>
-        <span class="court-visual-status ${statusClass}"><i aria-hidden="true"></i>${status}</span>
+    const teamFooter = `<div class="court-team-footer">
+      <span class="court-team-label court-team-left">${escapeHTML(teamLabel(t1))}</span>
+      <span class="court-team-versus">VS</span>
+      <span class="court-team-label court-team-right">${escapeHTML(teamLabel(t2))}</span>
+    </div>`;
+
+    // Regular courts and Next Up courts share the same compact row and
+    // per-card expand/collapse behavior. Next Up has a separate state set and
+    // starts collapsed by default, matching the supplied reference image.
+    const collapseKey = courtCollapseKey(c);
+    const isWaitingCourt = Boolean(c.waitingOnly);
+    const isExpanded = (isWaitingCourt ? expandedWaitingCourtKeys : expandedCourtKeys).has(collapseKey);
+    const summaryStatus = c.playing ? 'In progress' : 'Ready';
+    const summaryStatusClass = c.playing ? 'is-playing' : 'is-ready';
+    const compactTeam = hasPlayers
+      ? `${t1.filter(Boolean).map(shortPlayerName).join(' & ') || 'Open'} vs ${t2.filter(Boolean).map(shortPlayerName).join(' & ') || 'Open'}`
+      : 'No players assigned';
+    const courtStatusValue = c.playing ? 'playing' : 'ready';
+    const waitingCardClass = isWaitingCourt ? ' waiting-only' : '';
+    const collapseDataAttribute = isWaitingCourt
+      ? `data-waiting-court-collapse-key="${escapeHTML(collapseKey)}"`
+      : `data-court-collapse-key="${escapeHTML(collapseKey)}"`;
+    return `<article class="court-card court-visual-card${waitingCardClass}${c.playing ? ' playing' : ''}${hasPlayers ? '' : ' is-empty-court'} ${isExpanded ? 'is-expanded' : 'is-collapsed'}" data-court-status="${courtStatusValue}" ${collapseDataAttribute}>
+      <button class="court-card-collapse-toggle" type="button" aria-controls="${escapeHTML(collapseKey)}-details" aria-expanded="${String(isExpanded)}" aria-label="${isExpanded ? 'Collapse' : 'Expand'} ${escapeHTML(courtName)}" title="${isExpanded ? 'Collapse' : 'Expand'} ${escapeHTML(courtName)}">
+        <span class="court-card-summary-start" aria-hidden="${String(isExpanded)}">
+          <i class="court-card-summary-dot ${summaryStatusClass}" aria-hidden="true"></i>
+          <strong class="court-card-summary-name">${escapeHTML(courtName)}</strong>
+          <span class="court-card-summary-status ${summaryStatusClass}">${summaryStatus}</span>
+        </span>
+        <span class="court-card-expanded-heading" aria-hidden="${String(!isExpanded)}">
+          <strong class="court-visual-name">${escapeHTML(courtName)}</strong>${timer}
+        </span>
+        <span class="court-card-summary-match" aria-hidden="${String(isExpanded)}" title="${escapeHTML(compactTeam)}">${escapeHTML(compactTeam)}</span>
+        <span class="court-card-expanded-status ${statusClass}" aria-hidden="${String(!isExpanded)}">${status}</span>
+        <span class="court-card-summary-chevron" aria-hidden="true">›</span>
+      </button>
+      <div id="${escapeHTML(collapseKey)}-details" class="court-card-expanded-content"${isExpanded ? '' : ' hidden'}>
+        ${diagramContent}
+        ${teamFooter}
+        ${score}
       </div>
-      ${diagramContent}
-      <div class="court-team-footer">
-        <span class="court-team-label court-team-left">${escapeHTML(teamLabel(t1))}</span>
-        <span class="court-team-versus">VS</span>
-        <span class="court-team-label court-team-right">${escapeHTML(teamLabel(t2))}</span>
-      </div>
-      ${score}
     </article>`;
   }
 
@@ -459,7 +499,9 @@
       const isSelected = button.dataset.liveTab === selected;
       button.classList.toggle('is-active', isSelected);
       button.setAttribute('aria-selected', isSelected ? 'true' : 'false');
-      button.tabIndex = isSelected ? 0 : -1;
+      // Keep the compact phone shortcuts reachable by keyboard even when the
+      // queue (which has no shortcut icon) is the selected panel.
+      button.tabIndex = button.classList.contains('mobile-header-icon-button') ? 0 : (isSelected ? 0 : -1);
     });
     document.querySelectorAll('[data-live-panel]').forEach(panel => {
       panel.hidden = panel.dataset.livePanel !== selected;
@@ -535,8 +577,26 @@
     const sessionTitleChanged = !!sessionTitleElement && sessionTitleElement.textContent !== String(nextSessionTitle);
     setTextIfChanged(sessionTitleElement, nextSessionTitle);
     if (sessionTitleChanged) requestAnimationFrame(fitSessionTitle);
+
+    // Keep the session title clean by removing any stored DUPR mode prefix.
+    const rawMobileSessionTitle = String(nextSessionTitle || 'Open Play').trim();
+    const mobileSessionTitle = rawMobileSessionTitle
+      .replace(/^\s*\(\s*(?:NON[\s-]+)?DUPR\s+MATCH\s*\)\s*/i, '')
+      .trim() || 'Open Play';
+    setTextIfChanged($('mobileSessionTitle'), mobileSessionTitle);
+    const mobileLiveStatus = $('mobileLiveStatus');
+    if (mobileLiveStatus) {
+      mobileLiveStatus.classList.toggle('is-live', active);
+      mobileLiveStatus.classList.toggle('is-offline', !active);
+      const statusText = mobileLiveStatus.querySelector('span');
+      setTextIfChanged(statusText, active ? 'LIVE' : 'OFF');
+      mobileLiveStatus.setAttribute('aria-label', active ? 'Session live' : 'No active session');
+    }
+
     const sessionMatchType = $('sessionMatchType');
-    setTextIfChanged(sessionMatchType, String(s?.eventRules?.type || 'Doubles'));
+    const nextMatchType = String(s?.eventRules?.type || 'Doubles');
+    setTextIfChanged(sessionMatchType, nextMatchType);
+    setTextIfChanged($('mobileSessionMatchType'), nextMatchType);
     const sessionPlayerCount = $('sessionPlayerCount');
     if (sessionPlayerCount) {
       // Count only players who are currently queued or assigned to a regular /
@@ -557,7 +617,9 @@
         courtPlayers.forEach(addSessionPlayer);
       });
       const playerCount = sessionPlayerIds.size;
-      setTextIfChanged(sessionPlayerCount, `${playerCount} player${playerCount === 1 ? '' : 's'}`);
+      const playerCountLabel = `${playerCount} player${playerCount === 1 ? '' : 's'}`;
+      setTextIfChanged(sessionPlayerCount, playerCountLabel);
+      setTextIfChanged($('mobileSessionPlayerCount'), playerCountLabel);
     }
     $('inactiveNotice').hidden = active;
     const queue = Array.isArray(s?.queue) ? s.queue : [];
@@ -566,6 +628,28 @@
     const allCourts = Array.isArray(s?.courts) ? s.courts : [];
     const regularCourts = allCourts.filter(c => c && !c.waitingOnly);
     const waitingCourts = allCourts.filter(c => c && c.waitingOnly);
+    const currentCourtCollapseKeys = new Set(regularCourts.map(courtCollapseKey));
+    const currentWaitingCourtCollapseKeys = new Set(waitingCourts.map(courtCollapseKey));
+    expandedCourtKeys.forEach(key => {
+      if (!currentCourtCollapseKeys.has(key)) expandedCourtKeys.delete(key);
+    });
+    knownCourtCollapseKeys.forEach(key => {
+      if (!currentCourtCollapseKeys.has(key)) knownCourtCollapseKeys.delete(key);
+    });
+    expandedWaitingCourtKeys.forEach(key => {
+      if (!currentWaitingCourtCollapseKeys.has(key)) expandedWaitingCourtKeys.delete(key);
+    });
+    // Newly added waiting courts remain collapsed because their keys are not
+    // added to expandedWaitingCourtKeys until the user opens them.
+    // Every newly-created regular court starts expanded by default. Keep the
+    // known-key set separate so a user's manual collapse remains unchanged
+    // when the live snapshot rebuilds the card.
+    currentCourtCollapseKeys.forEach(key => {
+      if (!knownCourtCollapseKeys.has(key)) {
+        expandedCourtKeys.add(key);
+        knownCourtCollapseKeys.add(key);
+      }
+    });
     const sessionCourtCount = $('sessionCourtCount');
     if (sessionCourtCount) {
       const courtCount = regularCourts.length;
@@ -577,7 +661,7 @@
     // the server merges a registration update), so it must never override the
     // actual playing flags on the current court list.
     const liveCourtCount = regularCourts.filter(c => Boolean(c.playing)).length;
-    setTextIfChanged($('courtSectionCount'), `${liveCourtCount} live`);
+    setTextIfChanged($('courtSectionCount'), `(${liveCourtCount} live)`);
 
     // Only replace the lists whose actual data changed. Rebuilding every court
     // and queue card on unrelated updates was causing scroll jumps on phones.
@@ -592,7 +676,7 @@
     }
 
     $('waitingCourtsSection').hidden = waitingCourts.length === 0;
-    setTextIfChanged($('waitingCourtSectionCount'), `${waitingCourts.length} planned`);
+    setTextIfChanged($('waitingCourtSectionCount'), `(${waitingCourts.length} Planned)`);
     const waitingCourtsSignature = JSON.stringify([s?.recordScores === true, waitingCourts]);
     if (waitingCourtsSignature !== renderedWaitingCourtsSignature) {
       changedCourtLists.add('waitingCourtsList');
@@ -600,6 +684,9 @@
       renderedWaitingCourtsSignature = waitingCourtsSignature;
       waitingCourtLayoutController?.syncCardCount();
     }
+
+    syncCourtCollapseAllToggle();
+    syncWaitingCourtsCollapseToggle();
 
     // Restore swipe position only after a court list has actually changed.
     courtScrollSnapshots.forEach(snapshot => {
@@ -696,10 +783,13 @@
       const organizerNameLabel = $('sessionOrganizerName');
       const organizerLogoImage = $('sessionOrganizerLogo');
       setTextIfChanged(organizerNameLabel, organizerName);
+      const mobileOrganizerName = $('mobileSessionOrganizer');
+      const mobileOrganizerSeparator = $('mobileOrganizerMetaSeparator');
+      setTextIfChanged(mobileOrganizerName, organizerName);
+      if (mobileOrganizerName) mobileOrganizerName.hidden = !organizerName;
+      if (mobileOrganizerSeparator) mobileOrganizerSeparator.hidden = !organizerName;
       if (organizerLogoImage) {
         // The server only returns validated organizer profile-logo data URLs.
-        // Hide the image when no custom logo exists so no generic person icon
-        // is shown in its place.
         if (organizerLogo && organizerLogoImage.getAttribute('src') !== organizerLogo) {
           organizerLogoImage.src = organizerLogo;
         } else if (!organizerLogo) {
@@ -832,6 +922,26 @@
         .join('|');
     }
 
+    // Regular courts hide their diagram while collapsed. Measure that diagram
+    // in the current vertical/grid width by briefly revealing its details
+    // wrapper synchronously, then restore the collapsed state before paint.
+    // This gives horizontal mode the same diagram height as vertical mode.
+    function measureCourtDiagramHeight(card) {
+      const diagram = card.querySelector('.court-card-expanded-content > .court-diagram.pickleball-court');
+      if (!diagram) return null;
+
+      let height = diagram.getBoundingClientRect().height;
+      if (height > 0) return height;
+
+      const details = diagram.closest('.court-card-expanded-content');
+      if (!details || !details.hidden) return null;
+
+      details.hidden = false;
+      height = diagram.getBoundingClientRect().height;
+      details.hidden = true;
+      return Number.isFinite(height) && height > 0 ? height : null;
+    }
+
     function applyLockedGeometry() {
       if (!horizontalMode) return;
       const cards = Array.from(list.querySelectorAll(':scope > .court-card'));
@@ -842,14 +952,21 @@
           || lockedGeometry[0];
         const diagram = card.querySelector('.court-diagram');
 
-        // Keep the original court diagram height across live re-renders.
+        // Keep the regular-court pickleball diagram at its vertical-layout
+        // height while the horizontal cards become narrower. Waiting courts
+        // continue using their existing measured-height behavior.
         if (diagram && geometry && Number.isFinite(geometry.diagramHeight) && geometry.diagramHeight > 0) {
           diagram.style.setProperty('--court-layout-diagram-height', `${geometry.diagramHeight}px`);
         } else if (diagram) {
           diagram.style.removeProperty('--court-layout-diagram-height');
         }
 
-        if (geometry && Number.isFinite(geometry.height) && geometry.height > 0) {
+        if (card.classList.contains('is-collapsed')) {
+          // A collapsed court must return to its compact natural height even
+          // while the list is in horizontal-scroll mode. Never carry the
+          // expanded card's locked height into its collapsed state.
+          card.style.removeProperty('--court-layout-fixed-height');
+        } else if (geometry && Number.isFinite(geometry.height) && geometry.height > 0) {
           // A score can be enabled or updated after the list has entered
           // horizontal mode. Measure the card at its natural content height
           // so the score row is not clipped by the saved card height. Cards
@@ -918,10 +1035,12 @@
     function resetScrollToFirstCard() {
       const resetToken = ++scrollResetToken;
       list.classList.add('is-resetting-court-scroll');
+      // This controller only resets the horizontal court position. Resetting
+      // scrollTop here is unrelated to the layout toggle and can create a
+      // visible vertical jump on mobile browsers.
       list.scrollLeft = 0;
-      list.scrollTop = 0;
       if (typeof list.scrollTo === 'function') {
-        try { list.scrollTo({ left: 0, top: 0, behavior: 'auto' }); } catch (error) {}
+        try { list.scrollTo({ left: 0, behavior: 'auto' }); } catch (error) {}
       }
       void list.offsetWidth;
 
@@ -932,7 +1051,7 @@
         if (resetToken !== scrollResetToken) return;
         list.scrollLeft = 0;
         if (typeof list.scrollTo === 'function') {
-          try { list.scrollTo({ left: 0, top: 0, behavior: 'auto' }); } catch (error) {}
+          try { list.scrollTo({ left: 0, behavior: 'auto' }); } catch (error) {}
         }
         void list.offsetWidth;
         requestFrame(() => {
@@ -946,11 +1065,16 @@
     async function setMode(horizontal, animate = true) {
       const token = ++transitionToken;
       const wasHorizontalMode = horizontalMode;
+      const pageScroller = list.closest('.live-content-scroll');
+      const pageScrollTop = pageScroller ? pageScroller.scrollTop : window.scrollY;
       horizontalMode = Boolean(horizontal);
       updateToggle();
       cancelAnimations();
 
       const reduceMotion = Boolean(courtLayoutReducedMotion && courtLayoutReducedMotion.matches);
+      const isPhoneViewport = typeof window.matchMedia === 'function'
+        ? window.matchMedia('(max-width: 560px)').matches
+        : window.innerWidth <= 560;
       const cards = Array.from(list.querySelectorAll('.court-card'));
       const beforeRects = new Map(cards.map(card => [card, card.getBoundingClientRect()]));
       const beforeHeight = list.getBoundingClientRect().height;
@@ -962,11 +1086,17 @@
         lockedGeometry = cards.map((card, index) => {
           const rect = beforeRects.get(card) || card.getBoundingClientRect();
           const diagram = card.querySelector('.court-diagram');
+          const hasExpandableDetails = Boolean(card.querySelector('.court-card-expanded-content'));
+          const measuredDiagramHeight = hasExpandableDetails
+            ? measureCourtDiagramHeight(card)
+            : (diagram ? diagram.getBoundingClientRect().height : null);
           return {
             index,
             signature: geometrySignature(card),
             height: rect.height,
-            diagramHeight: diagram ? diagram.getBoundingClientRect().height : null
+            diagramHeight: Number.isFinite(measuredDiagramHeight) && measuredDiagramHeight > 0
+              ? measuredDiagramHeight
+              : null
           };
         });
         applyLockedGeometry();
@@ -978,7 +1108,11 @@
         });
       }
 
-      const canAnimate = animate && !reduceMotion && cards.length > 0
+      // Keep phone layout toggles immediate. FLIP translates entire court cards
+      // vertically while the list changes from grid to swipe lane, which makes
+      // the name/timer header appear to jump even though its own geometry is fixed.
+      // Preserve the existing animated transition on tablet/desktop.
+      const canAnimate = animate && !reduceMotion && !isPhoneViewport && cards.length > 0
         && typeof list.animate === 'function'
         && cards.every(card => typeof card.animate === 'function');
 
@@ -988,6 +1122,24 @@
         // both regular and waiting-court lists use this same controller.
         if (!horizontalMode || !wasHorizontalMode) resetScrollToFirstCard();
         applyLockedGeometry();
+
+        // The court strip can change the height of the page content when it
+        // switches between grid and swipe mode. Keep the Live page's vertical
+        // reading position fixed so the court name/timer do not jump up/down.
+        if (isPhoneViewport && pageScroller) {
+          const restorePageScroll = () => {
+            if (token !== transitionToken) return;
+            pageScroller.scrollTop = pageScrollTop;
+          };
+          const requestFrame = typeof window.requestAnimationFrame === 'function'
+            ? window.requestAnimationFrame.bind(window)
+            : callback => window.setTimeout(callback, 16);
+          restorePageScroll();
+          requestFrame(() => {
+            restorePageScroll();
+            requestFrame(restorePageScroll);
+          });
+        }
         return;
       }
 
@@ -1082,7 +1234,10 @@
       lockedGeometry = cards.map((card, index) => {
         const rect = card.getBoundingClientRect();
         const diagram = card.querySelector('.court-diagram');
-        const diagramHeight = diagram ? diagram.getBoundingClientRect().height : null;
+        const hasExpandableDetails = Boolean(card.querySelector('.court-card-expanded-content'));
+        const diagramHeight = hasExpandableDetails
+          ? measureCourtDiagramHeight(card)
+          : (diagram ? diagram.getBoundingClientRect().height : null);
         return {
           index,
           signature: geometrySignature(card),
@@ -1098,9 +1253,37 @@
       }
     }
 
+    function syncCardGeometry(card) {
+      if (!horizontalMode || !card || !list.contains(card)) return;
+
+      // Collapsed courts should use their compact natural height in swipe mode.
+      // The previous fixed height belonged to the expanded diagram and must
+      // not keep the card tall after its details are hidden.
+      card.style.removeProperty('--court-layout-fixed-height');
+      if (card.classList.contains('is-collapsed')) return;
+
+      // Expanding one court must not temporarily switch the whole list back to
+      // grid mode. That old full-list remeasure made neighboring cards appear
+      // to jump or stretch when only one court changed height.
+      const naturalHeight = card.getBoundingClientRect().height;
+      if (Number.isFinite(naturalHeight) && naturalHeight > 0) {
+        card.style.setProperty('--court-layout-fixed-height', `${Math.ceil(naturalHeight)}px`);
+      }
+
+      const diagram = card.querySelector('.court-diagram');
+      if (diagram && !card.querySelector('.court-card-expanded-content')) {
+        const diagramHeight = diagram.getBoundingClientRect().height;
+        if (Number.isFinite(diagramHeight) && diagramHeight > 0) {
+          diagram.style.setProperty('--court-layout-diagram-height', `${diagramHeight}px`);
+        }
+      }
+    }
+
     function syncCardCount() {
       const cardCount = list.querySelectorAll(':scope > .court-card').length;
-      toggle.hidden = cardCount <= 1;
+      // The layout switch only adds value once three or more courts are
+      // present. With zero, one, or two courts keep the heading uncluttered.
+      toggle.hidden = cardCount < 3;
 
       // Cards are re-rendered from live state. Invalidate any animation tied to
       // detached card nodes, then remeasure current content so showing/canceling
@@ -1114,9 +1297,9 @@
         refreshLockedGeometryFromCurrentCards();
       }
 
-      // If live updates leave only one card, there is no layout choice to make.
-      // Return that list to the default grid and hide its toggle.
-      if (cardCount <= 1 && horizontalMode) setMode(false, false);
+      // If live updates leave fewer than three cards, there is no layout
+      // choice to make. Return to the default grid and hide its toggle.
+      if (cardCount < 3 && horizontalMode) setMode(false, false);
     }
 
     // Add desktop mouse click-and-drag scrolling to the same horizontal
@@ -1188,7 +1371,11 @@
     updateToggle();
     setMode(false, false);
     toggle.addEventListener('click', () => setMode(!horizontalMode));
-    return { syncCardCount };
+    return {
+      syncCardCount,
+      syncCardGeometry,
+      isHorizontalMode: () => horizontalMode
+    };
   }
 
   const courtLayoutController = createCourtLayoutController(
@@ -1197,6 +1384,140 @@
   const waitingCourtLayoutController = createCourtLayoutController(
     $('waitingCourtLayoutToggle'), $('waitingCourtsList'), 'waiting courts'
   );
+  const courtCollapseAllToggle = $('courtCollapseAllToggle');
+  const courtsList = $('courtsList');
+  const waitingCourtsCollapseToggle = $('waitingCourtsCollapseToggle');
+  const waitingCourtsList = $('waitingCourtsList');
+
+  function syncWaitingCourtsCollapseToggle() {
+    if (!waitingCourtsCollapseToggle || !waitingCourtsList) return;
+    const cards = Array.from(waitingCourtsList.querySelectorAll(':scope > .court-card[data-waiting-court-collapse-key]'));
+    // Show Collapse/Expand from the first available court; the layout switch
+    // is managed separately and appears only when at least three exist.
+    waitingCourtsCollapseToggle.hidden = cards.length === 0;
+    const allExpanded = cards.length > 0 && cards.every(card => card.classList.contains('is-expanded'));
+    waitingCourtsCollapseToggle.disabled = cards.length === 0;
+    waitingCourtsCollapseToggle.textContent = allExpanded ? 'Collapse all' : 'Expand all';
+    waitingCourtsCollapseToggle.setAttribute('aria-expanded', String(allExpanded));
+    waitingCourtsCollapseToggle.setAttribute('aria-label', allExpanded ? 'Collapse all waiting courts' : 'Expand all waiting courts');
+    waitingCourtsCollapseToggle.title = allExpanded ? 'Collapse all waiting courts' : 'Expand all waiting courts';
+  }
+
+  function updateCourtCardExpanded(card, expanded) {
+    if (!card) return;
+    const isExpanded = Boolean(expanded);
+    const isWaitingCourt = card.hasAttribute('data-waiting-court-collapse-key');
+    const key = String(isWaitingCourt ? card.dataset.waitingCourtCollapseKey : card.dataset.courtCollapseKey || '');
+    const expandedKeys = isWaitingCourt ? expandedWaitingCourtKeys : expandedCourtKeys;
+    const layoutController = isWaitingCourt ? waitingCourtLayoutController : courtLayoutController;
+    card.classList.toggle('is-expanded', isExpanded);
+    card.classList.toggle('is-collapsed', !isExpanded);
+    const summaryToggle = card.querySelector('.court-card-collapse-toggle');
+    const details = card.querySelector('.court-card-expanded-content');
+    if (summaryToggle) {
+      const courtLabel = card.querySelector('.court-card-summary-name, .court-visual-name')?.textContent || 'court';
+      summaryToggle.setAttribute('aria-expanded', String(isExpanded));
+      summaryToggle.setAttribute('aria-label', `${isExpanded ? 'Collapse' : 'Expand'} ${courtLabel}`);
+      summaryToggle.title = `${isExpanded ? 'Collapse' : 'Expand'} ${courtLabel}`;
+    }
+    const collapsedSummary = card.querySelector('.court-card-summary-start');
+    const expandedHeading = card.querySelector('.court-card-expanded-heading');
+    const compactMatch = card.querySelector('.court-card-summary-match');
+    const expandedStatus = card.querySelector('.court-card-expanded-status');
+    if (collapsedSummary) collapsedSummary.setAttribute('aria-hidden', String(isExpanded));
+    if (expandedHeading) expandedHeading.setAttribute('aria-hidden', String(!isExpanded));
+    if (compactMatch) compactMatch.setAttribute('aria-hidden', String(isExpanded));
+    if (expandedStatus) expandedStatus.setAttribute('aria-hidden', String(!isExpanded));
+    if (details) details.hidden = !isExpanded;
+
+    // In vertical mode the diagram follows its natural aspect ratio. In
+    // horizontal mode preserve the height captured from the vertical layout.
+    const diagram = card.querySelector('.court-card-expanded-content > .court-diagram');
+    if (diagram && !layoutController?.isHorizontalMode()) {
+      diagram.style.removeProperty('--court-layout-diagram-height');
+    }
+    if (key) {
+      if (isExpanded) expandedKeys.add(key);
+      else expandedKeys.delete(key);
+    }
+  }
+
+  function syncCourtCollapseAllToggle() {
+    if (!courtCollapseAllToggle || !courtsList) return;
+    const cards = Array.from(courtsList.querySelectorAll(':scope > .court-card[data-court-collapse-key]'));
+    // Keep the expand/collapse action available from one court onward.
+    // The layout toggle remains hidden until the list reaches three courts.
+    courtCollapseAllToggle.hidden = cards.length === 0;
+    const allExpanded = cards.length > 0 && cards.every(card => card.classList.contains('is-expanded'));
+    courtCollapseAllToggle.disabled = cards.length === 0;
+    courtCollapseAllToggle.textContent = allExpanded ? 'Collapse all' : 'Expand all';
+    courtCollapseAllToggle.setAttribute('aria-expanded', String(allExpanded));
+    courtCollapseAllToggle.setAttribute('aria-label', allExpanded ? 'Collapse all courts' : 'Expand all courts');
+    courtCollapseAllToggle.title = allExpanded ? 'Collapse all courts' : 'Expand all courts';
+  }
+
+  function setAllRegularCourtsExpanded(expanded) {
+    if (!courtsList) return;
+    courtsList.querySelectorAll(':scope > .court-card[data-court-collapse-key]').forEach(card => {
+      updateCourtCardExpanded(card, expanded);
+    });
+    syncCourtCollapseAllToggle();
+    // Re-measure each card independently; no sibling card should be stretched
+    // or have its own expanded/collapsed state changed by this action.
+    courtsList.querySelectorAll(':scope > .court-card[data-court-collapse-key]').forEach(card => {
+      courtLayoutController?.syncCardGeometry(card);
+    });
+  }
+
+  if (courtsList) {
+    courtsList.addEventListener('click', event => {
+      const summaryToggle = event.target.closest('.court-card-collapse-toggle');
+      if (!summaryToggle || !courtsList.contains(summaryToggle)) return;
+      const card = summaryToggle.closest('.court-card[data-court-collapse-key]');
+      if (!card) return;
+      updateCourtCardExpanded(card, !card.classList.contains('is-expanded'));
+      syncCourtCollapseAllToggle();
+      courtLayoutController?.syncCardGeometry(card);
+    });
+  }
+
+  if (courtCollapseAllToggle) {
+    courtCollapseAllToggle.addEventListener('click', () => {
+      const cards = Array.from(courtsList?.querySelectorAll(':scope > .court-card[data-court-collapse-key]') || []);
+      const allExpanded = cards.length > 0 && cards.every(card => card.classList.contains('is-expanded'));
+      setAllRegularCourtsExpanded(!allExpanded);
+    });
+  }
+
+  function setAllWaitingCourtsExpanded(expanded) {
+    if (!waitingCourtsList) return;
+    const cards = Array.from(waitingCourtsList.querySelectorAll(':scope > .court-card[data-waiting-court-collapse-key]'));
+    cards.forEach(card => updateCourtCardExpanded(card, expanded));
+    syncWaitingCourtsCollapseToggle();
+    cards.forEach(card => waitingCourtLayoutController?.syncCardGeometry(card));
+  }
+
+  if (waitingCourtsList) {
+    waitingCourtsList.addEventListener('click', event => {
+      const summaryToggle = event.target.closest('.court-card-collapse-toggle');
+      if (!summaryToggle || !waitingCourtsList.contains(summaryToggle)) return;
+      const card = summaryToggle.closest('.court-card[data-waiting-court-collapse-key]');
+      if (!card) return;
+      updateCourtCardExpanded(card, !card.classList.contains('is-expanded'));
+      syncWaitingCourtsCollapseToggle();
+      waitingCourtLayoutController?.syncCardGeometry(card);
+    });
+  }
+
+  if (waitingCourtsCollapseToggle) {
+    waitingCourtsCollapseToggle.addEventListener('click', () => {
+      const cards = Array.from(waitingCourtsList?.querySelectorAll(':scope > .court-card[data-waiting-court-collapse-key]') || []);
+      const allExpanded = cards.length > 0 && cards.every(card => card.classList.contains('is-expanded'));
+      setAllWaitingCourtsExpanded(!allExpanded);
+    });
+    syncWaitingCourtsCollapseToggle();
+  }
+
   const queueCollapseToggle = $('queueCollapseToggle');
   const queueListViewport = $('queueListViewport');
 
@@ -1377,11 +1698,27 @@
 
   $('pageRankingSearch')?.addEventListener('input', () => renderLiveRanking('pageRankingList', 'pageRankingSearch', false));
   $('pageMatchesSearch')?.addEventListener('input', () => renderRecentMatches(false));
+
+  const mobileLiveRefresh = $('mobileLiveRefresh');
+  if (mobileLiveRefresh) {
+    mobileLiveRefresh.addEventListener('click', async () => {
+      if (mobileLiveRefresh.disabled) return;
+      mobileLiveRefresh.disabled = true;
+      mobileLiveRefresh.classList.add('is-refreshing');
+      try {
+        await refreshRemoteState();
+      } finally {
+        mobileLiveRefresh.classList.remove('is-refreshing');
+        mobileLiveRefresh.disabled = false;
+      }
+    });
+  }
   document.querySelectorAll('[data-live-tab]').forEach(button => {
     button.addEventListener('click', () => setLiveTab(button.dataset.liveTab));
     button.addEventListener('keydown', event => {
+      if (button.classList.contains('mobile-header-icon-button')) return;
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-      const tabs = [...document.querySelectorAll('[data-live-tab]:not([hidden])')];
+      const tabs = [...document.querySelectorAll('nav.live-tabs [data-live-tab]:not([hidden])')];
       const index = tabs.indexOf(button);
       const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
         : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
@@ -1429,9 +1766,14 @@
   }
   setInterval(() => {
     document.querySelectorAll('[data-start]').forEach(el => {
-      el.textContent = elapsed(el.dataset.start);
-      el.classList.remove('timer-blue', 'timer-amber', 'timer-red');
-      el.classList.add(timerClass(el.dataset.start));
+      const nextElapsed = elapsed(el.dataset.start);
+      if (el.textContent !== nextElapsed) el.textContent = nextElapsed;
+
+      const nextTimerClass = timerClass(el.dataset.start);
+      if (!el.classList.contains(nextTimerClass)) {
+        el.classList.remove('timer-blue', 'timer-amber', 'timer-red');
+        el.classList.add(nextTimerClass);
+      }
     });
     document.querySelectorAll('.queue-waiting-time[data-waiting-since]').forEach(el => {
       el.textContent = waitingDuration(el.dataset.waitingSince);
