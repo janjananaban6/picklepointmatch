@@ -50,7 +50,7 @@ button,a{-webkit-tap-highlight-color:transparent}
 .scoreline{margin-top:11px;display:flex;align-items:center;justify-content:center;gap:9px;color:#dffafa;font-size:12px;font-weight:950}
 .scoreline b{color:var(--teal);font-size:17px}
 .queue-list{display:flex;flex-direction:column;gap:8px}
-.queue-item{display:flex;align-items:center;gap:11px;padding:10px 11px;background:#0b2931;border:1px solid #1d4851;border-radius:10px;min-width:0}
+.queue-item{display:flex;align-items:center;gap:11px;padding:10px 11px;background:#0b2931;border:1px solid #1d4851;border-radius:16px;min-width:0}
 .queue-number{flex:0 0 27px;width:27px;height:27px;border-radius:8px;background:#1b4f57;color:var(--teal);display:grid;place-items:center;font-weight:950;font-size:11px}
 .queue-player{font-size:12px;font-weight:850;overflow-wrap:anywhere}
 .queue-label{display:block;color:#7fa9ad;font-size:9px;margin-top:3px}
@@ -638,7 +638,7 @@ html body .player-chip .live-player-gender svg.gender-symbol {
 .live-ranking-list::-webkit-scrollbar{width:6px}
 .live-ranking-list::-webkit-scrollbar-track{background:transparent}
 .live-ranking-list::-webkit-scrollbar-thumb{border-radius:99px;background:#4d777d}
-.live-ranking-row{display:grid;grid-template-columns:36px minmax(0,1fr) 63px;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+.live-ranking-row{display:grid;grid-template-columns:36px minmax(0,1fr) 63px;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:16px;background:var(--panel2)}
 .live-ranking-row.rank-1{border-color:#f3d56b}
 .live-ranking-row.rank-2{border-color:#dce7f1}
 .live-ranking-row.rank-3{border-color:#ffd5a8}
@@ -1217,7 +1217,7 @@ html[data-theme="light"] body #waitingCourtsList .court-visual-score span { colo
   min-width: 0;
   padding: 14px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 16px;
   background: var(--panel2);
 }
 .live-match-topline {
@@ -3582,21 +3582,21 @@ html body.live-view-page .section-card.queue-section #queueSearchSlot.queue-sear
   transition: height 260ms cubic-bezier(.22, .61, .36, 1) !important;
 }
 html body.live-view-page .section-card.queue-section #queueSearchSlot.queue-search-slot.is-open {
-  height: 34px;
+  height: 43px;
 }
 html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel {
   display: flex !important;
   align-items: center !important;
   box-sizing: border-box !important;
   width: 100% !important;
-  height: 30px !important;
-  min-height: 30px !important;
+  height: 35px !important;
+  min-height: 35px !important;
   max-height: none !important;
   margin: 0 !important;
   padding: 0 8px !important;
   overflow: hidden !important;
   border: 1px solid transparent !important;
-  border-radius: 10px !important;
+  border-radius: 9999px !important;
   background: transparent !important;
   opacity: 0 !important;
   transform: translateY(-4px) !important;
@@ -3617,11 +3617,11 @@ html body.live-view-page .section-card.queue-section #queueSearchSlot.queue-sear
   display: none !important;
 }
 @media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {html body.live-view-page .section-card.queue-section #queueSearchSlot.queue-search-slot.is-open {
-    height: 34px;
+    height: 43px;
   }
 html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel {
-    height: 30px !important;
-    min-height: 30px !important;
+    height: 35px !important;
+    min-height: 35px !important;
   }}
 @media (prefers-reduced-motion: reduce) {html body.live-view-page .section-card.queue-section #queueSearchSlot.queue-search-slot,
   html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel {
@@ -4585,7 +4585,7 @@ html body.live-view-page .mobile-live-status {
   align-items: center !important;
   justify-content: center !important;
   gap: 6px !important;
-  height: 32px !important;
+  height: 30px !important;
   min-width: 62px !important;
   margin: 0 !important;
   padding: 0 11px !important;
@@ -4682,7 +4682,7 @@ html[data-theme="light"] body.live-view-page .mobile-header-icon-button[aria-sel
   }
   html body.live-view-page .mobile-header-icon-button svg { width: 18px !important; height: 18px !important; }
   html body.live-view-page .mobile-live-status {
-    height: 27px !important;
+    height: 25px !important;
     min-width: 53px !important;
     padding: 0 8px !important;
     gap: 5px !important;
@@ -4716,7 +4716,7 @@ html[data-theme="light"] body.live-view-page .mobile-header-icon-button[aria-sel
     min-height: 27px !important;
   }
   html body.live-view-page .mobile-header-icon-button svg { width: 16px !important; height: 16px !important; }
-  html body.live-view-page .mobile-live-status { min-width: 48px !important; height: 25px !important; padding: 0 6px !important; font-size: 8px !important; }
+  html body.live-view-page .mobile-live-status { min-width: 48px !important; height: 23px !important; padding: 0 6px !important; font-size: 8px !important; }
 }
 
 /* iPad: 20px outside gutters. */
@@ -4749,7 +4749,7 @@ html[data-theme="light"] body.live-view-page .mobile-header-icon-button[aria-sel
     min-height: 36px !important;
   }
   html body.live-view-page .mobile-header-icon-button svg { width: 20px !important; height: 20px !important; }
-  html body.live-view-page .mobile-live-status { height: 30px !important; min-width: 58px !important; font-size: 10px !important; }
+  html body.live-view-page .mobile-live-status { height: 28px !important; min-width: 58px !important; font-size: 10px !important; }
 }
 
 /* Desktop: centered 900px maximum width and minimal typography. */
@@ -4769,7 +4769,7 @@ html[data-theme="light"] body.live-view-page .mobile-header-icon-button[aria-sel
   }
   html body.live-view-page .mobile-session-title {
     font-size: 15px !important;
-    font-weight: 550 !important;
+    font-weight: 700 !important;
     letter-spacing: -.12px !important;
   }
   html body.live-view-page .mobile-live-header-meta {
@@ -4796,7 +4796,7 @@ html[data-theme="light"] body.live-view-page .mobile-header-icon-button[aria-sel
   }
   html body.live-view-page .mobile-header-icon-button svg { width: 19px !important; height: 19px !important; }
   html body.live-view-page .mobile-live-status {
-    height: 29px !important;
+    height: 27px !important;
     min-width: 64px !important;
     padding: 0 10px !important;
     font-size: 10px !important;
@@ -5921,46 +5921,6 @@ html body.live-view-page #waitingCourtsList > .court-card.court-visual-card .cou
   transition: none !important;
   will-change: auto !important;
 }
-html body.live-view-page #waitingCourtsList > .court-card.court-visual-card .court-card-summary-dot {
-  display: inline-block !important;
-  flex: 0 0 8px !important;
-  width: 8px !important;
-  height: 8px !important;
-  border-radius: 50% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background: #8bd2ed !important;
-}
-html body.live-view-page #waitingCourtsList > .court-card.court-visual-card .court-card-summary-dot.is-playing {
-  background: #65e2b5 !important;
-}
-html body.live-view-page #waitingCourtsList > .court-card.court-visual-card .court-card-summary-name {
-  display: block !important;
-  flex: 0 1 auto !important;
-  min-width: 0 !important;
-  overflow: hidden !important;
-  color: #e0e9e2 !important;
-  font-size: 12px !important;
-  font-weight: 850 !important;
-  line-height: 1.2 !important;
-  letter-spacing: .1px !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-}
-html body.live-view-page #waitingCourtsList > .court-card.court-visual-card .court-card-summary-status,
-html body.live-view-page #waitingCourtsList > .court-card.court-visual-card .court-card-summary-status.is-playing,
-html body.live-view-page #waitingCourtsList > .court-card.court-visual-card .court-card-summary-status.is-ready {
-  display: inline-block !important;
-  flex: 0 1 auto !important;
-  min-width: 0 !important;
-  overflow: hidden !important;
-  color: #a9b7ad !important;
-  font-size: 10px !important;
-  font-weight: 600 !important;
-  line-height: 12px !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-}
 html body.live-view-page #waitingCourtsList > .court-card.court-visual-card .court-card-summary-match {
   display: block !important;
   align-self: center !important;
@@ -6216,4 +6176,369 @@ html body.live-view-page #courtCollapseAllToggle[hidden],
 html body.live-view-page #waitingCourtLayoutToggle[hidden],
 html body.live-view-page #waitingCourtsCollapseToggle[hidden] {
   display: none !important;
+}
+
+
+/* Live Rankings: pill searchbar with an end-aligned circular filter control. */
+html body .section-card .live-ranking-searchbar {
+  width: 100%;
+  max-width: 440px;
+  min-height: 39px;
+  padding: 0 5px 0 12px;
+  gap: 9px;
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
+}
+html body .section-card .live-ranking-searchbar input {
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
+}
+html body .section-card .live-ranking-filter-toggle {
+  display: inline-flex;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+html body .section-card .live-ranking-filter-toggle svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+html body .section-card .live-ranking-filter-toggle svg circle {
+  fill: var(--panel2);
+}
+html body .section-card .live-ranking-filter-toggle:hover,
+html body .section-card .live-ranking-filter-toggle.is-open {
+  color: var(--teal);
+  border-color: var(--teal);
+  background: var(--panel2);
+}
+html body .section-card .live-ranking-filter-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  width: 100%;
+  max-width: 440px;
+  min-width: 0;
+  margin: -5px 0 12px;
+  padding: 0 1px;
+}
+html body .section-card .live-ranking-filter-controls[hidden] { display: none !important; }
+html body .section-card .live-ranking-filter-controls .leaderboard-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+}
+html body .section-card .live-ranking-filter-controls .leaderboard-filter-chip {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 25px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid #28545b;
+  border-radius: 9999px;
+  background: #0c2d35;
+  color: #a7c4c7;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background .14s ease, border-color .14s ease, color .14s ease;
+}
+html body .section-card .live-ranking-filter-controls .leaderboard-category-filters .leaderboard-filter-chip { height: 22px; }
+html body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-all.active,
+html body .section-card .live-ranking-filter-controls .leaderboard-player-filters .player-everyone.active,
+html body .section-card .live-ranking-filter-controls .leaderboard-player-filters .player-solo.active,
+html body .section-card .live-ranking-filter-controls .leaderboard-player-filters .player-lockin.active {
+  border-color: var(--teal);
+  background: #174a50;
+  color: #eaffff;
+}
+html body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-beg { color: #79bfe9; border-color: #285c77; background: #102f40; }
+html body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-nov { color: #71d2bd; border-color: #28695e; background: #103a35; }
+html body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-int { color: #e7c16b; border-color: #705d34; background: #3b3423; }
+html body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-adv { color: #f0ad70; border-color: #765034; background: #3b2c20; }
+html body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-exp { color: #f08b93; border-color: #75434a; background: #3a252b; }
+html body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-beg.active { color: #fff; border-color: #2685c3; background: #2685c3; }
+html body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-nov.active { color: #fff; border-color: #159b83; background: #159b83; }
+html body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-int.active { color: #fff; border-color: #b88a25; background: #9b741e; }
+html body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-adv.active { color: #fff; border-color: #c77730; background: #aa6226; }
+html body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-exp.active { color: #fff; border-color: #cf5962; background: #a9444c; }
+html body .section-card .live-ranking-filter-controls .leaderboard-filter-lock-icon,
+html body .section-card .live-ranking-filter-controls .leaderboard-filter-lock-icon svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+}
+html body .section-card .live-ranking-filter-controls .leaderboard-filter-lock-icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-filter-chip {
+  border-color: #e1e7ed;
+  background: #fff;
+  color: #657382;
+}
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-all.active,
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-player-filters .player-everyone.active,
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-player-filters .player-solo.active,
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-player-filters .player-lockin.active {
+  border-color: #203746;
+  background: #203746;
+  color: #fff;
+}
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-beg { color: #247eae; border-color: #d5e9f5; background: #f1f8fc; }
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-nov { color: #258673; border-color: #d0eee6; background: #f0faf7; }
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-int { color: #a27a25; border-color: #f0e5c4; background: #fcf8ed; }
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-adv { color: #b87837; border-color: #f4e1cd; background: #fcf6ef; }
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-exp { color: #bd6268; border-color: #f2dadd; background: #fcf4f5; }
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-beg.active { color: #fff; border-color: #2685c3; background: #2685c3; }
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-nov.active { color: #fff; border-color: #159b83; background: #159b83; }
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-int.active { color: #fff; border-color: #d69a16; background: #d69a16; }
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-adv.active { color: #fff; border-color: #e88a2e; background: #e88a2e; }
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .leaderboard-category-filters .category-exp.active { color: #fff; border-color: #e26066; background: #e26066; }
+@media (max-width: 560px) {
+  html body .section-card .live-ranking-searchbar { min-height: 36px; padding: 0 5px 0 10px; }
+  html body .section-card .live-ranking-filter-toggle { flex-basis: 28px; width: 28px; height: 28px; }
+  html body .section-card .live-ranking-filter-controls { max-width: none; }
+}
+
+
+/* Matches tab: pill-shaped search field with a deliberately disabled filter affordance. */
+html body .section-card .live-matches-searchbar {
+  width: 100%;
+  max-width: 440px;
+  min-height: 39px;
+  padding: 0 5px 0 12px;
+  gap: 9px;
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
+}
+html body .section-card .live-matches-searchbar input {
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
+}
+html body .section-card .live-matches-filter-toggle:disabled,
+html body .section-card .live-matches-filter-toggle[aria-disabled="true"] {
+  opacity: .48;
+  cursor: not-allowed;
+  pointer-events: none;
+  color: var(--muted);
+  border-color: var(--line);
+  background: var(--panel);
+}
+@media (max-width: 560px) {
+  html body .section-card .live-matches-searchbar { min-height: 36px; padding: 0 5px 0 10px; }
+  html body .section-card .live-matches-filter-toggle { flex-basis: 28px; width: 28px; height: 28px; }
+}
+
+/* REQUESTED PILL CONTROLS — queue search panel and court heading actions. */
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open {
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
+}
+html body.live-view-page .section-card.court-section .section-heading.court-section-heading .court-section-heading-actions > #courtLayoutToggle,
+html body.live-view-page .section-card.court-section .section-heading.court-section-heading .court-section-heading-actions > #courtCollapseAllToggle,
+html body.live-view-page .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-section-heading-actions > #waitingCourtLayoutToggle,
+html body.live-view-page .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .court-section-heading-actions > #waitingCourtsCollapseToggle {
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
+}
+
+
+/* COURT CARD SIZE LOCK — keep the card shell the same height while collapsed
+   or expanded. Expanded court details remain visible as a dropdown panel, and
+   live-view.js reserves the measured panel space below it so later cards do
+   not get covered. Applies to both regular and waiting-only courts. */
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card {
+  position: relative !important;
+  height: 53px !important;
+  min-height: 53px !important;
+  max-height: 53px !important;
+  padding: 0 !important;
+  margin-bottom: 0 !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card.is-expanded {
+  z-index: 25 !important;
+  margin-bottom: var(--court-expanded-panel-space, 0px) !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card.is-collapsed {
+  z-index: 0 !important;
+  margin-bottom: 0 !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card .court-card-collapse-toggle {
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
+  box-sizing: border-box !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card.is-expanded .court-card-collapse-toggle {
+  border-radius: 15px 15px 0 0 !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card .court-card-expanded-content:not([hidden]) {
+  position: absolute !important;
+  top: calc(100% - 1.5px) !important;
+  left: -1.5px !important;
+  right: -1.5px !important;
+  z-index: 30 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  border: 1.5px solid #293a30 !important;
+  border-top: 0 !important;
+  border-radius: 0 0 16px 16px !important;
+  background: linear-gradient(160deg, #113a43, #0b3038) !important;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .20) !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card[data-court-status="playing"] .court-card-expanded-content:not([hidden]) {
+  border-color: #2fc4b3 !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card[data-court-status="ready"] .court-card-expanded-content:not([hidden]) {
+  border-color: #8bd2ed !important;
+}
+html[data-theme="light"] body.live-view-page #courtsList > .court-card.court-visual-card .court-card-expanded-content:not([hidden]) {
+  background: linear-gradient(160deg, #ffffff, #f5fafa) !important;
+  border-color: #d9e5dc !important;
+  box-shadow: 0 10px 22px rgba(34, 61, 47, .10) !important;
+}
+html[data-theme="light"] body.live-view-page #courtsList > .court-card.court-visual-card[data-court-status="playing"] .court-card-expanded-content:not([hidden]) {
+  border-color: #36a697 !important;
+}
+html[data-theme="light"] body.live-view-page #courtsList > .court-card.court-visual-card[data-court-status="ready"] .court-card-expanded-content:not([hidden]) {
+  border-color: #4e9db9 !important;
+}
+html[data-theme="light"] body.live-view-page #waitingCourtsList > .court-card.court-visual-card .court-card-expanded-content:not([hidden]) {
+  background: linear-gradient(125deg, #ffffff 0%, #f1fbfa 62%, #f4f8ff 100%) !important;
+  border-color: #d9e5dc !important;
+  box-shadow: 0 10px 22px rgba(27, 82, 91, .10) !important;
+}
+html[data-theme="light"] body.live-view-page #waitingCourtsList > .court-card.court-visual-card[data-court-status="playing"] .court-card-expanded-content:not([hidden]) {
+  border-color: #36a697 !important;
+}
+html[data-theme="light"] body.live-view-page #waitingCourtsList > .court-card.court-visual-card[data-court-status="ready"] .court-card-expanded-content:not([hidden]) {
+  border-color: #70b8cf !important;
+}
+
+
+/* COURT EXPANSION FLOW FIX — regular courts and Next Up courts share the same
+   layout model. The header remains a constant 50px tall; expanded details stay
+   inside the card's normal flow so the next card is positioned after them. */
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  position: relative !important;
+  height: auto !important;
+  min-height: 52px !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  align-self: flex-start !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card.is-collapsed {
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card.is-expanded {
+  height: auto !important;
+  min-height: 52px !important;
+  max-height: none !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  z-index: auto !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card > .court-card-collapse-toggle {
+  flex: 0 0 50px !important;
+  width: 100% !important;
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card.is-expanded > .court-card-collapse-toggle {
+  border-radius: 1px 1px 0 0 !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card > .court-card-expanded-content:not([hidden]) {
+  position: static !important;
+  inset: auto !important;
+  z-index: auto !important;
+  display: flex !important;
+  flex: 0 0 auto !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 12px 15px 13px !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  border: 0 !important;
+  border-top: 1px solid rgba(139, 210, 237, .28) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card > .court-card-expanded-content[hidden] {
+  display: none !important;
+}
+html[data-theme="light"] body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card > .court-card-expanded-content:not([hidden]) {
+  border-top-color: rgba(70, 116, 105, .20) !important;
+}
+@media (max-width: 560px) {
+  html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card > .court-card-collapse-toggle {
+    flex-basis: 50px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
+  }
+  html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card > .court-card-expanded-content:not([hidden]) {
+    padding: 11px 10px 12px !important;
+  }
 }

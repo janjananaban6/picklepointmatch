@@ -426,8 +426,8 @@ html body[data-page="queueing"] #historyView .leaderboard-search-wrap {
   padding: 0 8px !important;
   gap: 5px !important;
   border: 1px solid #e1e7ed !important;
-  border-radius: 10px !important;
-  -webkit-border-radius: 10px !important;
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
   background: #fff !important;
   box-shadow: none !important;
   overflow: hidden !important;
@@ -459,8 +459,8 @@ html body[data-page="queueing"] #historyView #historySearchInput {
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
-  border-radius: 6px !important;
-  -webkit-border-radius: 6px !important;
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
   outline: 0 !important;
   appearance: none !important;
   -webkit-appearance: none !important;
@@ -587,13 +587,13 @@ html body[data-page="queueing"] #rankingView .leaderboard-filter-empty {
    blue 1.5px active border only while the field (or its wrapper) is focused.
    Inner inputs inside icon wrappers remain borderless so the layout is unchanged. */
 
-/* Keep the requested 10px corner radius without changing default border colors. */
+/* Queueing search inputs use pill corners; keep all other border styling unchanged. */
 html body[data-page="queueing"] #queueMainArea #registeredPlayerSearch,
 html body[data-page="queueing"] #endSessionModal .end-session-attendee-search,
 html body[data-page="queueing"] #queueMainArea .queue-lock-partner-search,
 html body[data-page="queueing"] .court-picker .picker-search {
-  border-radius: 10px !important;
-  -webkit-border-radius: 10px !important;
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
   transition: border-color .16s ease, border-width .16s ease !important;
 }
 
@@ -602,8 +602,8 @@ html body[data-page="queueing"] #rankingView .leaderboard-search-wrap,
 html body[data-page="queueing"] #historyView .leaderboard-search-wrap,
 html body[data-page="queueing"] #leftPlayersModal .left-players-search-wrap,
 html body[data-page="queueing"] #cloudRecordsModal .cloud-search-wrap {
-  border-radius: 10px !important;
-  -webkit-border-radius: 10px !important;
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
   transition: border-color .16s ease, border-width .16s ease !important;
 }
 

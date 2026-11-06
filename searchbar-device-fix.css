@@ -155,3 +155,22 @@ html:not([data-theme="light"]) body #pageMatchesSearch::-webkit-input-placeholde
     font-size: 16px !important;
   }
 }
+
+/* LIVE VIEW SEARCH BORDER PARITY — use the same interaction border colors as
+   Registered Player Search on the Queue page. Only the search wrappers change;
+   dimensions, input styling, and search behavior remain untouched. */
+html body.live-view-page .live-tab-search:hover:not(:focus-within),
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open:hover:not(:focus-within) {
+  border-color: #b7c9d6 !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+html body.live-view-page .live-tab-search:focus-within,
+html body.live-view-page .live-tab-search:active,
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open:focus-within,
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open:active {
+  border-color: #38bdf8 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}

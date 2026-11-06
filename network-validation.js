@@ -5,9 +5,9 @@
   window.__PPM_NETWORK_VALIDATION_INSTALLED__ = true;
 
   const rawFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
-  const HEALTH_TIMEOUT_MS = 1700;
-  const API_READ_TIMEOUT_MS = 4500;
-  const CHECK_INTERVAL_MS = 25000;
+  const HEALTH_TIMEOUT_MS = 20000;
+  const API_READ_TIMEOUT_MS = 30000;
+  const CHECK_INTERVAL_MS = 10000;
   const RECENT_CHECK_MS = 6500;
   const isLocalHost = /^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i.test(location.hostname || '');
   let currentStatus = 'checking';
@@ -115,15 +115,24 @@
       const method = String(init.method || input?.method || 'GET').toUpperCase();
       if (!url) return rawFetch(input, init);
       if (method !== 'GET') {
-        // When a remote host is known to be unreachable, verify it before sending
-        // a write command. The command itself is never automatically retried.
-        if (!isLocalHost && (currentStatus === 'offline' || currentStatus === 'unreachable')) {
-          return check(true).then(reachable => {
-            if (!reachable) throw new TypeError('The Pickle Point Match server is unavailable. The command was not sent.');
-            return rawFetch(input, init);
-          });
-        }
-        return rawFetch(input, init);
+        const sendWrite = () => rawFetch(input, init).then(response => {
+          // Any real API response below 500 proves the app server answered.
+          // Never retry a write automatically: registration and check-in must
+          // not be duplicated when a connection drops after the server commits.
+          if (response.status < 500) setState('connected');
+          else scheduleCheck(true, 6000);
+          return response;
+        }).catch(error => {
+          if (!(init.signal && init.signal.aborted)) scheduleCheck(true, 6000);
+          throw error;
+        });
+
+        // Let the requested API endpoint decide whether a write is allowed.
+        // A separate /api/health ping is only a status indicator; requiring it
+        // before a write can suppress valid queue check-ins or registration when
+        // the health route is slow while the actual API is already responding.
+        // Mutating requests are sent once only and are never retried here.
+        return sendWrite();
       }
 
       const suppliedSignal = init.signal || (typeof Request !== 'undefined' && input instanceof Request ? input.signal : null);

@@ -4145,16 +4145,6 @@ existing queue design unchanged. */
   align-items:center!important;
   box-sizing:border-box!important;
 }
-.court-settings-modal-box .settings-add-row .court-name-input{
-  width:100%!important;
-  min-width:0!important;
-  height:45px!important;
-  margin:0!important;
-  padding:0 12px!important;
-  box-sizing:border-box!important;
-  border-radius:10px!important;
-  font-size:12px!important;
-}
 .court-settings-modal-box .settings-add-btn{
   width:73px!important;
   min-width:73px!important;
@@ -4423,14 +4413,9 @@ existing queue design unchanged. */
   grid-template-columns:minmax(0,1fr) 62px!important;
   gap:6px!important;
 }
-.court-settings-modal-box .settings-add-row .court-name-input,
 .court-settings-modal-box .settings-add-btn{
   height:38px!important;
   border-radius:8px!important;
-}
-.court-settings-modal-box .settings-add-row .court-name-input{
-  padding:0 10px!important;
-  font-size:11px!important;
 }
 .court-settings-modal-box .settings-add-btn{
   width:62px!important;
@@ -4560,10 +4545,6 @@ existing queue design unchanged. */
   grid-template-columns:minmax(0,1fr) 62px!important;
   gap:6px!important;
   justify-content:start!important;
-}
-.court-settings-modal-box .settings-add-row .court-name-input{
-  width:100%!important;
-  min-width:0!important;
 }
 .court-settings-modal-box .settings-add-row .settings-add-btn,
 .court-settings-modal-box .settings-add-btn{
@@ -9034,14 +9015,6 @@ hover changes color only. */
   line-height:36px!important;
   font-weight:750!important;
 }
-.court-settings-modal-box .settings-add-row .court-name-input{
-  height:45px!important;
-  padding:0 13px!important;
-  border:1px solid #e0e4e9!important;
-  border-radius:10px!important;
-  background:#f9fafb!important;
-  font-size:13px!important;
-}
 .court-settings-modal-box .court-names-help{
   margin:7px 0 0!important;
   color:#8793a4!important;
@@ -9055,14 +9028,6 @@ hover changes color only. */
   grid-template-columns:minmax(0,1fr) 54px!important;
   gap:5px!important;
   align-items:center!important;
-}
-.court-settings-modal-box .settings-add-row .court-name-input{
-  height:32px!important;
-  min-height:32px!important;
-  padding:0 9px!important;
-  border-radius:7px!important;
-  font-size:11px!important;
-  line-height:1.2!important;
 }
 .court-settings-modal-box .settings-add-row .settings-add-btn,
 .court-settings-modal-box .settings-add-btn{
@@ -9094,12 +9059,6 @@ hover changes color only. */
   box-sizing:border-box!important;
   grid-template-columns:minmax(0,1fr) 54px!important;
   gap:6px!important;
-}
-.court-settings-modal-box .settings-add-row .court-name-input {
-  width:100%!important;
-  min-width:0!important;
-  box-sizing:border-box!important;
-  text-align:left!important;
 }
 /* Minimal scrollbar for the court skill assignment list. */
 .court-settings-modal-box #courtSettingsSkills.court-settings-skills {
@@ -12833,18 +12792,6 @@ content, controls, and JavaScript behavior remain unchanged. */
   font-weight:900!important;
   letter-spacing:.7px!important;
 }
-#courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input{
-  border:1px solid #dce8d5!important;
-  background:#fbfef9!important;
-  color:#193526!important;
-  outline:none!important;
-  transition:border-color .16s ease,box-shadow .16s ease,background-color .16s ease!important;
-}
-#courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input:focus{
-  border-color:#7ED11E!important;
-  background:#ffffff!important;
-  box-shadow:0 0 0 3px rgba(126,209,30,.17)!important;
-}
 #courtSettingsModal .court-settings-modal-box .settings-add-btn{
   border:1px solid #7ED11E!important;
   background:#7ED11E!important;
@@ -13506,24 +13453,6 @@ layout and JavaScript behavior stay unchanged. */
   font-weight:950!important;
   letter-spacing:1.15px!important;
 }
-#courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input{
-  color:#eefafa!important;
-  background:#08272f!important;
-  border:1px solid #24535a!important;
-  border-radius:10px!important;
-  box-shadow:none!important;
-  caret-color:#27d3c5!important;
-  transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease!important;
-}
-#courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input::placeholder{
-  color:#739ba0!important;
-  opacity:1!important;
-}
-#courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input:focus{
-  background:#0a2d35!important;
-  border-color:#27d3c5!important;
-  box-shadow:0 0 0 3px rgba(39,211,197,.14)!important;
-}
 #courtSettingsModal .court-settings-modal-box .settings-add-btn,
 #courtSettingsModal .court-settings-modal-box .settings-modal-actions .blue{
   color:#04272d!important;
@@ -13715,22 +13644,6 @@ html body #courtSettingsModal .court-settings-modal-box .settings-help {
 }
 html body #courtSettingsModal .court-settings-modal-box .settings-section-title {
   color: #087d79 !important;
-}
-html body #courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input {
-  color: #183b40 !important;
-  background: #ffffff !important;
-  border: 1px solid #cbdfe1 !important;
-  box-shadow: none !important;
-  caret-color: #087d79 !important;
-}
-html body #courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input::placeholder {
-  color: #7a9296 !important;
-  opacity: 1 !important;
-}
-html body #courtSettingsModal .court-settings-modal-box .settings-add-row .court-name-input:focus {
-  background: #ffffff !important;
-  border-color: #27bdb1 !important;
-  box-shadow: 0 0 0 3px rgba(39, 189, 177, .15) !important;
 }
 html body #courtSettingsModal .court-settings-modal-box .settings-add-btn,
 html body #courtSettingsModal .court-settings-modal-box .settings-modal-actions .blue {
@@ -26544,4 +26457,71 @@ html body #endSessionModal .end-session-attendee-empty {
 }
 html body #endSessionModal .end-session-attendee-list {
   order: 1 !important;
+}
+
+/* FINAL MATCH HISTORY EDGE + INVISIBLE SCROLLBAR FIX.
+   Remove the scrollbar's layout width (not just its color), so history cards
+   use the full available list width and their right border reaches the panel
+   edge evenly. The list remains scrollable. The repeated ID exclusions give
+   this queueing-only rule priority over the global scrollbar theme. */
+html body[data-page="queueing"] #historyView #historyTable.history-list:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override) {
+  scrollbar-width: none !important;
+  scrollbar-color: transparent transparent !important;
+  -ms-overflow-style: none !important;
+  scrollbar-gutter: auto !important;
+  padding-right: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+html body[data-page="queueing"] #historyView #historyTable.history-list:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override)::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+html body[data-page="queueing"] #historyView #historyTable.history-list:not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override):not(#scrollbar-theme-override) > .history-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* COURT SETTINGS NAME INPUT — single scoped source of truth.
+   Keeps desktop and iPad input/placeholder typography identical without
+   changing the separate Add Court modal or any other page. */
+html body[data-page="queueing"] #courtSettingsModal #courtSettingsNameInput {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  margin: 0 !important;
+  padding: 0 9px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #cbdfe1 !important;
+  border-radius: 7px !important;
+  outline: none !important;
+  background: #ffffff !important;
+  color: #183b40 !important;
+  caret-color: #087d79 !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  text-align: left !important;
+  box-shadow: none !important;
+  transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease !important;
+}
+html body[data-page="queueing"] #courtSettingsModal #courtSettingsNameInput::placeholder,
+html body[data-page="queueing"] #courtSettingsModal #courtSettingsNameInput::-webkit-input-placeholder,
+html body[data-page="queueing"] #courtSettingsModal #courtSettingsNameInput::-moz-placeholder {
+  color: #7a9296 !important;
+  opacity: 1 !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  line-height: 1.2 !important;
+}
+html body[data-page="queueing"] #courtSettingsModal #courtSettingsNameInput:focus,
+html body[data-page="queueing"] #courtSettingsModal #courtSettingsNameInput:focus-visible {
+  background: #ffffff !important;
+  border-color: #27bdb1 !important;
+  box-shadow: 0 0 0 3px rgba(39, 189, 177, .15) !important;
 }

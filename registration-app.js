@@ -8,6 +8,12 @@
   let organizerValidated = false;
   let registrationSessionAvailable = false;
   let registrationSessionBlockReason = 'No active live session. Registration is closed until the organizer starts a new session.';
+  let registrationLinkInvalid = false;
+  let registrationValidationPromise = null;
+  let cloudRetryTimer = null;
+  let cloudLoadPromise = null;
+  const CLOUD_RETRY_DELAY_MS = 5000;
+
   function scopedApiUrl(path, params = {}) {
     const url = new URL(path, window.location.origin);
     if (organizerScope) url.searchParams.set('organizer', organizerScope);
@@ -16,11 +22,26 @@
   }
 
   function showRegistrationLinkNotice(message) {
+    registrationLinkInvalid = true;
     const notice = $('registrationLinkNotice');
     if (notice) { notice.textContent = message; notice.hidden = false; }
     const panel = $('registrationPagePanel');
     if (panel) panel.hidden = true;
     setConnection(false, 'Organizer link required');
+    updateSubmitButton();
+  }
+
+  function showRegistrationFormWhileConnecting(message) {
+    if (!organizerScope || registrationLinkInvalid) return;
+    const panel = $('registrationPagePanel');
+    const notice = $('registrationLinkNotice');
+    if (panel) panel.hidden = false;
+    if (notice) {
+      notice.textContent = message || 'Connecting to the organizer server. You can complete the form now; the server will verify the live session when you save.';
+      notice.hidden = false;
+    }
+    setConnection(false, navigator.onLine === false ? 'Offline' : 'Reconnecting');
+    updateSubmitButton();
   }
 
   async function validateOrganizerRegistrationLink() {
@@ -28,21 +49,39 @@
       showRegistrationLinkNotice('This registration page is organizer-specific. Please scan the registration QR code or open the link provided by your organizer.');
       return false;
     }
-    try {
-      const response = await fetch(scopedApiUrl('/api/app-state',{_:Date.now()}), {cache:'no-store',credentials:'same-origin'});
-      const data = response.ok ? await response.json() : null;
-      if (!data || String(data.organizerId || '') !== organizerScope) {
-        showRegistrationLinkNotice('This organizer registration link is invalid or inactive. Please ask the organizer for an updated QR code or link.');
+    if (registrationLinkInvalid) return false;
+    if (organizerValidated) return true;
+    if (registrationValidationPromise) return registrationValidationPromise;
+
+    registrationValidationPromise = (async () => {
+      try {
+        const response = await fetch(scopedApiUrl('/api/app-state',{_:Date.now()}), {cache:'no-store',credentials:'same-origin'});
+        if (response.status === 400 || response.status === 401 || response.status === 403 || response.status === 404) {
+          const data = await response.json().catch(() => ({}));
+          showRegistrationLinkNotice(data.error || 'This organizer registration link is invalid or inactive. Please ask the organizer for an updated QR code or link.');
+          return false;
+        }
+        if (!response.ok) {
+          showRegistrationFormWhileConnecting('The organizer server is temporarily unavailable. Complete the form and try Save again; the server will verify the live session before adding the player.');
+          return false;
+        }
+        const data = await response.json();
+        if (!data || String(data.organizerId || '') !== organizerScope) {
+          showRegistrationLinkNotice('This organizer registration link is invalid or inactive. Please ask the organizer for an updated QR code or link.');
+          return false;
+        }
+        registrationLinkInvalid = false;
+        organizerValidated = true;
+        updateRegistrationSessionState(data.state);
+        return true;
+      } catch (_) {
+        showRegistrationFormWhileConnecting('Unable to reach the organizer server right now. You may complete the form; Save will verify the live session directly with the server.');
         return false;
+      } finally {
+        registrationValidationPromise = null;
       }
-      organizerValidated = true;
-      updateRegistrationSessionState(data.state);
-      return true;
-    } catch (_) {
-      setConnection(false, 'Offline');
-      showRegistrationError('Unable to verify this organizer link. Reconnect to the internet and try again.');
-      return false;
-    }
+    })();
+    return registrationValidationPromise;
   }
 
   function syncDuprRegistrationFields() {
@@ -65,10 +104,8 @@
   let selectedAvatarId = '';
   let cloudPlayers = [];
   let appPlayers = [];
-  let serviceReady = false;
   let submitting = false;
   let cloudEvents = null;
-  let eyebrowThemeEvents = null;
   let feedbackTimer = null;
   let feedbackHideTimer = null;
 
@@ -88,7 +125,14 @@
     const panel = $('registrationPagePanel');
     const notice = $('registrationLinkNotice');
     if (!organizerValidated) {
-      if (panel) panel.hidden = true;
+      if (panel) panel.hidden = !organizerScope || registrationLinkInvalid;
+      if (organizerScope && !registrationLinkInvalid) {
+        if (notice) {
+          notice.textContent = 'Connecting to the organizer server. You can complete the form now; the server will verify the live session when you save.';
+          notice.hidden = false;
+        }
+        setConnection(false, navigator.onLine === false ? 'Offline' : 'Reconnecting');
+      }
       updateSubmitButton();
       return;
     }
@@ -116,10 +160,18 @@
   }
 
   async function syncRegistrationEyebrowTheme() {
+    // Registration.html currently has no live-theme eyebrow. Do not open a
+    // second, long-lived EventSource for an element that is not on this page:
+    // the cloud/session EventSource below is the only stream registration needs.
+    const eyebrow = document.querySelector('.registration-page-intro .eyebrow');
+    if (!eyebrow) return;
+
     try {
       applyRegistrationEyebrowTheme(localStorage.getItem(LIVE_THEME_STORAGE_KEY));
     } catch (_) {}
 
+    // A one-time theme read is sufficient here. Avoid a separate /api/live-events
+    // connection so registration cannot consume another browser connection slot.
     try {
       const response = await fetch(`/api/live-theme?_=${Date.now()}`, {cache: 'no-store'});
       if (response.ok) {
@@ -127,15 +179,6 @@
         applyRegistrationEyebrowTheme(data?.theme);
       }
     } catch (_) {}
-
-    if (!eyebrowThemeEvents && typeof EventSource !== 'undefined' && ['http:', 'https:'].includes(location.protocol)) {
-      try {
-        eyebrowThemeEvents = new EventSource(scopedApiUrl('/api/live-events'));
-        eyebrowThemeEvents.addEventListener('live-theme', event => {
-          applyRegistrationEyebrowTheme(String(event.data || '').trim());
-        });
-      } catch (_) { eyebrowThemeEvents = null; }
-    }
   }
 
   window.addEventListener('storage', event => {
@@ -275,7 +318,7 @@
     const duprComplete = !registrationDuprSession || /^[A-Z0-9]{6}$/.test(duprId.toUpperCase());
     const complete = fullname.length > 0 && duprComplete && !!selectedGender && SKILLS.has(selectedSkill);
     const button = $('registerSaveBtn');
-    if (button) button.disabled = !(serviceReady && organizerValidated && registrationSessionAvailable && complete && !duplicate && !duplicateDupr && !submitting);
+    if (button) button.disabled = !(!!organizerScope && !registrationLinkInvalid && (!organizerValidated || registrationSessionAvailable) && complete && !duplicate && !duplicateDupr && !submitting);
     return {fullname, duplicate, duplicateDupr, complete};
   }
 
@@ -450,33 +493,49 @@
     updateSubmitButton();
   }
 
+  function scheduleCloudRecordsRetry() {
+    if (cloudRetryTimer || !organizerScope || registrationLinkInvalid) return;
+    cloudRetryTimer = window.setTimeout(() => {
+      cloudRetryTimer = null;
+      loadCloudRecords();
+    }, CLOUD_RETRY_DELAY_MS);
+  }
+
   async function loadCloudRecords() {
-    if (!organizerValidated && !(await validateOrganizerRegistrationLink())) {
-      serviceReady = false;
-      updateSubmitButton();
-      return false;
-    }
-    try {
-      const appStateRequest = fetch(scopedApiUrl('/api/app-state',{_:Date.now()}), {cache: 'no-store',credentials:'same-origin'})
-        .then(response => response.ok ? response.json() : null)
-        .catch(() => null);
-      const response = await fetch(scopedApiUrl('/api/cloud-records',{_:Date.now()}), {cache: 'no-store',credentials:'same-origin'});
-      if (!response.ok) throw new Error('Registered Player Cloud is unavailable.');
-      const [data, appStateData] = await Promise.all([response.json(), appStateRequest]);
-      cloudPlayers = Array.isArray(data.records?.players) ? data.records.players : [];
-      updateAppPlayers(appStateData?.state);
-      updateRegistrationSessionState(appStateData?.state);
-      serviceReady = true;
-      updateSubmitButton();
-      bindCloudEvents();
-      return true;
-    } catch (error) {
-      serviceReady = false;
-      setConnection(false, 'Offline');
-      showRegistrationError('Registration needs the Pickle Point Match server. Open this page using the hosted app link, then try again.');
-      updateSubmitButton();
-      return false;
-    }
+    if (!organizerScope || registrationLinkInvalid) return false;
+    if (cloudLoadPromise) return cloudLoadPromise;
+    cloudLoadPromise = (async () => {
+      const validationTask = organizerValidated ? Promise.resolve(true) : validateOrganizerRegistrationLink();
+      try {
+        const response = await fetch(scopedApiUrl('/api/cloud-records',{_:Date.now()}), {cache:'no-store',credentials:'same-origin'});
+        if (response.status === 400 || response.status === 401 || response.status === 403 || response.status === 404) {
+          const data = await response.json().catch(() => ({}));
+          if (!organizerValidated) showRegistrationLinkNotice(data.error || 'This organizer registration link is invalid or inactive.');
+          return false;
+        }
+        if (!response.ok) throw new Error('Registered Player Cloud is temporarily unavailable.');
+        const data = await response.json();
+        cloudPlayers = Array.isArray(data.records?.players) ? data.records.players : [];
+        window.clearTimeout(cloudRetryTimer);
+        cloudRetryTimer = null;
+        bindCloudEvents();
+        updateSubmitButton();
+        return true;
+      } catch (error) {
+        showRegistrationFormWhileConnecting('Registered Player Cloud is reconnecting. You can still complete the form; the server will check for duplicate players when you save.');
+        scheduleCloudRecordsRetry();
+        updateSubmitButton();
+        return false;
+      } finally {
+        // Keep the organizer validation request alive independently. It can
+        // confirm an ended or expired session even when the cloud list is slow.
+        validationTask.then(valid => {
+          if (!valid && !registrationLinkInvalid) scheduleCloudRecordsRetry();
+        }).catch(() => scheduleCloudRecordsRetry());
+        cloudLoadPromise = null;
+      }
+    })();
+    return cloudLoadPromise;
   }
 
   function bindCloudEvents() {
@@ -526,12 +585,16 @@
 
   async function submitRegistration() {
     if (submitting) return;
-    if (!registrationSessionAvailable) {
-      await validateOrganizerRegistrationLink();
-      if (!registrationSessionAvailable) {
-        showFeedback(registrationSessionId ? 'Registration QR unavailable' : 'No active live session', registrationSessionBlockReason || 'Registration is closed until the organizer starts a live session.', true);
-        return;
-      }
+    if (!organizerScope || registrationLinkInvalid) {
+      showFeedback('Registration link unavailable', 'Please open the organizer-specific registration QR code or link supplied by your organizer.', true);
+      return;
+    }
+    // A successful GET may already have confirmed that this QR/session expired.
+    // If the GET merely timed out, allow the POST to reach the server: the
+    // registration endpoint performs the authoritative organizer/session check.
+    if (organizerValidated && !registrationSessionAvailable) {
+      showFeedback(registrationSessionId ? 'Registration QR unavailable' : 'No active live session', registrationSessionBlockReason || 'Registration is closed until the organizer starts a live session.', true);
+      return;
     }
     const {fullname, duplicate, duplicateDupr, complete} = updateSubmitButton();
     hideFeedback();
@@ -552,14 +615,7 @@
     if (registrationDuprSession && selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) { showRegistrationError('Enter self rating as a number, such as 2.5, or a range such as 2.5/4.0.'); $('registerSelfRating').focus(); return; }
     if (!selectedGender) { showRegistrationError('Please select Male or Female.'); return; }
     if (!SKILLS.has(selectedSkill)) { showRegistrationError('Please select a skill level.'); return; }
-    if (!serviceReady || !complete) {
-      await loadCloudRecords();
-      if (!serviceReady) return;
-    }
-    if (!registrationSessionAvailable) {
-      showFeedback(registrationSessionId ? 'Registration QR unavailable' : 'No active live session', registrationSessionBlockReason || 'Registration is closed until the organizer starts a live session.', true);
-      return;
-    }
+    if (!complete) { updateSubmitButton(); return; }
 
     submitting = true;
     const button = $('registerSaveBtn');
@@ -576,6 +632,8 @@
       });
       const data = await response.json().catch(() => ({}));
       if (response.status === 409 && data.noActiveSession) {
+        organizerValidated = true;
+        registrationLinkInvalid = false;
         updateRegistrationSessionState({sessionActive:data.sessionActive===true,sessionId:data.sessionId||null,sessionEndedAt:data.sessionEndedAt||null});
         showFeedback(data.sessionMismatch ? 'Registration QR expired' : 'No active live session', data.error || registrationSessionBlockReason, true);
         return;
@@ -598,9 +656,18 @@
       if (!response.ok || !data.ok) throw new Error(data.error || 'Unable to register this player. Please try again.');
       if (data.queued !== true) throw new Error('The profile was saved, but the organizer queue did not confirm the check-in. Please retry or contact the organizer.');
 
+      organizerValidated = true;
+      registrationLinkInvalid = false;
+      registrationSessionAvailable = true;
+      registrationSessionBlockReason = '';
       if (!cloudPlayers.some(player => normalizedName(player && player.name) === normalizedName(data.player.name))) {
         cloudPlayers.push(data.player);
       }
+      const notice = $('registrationLinkNotice');
+      if (notice) notice.hidden = true;
+      const panel = $('registrationPagePanel');
+      if (panel) panel.hidden = false;
+      setConnection(true, 'Live session active');
       showFeedback('Registered & Queued', `${data.player.name} was added to this organizer’s live queue.`);
       resetForm();
       $('registerFullname').focus();
@@ -668,11 +735,19 @@
   bindNameHelpers();
   bindAvatarPicker();
   syncDuprRegistrationFields();
-  if ($('registrationPagePanel')) $('registrationPagePanel').hidden = true;
+  if ($('registrationPagePanel')) $('registrationPagePanel').hidden = !organizerScope;
   if ($('registrationLinkNotice')) {
-    $('registrationLinkNotice').textContent = 'Checking live session status…';
+    $('registrationLinkNotice').textContent = organizerScope
+      ? 'Connecting to the organizer server. You can complete the form now; the server will verify the live session when you save.'
+      : 'This registration page is organizer-specific. Please scan the registration QR code or open the link provided by your organizer.';
     $('registrationLinkNotice').hidden = false;
   }
+  if (!organizerScope) showRegistrationLinkNotice('This registration page is organizer-specific. Please scan the registration QR code or open the link provided by your organizer.');
   syncRegistrationEyebrowTheme();
   loadCloudRecords();
+  window.addEventListener('pagehide', () => {
+    if (cloudRetryTimer) window.clearTimeout(cloudRetryTimer);
+    cloudRetryTimer = null;
+    if (cloudEvents) cloudEvents.close();
+  }, {once:true});
 })();

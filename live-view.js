@@ -2,8 +2,11 @@
   'use strict';
   const LIVE_VIEW_STORAGE_KEY = `picklepoint_live_view_state_v1${new URLSearchParams(window.location.search).get('organizer') ? '_' + String(new URLSearchParams(window.location.search).get('organizer')).replace(/[^a-zA-Z0-9_-]/g,'') : ''}`;
   const organizerScope = String(new URLSearchParams(window.location.search).get('organizer') || '').trim();
+  // Resolve the public organizer scope from the first successful snapshot when
+  // the page is opened without an explicit organizer query parameter.
+  let resolvedOrganizerId = organizerScope;
   const LIVE_CHANNEL_NAME = `pickle-point-match-live-view${organizerScope ? '-' + organizerScope.replace(/[^a-zA-Z0-9_-]/g,'') : ''}`;
-  function scopedApiUrl(path, params = {}) { const url = new URL(path, window.location.origin); if (organizerScope) url.searchParams.set('organizer',organizerScope); Object.entries(params).forEach(([key,value])=>url.searchParams.set(key,String(value))); return url.pathname+url.search; }
+  function scopedApiUrl(path, params = {}) { const url = new URL(path, window.location.origin); const scope = resolvedOrganizerId || organizerScope; if (scope) url.searchParams.set('organizer',scope); Object.entries(params).forEach(([key,value])=>url.searchParams.set(key,String(value))); return url.pathname+url.search; }
   const THEME_STORAGE_KEY = 'picklepoint_live_view_theme_v1';
   const $ = id => document.getElementById(id);
   let currentState = null;
@@ -14,6 +17,8 @@
   let renderedRegularCourtsSignature = null;
   let renderedWaitingCourtsSignature = null;
   let renderedQueueSignature = null;
+  let liveRankingCategoryFilter = 'ALL';
+  let liveRankingScopeFilter = 'EVERYONE';
   // Keep manual court expansions stable while fresh live snapshots rebuild cards.
   const expandedCourtKeys = new Set();
   const knownCourtCollapseKeys = new Set();
@@ -403,6 +408,11 @@
     const filteredRanking = ranking
       .map((player, index) => ({ player, index, rank: Number(player.position) || index + 1 }))
       .filter(({ player }) => {
+        const category = String(player.category || '').trim().toUpperCase();
+        if (liveRankingCategoryFilter !== 'ALL' && category !== liveRankingCategoryFilter) return false;
+        const isLockedIn = player.lockedIn === true;
+        if (liveRankingScopeFilter === 'SOLO' && isLockedIn) return false;
+        if (liveRankingScopeFilter === 'LOCK_IN' && !isLockedIn) return false;
         if (!searchTerm) return true;
         const name = String(player.name || 'Player');
         const nickname = String(player.nickname || '').trim();
@@ -544,6 +554,7 @@
       return `<div class="queue-item"><div class="queue-avatar-stack" aria-label="${genderLabel} player, queue position ${index + 1}"><div class="queue-avatar ${genderClass}" aria-hidden="true">${playerAvatarMarkup(p)}</div><span class="queue-position-badge" aria-label="Queue position ${index + 1}">${index + 1}</span></div><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${displayedName}</div><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span>${lockedPartnerIndicator}</div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
     }).join('');
   }
+
 
   function render() {
     const s = currentState;
@@ -717,6 +728,14 @@
     else setConnection('', 'Connecting');
   }
 
+  function notifyLiveViewPageState(value = currentState) {
+    try {
+      window.dispatchEvent(new CustomEvent('ppm-live-view-state', {
+        detail: {state: value && typeof value === 'object' ? value : null, organizerId: resolvedOrganizerId || organizerScope || ''}
+      }));
+    } catch (_) {}
+  }
+
   function acceptState(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return;
     value = preserveKnownAvatarIds(value, currentState);
@@ -724,6 +743,7 @@
     const contentChanged = signature !== currentStateSignature;
     currentState = value;
     acceptedStateSequence += 1;
+    notifyLiveViewPageState(value);
     if (contentChanged) {
       currentStateSignature = signature;
       try { localStorage.setItem(LIVE_VIEW_STORAGE_KEY, JSON.stringify(value)); } catch (error) {}
@@ -765,11 +785,14 @@
   }
 
   async function refreshRemoteState() {
-    if (!isHttpPage() || remoteRefreshInFlight) return false;
+    if (!isHttpPage()) return false;
+    // Do not treat a second caller as a failed connection while the first read
+    // is still waiting for a sleeping/slow host to wake up.
+    if (remoteRefreshInFlight) return null;
     remoteRefreshInFlight = true;
     const stateSequenceAtStart = acceptedStateSequence;
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 10000);
+    const timeout = window.setTimeout(() => controller.abort(), 25000);
     try {
       const response = await fetch(scopedApiUrl('/api/live-state',{_:Date.now()}), {
         cache: 'no-store',
@@ -777,6 +800,8 @@
       });
       if (!response.ok) throw new Error(`Live API returned ${response.status}`);
       const data = await response.json();
+      const responseOrganizerId = String(data?.organizerId || '').trim();
+      if (responseOrganizerId) resolvedOrganizerId = responseOrganizerId;
       const organizerName = String(data?.organizerName || '').trim();
       const organizerLogo = String(data?.organizerLogo || '').trim();
       const organizerStat = $('sessionOrganizerStat');
@@ -821,6 +846,9 @@
           acceptState(emptyState);
         }
       }
+      // Also emit after resolving the organizer even when a newer SSE packet won
+      // the race against this HTTP response. The history panel needs the scope.
+      notifyLiveViewPageState(currentState || data?.state || null);
       markServerConnected();
       return true;
     } catch (error) {
@@ -879,8 +907,8 @@
       return;
     }
     const connected = await refreshRemoteState();
-    if (connected) startEventStream();
-    else scheduleReconnect();
+    if (connected === true) startEventStream();
+    else if (connected === false) scheduleReconnect();
   }
 
   try {
@@ -1429,6 +1457,9 @@
     if (compactMatch) compactMatch.setAttribute('aria-hidden', String(isExpanded));
     if (expandedStatus) expandedStatus.setAttribute('aria-hidden', String(!isExpanded));
     if (details) details.hidden = !isExpanded;
+    // Expanded details now participate in normal layout flow; no overlay
+    // height measurement or reserved margin is needed.
+    card.style.removeProperty('--court-expanded-panel-space');
 
     // In vertical mode the diagram follows its natural aspect ratio. In
     // horizontal mode preserve the height captured from the vertical layout.
@@ -1696,6 +1727,38 @@
   window.addEventListener('resize', fitSessionTitle, { passive: true });
   if (document.fonts?.ready) document.fonts.ready.then(fitSessionTitle);
 
+  const pageRankingFilterToggle = $('pageRankingFilterToggle');
+  const pageRankingFilterControls = $('pageRankingFilterControls');
+  pageRankingFilterToggle?.addEventListener('click', () => {
+    if (!pageRankingFilterControls) return;
+    const isOpening = pageRankingFilterControls.hidden;
+    pageRankingFilterControls.hidden = !isOpening;
+    pageRankingFilterToggle.setAttribute('aria-expanded', String(isOpening));
+    pageRankingFilterToggle.setAttribute('aria-label', isOpening ? 'Close ranking filters' : 'Open ranking filters');
+    pageRankingFilterToggle.title = isOpening ? 'Close ranking filters' : 'Open ranking filters';
+    pageRankingFilterToggle.classList.toggle('is-open', isOpening);
+  });
+  pageRankingFilterControls?.addEventListener('click', event => {
+    const categoryButton = event.target.closest('[data-live-ranking-category]');
+    const scopeButton = event.target.closest('[data-live-ranking-scope]');
+    if (categoryButton) {
+      liveRankingCategoryFilter = categoryButton.dataset.liveRankingCategory || 'ALL';
+      pageRankingFilterControls.querySelectorAll('[data-live-ranking-category]').forEach(button => {
+        const active = button === categoryButton;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+      renderLiveRanking('pageRankingList', 'pageRankingSearch', false);
+    } else if (scopeButton) {
+      liveRankingScopeFilter = scopeButton.dataset.liveRankingScope || 'EVERYONE';
+      pageRankingFilterControls.querySelectorAll('[data-live-ranking-scope]').forEach(button => {
+        const active = button === scopeButton;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+      renderLiveRanking('pageRankingList', 'pageRankingSearch', false);
+    }
+  });
   $('pageRankingSearch')?.addEventListener('input', () => renderLiveRanking('pageRankingList', 'pageRankingSearch', false));
   $('pageMatchesSearch')?.addEventListener('input', () => renderRecentMatches(false));
 
@@ -1752,11 +1815,14 @@
   // immediately; polling ensures the page eventually catches up if it does not.
   if (isHttpPage()) {
     window.setInterval(async () => {
+      // A healthy SSE connection already delivers every live-state change.
+      // Poll only while the stream is absent, connecting, or fully closed.
+      if (typeof EventSource !== 'undefined' && eventSource && eventSource.readyState === EventSource.OPEN) return;
       const connected = await refreshRemoteState();
-      if (connected && (!eventSource || (typeof EventSource !== 'undefined' && eventSource.readyState === EventSource.CLOSED))) {
+      if (connected === true && (!eventSource || (typeof EventSource !== 'undefined' && eventSource.readyState === EventSource.CLOSED))) {
         eventSource = null;
         startEventStream();
-      } else if (!connected) {
+      } else if (connected === false) {
         scheduleReconnect();
       }
     }, 15000);

@@ -7,11 +7,11 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="live-view.css?v=queue-search-compact-height-20261023-1&mzoom=20261024-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-compact-collapse-20261105-2&livetabs=radius15-min35-responsive-20261024-5&organizer-logo=20261024-2&organizer-stat-match=20261024-1&avatar-sync=20261029-2&live-width-440-responsive-stack-20261104-2&court-scroll-all-devices-20261104-2&live-header-brand-scrollbar-flat-sections-20261105-5&card-surface-scrollbar-hotfix-20261105-6&court-header-timer-inline-20261105-2&court-mini-timer-mobile-stable-20261105-1&court-collapse-visual-polish-20261105-1&court-heading-actions-20261105-2&court-timer-summary-stability-20261105-1&court-heading-toggle-threshold-20261105-1">
-  <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261023-1&mzoom=20261024-1">
+  <link rel="stylesheet" href="live-view.css?v=queue-search-compact-height-20261023-1&mzoom=20261024-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-compact-collapse-20261105-2&livetabs=radius15-min35-responsive-20261024-5&organizer-logo=20261024-2&organizer-stat-match=20261024-1&avatar-sync=20261029-2&live-width-440-responsive-stack-20261104-2&court-scroll-all-devices-20261104-2&live-header-brand-scrollbar-flat-sections-20261105-5&card-surface-scrollbar-hotfix-20261105-6&court-header-timer-inline-20261105-2&court-mini-timer-mobile-stable-20261105-1&court-collapse-fixed-shell-20261106-1&court-heading-actions-20261105-2&court-timer-summary-stability-20261105-1&court-heading-toggle-threshold-20261105-1&live-ranking-filter-pill-20261106-1&matches-search-filter-disabled-20261106-1&queue-court-pill-controls-20261106-1&court-expanded-flow-layout-20261106-1">
+  <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261023-1&mzoom=20261024-1&live-search-border-parity=20261106-2-blue">
   <link rel="stylesheet" href="network-skeleton.css?v=network-validation-20261027-1">
   <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
-  <script src="network-validation.js?v=network-validation-20261027-1"></script>
+  <script src="network-validation.js?v=network-validation-20261106-1"></script>
 
   <style id="live-page-only-tab-scroll-fix">
     /* Rankings and Matches keep the page fixed while only their result lists scroll. */
@@ -184,10 +184,28 @@
     <section id="liveRankingsPanel" class="live-tab-panel" role="tabpanel" aria-labelledby="rankingsTab" data-live-panel="rankings" hidden>
       <section class="section-card live-tab-card">
         <div class="section-heading live-tab-section-heading"><div><h2>🏆 Rankings</h2><p>Player standings from recorded matches.</p></div></div>
-        <label class="live-tab-search" for="pageRankingSearch">
+        <div class="live-tab-search live-ranking-searchbar" role="search">
           <svg class="live-tab-search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
           <input id="pageRankingSearch" type="search" placeholder="Search player name..." aria-label="Search player rankings" autocomplete="off" spellcheck="false">
-        </label>
+          <button id="pageRankingFilterToggle" class="live-ranking-filter-toggle" type="button" aria-expanded="false" aria-controls="pageRankingFilterControls" aria-label="Open ranking filters" title="Open ranking filters">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg>
+          </button>
+        </div>
+        <div id="pageRankingFilterControls" class="live-ranking-filter-controls" aria-label="Ranking filters" hidden>
+          <div class="leaderboard-filter-row leaderboard-category-filters" role="group" aria-label="Filter rankings by skill category">
+            <button type="button" class="leaderboard-filter-chip category-all active" data-live-ranking-category="ALL" aria-pressed="true">All</button>
+            <button type="button" class="leaderboard-filter-chip category-beg" data-live-ranking-category="BEG" aria-pressed="false">BEG</button>
+            <button type="button" class="leaderboard-filter-chip category-nov" data-live-ranking-category="NOV" aria-pressed="false">NOV</button>
+            <button type="button" class="leaderboard-filter-chip category-int" data-live-ranking-category="INT" aria-pressed="false">INT</button>
+            <button type="button" class="leaderboard-filter-chip category-adv" data-live-ranking-category="ADV" aria-pressed="false">ADV</button>
+            <button type="button" class="leaderboard-filter-chip category-exp" data-live-ranking-category="EXP" aria-pressed="false">EXP</button>
+          </div>
+          <div class="leaderboard-filter-row leaderboard-player-filters" role="group" aria-label="Filter rankings by player type">
+            <button type="button" class="leaderboard-filter-chip player-everyone active" data-live-ranking-scope="EVERYONE" aria-pressed="true">Everyone</button>
+            <button type="button" class="leaderboard-filter-chip player-solo" data-live-ranking-scope="SOLO" aria-pressed="false">Solo</button>
+            <button type="button" class="leaderboard-filter-chip player-lockin" data-live-ranking-scope="LOCK_IN" aria-pressed="false"><span class="leaderboard-filter-lock-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="4.5" y="10" width="15" height="11" rx="2.3"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/><circle cx="12" cy="15" r="1.2"/></svg></span>Lock-in</button>
+          </div>
+        </div>
         <div id="pageRankingList" class="live-ranking-list live-ranking-page-list" aria-live="polite"><div class="live-ranking-empty">Complete a match to start the ranking.</div></div>
       </section>
     </section>
@@ -195,17 +213,20 @@
     <section id="liveMatchesPanel" class="live-tab-panel" role="tabpanel" aria-labelledby="matchesTab" data-live-panel="matches" hidden>
       <section class="section-card live-tab-card">
         <div class="section-heading live-tab-section-heading"><div><h2>🏓 Matches <span id="matchesSectionCount" class="panel-count">(0)</span></h2><p>Most recent match results.</p></div></div>
-        <label class="live-tab-search" for="pageMatchesSearch">
+        <div class="live-tab-search live-matches-searchbar" role="search">
           <svg class="live-tab-search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
           <input id="pageMatchesSearch" type="search" placeholder="Search player name..." aria-label="Search match results by player name" autocomplete="off" spellcheck="false">
-        </label>
+          <button class="live-ranking-filter-toggle live-matches-filter-toggle" type="button" disabled aria-disabled="true" aria-label="Match filters are not available yet" title="Filters are not available yet">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg>
+          </button>
+        </div>
         <div id="matchesList" class="live-matches-list" aria-live="polite"><div class="empty-state">No recorded matches yet.</div></div>
       </section>
     </section>
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
     </main>
   </div>
-  <script src="live-view.js?v=avatar-sync-20261029-2&court-scroll-all-devices-20261104-2&mouse-drag-scroll-20261104-1&live-header-unified-transparent-icons-20261105-4&court-layout-mobile-no-flip-20261105-2&court-layout-scroll-anchor-stable-20261105-1&court-collapse-status-diagram-20261105-1&court-timer-refresh-stability-20261105-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-card-collapse-20261105-2&court-heading-toggle-threshold-20261105-1" defer></script>
+  <script src="live-view.js?v=avatar-sync-20261029-2&court-scroll-all-devices-20261104-2&mouse-drag-scroll-20261104-1&live-header-unified-transparent-icons-20261105-4&court-layout-mobile-no-flip-20261105-2&court-layout-scroll-anchor-stable-20261105-1&court-collapse-status-diagram-20261105-1&court-timer-refresh-stability-20261105-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-card-collapse-20261105-2&court-heading-toggle-threshold-20261105-1&court-fixed-shell-20261106-1&live-connection-single-source-20261106-1&live-ranking-filters-20261106-1&court-expanded-flow-layout-20261106-1" defer></script>
 
   <script id="live-page-only-interaction-fixes">
     (() => {
@@ -264,10 +285,9 @@
       let lastRenderedMarkup = '';
       let preservedScrollTop = 0;
       let appStateRequestInFlight = false;
-      let liveStateRequestInFlight = false;
       let lastHistoryUpdateAt = 0;
       let appStateStream = null;
-      let liveStateStream = null;
+      let appStateStreamConnected = false;
 
       const escapeText = value => String(value ?? '').replace(/[&<>"']/g, char => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -292,17 +312,63 @@
         Object.entries(extra).forEach(([key, value]) => url.searchParams.set(key, String(value)));
         return url.pathname + url.search;
       };
-      const logToMatch = log => ({
-        id: log?.id ?? '',
-        court: String(log?.court || (log?.courtNumber ? `Court ${log.courtNumber}` : 'Court')),
-        winner: String(log?.winner || ''),
-        loser: String(log?.loser || ''),
-        team1Names: Array.isArray(log?.team1Names) ? log.team1Names.map(String) : [],
-        team2Names: Array.isArray(log?.team2Names) ? log.team2Names.map(String) : [],
-        score: log?.recordingMode === 'win-only' ? 'WIN / LOSS' : String(log?.score || ''),
-        endedAt: log?.endedAt || log?.startedAt || null,
-        duration: String(log?.duration || '')
-      });
+      const normalizePlayerName = value => String(value ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+      const logToMatch = (log, appState = {}) => {
+        const activePlayers = [
+          ...(Array.isArray(appState?.players) ? appState.players : []),
+          ...(Array.isArray(appState?.left) ? appState.left : [])
+        ];
+        const formatTeam = side => {
+          const snapshots = Array.isArray(log?.[`${side}Players`]) ? log[`${side}Players`] : [];
+          const ids = Array.isArray(log?.[`${side}Ids`]) ? log[`${side}Ids`] : [];
+          const storedNames = Array.isArray(log?.[`${side}Names`]) ? log[`${side}Names`] : [];
+          const names = storedNames.length ? storedNames : snapshots.map(player => player?.name || player?.nickname || '');
+          return names.map((rawName, index) => {
+            const name = String(rawName || snapshots[index]?.name || snapshots[index]?.nickname || '').trim();
+            if (!name) return '';
+            const normalizedName = normalizePlayerName(name);
+            const indexedSnapshot = snapshots[index] || null;
+            const snapshot = indexedSnapshot && normalizePlayerName(indexedSnapshot.name || indexedSnapshot.nickname) === normalizedName
+              ? indexedSnapshot
+              : snapshots.find(player => normalizePlayerName(player?.name || player?.nickname) === normalizedName) || indexedSnapshot;
+            const playerId = snapshot?.id ?? ids[index];
+            const currentPlayer = playerId != null
+              ? activePlayers.find(player => String(player?.id) === String(playerId))
+              : activePlayers.find(player => normalizePlayerName(player?.name) === normalizedName);
+            const nickname = String(snapshot?.nickname || currentPlayer?.nickname || '').trim();
+            return nickname && normalizePlayerName(nickname) !== normalizedName ? `${name} (${nickname})` : name;
+          }).filter(Boolean);
+        };
+        const rawTeam1Names = Array.isArray(log?.team1Names) ? log.team1Names.map(String) : [];
+        const rawTeam2Names = Array.isArray(log?.team2Names) ? log.team2Names.map(String) : [];
+        const team1Names = formatTeam('team1');
+        const team2Names = formatTeam('team2');
+        const rawWinnerNames = String(log?.winner || '').split(' & ').map(name => normalizePlayerName(name)).filter(Boolean);
+        let winnerTeam = Number(log?.winnerTeam);
+        if (winnerTeam !== 1 && winnerTeam !== 2) {
+          const team1Set = rawTeam1Names.map(normalizePlayerName);
+          const team2Set = rawTeam2Names.map(normalizePlayerName);
+          if (rawWinnerNames.some(name => team1Set.includes(name))) winnerTeam = 1;
+          else if (rawWinnerNames.some(name => team2Set.includes(name))) winnerTeam = 2;
+          else {
+            const scores = String(log?.score || '').split('-').map(Number);
+            winnerTeam = scores.length === 2 && Number.isFinite(scores[0]) && scores[0] > scores[1] ? 1 : 2;
+          }
+        }
+        const winner = (winnerTeam === 1 ? team1Names : team2Names).join(' & ') || String(log?.winner || '');
+        const loser = (winnerTeam === 1 ? team2Names : team1Names).join(' & ') || String(log?.loser || '');
+        return {
+          id: log?.id ?? '',
+          court: String(log?.court || (log?.courtNumber ? `Court ${log.courtNumber}` : 'Court')),
+          winner,
+          loser,
+          team1Names,
+          team2Names,
+          score: log?.recordingMode === 'win-only' ? 'WIN / LOSS' : String(log?.score || ''),
+          endedAt: log?.endedAt || log?.startedAt || null,
+          duration: String(log?.duration || '')
+        };
+      };
       const searchableNames = match => [
         match.winner, match.loser,
         ...(Array.isArray(match.team1Names) ? match.team1Names : []),
@@ -382,7 +448,7 @@
         if (typeof state.liveMatchesEnabled === 'boolean') liveMatchesEnabled = state.liveMatchesEnabled;
         else if (liveMatchesEnabled === null) liveMatchesEnabled = true;
         if (typeof state.sessionActive === 'boolean') liveSessionActive = state.sessionActive;
-        allHistoryMatches = state.logs.slice().reverse().map(logToMatch);
+        allHistoryMatches = state.logs.slice().reverse().map(log => logToMatch(log, state));
         historyLoaded = true;
         totalMatchCount = allHistoryMatches.length;
         lastHistoryUpdateAt = Date.now();
@@ -399,30 +465,11 @@
         // complete-history app-state event arrives.
         render();
       };
-      const fetchLiveSnapshot = async () => {
-        if (liveStateRequestInFlight || !['http:', 'https:'].includes(location.protocol)) return;
-        liveStateRequestInFlight = true;
-        try {
-          const response = await fetch(apiUrl('/api/live-state', { _: Date.now() }), {
-            cache: 'no-store', credentials: 'same-origin'
-          });
-          if (!response.ok) return;
-          const payload = await response.json();
-          if (!organizerId && payload?.organizerId) {
-            organizerId = String(payload.organizerId).trim();
-          }
-          applyLiveCount(payload?.state);
-        } catch (_) {
-          // Event stream and the organizer-state refresh provide the fallback.
-        } finally {
-          liveStateRequestInFlight = false;
-        }
-      };
       const fetchFullHistory = async () => {
-        if (appStateRequestInFlight || !['http:', 'https:'].includes(location.protocol)) return;
+        if (appStateRequestInFlight || !organizerId || !['http:', 'https:'].includes(location.protocol)) return;
         appStateRequestInFlight = true;
         const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), 8000);
+        const timeout = window.setTimeout(() => controller.abort(), 20000);
         try {
           const response = await fetch(apiUrl('/api/app-state', { _: Date.now() }), {
             cache: 'no-store', credentials: 'same-origin', signal: controller.signal
@@ -437,26 +484,29 @@
           appStateRequestInFlight = false;
         }
       };
-      const startStreams = () => {
-        if (typeof EventSource === 'undefined' || !['http:', 'https:'].includes(location.protocol)) return;
-        if (!liveStateStream) {
-          try {
-            liveStateStream = new EventSource(apiUrl('/api/live-events'));
-            liveStateStream.addEventListener('live-state', event => {
-              try { applyLiveCount(JSON.parse(event.data)); } catch (_) {}
-            });
-            liveStateStream.onerror = () => { /* EventSource reconnects automatically. */ };
-          } catch (_) { liveStateStream = null; }
+      const startHistoryStream = () => {
+        if (!organizerId || typeof EventSource === 'undefined' || !['http:', 'https:'].includes(location.protocol)) return;
+        if (appStateStream && appStateStream.readyState !== EventSource.CLOSED) return;
+        try {
+          const source = new EventSource(apiUrl('/api/shared-events'));
+          appStateStream = source;
+          source.addEventListener('app-state', event => {
+            try { applyFullHistory(JSON.parse(event.data)); } catch (_) {}
+          });
+          source.onopen = () => { appStateStreamConnected = true; };
+          source.onerror = () => {
+            appStateStreamConnected = false;
+            if (source.readyState === EventSource.CLOSED && appStateStream === source) appStateStream = null;
+          };
+        } catch (_) {
+          appStateStream = null;
+          appStateStreamConnected = false;
         }
-        if (!appStateStream && organizerId) {
-          try {
-            appStateStream = new EventSource(apiUrl('/api/shared-events'));
-            appStateStream.addEventListener('app-state', event => {
-              try { applyFullHistory(JSON.parse(event.data)); } catch (_) {}
-            });
-            appStateStream.onerror = () => { /* Polling below remains available. */ };
-          } catch (_) { appStateStream = null; }
-        }
+      };
+      const ensureHistorySync = (refresh = false) => {
+        if (!organizerId || !['http:', 'https:'].includes(location.protocol)) return;
+        startHistoryStream();
+        if (refresh || !historyLoaded) fetchFullHistory();
       };
 
       // live-view.js paints its 12-item public snapshot on each live update.
@@ -480,32 +530,32 @@
         list.scrollTop = 0;
         render();
       });
+      // live-view.js owns the only /api/live-state request and /api/live-events
+      // stream. It shares the resolved organizer scope and current snapshot here.
+      window.addEventListener('ppm-live-view-state', event => {
+        const detail = event.detail || {};
+        const scope = String(detail.organizerId || '').trim();
+        if (scope && scope !== organizerId) organizerId = scope;
+        if (detail.state) applyLiveCount(detail.state);
+        ensureHistorySync();
+      });
+
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-          fetchLiveSnapshot();
-          fetchFullHistory();
-        }
+        if (document.visibilityState === 'visible') ensureHistorySync(true);
       });
-      window.addEventListener('pageshow', () => {
-        fetchLiveSnapshot();
-        fetchFullHistory();
-      });
+      window.addEventListener('pageshow', () => ensureHistorySync(true));
 
-      // Resolve the organizer scope from the public Live View response when the
-      // page URL does not include it, then load the complete app-state history.
-      (async () => {
-        await fetchLiveSnapshot();
-        await fetchFullHistory();
-        startStreams();
-      })();
+      // QR links normally arrive with an organizer ID. When a plain /live.html
+      // URL is used, the main Live View resolves the default/login scope and
+      // emits it through ppm-live-view-state above.
+      ensureHistorySync(true);
 
-      // SSE is the immediate update path. This slower fallback covers browsers
-      // or hosts that do not keep EventSource connections alive.
+      // Keep a low-frequency fallback only for full history when the app-state
+      // stream is disconnected. Live queue/court state is never polled twice.
       window.setInterval(() => {
-        if (document.visibilityState === 'visible' && Date.now() - lastHistoryUpdateAt > 12000) {
-          fetchFullHistory();
-        }
-        if (document.visibilityState === 'visible') fetchLiveSnapshot();
+        if (document.visibilityState !== 'visible') return;
+        startHistoryStream();
+        if (!appStateStreamConnected) fetchFullHistory();
       }, 15000);
     })();
   </script>

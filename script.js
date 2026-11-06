@@ -64,7 +64,7 @@ let liveViewPendingKeepalive=false;
 try{if('BroadcastChannel' in window)liveViewBroadcastChannel=new BroadcastChannel(`pickle-point-match-live-view${ORGANIZER_STORAGE_SUFFIX?`-${ORGANIZER_STORAGE_SUFFIX}`:''}`);}catch(e){}
 const LEGACY_STORAGE_KEYS=ORGANIZER_STORAGE_SUFFIX?[]:['pickleq_v10_state','pickleq_v9_state','pickleq_v8_state','pickleq_v7_state','pickleq_v6_state'];
 const CLOUD_RECORDS_KEY='pickleq_registered_cloud_records_v1';
-let cloudRecords={players:[],logs:[],sessions:[]};let cloudRecordCheckInStateById=new Map();let cloudRecordCheckInAnimationAtById=new Map();let pendingCloudDeleteId=null;let editingCloudPlayerId=null;let editingQueueDuprPlayerId=null;let editingCourtDuprKey=null;let editingCourtDuprDraft='';let cloudPlayerEditPanelOpen=false;let cloudPlayerEditPanelAnimationTimer=null;let cloudPlayerEditPanelPositionFrame=null;let cloudPlayerEditResizeObserver=null;let cloudPlayerEditSaveInFlight=false;
+let cloudRecords={players:[],logs:[],sessions:[]};let cloudRecordsHydratedFromServer=false;let cloudRecordCheckInStateById=new Map();let cloudRecordCheckInAnimationAtById=new Map();let pendingCloudDeleteId=null;let editingCloudPlayerId=null;let editingQueueDuprPlayerId=null;let editingCourtDuprKey=null;let editingCourtDuprDraft='';let cloudPlayerEditPanelOpen=false;let cloudPlayerEditPanelAnimationTimer=null;let cloudPlayerEditPanelPositionFrame=null;let cloudPlayerEditResizeObserver=null;let cloudPlayerEditSaveInFlight=false;
 const sharedClientId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():`pp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let sharedSyncReady=false,sharedSyncAvailable=false,sharedSyncInitializing=false,sharedSyncRetryTimer=null;
 let sharedAppRevision=0,sharedCloudRevision=0,appSyncInFlight=false,appSyncPending=null,cloudSyncInFlight=false,cloudSyncPending=null,applyingRemoteAppState=false,sharedEvents=null,sharedSyncStartedAt=0;
@@ -120,7 +120,7 @@ function playerAvatarMarkup(p,imageClass='profile-avatar-image'){
   const avatarId=getPlayerAvatarId(p);
   return avatarId?`<img class="${imageClass}" src="registration-${avatarId}.png" alt="" aria-hidden="true" loading="lazy" draggable="false">`:initial(p?.name);
 }
-function loadCloudRecords(){try{const d=JSON.parse(localStorage.getItem(CLOUD_RECORDS_KEY)||'null');if(d)cloudRecords={players:Array.isArray(d.players)?d.players.map(removeOpgFields):[],logs:Array.isArray(d.logs)?d.logs:[],sessions:Array.isArray(d.sessions)?d.sessions:[]};}catch(e){}}
+function loadCloudRecords(){if(cloudRecordsHydratedFromServer)return;try{const d=JSON.parse(localStorage.getItem(CLOUD_RECORDS_KEY)||'null');if(d)cloudRecords={players:Array.isArray(d.players)?d.players.map(removeOpgFields):[],logs:Array.isArray(d.logs)?d.logs:[],sessions:Array.isArray(d.sessions)?d.sessions:[]};}catch(e){}}
 function queueCloudRecordsSync(){if(applyingRemoteAppState)return;cloudSyncPending=cloneSharedData(cloudRecords);flushCloudRecordsSync();}
 function saveCloudRecords(){cloudRecords.players=(Array.isArray(cloudRecords.players)?cloudRecords.players:[]).map(removeOpgFields);const savedAt=Date.now();try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));localStorage.setItem(CLOUD_RECORDS_SAVED_AT_KEY,String(savedAt));if(isHttpApp())localStorage.setItem(CLOUD_RECORDS_PENDING_SYNC_KEY,String(savedAt));else localStorage.removeItem(CLOUD_RECORDS_PENDING_SYNC_KEY);}catch(e){}queueCloudRecordsSync();}
 function flushCloudRecordsSync(){
@@ -171,6 +171,7 @@ async function waitForAppStateSync(timeoutMs=12000){
 }
 function applySharedCloudRecords(payload,force=false){
   if(!payload||!payload.records)return;
+  cloudRecordsHydratedFromServer=true;
   const revision=Number(payload.revision)||0;
   if(!force&&revision<=sharedCloudRevision)return;
   sharedCloudRevision=Math.max(sharedCloudRevision,revision);
@@ -189,6 +190,7 @@ function applySharedCloudRecords(payload,force=false){
   stampRemoteSave(CLOUD_RECORDS_SAVED_AT_KEY,CLOUD_RECORDS_PENDING_SYNC_KEY,payload.updatedAt);
   cloudSyncPending=null;
   if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
+  if(document.body?.dataset.page==='queueing'&&isRegisteredCloudSearchMode()&&$('registeredPlayerSearch')?.value.trim())renderRegisteredSearch();
   if($('registerFullname'))updateRegistrationSaveButton();
   if(document.body?.dataset.page==='queueing'&&sharedSyncReady)publishLiveViewState();
 }
@@ -1014,7 +1016,7 @@ function deleteCloudPlayer(id){
   saveCloudRecords();
   renderCloudRecords();
 }
-function checkInCloudPlayer(id,countAsCloudCheckin=true){loadCloudRecords();const a=cloudRecords.players.find(p=>Number(p.cloudId)===Number(id));if(!a)return;if(isCloudPlayerCheckedIn(a)){renderCloudRecords();return;}let p=state.players.find(p=>normalizeCloudPlayerName(p.name)===normalizeCloudPlayerName(a.name));if(!p){const left=state.left.find(p=>p.name.toLowerCase()===a.name.toLowerCase());if(left){left.avatarId=left.avatarId||getPlayerAvatarId(a);checkIn(left.id,countAsCloudCheckin);if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();renderCloudRecords();return;}p={id:state.nextPlayer++,name:a.name,nickname:a.nickname||'',wins:a.wins||0,court:null,gender:a.gender||'Male',category:a.category||'',avatarId:getPlayerAvatarId(a),duprId:a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:a.selfRating||a.self_rating||'',queuedAt:Date.now(),waitingSince:Date.now()};state.players.push(p);}else{p.avatarId=p.avatarId||getPlayerAvatarId(a);p.duprId=p.duprId||a.duprId||a.duprID||a.dupr_id||a.dupr||'';p.selfRating=p.selfRating||a.selfRating||a.self_rating||'';}if(p.court){toast('Player is already on court.');return;}if(!state.queue.includes(p.id))state.queue.push(p.id);if(countAsCloudCheckin||!p.queuedAt){p.queuedAt=Date.now();p.waitingSince=p.queuedAt;}if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();render();renderCloudRecords();toast(`${p.name} checked in.`);}
+function checkInCloudPlayer(id,countAsCloudCheckin=true){if(!cloudRecordsHydratedFromServer)loadCloudRecords();const a=cloudRecords.players.find(p=>Number(p.cloudId)===Number(id));if(!a)return;if(isCloudPlayerCheckedIn(a)){renderCloudRecords();return;}let p=state.players.find(p=>normalizeCloudPlayerName(p.name)===normalizeCloudPlayerName(a.name));if(!p){const left=state.left.find(p=>p.name.toLowerCase()===a.name.toLowerCase());if(left){left.avatarId=left.avatarId||getPlayerAvatarId(a);checkIn(left.id,countAsCloudCheckin);if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();renderCloudRecords();return;}p={id:state.nextPlayer++,name:a.name,nickname:a.nickname||'',wins:a.wins||0,court:null,gender:a.gender||'Male',category:a.category||'',avatarId:getPlayerAvatarId(a),duprId:a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:a.selfRating||a.self_rating||'',queuedAt:Date.now(),waitingSince:Date.now()};state.players.push(p);}else{p.avatarId=p.avatarId||getPlayerAvatarId(a);p.duprId=p.duprId||a.duprId||a.duprID||a.dupr_id||a.dupr||'';p.selfRating=p.selfRating||a.selfRating||a.self_rating||'';}if(p.court){toast('Player is already on court.');return;}if(!state.queue.includes(p.id))state.queue.push(p.id);if(countAsCloudCheckin||!p.queuedAt){p.queuedAt=Date.now();p.waitingSince=p.queuedAt;}if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();render();renderCloudRecords();toast(`${p.name} checked in.`);}
 
 let openCategoryPlayerId=null;
 let openGenderPlayerId=null;
@@ -1494,15 +1496,18 @@ function buildLiveViewSnapshot(){
       scores:Array.isArray(c.scores)?c.scores.slice(0,2).map(v=>Number(v)||0):[0,0]
     };
   });
-  const recentMatches=(Array.isArray(state.logs)?state.logs:[]).slice(-12).reverse().map(l=>({
-    id:l.id,
-    court:String(l.court|| (l.courtNumber?`Court ${l.courtNumber}`:'Court')),
-    winner:String(l.winner||''),
-    loser:String(l.loser||''),
-    score:l.recordingMode==='win-only'?'WIN / LOSS':String(l.score||''),
-    endedAt:l.endedAt||null,
-    duration:String(l.duration||'')
-  }));
+  const recentMatches=(Array.isArray(state.logs)?state.logs:[]).slice(-12).reverse().map(l=>{
+    const displayTeams=getHistoryDisplayTeams(l);
+    return {
+      id:l.id,
+      court:String(l.court|| (l.courtNumber?`Court ${l.courtNumber}`:'Court')),
+      winner:String(displayTeams.winner||l.winner||''),
+      loser:String(displayTeams.loser||l.loser||''),
+      score:l.recordingMode==='win-only'?'WIN / LOSS':String(l.score||''),
+      endedAt:l.endedAt||null,
+      duration:String(l.duration||'')
+    };
+  });
   const rankingStats=getRankingStats();
   const rankingPlayers=[...new Map([...state.players,...state.left].map(p=>[String(p.id),p])).values()];
   const liveRanking=rankingPlayers
@@ -1523,7 +1528,8 @@ function buildLiveViewSnapshot(){
         losses:Number(st.losses)||0,
         winRate:Number(st.winRate)||0,
         totalSeconds:Number(st.totalSeconds)||0,
-        playing:isPlayerPlaying(p)
+        playing:isPlayerPlaying(p),
+        lockedIn:getLockedPartnerId(p.id)!=null
       };
     });
   return {
@@ -3772,22 +3778,127 @@ function saveRegisteredPlayer(){
   // Do not count this as a separate Cloud Records check-in metric.
   checkInCloudPlayer(registeredCloudPlayer.cloudId,false);
 }
+let registeredSearchResultsDismissed=false;
+function isRegisteredCloudSearchMode(){
+  return $('registeredSearchSourceToggle')?.getAttribute('aria-checked')==='true';
+}
+let registeredCloudSearchRefreshPromise=null;
+async function refreshRegisteredCloudSearch(){
+  if(registeredCloudSearchRefreshPromise)return registeredCloudSearchRefreshPromise;
+  registeredCloudSearchRefreshPromise=(async()=>{
+    try{
+      const response=await fetch(`/api/cloud-records?_=${Date.now()}`,{cache:'no-store',credentials:'same-origin'});
+      if(!response.ok)throw new Error(`Registered Player Cloud could not be refreshed (HTTP ${response.status}).`);
+      const payload=await response.json();
+      if(payload.records&&typeof payload.records==='object'){
+        applySharedCloudRecords({revision:payload.revision,updatedAt:payload.updatedAt,clientId:null,records:payload.records},true);
+      }
+      loadCloudRecords();
+      renderRegisteredSearch();
+      return true;
+    }catch(error){
+      loadCloudRecords();
+      renderRegisteredSearch();
+      toast('Cloud Records could not refresh. Showing the latest available cached list.');
+      return false;
+    }finally{
+      registeredCloudSearchRefreshPromise=null;
+    }
+  })();
+  return registeredCloudSearchRefreshPromise;
+}
+function positionRegisteredSearchResults(){
+  const anchor=$('registeredSearchArea');
+  const results=$('registeredPlayerResults');
+  if(!anchor||!results||!results.childElementCount){
+    if(results)results.style.setProperty('visibility','hidden','important');
+    return;
+  }
+  const rect=anchor.getBoundingClientRect();
+  const edge=8;
+  const gap=6;
+  const viewportWidth=Math.max(240,document.documentElement.clientWidth||window.innerWidth||240);
+  const viewportHeight=Math.max(240,window.innerHeight||document.documentElement.clientHeight||240);
+  const width=Math.min(Math.max(160,Math.round(rect.width)),viewportWidth-(edge*2));
+  const left=Math.max(edge,Math.min(Math.round(rect.left),viewportWidth-width-edge));
+  const preferredHeight=Math.min(280,Math.round(viewportHeight*.48));
+  const spaceBelow=Math.max(0,Math.floor(viewportHeight-rect.bottom-gap-edge));
+  const spaceAbove=Math.max(0,Math.floor(rect.top-gap-edge));
+  // Keep the results attached to the search field. Use the side with enough
+  // room instead of clamping the panel to an arbitrary point over the field.
+  const placeBelow=spaceBelow>=Math.min(140,preferredHeight)||spaceBelow>=spaceAbove;
+  const availableSpace=placeBelow?spaceBelow:spaceAbove;
+  const maxHeight=Math.max(48,Math.min(preferredHeight,availableSpace||48));
+  let top=placeBelow?rect.bottom+gap:rect.top-gap-maxHeight;
+  top=Math.max(edge,Math.min(Math.round(top),viewportHeight-maxHeight-edge));
+  results.style.setProperty('position','fixed','important');
+  results.style.setProperty('left',`${left}px`,'important');
+  results.style.setProperty('top',`${top}px`,'important');
+  results.style.setProperty('right','auto','important');
+  results.style.setProperty('bottom','auto','important');
+  results.style.setProperty('width',`${width}px`,'important');
+  results.style.setProperty('max-height',`${maxHeight}px`,'important');
+  results.style.setProperty('visibility','visible','important');
+}
 function renderRegisteredSearch(){
-  const area=$('registeredPlayerResults'); if(!area)return;
+  const area=$('registeredPlayerResults');
   const input=$('registeredPlayerSearch');
-  const q=String(input?.value||'').trim().toLowerCase();
-  if(!q){area.innerHTML='';return;}
-  const normalize=v=>String(v??'').trim().toLowerCase();
-  const matches=state.players.filter(p=>{
-    const hay=[
-      p.name, p.nickname, p.playerId, p.playerID, p.id
-    ].map(normalize).join(' ');
-    return hay.includes(q);
-  }).slice(0,12);
+  if(!area||!input)return;
+  const q=String(input.value||'').trim().toLocaleLowerCase();
+  // Queue mode filters the visible Queue List directly; it does not open a second result list.
+  if(!isRegisteredCloudSearchMode()||!q||registeredSearchResultsDismissed){
+    area.innerHTML='';
+    area.style.setProperty('visibility','hidden','important');
+    return;
+  }
+  area.style.setProperty('visibility','hidden','important');
+  loadCloudRecords();
+  const normalize=value=>String(value??'').trim().toLocaleLowerCase();
+  const matches=cloudRecords.players.filter(p=>[
+    p.name,p.nickname,p.duprId,p.duprID,p.dupr_id,p.dupr
+  ].map(normalize).join(' ').includes(q)).slice(0,12);
   area.innerHTML=matches.map(p=>{
-    const alreadyQueued=state.queue.includes(p.id);
-    return `<button type="button" class="registered-result ${alreadyQueued?'already-queued':''}" onclick="addRegisteredToQueue(${p.id})"><span><b>${highlightSearchMatch(displayPlayerName(p),q)}</b><small>${genderSvgIcon(p.gender)} ${p.gender==='Female'?'Female':'Male'} • ${p.category||'CAT'} • ${p.wins}W</small></span><strong>${alreadyQueued?'✓ QUEUED':'＋ QUEUE'}</strong></button>`;
-  }).join('')||'<div class="registered-search-hint">No registered player found.</div>';
+    const cloudId=Number(p.cloudId);
+    const alreadyCheckedIn=isCloudPlayerCheckedIn(p);
+    const avatarMarkup=playerAvatarMarkup(p,'registered-cloud-result-avatar-image');
+    return `<div class="registered-cloud-result" role="group" aria-label="${esc(displayPlayerName(p))}"><span class="registered-cloud-result-avatar">${avatarMarkup}</span><span class="registered-cloud-result-name">${highlightSearchMatch(displayPlayerName(p),q)}</span><button type="button" class="registered-cloud-checkin-btn" ${alreadyCheckedIn?'disabled aria-disabled="true" title="Player is already checked in or playing on court"':''} onclick="checkInCloudPlayerFromSearch(${cloudId})">${alreadyCheckedIn?'Checked in':'Check in'}</button></div>`;
+  }).join('')||'<div class="registered-search-hint">No cloud player found.</div>';
+  positionRegisteredSearchResults();
+}
+function setRegisteredSearchMode(useCloud){
+  const toggle=$('registeredSearchSourceToggle');
+  const input=$('registeredPlayerSearch');
+  if(!toggle||!input)return;
+  const cloudMode=!!useCloud;
+  registeredSearchResultsDismissed=false;
+  toggle.setAttribute('aria-checked',String(cloudMode));
+  toggle.setAttribute('aria-label','Search Cloud Records');
+  toggle.title=cloudMode?'Cloud search is on — switch to Queue List':'Switch to Cloud Records search';
+  const updateButton=$('registeredSearchUpdateBtn');
+  if(updateButton){
+    updateButton.title=cloudMode?'Refresh Registered Player Cloud':'Update queue';
+    updateButton.setAttribute('aria-label',cloudMode?'Refresh Registered Player Cloud':'Update queue');
+  }
+  input.placeholder=cloudMode?'Search cloud players...':'Search player in queue...';
+  input.setAttribute('aria-label',cloudMode?'Search cloud players':'Search player in queue');
+  input.value='';
+  renderQueue();
+  renderRegisteredSearch();
+  if(cloudMode){
+    input.focus();
+    refreshRegisteredCloudSearch();
+  }
+}
+function checkInCloudPlayerFromSearch(id){
+  const cloudPlayer=cloudRecords.players.find(p=>Number(p.cloudId)===Number(id));
+  if(!cloudPlayer)return;
+  if(isCloudPlayerCheckedIn(cloudPlayer)){renderRegisteredSearch();return;}
+  checkInCloudPlayer(id);
+  const input=$('registeredPlayerSearch');
+  if(input)input.value='';
+  registeredSearchResultsDismissed=false;
+  renderQueue();
+  renderRegisteredSearch();
 }
 function addRegisteredToQueue(id){
   const p=player(id); if(!p)return;
@@ -4121,7 +4232,7 @@ function renderQueue(){
   cleanupGenderMenuPortal();
   const q=$('queueList');
   loadCloudRecords();
-  const search=String($('registeredPlayerSearch')?.value||'').trim().toLowerCase();
+  const search=isRegisteredCloudSearchMode()?'':String($('registeredPlayerSearch')?.value||'').trim().toLowerCase();
   // Normalize and de-duplicate queue IDs for rendering. Old synced snapshots can
   // contain a numeric ID more than once or as both a number and a string.
   const queueIds=IS_QUEUEING_DESKTOP_OR_IPAD
@@ -5057,12 +5168,13 @@ function renderHistoryTable(){
   const query=String($('historySearchInput')?.value||'').trim().toLowerCase();
   const allLogs=(state.logs||[]).slice().reverse();
   const rows=query?allLogs.filter(l=>{
+    const displayTeams=getHistoryDisplayTeams(l);
     const names=[
-      l.winner,l.loser,
+      displayTeams.winner,displayTeams.loser,
       ...(Array.isArray(l.team1Names)?l.team1Names:[]),
       ...(Array.isArray(l.team2Names)?l.team2Names:[]),
-      ...(Array.isArray(l.team1Players)?l.team1Players.map(p=>p?.name||p?.nickname||''):[]),
-      ...(Array.isArray(l.team2Players)?l.team2Players.map(p=>p?.name||p?.nickname||''):[])
+      ...(Array.isArray(l.team1Players)?l.team1Players.flatMap(p=>[p?.name,p?.nickname]):[]),
+      ...(Array.isArray(l.team2Players)?l.team2Players.flatMap(p=>[p?.name,p?.nickname]):[])
     ].filter(Boolean);
     return names.some(name=>String(name).toLowerCase().includes(query));
   }):allLogs;
@@ -5078,8 +5190,9 @@ function renderHistoryTable(){
   table.innerHTML=rows.map(l=>{
     const winOnly=l.recordingMode==='win-only' || !String(l.score??'').trim();
     const sc=String(l.score||'').split('-');
-    const winnerName=l.winner||'Winner';
-    const loserName=l.loser||'Loser';
+    const displayTeams=getHistoryDisplayTeams(l);
+    const winnerName=displayTeams.winner||l.winner||'Winner';
+    const loserName=displayTeams.loser||l.loser||'Loser';
     return `<div class="history-card${winOnly?' history-card-win-only':''}" onclick="openHistoryDetail(${l.id})">
       <div class="history-index">${l.id}</div><div class="history-team winner-team"><b>${highlightHistorySearchMatch(winnerName,query)}</b></div>
       <div class="history-score ${winOnly?'history-result-labels':''}">${winOnly?`<strong class="history-win-label">WIN</strong><span class="history-result-dash">-</span><strong class="history-loss-label">LOSS</strong>`:`<strong>${esc(sc[0]||'0')}</strong><span>-</span><strong>${esc(sc[1]||'0')}</strong>`}</div>
@@ -5098,6 +5211,39 @@ function getHistoryWinnerTeam(log){
   if(winnerNames.some(n=>t2.includes(n)))return 2;
   const scores=String(log?.score||'').split('-').map(v=>Number(v));
   return scores.length===2 && Number.isFinite(scores[0]) && scores[0]>scores[1]?1:2;
+}
+
+function getHistoryTeamDisplayName(log,side){
+  const snapshots=Array.isArray(log?.[`${side}Players`])?log[`${side}Players`]:[];
+  const ids=Array.isArray(log?.[`${side}Ids`])?log[`${side}Ids`]:[];
+  const storedNames=Array.isArray(log?.[`${side}Names`])?log[`${side}Names`]:[];
+  const names=storedNames.length?storedNames:snapshots.map(player=>player?.name||player?.nickname||'');
+  const currentPlayers=[...(Array.isArray(state.players)?state.players:[]),...(Array.isArray(state.left)?state.left:[])];
+  const normalize=value=>String(value??'').trim().replace(/\s+/g,' ').toLocaleLowerCase();
+  return names.map((rawName,index)=>{
+    const name=String(rawName||snapshots[index]?.name||snapshots[index]?.nickname||'').trim();
+    if(!name)return '';
+    const normalizedName=normalize(name);
+    const indexedSnapshot=snapshots[index]||null;
+    const snapshot=indexedSnapshot&&normalize(indexedSnapshot.name||indexedSnapshot.nickname)===normalizedName
+      ? indexedSnapshot
+      : snapshots.find(player=>normalize(player?.name||player?.nickname)===normalizedName)||indexedSnapshot;
+    const playerId=snapshot?.id??ids[index];
+    const current=playerId!=null
+      ? currentPlayers.find(player=>String(player?.id)===String(playerId))
+      : currentPlayers.find(player=>normalize(player?.name)===normalizedName);
+    const nickname=String(snapshot?.nickname||current?.nickname||'').trim();
+    return nickname&&normalize(nickname)!==normalizedName?`${name} (${nickname})`:name;
+  }).filter(Boolean).join(' & ');
+}
+
+function getHistoryDisplayTeams(log){
+  const team1=getHistoryTeamDisplayName(log,'team1');
+  const team2=getHistoryTeamDisplayName(log,'team2');
+  const winnerTeam=getHistoryWinnerTeam(log);
+  return winnerTeam===1
+    ? {winner:team1||String(log?.winner||''),loser:team2||String(log?.loser||'')}
+    : {winner:team2||String(log?.winner||''),loser:team1||String(log?.loser||'')};
 }
 
 function openHistoryDetail(logId,preservePendingWinner=false){
@@ -5508,20 +5654,33 @@ $('importSave').onclick=importPlayers;
 
 $('courtNameInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')saveCourt();});
 $('historySearchInput')?.addEventListener('input',renderHistoryTable);
-$('registeredPlayerSearch')?.addEventListener('input',()=>{renderQueue();renderRegisteredSearch();});
-$('registeredSearchUpdateBtn')?.addEventListener('click',()=>{
+$('registeredPlayerSearch')?.addEventListener('input',()=>{registeredSearchResultsDismissed=false;renderQueue();renderRegisteredSearch();});
+$('registeredPlayerSearch')?.addEventListener('focus',()=>{registeredSearchResultsDismissed=false;renderRegisteredSearch();});
+$('registeredPlayerSearch')?.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.currentTarget.value='';renderQueue();renderRegisteredSearch();}});
+$('registeredSearchSourceToggle')?.addEventListener('click',()=>setRegisteredSearchMode(!isRegisteredCloudSearchMode()));
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#registeredSearchArea')){registeredSearchResultsDismissed=true;const results=$('registeredPlayerResults');if(results)results.innerHTML='';}});
+window.addEventListener('resize',positionRegisteredSearchResults,{passive:true});
+window.addEventListener('scroll',positionRegisteredSearchResults,{passive:true,capture:true});
+$('registeredSearchUpdateBtn')?.addEventListener('click',async()=>{
   const updateBtn=$('registeredSearchUpdateBtn');
   if(!updateBtn || updateBtn.classList.contains('is-loading')) return;
+  const cloudMode=isRegisteredCloudSearchMode();
   updateBtn.classList.add('is-loading');
   updateBtn.setAttribute('aria-busy','true');
   updateBtn.disabled=true;
-  renderQueue();
-  toast('Queue updated.');
-  setTimeout(()=>{
+  try{
+    if(cloudMode){
+      const refreshed=await refreshRegisteredCloudSearch();
+      if(refreshed)toast('Registered Player Cloud updated.');
+    }else{
+      renderQueue();
+      toast('Queue updated.');
+    }
+  }finally{
     updateBtn.classList.remove('is-loading');
     updateBtn.removeAttribute('aria-busy');
     updateBtn.disabled=false;
-  },700);
+  }
 });
 $('nextCourtPreview').textContent=`Next available: Court ${nextAvailableCourtNumber()}`;
 

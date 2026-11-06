@@ -1,17 +1,29 @@
-PICKLE POINT MATCH — LOCAL TEST SERVER
+PICKLE POINT MATCH - LOCAL TEST SERVER
 
 1. Install Node.js 18 or newer on your Windows computer: https://nodejs.org/
 2. Extract the entire project ZIP to a normal folder (not inside the ZIP preview).
 3. Double-click start-local.bat.
-4. The script installs dependencies if needed, starts the server on 127.0.0.1:3000, and opens the browser.
+4. The script checks the Node.js version, installs dependencies if needed, starts
+   the server on 127.0.0.1:3000, and opens the browser.
 5. Panel login for local testing:
    Username: admin
    Password: local-admin-change-me
 6. Stop the local server with Ctrl+C in the terminal window.
 
-IMPORTANT:
-- Open http://127.0.0.1:3000 only while the local server terminal is running.
+LOCAL ISOLATION AND DATA SAFETY:
+- start-local.bat explicitly clears DATABASE_URL, so this local run will not
+  connect to the Render/PostgreSQL database.
+- It also clears PICKLE_DATA_DIR, so the server uses this project's own data
+  folder (the data folder beside server.js), not a folder inherited from Windows.
+- The server binds to 127.0.0.1, so it is available only on this computer.
+- Local changes are saved in this project's data folder. Keep a backup of that
+  folder before experimenting with important data.
 - Do not use the local test password on the deployed/public server.
-- Local test data is stored in this project's data folder and is separate from Render/cloud data unless DATABASE_URL is configured.
-- Do not set DATABASE_URL for local testing unless you intentionally want to connect to the same cloud database; doing so can modify live data.
-- For deployment, configure PANEL_USERNAME, PANEL_PASSWORD, SESSION_SECRET, and any existing database settings in the hosting environment. Do not deploy the local development credentials.
+
+FOR DEPLOYMENT:
+- Configure production credentials and database settings in the hosting
+  environment (for example, Render).
+- Do not deploy the local PANEL_USERNAME, PANEL_PASSWORD, or SESSION_SECRET
+  values shown above.
+- The start-local.bat settings apply only to the process launched by that file;
+  they do not change your Windows system environment or Render settings.
