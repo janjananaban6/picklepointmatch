@@ -979,25 +979,13 @@ html[data-theme="light"] body.live-view-page .section-card.queue-section #queueS
       let appStateStreamConnected = false;
       const matchesShortcut = document.querySelector('.mobile-header-icon-button[data-live-tab="matches"]');
       const notificationBadge = document.getElementById('mobileMatchesNotificationBadge');
-      const notificationStorageKey = `ppm-live-matches-seen:${organizerId || 'default'}`;
+      // Notification counts are intentionally per page visit. A visitor opening
+      // the public URL (including from a QR code) starts with every match already
+      // recorded for this organizer as unread on this visit.
       let knownFinishedMatchIds = new Set();
       let notificationCount = 0;
       let notificationBaselineReady = false;
-      try {
-        const savedNotifications = JSON.parse(localStorage.getItem(notificationStorageKey) || '{}');
-        notificationCount = Math.max(0, Number(savedNotifications.count) || 0);
-        knownFinishedMatchIds = new Set(Array.isArray(savedNotifications.knownIds) ? savedNotifications.knownIds.map(String) : []);
-        notificationBaselineReady = knownFinishedMatchIds.size > 0 || savedNotifications.initialized === true;
-      } catch (_) {}
-      const persistMatchNotifications = () => {
-        try {
-          localStorage.setItem(notificationStorageKey, JSON.stringify({
-            count: notificationCount,
-            knownIds: [...knownFinishedMatchIds].slice(-500),
-            initialized: notificationBaselineReady
-          }));
-        } catch (_) {}
-      };
+      let matchesOpenedBeforeInitialHistory = false;
       const renderMatchNotificationBadge = () => {
         if (!notificationBadge) return;
         notificationBadge.textContent = notificationCount > 99 ? '99+' : String(notificationCount);
@@ -1006,28 +994,34 @@ html[data-theme="light"] body.live-view-page .section-card.queue-section #queueS
         if (matchesShortcut) matchesShortcut.title = notificationCount ? `${notificationCount} new finished ${notificationCount === 1 ? 'match' : 'matches'}` : 'Matches';
       };
       const acknowledgeFinishedMatches = () => {
-        if (!notificationCount) return;
+        matchesOpenedBeforeInitialHistory = true;
         notificationCount = 0;
-        persistMatchNotifications();
         renderMatchNotificationBadge();
       };
       matchesShortcut?.addEventListener('click', acknowledgeFinishedMatches);
       renderMatchNotificationBadge();
       const trackNewFinishedMatches = logs => {
-        const ids = (Array.isArray(logs) ? logs : []).map(log => String(log?.id ?? '')).filter(Boolean);
+        const ids = [...new Set((Array.isArray(logs) ? logs : [])
+          .map(log => String(log?.id ?? '').trim())
+          .filter(Boolean))];
         if (!notificationBaselineReady) {
           knownFinishedMatchIds = new Set(ids);
           notificationBaselineReady = true;
-          persistMatchNotifications();
+          // Initial page visit: show the entire finished-match history count,
+          // unless the visitor already opened Matches while history was loading.
+          notificationCount = matchesOpenedBeforeInitialHistory ? 0 : ids.length;
+          renderMatchNotificationBadge();
           return;
         }
         let added = 0;
         for (const id of ids) {
-          if (!knownFinishedMatchIds.has(id)) { knownFinishedMatchIds.add(id); added += 1; }
+          if (!knownFinishedMatchIds.has(id)) {
+            knownFinishedMatchIds.add(id);
+            added += 1;
+          }
         }
         if (added) {
           notificationCount += added;
-          persistMatchNotifications();
           renderMatchNotificationBadge();
         }
       };
