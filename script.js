@@ -50,7 +50,6 @@ const LOCAL_STATE_PENDING_SYNC_KEY=`${STORAGE_KEY}_pending_sync`;
 const CLOUD_RECORDS_SAVED_AT_KEY='pickleq_registered_cloud_records_saved_at';
 const CLOUD_RECORDS_PENDING_SYNC_KEY='pickleq_registered_cloud_records_pending_sync';
 const LIVE_VIEW_STORAGE_KEY=`picklepoint_live_view_state_v1${ORGANIZER_STORAGE_SUFFIX?`_${ORGANIZER_STORAGE_SUFFIX}`:''}`;
-const LIVE_VIEW_THEME_STORAGE_KEY='picklepoint_live_view_theme_v1';
 const LIVE_RANKING_ENABLED_KEY=`picklepoint_live_ranking_enabled_v1${ORGANIZER_STORAGE_SUFFIX?`_${ORGANIZER_STORAGE_SUFFIX}`:''}`;
 const LIVE_MATCHES_ENABLED_KEY=`picklepoint_live_matches_enabled_v1${ORGANIZER_STORAGE_SUFFIX?`_${ORGANIZER_STORAGE_SUFFIX}`:''}`;
 const RESULTS_TAB_STORAGE_KEY=`picklepoint_results_tab_v1${ORGANIZER_STORAGE_SUFFIX?`_${ORGANIZER_STORAGE_SUFFIX}`:''}`;
@@ -1515,6 +1514,12 @@ function buildLiveViewSnapshot(){
     .sort((a,b)=>compareLeaderboardPlayers(a,b,rankingStats))
     .map((p,index)=>{
       const st=rankingStats.get(p.id)||{matches:0,wins:0,losses:0,winRate:0,totalSeconds:0};
+      const lockedPartnerId=getLockedPartnerId(p.id);
+      const lockedPartner=lockedPartnerId!=null?(byId.get(String(lockedPartnerId))||null):null;
+      const lockedPartnerFullName=lockedPartner?displayPlayerName(lockedPartner):'';
+      const lockedPartnerName=lockedPartner
+        ? (String(lockedPartner.name||'').trim().split(/\s+/)[0]||lockedPartnerFullName)
+        : '';
       return {
         position:index+1,
         id:String(p.id),
@@ -1529,7 +1534,9 @@ function buildLiveViewSnapshot(){
         winRate:Number(st.winRate)||0,
         totalSeconds:Number(st.totalSeconds)||0,
         playing:isPlayerPlaying(p),
-        lockedIn:getLockedPartnerId(p.id)!=null
+        lockedIn:lockedPartnerId!=null,
+        lockedPartnerName,
+        lockedPartnerFullName
       };
     });
   return {
@@ -1613,66 +1620,6 @@ function getLiveViewUrl(){
 }
 function hasActiveOrganizerSession(){
   return state.sessionActive===true&&!!String(state.sessionId||'').trim()&&!state.sessionEndedAt;
-}
-function syncLiveViewThemeButton(theme){
-  const button=$('liveViewThemeToggle');
-  if(!button)return;
-  const normalized=theme==='light'?'light':'night';
-  const lightMode=normalized==='light';
-  const nextMode=lightMode?'night':'light';
-  button.classList.toggle('is-light',lightMode);
-  button.setAttribute('aria-pressed',String(lightMode));
-  button.setAttribute('aria-label',`Switch Live View to ${nextMode} mode`);
-  button.title=`Switch Live View to ${nextMode} mode`;
-  const label=button.querySelector('.live-view-theme-label');
-  if(label)label.textContent=lightMode?'Light Mode':'Dark Mode';
-}
-function setLiveViewTheme(theme,publish=true){
-  const normalized=theme==='light'?'light':'night';
-  try{localStorage.setItem(LIVE_VIEW_THEME_STORAGE_KEY,normalized);}catch(e){}
-  syncLiveViewThemeButton(normalized);
-  if(publish&&(location.protocol==='http:'||location.protocol==='https:')){
-    fetch('/api/live-theme',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme:normalized}),cache:'no-store'}).catch(()=>{});
-  }
-}
-function initLiveViewThemeController(){
-  let initial='night';
-  let themeChangedLocally=false;
-  let remoteThemeReceived=false;
-  try{const saved=localStorage.getItem(LIVE_VIEW_THEME_STORAGE_KEY);if(saved==='light'||saved==='night')initial=saved;}catch(e){}
-  syncLiveViewThemeButton(initial);
-  $('liveViewThemeToggle')?.addEventListener('click',()=>{
-    themeChangedLocally=true;
-    let current='night';
-    try{const saved=localStorage.getItem(LIVE_VIEW_THEME_STORAGE_KEY);if(saved==='light'||saved==='night')current=saved;}catch(e){}
-    setLiveViewTheme(current==='light'?'night':'light',true);
-  });
-  window.addEventListener('storage',event=>{
-    if(event.key===LIVE_VIEW_THEME_STORAGE_KEY&&event.newValue){
-      themeChangedLocally=true;
-      const theme=event.newValue==='light'?'light':'night';
-      syncLiveViewThemeButton(theme);
-    }
-  });
-  if(location.protocol==='http:'||location.protocol==='https:'){
-    // Subscribe to the server's shared theme stream. localStorage only syncs
-    // tabs in the same browser; the server stream keeps other devices in step.
-    try{
-      if(typeof EventSource!=='undefined'){
-        const themeEvents=new EventSource('/api/live-events');
-        themeEvents.addEventListener('live-theme',event=>{
-          const theme=String(event.data||'').trim();
-          if(theme!=='light'&&theme!=='night')return;
-          remoteThemeReceived=true;
-          setLiveViewTheme(theme,false);
-        });
-      }
-    }catch(e){}
-    // Keep GET as a fallback for servers/proxies where EventSource is unavailable.
-    fetch('/api/live-theme',{cache:'no-store'}).then(response=>response.ok?response.json():null).then(data=>{
-      if(!themeChangedLocally&&!remoteThemeReceived&&data&&(data.theme==='light'||data.theme==='night'))setLiveViewTheme(data.theme,false);
-    }).catch(()=>{});
-  }
 }
 function openLiveView(){
   const url=getLiveViewUrl();
@@ -4954,14 +4901,15 @@ function renderResults(){
 
 function highlightSearchMatch(value, query, className='search-match-highlight'){
   const text=String(value??'');
-  const needle=String(query??'').trim();
-  if(!needle)return esc(text);
-  // Escape the search text before using it as a regular expression, then escape
-  // every rendered text segment so player names can never inject HTML.
-  const escapedNeedle=needle.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  const matcher=new RegExp(`(${escapedNeedle})`,'ig');
+  const needles=[...new Set((Array.isArray(query)?query:[query]).map(value=>String(value??'').trim()).filter(Boolean))]
+    .sort((a,b)=>b.length-a.length);
+  if(!needles.length)return esc(text);
+  // Highlight every supplied search term while escaping both the regular
+  // expression and rendered text so player names cannot inject HTML.
+  const escapedNeedles=needles.map(needle=>needle.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  const matcher=new RegExp(`(${escapedNeedles.join('|')})`,'ig');
   return text.split(matcher).map(part=>
-    part.toLowerCase()===needle.toLowerCase()
+    needles.some(needle=>part.toLocaleLowerCase()===needle.toLocaleLowerCase())
       ? `<mark class="${className}">${esc(part)}</mark>`
       : esc(part)
   ).join('');
@@ -5162,12 +5110,43 @@ function downloadDuprCsvFromEndSession(){
   }
   exportDuprCsvWithDetails(eventName,locationName,dateValue);
 }
+function historyMatchupTeamValues(log,side){
+  const snapshots=Array.isArray(log?.[`${side}Players`])?log[`${side}Players`]:[];
+  const names=Array.isArray(log?.[`${side}Names`])?log[`${side}Names`]:[];
+  const values=[...names,...snapshots.flatMap(player=>[player?.name,player?.nickname])].filter(Boolean).map(value=>String(value));
+  if(!values.length){
+    const display=getHistoryDisplayTeams(log);
+    values.push(side==='team1'?display.winner:display.loser);
+  }
+  return values;
+}
+function historyTeamHasName(log,side,query){
+  const needle=String(query||'').trim().toLocaleLowerCase().replace(/\s+/g,' ');
+  if(!needle)return true;
+  return historyMatchupTeamValues(log,side).some(value=>String(value||'').toLocaleLowerCase().replace(/\s+/g,' ').includes(needle));
+}
+function historyMatchupPasses(log,first,second){
+  const a=String(first||'').trim(),b=String(second||'').trim();
+  if(!a&&!b)return true;
+  const aOn1=historyTeamHasName(log,'team1',a),aOn2=historyTeamHasName(log,'team2',a);
+  if(a&&b){
+    const bOn1=historyTeamHasName(log,'team1',b),bOn2=historyTeamHasName(log,'team2',b);
+    return (aOn1&&bOn2)||(aOn2&&bOn1);
+  }
+  return a?(aOn1||aOn2):([historyTeamHasName(log,'team1',b),historyTeamHasName(log,'team2',b)].some(Boolean));
+}
 function renderHistoryTable(){
   const table=$('historyTable');
   if(!table) return;
-  const query=String($('historySearchInput')?.value||'').trim().toLowerCase();
+  const matchupControls=$('historySearchFilterControls');
+  const matchupFilterOpen=!!(matchupControls&&!matchupControls.hidden);
+  const query=matchupFilterOpen?'':String($('historySearchInput')?.value||'').trim().toLowerCase();
+  const matchupNameOne=String($('historyMatchupNameOne')?.value||'').trim();
+  const matchupNameTwo=String($('historyMatchupNameTwo')?.value||'').trim();
   const allLogs=(state.logs||[]).slice().reverse();
-  const rows=query?allLogs.filter(l=>{
+  const rows=allLogs.filter(l=>{
+    if(!historyMatchupPasses(l,matchupNameOne,matchupNameTwo))return false;
+    if(!query)return true;
     const displayTeams=getHistoryDisplayTeams(l);
     const names=[
       displayTeams.winner,displayTeams.loser,
@@ -5177,14 +5156,16 @@ function renderHistoryTable(){
       ...(Array.isArray(l.team2Players)?l.team2Players.flatMap(p=>[p?.name,p?.nickname]):[])
     ].filter(Boolean);
     return names.some(name=>String(name).toLowerCase().includes(query));
-  }):allLogs;
+  });
 
   if(!allLogs.length){
     table.innerHTML='<div class="history-empty" aria-label="No matches completed yet"></div>';
     return;
   }
   if(!rows.length){
-    table.innerHTML='<div class="history-search-empty" role="status"><span class="history-search-empty-icon" aria-hidden="true">📜</span><span>No match history found for that player.</span></div>';
+    const matchupLabel=[matchupNameOne,matchupNameTwo].filter(Boolean).join(' vs ');
+    const emptyText=matchupLabel?`No match history found for ${esc(matchupLabel)}.`:'No match history found for that player.';
+    table.innerHTML=`<div class="history-search-empty" role="status"><span class="history-search-empty-icon" aria-hidden="true">📜</span><span>${emptyText}</span></div>`;
     return;
   }
   table.innerHTML=rows.map(l=>{
@@ -5194,9 +5175,9 @@ function renderHistoryTable(){
     const winnerName=displayTeams.winner||l.winner||'Winner';
     const loserName=displayTeams.loser||l.loser||'Loser';
     return `<div class="history-card${winOnly?' history-card-win-only':''}" onclick="openHistoryDetail(${l.id})">
-      <div class="history-index">${l.id}</div><div class="history-team winner-team"><b>${highlightHistorySearchMatch(winnerName,query)}</b></div>
+      <div class="history-index">${l.id}</div><div class="history-team winner-team"><b>${highlightHistorySearchMatch(winnerName,matchupFilterOpen?[matchupNameOne,matchupNameTwo]:query)}</b></div>
       <div class="history-score ${winOnly?'history-result-labels':''}">${winOnly?`<strong class="history-win-label">WIN</strong><span class="history-result-dash">-</span><strong class="history-loss-label">LOSS</strong>`:`<strong>${esc(sc[0]||'0')}</strong><span>-</span><strong>${esc(sc[1]||'0')}</strong>`}</div>
-      <div class="history-team loser-team"><b>${highlightHistorySearchMatch(loserName,query)}</b></div>
+      <div class="history-team loser-team"><b>${highlightHistorySearchMatch(loserName,matchupFilterOpen?[matchupNameOne,matchupNameTwo]:query)}</b></div>
       <div class="history-time">⏱︎ ${esc(l.duration||'--')}</div><div class="history-arrow">›</div>
     </div>`;
   }).join('');
@@ -5654,6 +5635,33 @@ $('importSave').onclick=importPlayers;
 
 $('courtNameInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')saveCourt();});
 $('historySearchInput')?.addEventListener('input',renderHistoryTable);
+(()=>{
+  const toggle=$('historySearchFilterToggle');
+  const controls=$('historySearchFilterControls');
+  const wrap=$('historySearchWrap');
+  const search=$('historySearchInput');
+  const nameOne=$('historyMatchupNameOne');
+  const nameTwo=$('historyMatchupNameTwo');
+  if(!toggle||!controls||!wrap)return;
+  const setMatchupFilterOpen=open=>{
+    controls.hidden=!open;
+    wrap.classList.toggle('is-matchup-filter-open',open);
+    if(search)search.disabled=open;
+    toggle.classList.toggle('is-open',open);
+    toggle.setAttribute('aria-expanded',String(open));
+    toggle.setAttribute('aria-label',open?'Close matchup filters':'Open matchup filters');
+    toggle.title=open?'Hide matchup filters':'Filter matches by two opposing players';
+    // Each opening starts with two fresh name fields. Closing also removes the
+    // previous matchup constraint so the normal search is restored cleanly.
+    if(nameOne)nameOne.value='';
+    if(nameTwo)nameTwo.value='';
+    renderHistoryTable();
+    if(open)nameOne?.focus();
+    else search?.focus();
+  };
+  toggle.addEventListener('click',()=>setMatchupFilterOpen(controls.hidden));
+  controls.querySelectorAll('input').forEach(input=>input.addEventListener('input',renderHistoryTable));
+})();
 $('registeredPlayerSearch')?.addEventListener('input',()=>{registeredSearchResultsDismissed=false;renderQueue();renderRegisteredSearch();});
 $('registeredPlayerSearch')?.addEventListener('focus',()=>{registeredSearchResultsDismissed=false;renderRegisteredSearch();});
 $('registeredPlayerSearch')?.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.currentTarget.value='';renderQueue();renderRegisteredSearch();}});
@@ -5802,6 +5810,15 @@ function setResultsTab(tabName,persist=true){
   if(current==='history'&&selected!=='history'){
     const search=$('historySearchInput');
     if(search)search.value='';
+    ['historyMatchupNameOne','historyMatchupNameTwo'].forEach(id=>{const input=$(id);if(input)input.value='';});
+    const matchupControls=$('historySearchFilterControls');
+    const matchupToggle=$('historySearchFilterToggle');
+    const matchupWrap=$('historySearchWrap');
+    const matchupSearch=$('historySearchInput');
+    if(matchupControls)matchupControls.hidden=true;
+    matchupWrap?.classList.remove('is-matchup-filter-open');
+    if(matchupSearch)matchupSearch.disabled=false;
+    if(matchupToggle){matchupToggle.classList.remove('is-open');matchupToggle.setAttribute('aria-expanded','false');matchupToggle.setAttribute('aria-label','Open matchup filters');matchupToggle.title='Filter matches by two opposing players';}
     renderHistoryTable();
   }
   document.querySelectorAll('.tab').forEach(tab=>{
@@ -6112,7 +6129,6 @@ syncOrganizerQrSessionStatus();
 bindLiveQueueStartScreen();
 bindTopbarBackButton();
 initQueueNetworkStatus();
-initLiveViewThemeController();
 initLiveRankingAdminToggle();
 initLiveMatchesAdminToggle();
 $('liveViewQrOpenBtn')?.addEventListener('click',openLiveViewQrModal);

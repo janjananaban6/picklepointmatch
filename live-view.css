@@ -632,6 +632,9 @@ html body .player-chip .live-player-gender svg.gender-symbol {
 }
 /* Live View: inline locked-partner badge, scoped to the queue section only. */
 .queue-section .queue-locked-partner-inline{display:inline-flex;align-items:center;justify-content:center;flex:0 1 auto;min-width:0;max-width:74px;margin:0 0 0 2px;padding:1px 4px;border:1px solid #e5d5ff;border-radius:999px;background:#f1eaff;color:#6d28d9;font-family:inherit;font-size:7.5px;font-weight:500;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+.queue-section .queue-locked-partner-inline.queue-lock-icon-inline{gap:2px;justify-content:flex-start;max-width:74px}
+.queue-section .queue-locked-partner-inline.queue-lock-icon-inline .queue-lock-svg{display:block;flex:0 0 9px;width:9px;height:9px;overflow:visible}
+.queue-section .queue-locked-partner-inline.queue-lock-icon-inline .queue-locked-partner-name{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7.5px;line-height:1.25}
 /* Search-match highlight used by the Rankings tab. */
 .live-ranking-search-hit{padding:0 1px;border-radius:3px;background:#ffe16b;color:#18252a;font-weight:950;box-shadow:0 0 0 1px rgba(255,193,7,.22);-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .live-ranking-list{display:flex;flex-direction:column;gap:8px;min-height:100px;padding:13px 15px 16px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#4d777d transparent}
@@ -647,6 +650,10 @@ html body .player-chip .live-player-gender svg.gender-symbol {
 .live-ranking-main{min-width:0}
 .live-ranking-name-line{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap}
 .live-ranking-name-line strong{min-width:0;overflow-wrap:anywhere;font-size:12px;font-weight:850;line-height:1.25}
+/* Match the locked-partner pill used by Queueing's ranking list. */
+.live-ranking-name-line .queue-locked-partner-inline.queue-lock-icon-inline{display:inline-flex;align-items:center;justify-content:flex-start;gap:2px;flex:0 1 auto;min-width:0;max-width:86px;min-height:11px;margin-left:0;padding:1px 4px;border:1px solid #e5d5ff;border-radius:999px;background:#f1eaff;color:#6d28d9;font-size:7px;line-height:1.25;white-space:nowrap;overflow:hidden;vertical-align:middle}
+.live-ranking-name-line .queue-locked-partner-inline.queue-lock-icon-inline .queue-lock-svg{display:block;flex:0 0 9px;width:9px;height:9px;overflow:visible}
+.live-ranking-name-line .queue-locked-partner-inline.queue-lock-icon-inline .queue-locked-partner-name{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7px;line-height:1.25}
 .live-ranking-category{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;white-space:nowrap;min-width:25px;padding:2px 5px;border:1px solid #dfe5e9;border-radius:6px;font-size:7px;font-weight:900;line-height:1;letter-spacing:.1px;background:#f8f9fa;color:#a0aec0;box-sizing:border-box}
 .live-ranking-category.skill-beg{background:#e8f3ff;border-color:#bce0fd;color:#2b6cb0}
 .live-ranking-category.skill-nov{background:#e0f8f3;border-color:#a2f0df;color:#227a68}
@@ -1209,13 +1216,13 @@ html[data-theme="light"] body #waitingCourtsList .court-visual-score span { colo
 .live-ranking-page-list {
   max-height: none !important;
   min-height: 100px;
-  padding: 2px 0 0;
+  padding: 0 0 0;
   overflow: visible !important;
 }
-.live-matches-list { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 100px; padding: 2px 0 0; overflow: visible; }
+.live-matches-list { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 100px; padding: 0 0 0; overflow: visible; }
 .live-match-row {
   min-width: 0;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--panel2);
@@ -1235,7 +1242,7 @@ html[data-theme="light"] body #waitingCourtsList .court-visual-score span { colo
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-top: 13px;
 }
 .live-match-winner, .live-match-loser { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
@@ -1305,7 +1312,7 @@ html body .section-card .live-tab-section-heading {
   display: block;
   width: 100%;
   min-width: 0;
-  margin-bottom: 16px;
+  margin-bottom: 5px;
   text-align: left;
 }
 html body .section-card .live-tab-section-heading > div {
@@ -1399,7 +1406,7 @@ html body .section-card .live-tab-section-heading h2 { font-size: 17px; }}
   }
 
   html body .section-card .live-tab-search input::placeholder {
-    font-size: 13px !important;
+    font-size: 12px !important;
     font-weight: 400 !important;
     line-height: 1.25 !important;
     letter-spacing: 0 !important;
@@ -1722,16 +1729,6 @@ html body .section-card.queue-section .section-heading.queue-section-heading h2 
   margin-left: auto;
   color: #8c9995;
 }
-.queue-waiting-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 10px;
-  height: 12px;
-  color: #899691;
-  opacity: .9;
-}
-.queue-waiting-icon svg { display: block; width: 10px; height: 12px; }
 .queue-collapse-toggle {
   display: inline-flex;
   align-items: center;
@@ -1767,8 +1764,7 @@ html[data-theme="light"] body .section-card.queue-section .section-heading.queue
 html[data-theme="light"] .queue-waiting-count { color: #778783; }
 html[data-theme="light"] .queue-heading-separator { color: #9aa7a2; }
 html[data-theme="light"] .queue-heading-actions,
-html[data-theme="light"] .queue-collapse-toggle,
-html[data-theme="light"] .queue-waiting-icon { color: #778783; }
+html[data-theme="light"] .queue-collapse-toggle { color: #778783; }
 @media (max-width: 560px) {html body .section-card.queue-section .section-heading.queue-section-heading { gap: 7px; margin-bottom: 11px; }
 html body .section-card.queue-section .section-heading.queue-section-heading h2 { gap: 4px; font-size: 9px; letter-spacing: 1.15px; }
 .queue-waiting-count { font-size: 8px; letter-spacing: .45px; }
@@ -1865,7 +1861,7 @@ html body .section-card.queue-section .section-heading.queue-section-heading h2 
   }
 html body .queue-waiting-count { font-size: 7.5px; letter-spacing: .25px; }
 html body .queue-collapse-toggle { flex-basis: 14px; width: 14px; min-width: 14px; min-height: 18px; }
-html body .queue-waiting-icon { width: 9px; }}
+}
 @media (prefers-reduced-motion: reduce) {html body #queueListViewport.queue-list-viewport {
     transition-duration: 180ms, 140ms !important;
   }}
@@ -4567,17 +4563,10 @@ html body.live-view-page .mobile-header-icon-button svg {
   height: 21px !important;
   fill: none !important;
   stroke: currentColor !important;
-  stroke-width: 1.8 !important;
+  stroke-width: 2 !important;
   stroke-linecap: round !important;
   stroke-linejoin: round !important;
 }
-
-html body.live-view-page #mobileLiveRefresh.is-refreshing svg {
-  animation: mobile-live-header-spin .75s linear infinite !important;
-  transform-origin: 50% 50% !important;
-}
-
-@keyframes mobile-live-header-spin { to { transform: rotate(360deg); } }
 
 html body.live-view-page .mobile-live-status {
   display: inline-flex !important;
@@ -6237,7 +6226,7 @@ html body .section-card .live-ranking-filter-controls {
   width: 100%;
   max-width: 440px;
   min-width: 0;
-  margin: -5px 0 12px;
+  margin: -7px 0 14px;
   padding: 0 1px;
 }
 html body .section-card .live-ranking-filter-controls[hidden] { display: none !important; }
@@ -6337,7 +6326,8 @@ html[data-theme="light"] body .section-card .live-ranking-filter-controls .leade
 }
 
 
-/* Matches tab: pill-shaped search field with a deliberately disabled filter affordance. */
+/* Live Matches: optional two-player opposing-side search. Keep both input borders
+   the same height and visual weight as the primary search bar. */
 html body .section-card .live-matches-searchbar {
   width: 100%;
   max-width: 440px;
@@ -6351,18 +6341,120 @@ html body .section-card .live-matches-searchbar input {
   border-radius: 9999px !important;
   -webkit-border-radius: 9999px !important;
 }
-html body .section-card .live-matches-filter-toggle:disabled,
-html body .section-card .live-matches-filter-toggle[aria-disabled="true"] {
-  opacity: .48;
-  cursor: not-allowed;
-  pointer-events: none;
+/* Keep the regular search field and its placeholder visible during matchup mode.
+   JavaScript sets disabled=true so it cannot be typed into until the filter closes. */
+html body .section-card .live-matches-searchbar.is-matchup-filter-open {
+  justify-content: flex-start;
+}
+html body .section-card .live-matches-searchbar.is-matchup-filter-open .live-tab-search-icon {
+  display: block !important;
+  opacity: 1 !important;
+}
+html body .section-card .live-matches-searchbar.is-matchup-filter-open #pageMatchesSearch,
+html body .section-card .live-matches-searchbar #pageMatchesSearch:disabled {
+  display: block !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text) !important;
+}
+html body .section-card .live-matches-searchbar #pageMatchesSearch:disabled::placeholder,
+html body .section-card .live-matches-searchbar #pageMatchesSearch:disabled::-webkit-input-placeholder {
+  color: var(--muted) !important;
+  opacity: .85 !important;
+  -webkit-text-fill-color: var(--muted) !important;
+}
+html body .section-card .live-matches-searchbar.is-matchup-filter-open #pageMatchesFilterToggle {
+  margin-left: 0;
+}
+html body .section-card .live-matches-filter-toggle:hover,
+html body .section-card .live-matches-filter-toggle.is-open {
+  color: var(--teal);
+  border-color: var(--teal);
+  background: var(--panel2);
+}
+html body .section-card .live-matches-filter-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 440px;
+  min-width: 0;
+  margin: -7px 0 14px;
+  padding: 0;
+  box-sizing: border-box;
+}
+html body .section-card .live-matches-filter-controls[hidden] { display: none !important; }
+html body .section-card .live-matchup-search-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  height: 39px;
+  min-height: 39px;
+  max-height: 39px;
+  margin: 0;
+  padding: 0 11px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: var(--panel2);
   color: var(--muted);
-  border-color: var(--line);
-  background: var(--panel);
+  box-shadow: none;
+  transition: border-color .16s ease, background-color .16s ease;
+}
+html body .section-card .live-matchup-search-wrap:focus-within {
+  border-color: var(--teal);
+  background: var(--panel2);
+  outline: none;
+  box-shadow: none;
+}
+html body .section-card .live-matchup-search-wrap input {
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: none;
+}
+html body .section-card .live-matchup-search-wrap input::placeholder {
+  color: var(--muted);
+  opacity: .85;
+  font-size: 12px;
+  font-weight: 400;
+}
+html body .section-card .live-matchup-vs {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .04em;
 }
 @media (max-width: 560px) {
   html body .section-card .live-matches-searchbar { min-height: 36px; padding: 0 5px 0 10px; }
   html body .section-card .live-matches-filter-toggle { flex-basis: 28px; width: 28px; height: 28px; }
+  html body .section-card .live-matchup-search-wrap { height: 36px; min-height: 36px; max-height: 36px; padding: 0 9px; }
+  html body .section-card .live-matches-filter-controls { max-width: none; gap: 6px; }
+}
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  html body .section-card .live-matchup-search-wrap input { font-size: 16px !important; }
+  html body .section-card .live-matchup-search-wrap input::placeholder { font-size: 13px !important; }
 }
 
 /* REQUESTED PILL CONTROLS — queue search panel and court heading actions. */
@@ -6541,4 +6633,724 @@ html[data-theme="light"] body.live-view-page :is(#courtsList, #waitingCourtsList
   html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card > .court-card-expanded-content:not([hidden]) {
     padding: 11px 10px 12px !important;
   }
+}
+
+
+/* Live Matches: keep search borders neutral on hover and solid blue on focus.
+   The two matchup fields use the same focus treatment as the primary search. */
+html body.live-view-page .section-card .live-matches-searchbar,
+html body.live-view-page .section-card .live-matchup-search-wrap {
+  transition: border-color .14s ease !important;
+}
+html body.live-view-page .section-card .live-matches-searchbar:hover:not(:focus-within),
+html body.live-view-page .section-card .live-matchup-search-wrap:hover:not(:focus-within) {
+  border-color: var(--line) !important;
+  background: var(--panel2) !important;
+}
+html body.live-view-page .section-card .live-matches-searchbar:focus-within:has(#pageMatchesSearch:focus),
+html body.live-view-page .section-card .live-matchup-search-wrap:focus-within {
+  border: 1px solid #007bff !important;
+  border-color: #007bff !important;
+  border-style: solid !important;
+  background: var(--panel2) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Filter remains a static icon: no hover, click, focus, or open color effect. */
+html body.live-view-page .section-card .live-matches-filter-toggle,
+html body.live-view-page .section-card .live-matches-filter-toggle:hover,
+html body.live-view-page .section-card .live-matches-filter-toggle:focus,
+html body.live-view-page .section-card .live-matches-filter-toggle:focus-visible,
+html body.live-view-page .section-card .live-matches-filter-toggle:active,
+html body.live-view-page .section-card .live-matches-filter-toggle.is-open {
+  border-color: var(--line) !important;
+  background: var(--panel) !important;
+  color: var(--muted) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+
+/* Final Live Matches override: no hover tint on either search wrapper or filter icon. */
+html body.live-view-page .section-card .live-matches-searchbar:hover:not(:focus-within),
+html body.live-view-page .section-card .live-matchup-search-wrap:hover:not(:focus-within) {
+  border-color: #e1e7ed !important;
+  background: var(--panel2) !important;
+  box-shadow: none !important;
+}
+html body.live-view-page .section-card .live-matches-filter-toggle,
+html body.live-view-page .section-card .live-matches-filter-toggle:hover,
+html body.live-view-page .section-card .live-matches-filter-toggle:focus,
+html body.live-view-page .section-card .live-matches-filter-toggle:focus-visible,
+html body.live-view-page .section-card .live-matches-filter-toggle:active,
+html body.live-view-page .section-card .live-matches-filter-toggle.is-open {
+  border-color: var(--line) !important;
+  background: var(--panel) !important;
+  color: var(--muted) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+/* Live Ranking: match the queueing podium background colors for the top three places. */
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-1 {
+  background: linear-gradient(105deg, #fff9df 0%, #fffdf6 100%) !important;
+}
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-2 {
+  background: linear-gradient(105deg, #f2f7fc 0%, #fbfdff 100%) !important;
+}
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-3 {
+  background: linear-gradient(105deg, #fff3e5 0%, #fffaf4 100%) !important;
+}
+
+
+/* Live header theme action: show the icon for the mode the button will switch to. */
+html body.live-view-page .mobile-header-icon-button.live-theme-icon-button {
+  position: relative !important;
+  color: var(--muted) !important;
+}
+html body.live-view-page .live-theme-icon-button .live-theme-icon {
+  display: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+html[data-theme="light"] body.live-view-page .live-theme-icon-button .live-theme-icon-moon { display: block !important; }
+html[data-theme="night"] body.live-view-page .live-theme-icon-button .live-theme-icon-sun { display: block !important; }
+html[data-theme="light"] body.live-view-page .live-theme-icon-button { color: #647b81 !important; }
+html[data-theme="night"] body.live-view-page .live-theme-icon-button { color: #bdcdd0 !important; }
+html body.live-view-page .live-theme-icon-button:hover,
+html body.live-view-page .live-theme-icon-button:focus-visible { color: var(--teal) !important; }
+
+/* Desktop and iPad: preserve the same perfectly round filter-toggle button as mobile. */
+@media (min-width: 561px) {
+  html body.live-view-page .section-card #pageRankingFilterToggle {
+    flex: 0 0 30px !important;
+    width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    aspect-ratio: 1 / 1 !important;
+    box-sizing: border-box !important;
+    border-radius: 50% !important;
+    -webkit-border-radius: 50% !important;
+  }
+}
+
+/* VS is a plain, fully opaque text separator, not a colored pill, on every device. */
+html body.live-view-page .live-match-row .live-match-vs {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  font-weight: 900 !important;
+}
+html[data-theme="light"] body.live-view-page .live-match-row .live-match-vs {
+  color: #54749a !important;
+  -webkit-text-fill-color: #54749a !important;
+}
+html[data-theme="night"] body.live-view-page .live-match-row .live-match-vs {
+  color: #b0ccef !important;
+  -webkit-text-fill-color: #b0ccef !important;
+}
+
+/* FINAL LIVE HEADER / NIGHT GLASS POLISH (2026-11-09)
+   Keep header actions completely still on press and anchor both theme glyphs
+   to the exact same center point so the icon never jumps sideways on swap. */
+html body.live-view-page .mobile-header-icon-button,
+html body.live-view-page .mobile-header-icon-button:hover,
+html body.live-view-page .mobile-header-icon-button:active,
+html body.live-view-page .mobile-header-icon-button:focus,
+html body.live-view-page .mobile-header-icon-button:focus-visible,
+html body.live-view-page .mobile-header-icon-button[aria-selected="true"] {
+  transform: none !important;
+  animation: none !important;
+  transition: color .16s ease !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+html body.live-view-page .live-theme-icon-button {
+  position: relative !important;
+  overflow: visible !important;
+}
+html body.live-view-page .live-theme-icon-button .live-theme-icon {
+  display: block !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  transform: translate(-50%, -50%) !important;
+  transform-origin: 50% 50% !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: opacity .18s ease, visibility 0s linear .18s !important;
+}
+html[data-theme="light"] body.live-view-page .live-theme-icon-button .live-theme-icon-moon,
+html[data-theme="night"] body.live-view-page .live-theme-icon-button .live-theme-icon-sun {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: opacity .18s ease !important;
+}
+
+/* Night-mode category and partner badges: translucent, softly bordered glass
+   instead of pale solid fills, matching the expanded court-status treatment. */
+html:not([data-theme="light"]) body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category) {
+  background: rgba(166, 190, 202, .09) !important;
+  border-color: rgba(177, 204, 216, .38) !important;
+  color: #c5d9e1 !important;
+  -webkit-backdrop-filter: blur(8px) saturate(145%) !important;
+  backdrop-filter: blur(8px) saturate(145%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07) !important;
+  transition: background-color .22s ease, border-color .22s ease, color .22s ease, box-shadow .22s ease !important;
+}
+html:not([data-theme="light"]) body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category).skill-beg {
+  background: rgba(43, 130, 190, .15) !important;
+  border-color: rgba(125, 190, 235, .5) !important;
+  color: #a8d8ff !important;
+}
+html:not([data-theme="light"]) body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category).skill-nov {
+  background: rgba(34, 152, 125, .15) !important;
+  border-color: rgba(112, 218, 190, .48) !important;
+  color: #9ce7d3 !important;
+}
+html:not([data-theme="light"]) body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category).skill-int {
+  background: rgba(180, 132, 36, .16) !important;
+  border-color: rgba(230, 191, 103, .52) !important;
+  color: #f2d48a !important;
+}
+html:not([data-theme="light"]) body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category).skill-adv {
+  background: rgba(135, 92, 183, .16) !important;
+  border-color: rgba(193, 158, 235, .5) !important;
+  color: #d5b9f6 !important;
+}
+html:not([data-theme="light"]) body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category).skill-exp {
+  background: rgba(180, 64, 82, .15) !important;
+  border-color: rgba(230, 135, 148, .5) !important;
+  color: #f2abb4 !important;
+}
+html:not([data-theme="light"]) body.live-view-page .queue-locked-partner-inline {
+  background: rgba(134, 87, 195, .16) !important;
+  border-color: rgba(192, 153, 235, .48) !important;
+  color: #d8c0ff !important;
+  -webkit-backdrop-filter: blur(8px) saturate(145%) !important;
+  backdrop-filter: blur(8px) saturate(145%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07) !important;
+  transition: background-color .22s ease, border-color .22s ease, color .22s ease, box-shadow .22s ease !important;
+}
+/* Keep both theme glyphs in the same centered layer for a no-shift crossfade. */
+html[data-theme="light"] body.live-view-page .live-theme-icon-button .live-theme-icon-sun,
+html[data-theme="night"] body.live-view-page .live-theme-icon-button .live-theme-icon-moon {
+  display: block !important;
+}
+
+/* DARK GLASS FINISH — podium rows, live/playing pills, and compact live status. */
+html[data-theme="night"] body.live-view-page #pageRankingList > .live-ranking-row.rank-1,
+html[data-theme="night"] body.live-view-page #pageRankingList > .live-ranking-row.rank-2,
+html[data-theme="night"] body.live-view-page #pageRankingList > .live-ranking-row.rank-3 {
+  -webkit-backdrop-filter: blur(11px) saturate(150%) !important;
+  backdrop-filter: blur(11px) saturate(150%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 4px 14px rgba(0,0,0,.10) !important;
+  transition: background .22s ease, border-color .22s ease, box-shadow .22s ease !important;
+}
+html[data-theme="night"] body.live-view-page #pageRankingList > .live-ranking-row.rank-1 {
+  background: linear-gradient(112deg, rgba(222,174,55,.20) 0%, rgba(255,222,133,.075) 100%) !important;
+  border-color: rgba(243,213,107,.55) !important;
+}
+html[data-theme="night"] body.live-view-page #pageRankingList > .live-ranking-row.rank-2 {
+  background: linear-gradient(112deg, rgba(145,174,199,.19) 0%, rgba(205,224,239,.065) 100%) !important;
+  border-color: rgba(190,211,229,.48) !important;
+}
+html[data-theme="night"] body.live-view-page #pageRankingList > .live-ranking-row.rank-3 {
+  background: linear-gradient(112deg, rgba(196,124,65,.19) 0%, rgba(237,177,125,.065) 100%) !important;
+  border-color: rgba(234,174,125,.48) !important;
+}
+
+html[data-theme="night"] body.live-view-page .live-ranking-playing {
+  border: 1px solid rgba(101,226,181,.38) !important;
+  background: rgba(45,160,125,.13) !important;
+  color: #91e8c9 !important;
+  -webkit-backdrop-filter: blur(8px) saturate(145%) !important;
+  backdrop-filter: blur(8px) saturate(145%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08) !important;
+  transition: background-color .22s ease, border-color .22s ease, color .22s ease, box-shadow .22s ease !important;
+}
+
+html[data-theme="night"] body.live-view-page #mobileLiveStatus.mobile-live-status {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: max-content !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  padding: 0 7px !important;
+  gap: 4px !important;
+  border: 1px solid rgba(101,226,181,.38) !important;
+  border-radius: 999px !important;
+  background: rgba(45,160,125,.14) !important;
+  color: #91e8c9 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 2px 8px rgba(0,0,0,.08) !important;
+  -webkit-backdrop-filter: blur(9px) saturate(150%) !important;
+  backdrop-filter: blur(9px) saturate(150%) !important;
+  font-size: 7.5px !important;
+  font-weight: 750 !important;
+  letter-spacing: .08px !important;
+  line-height: 1 !important;
+  transition: background-color .22s ease, border-color .22s ease, color .22s ease, box-shadow .22s ease !important;
+}
+html[data-theme="night"] body.live-view-page #mobileLiveStatus.mobile-live-status i {
+  flex: 0 0 5px !important;
+  width: 5px !important;
+  min-width: 5px !important;
+  height: 5px !important;
+  margin: 0 !important;
+  border-radius: 50% !important;
+  background: #65e2a3 !important;
+  box-shadow: 0 0 5px rgba(101,226,163,.42) !important;
+  animation: mobile-live-status-fade 1.7s ease-in-out infinite !important;
+}
+html[data-theme="night"] body.live-view-page #mobileLiveStatus.mobile-live-status.is-offline {
+  border-color: rgba(232,161,60,.42) !important;
+  background: rgba(184,119,35,.14) !important;
+  color: #f0c47f !important;
+}
+html[data-theme="night"] body.live-view-page #mobileLiveStatus.mobile-live-status.is-offline i {
+  background: #e8a13c !important;
+  box-shadow: 0 0 5px rgba(232,161,60,.38) !important;
+}
+@keyframes mobile-live-status-fade {
+  0%, 100% { opacity: .42; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="night"] body.live-view-page #mobileLiveStatus.mobile-live-status i {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* LIGHT THEME BADGE PARITY — keep the Live page badges as compact and refined
+   as their Dark Mode counterparts, using a light frosted-glass finish. */
+html[data-theme="light"] body.live-view-page .live-page-pinned .event-heading #sessionTitleToggle .session-live-badge {
+  min-height: 20px !important;
+  padding: 3px 9px 3px 8px !important;
+  border: 1px solid rgba(12,150,106,.34) !important;
+  border-radius: 999px !important;
+  background: rgba(18,160,112,.09) !important;
+  color: #08764e !important;
+  -webkit-backdrop-filter: blur(8px) saturate(145%) !important;
+  backdrop-filter: blur(8px) saturate(145%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72) !important;
+}
+html[data-theme="light"] body.live-view-page .live-page-pinned .event-heading #sessionTitleToggle .session-title-toggle-label {
+  font-family: inherit !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  letter-spacing: 1.25px !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+}
+html[data-theme="light"] body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category) {
+  -webkit-backdrop-filter: blur(8px) saturate(145%) !important;
+  backdrop-filter: blur(8px) saturate(145%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72) !important;
+  transition: background-color .22s ease, border-color .22s ease, color .22s ease, box-shadow .22s ease !important;
+}
+html[data-theme="light"] body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category):not(.skill-beg):not(.skill-nov):not(.skill-int):not(.skill-adv):not(.skill-exp) {
+  background: rgba(111,143,155,.08) !important;
+  border-color: rgba(103,130,142,.30) !important;
+  color: #56717a !important;
+}
+html[data-theme="light"] body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category).skill-beg {
+  background: rgba(43,130,190,.10) !important;
+  border-color: rgba(125,190,235,.48) !important;
+  color: #246b9a !important;
+}
+html[data-theme="light"] body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category).skill-nov {
+  background: rgba(34,152,125,.10) !important;
+  border-color: rgba(112,198,177,.48) !important;
+  color: #206f60 !important;
+}
+html[data-theme="light"] body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category).skill-int {
+  background: rgba(190,145,45,.11) !important;
+  border-color: rgba(218,180,91,.50) !important;
+  color: #86611a !important;
+}
+html[data-theme="light"] body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category).skill-adv {
+  background: rgba(135,92,183,.10) !important;
+  border-color: rgba(174,141,213,.48) !important;
+  color: #704d9e !important;
+}
+html[data-theme="light"] body.live-view-page :is(.live-player-category, .live-ranking-category, .court-player-category).skill-exp {
+  background: rgba(180,64,82,.09) !important;
+  border-color: rgba(220,135,148,.48) !important;
+  color: #a73f4e !important;
+}
+html[data-theme="light"] body.live-view-page .queue-locked-partner-inline {
+  background: rgba(134,87,195,.09) !important;
+  border-color: rgba(161,126,211,.38) !important;
+  color: #68439c !important;
+  -webkit-backdrop-filter: blur(8px) saturate(145%) !important;
+  backdrop-filter: blur(8px) saturate(145%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72) !important;
+  transition: background-color .22s ease, border-color .22s ease, color .22s ease, box-shadow .22s ease !important;
+}
+html[data-theme="light"] body.live-view-page .live-ranking-playing {
+  border: 1px solid rgba(45,160,125,.32) !important;
+  background: rgba(45,160,125,.10) !important;
+  color: #08764e !important;
+  -webkit-backdrop-filter: blur(8px) saturate(145%) !important;
+  backdrop-filter: blur(8px) saturate(145%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72) !important;
+  transition: background-color .22s ease, border-color .22s ease, color .22s ease, box-shadow .22s ease !important;
+}
+html[data-theme="light"] body.live-view-page #mobileLiveStatus.mobile-live-status {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: max-content !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  padding: 0 7px !important;
+  gap: 4px !important;
+  border: 1px solid rgba(45,160,125,.32) !important;
+  border-radius: 999px !important;
+  background: rgba(45,160,125,.10) !important;
+  color: #08764e !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72), 0 2px 8px rgba(22,76,62,.055) !important;
+  -webkit-backdrop-filter: blur(9px) saturate(150%) !important;
+  backdrop-filter: blur(9px) saturate(150%) !important;
+  font-family: inherit !important;
+  font-size: 7.5px !important;
+  font-weight: 750 !important;
+  letter-spacing: .08px !important;
+  line-height: 1 !important;
+  transition: background-color .22s ease, border-color .22s ease, color .22s ease, box-shadow .22s ease !important;
+}
+html[data-theme="light"] body.live-view-page #mobileLiveStatus.mobile-live-status i {
+  flex: 0 0 5px !important;
+  width: 5px !important;
+  min-width: 5px !important;
+  height: 5px !important;
+  margin: 0 !important;
+  border-radius: 50% !important;
+  background: #0c966a !important;
+  box-shadow: 0 0 5px rgba(12,150,106,.30) !important;
+  animation: mobile-live-status-fade 1.7s ease-in-out infinite !important;
+}
+html[data-theme="light"] body.live-view-page #mobileLiveStatus.mobile-live-status.is-offline {
+  border-color: rgba(184,119,35,.34) !important;
+  background: rgba(184,119,35,.10) !important;
+  color: #94601b !important;
+}
+html[data-theme="light"] body.live-view-page #mobileLiveStatus.mobile-live-status.is-offline i {
+  background: #d18b2d !important;
+  box-shadow: 0 0 5px rgba(209,139,45,.28) !important;
+}
+
+/* Match the mobile filter control's exact circle on desktop, iPad and phones. */
+html body.live-view-page .section-card #pageMatchesFilterToggle.live-matches-filter-toggle {
+  display: inline-flex !important;
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-radius: 50% !important;
+  -webkit-border-radius: 50% !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body.live-view-page .section-card #pageMatchesFilterToggle.live-matches-filter-toggle svg {
+  display: block !important;
+  flex: 0 0 15px !important;
+  width: 15px !important;
+  min-width: 15px !important;
+  max-width: 15px !important;
+  height: 15px !important;
+  min-height: 15px !important;
+  max-height: 15px !important;
+  margin: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="light"] body.live-view-page #mobileLiveStatus.mobile-live-status i {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* FINAL DEVICE PARITY + COURT PLAYER WHITE GLASS + PODIUM SEAM FIX
+   Keep these overrides at the end so earlier responsive/theme rules cannot
+   square the ranking toggle or recolor the court-player labels. */
+html body.live-view-page .section-card .live-ranking-searchbar > #pageRankingFilterToggle,
+html body.live-view-page .section-card .live-ranking-searchbar > #pageRankingFilterToggle:hover,
+html body.live-view-page .section-card .live-ranking-searchbar > #pageRankingFilterToggle:active,
+html body.live-view-page .section-card .live-ranking-searchbar > #pageRankingFilterToggle:focus,
+html body.live-view-page .section-card .live-ranking-searchbar > #pageRankingFilterToggle:focus-visible,
+html body.live-view-page .section-card .live-ranking-searchbar > #pageRankingFilterToggle.is-open {
+  display: inline-flex !important;
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  aspect-ratio: 1 / 1 !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--line) !important;
+  border-style: solid !important;
+  border-radius: 50% !important;
+  -webkit-border-radius: 50% !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  background-clip: padding-box !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+html body.live-view-page .section-card .live-ranking-searchbar > #pageRankingFilterToggle svg {
+  display: block !important;
+  flex: 0 0 15px !important;
+  width: 15px !important;
+  min-width: 15px !important;
+  max-width: 15px !important;
+  height: 15px !important;
+  min-height: 15px !important;
+  max-height: 15px !important;
+  margin: 0 !important;
+}
+
+/* Readable white-frosted surfaces for the tiny category and gender labels
+   on court markers. Keep the category-specific ink colors in both themes. */
+html body.live-view-page .court-player-category,
+html body.live-view-page .court-player-gender {
+  background: rgba(255, 255, 255, .86) !important;
+  border-color: rgba(255, 255, 255, .96) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(150%) !important;
+  backdrop-filter: blur(8px) saturate(150%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .98), 0 1px 3px rgba(0, 0, 0, .13) !important;
+}
+html body.live-view-page .court-player-category:not(.skill-beg):not(.skill-nov):not(.skill-int):not(.skill-adv):not(.skill-exp) {
+  color: #344e59 !important;
+}
+html body.live-view-page .court-player-category.skill-beg { color: #245f99 !important; }
+html body.live-view-page .court-player-category.skill-nov { color: #206c5e !important; }
+html body.live-view-page .court-player-category.skill-int { color: #825800 !important; }
+html body.live-view-page .court-player-category.skill-adv { color: #68439c !important; }
+html body.live-view-page .court-player-category.skill-exp { color: #a72f40 !important; }
+html body.live-view-page .court-player-gender { color: #2374af !important; }
+html body.live-view-page .court-player-gender.female { color: #c44f86 !important; }
+
+/* Remove the diagonal backdrop-filter layer that caused a hard vertical seam
+   across the dark podium rows. Retain translucent medal-tinted glass fills. */
+html[data-theme="night"] body.live-view-page #pageRankingList > .live-ranking-row.rank-1,
+html[data-theme="night"] body.live-view-page #pageRankingList > .live-ranking-row.rank-2,
+html[data-theme="night"] body.live-view-page #pageRankingList > .live-ranking-row.rank-3 {
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 4px 14px rgba(0, 0, 0, .10) !important;
+}
+html[data-theme="night"] body.live-view-page #pageRankingList > .live-ranking-row.rank-1 {
+  background-color: rgba(222, 174, 55, .15) !important;
+  border-color: rgba(243, 213, 107, .55) !important;
+}
+html[data-theme="night"] body.live-view-page #pageRankingList > .live-ranking-row.rank-2 {
+  background-color: rgba(145, 174, 199, .15) !important;
+  border-color: rgba(190, 211, 229, .48) !important;
+}
+html[data-theme="night"] body.live-view-page #pageRankingList > .live-ranking-row.rank-3 {
+  background-color: rgba(196, 124, 65, .15) !important;
+  border-color: rgba(234, 174, 125, .48) !important;
+}
+
+/* Disabled Ranking/Matches filter controls follow the selected live tab. */
+html body.live-view-page .section-card .live-ranking-filter-toggle:disabled,
+html body.live-view-page .section-card .live-matches-filter-toggle:disabled,
+html body.live-view-page .section-card .live-ranking-filter-toggle:disabled:hover,
+html body.live-view-page .section-card .live-matches-filter-toggle:disabled:hover,
+html body.live-view-page .section-card .live-ranking-filter-toggle:disabled:active,
+html body.live-view-page .section-card .live-matches-filter-toggle:disabled:active {
+  opacity: .42 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+
+/* Court layout + bulk collapse controls: compact Lucide SVGs with existing labels. */
+html body.live-view-page .section-card.court-section .court-section-heading-actions .court-collapse-all-toggle,
+html body.live-view-page .section-card.waiting-courts-section .waiting-court-section-heading-actions .court-collapse-all-toggle {
+  gap: 5px !important;
+}
+html body.live-view-page .section-card.court-section .court-section-heading-actions .court-collapse-all-icon,
+html body.live-view-page .section-card.waiting-courts-section .waiting-court-section-heading-actions .court-collapse-all-icon {
+  display: block !important;
+  flex: 0 0 14px !important;
+  width: 14px !important;
+  min-width: 14px !important;
+  height: 14px !important;
+  min-height: 14px !important;
+  margin: 0 !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  pointer-events: none !important;
+}
+html body.live-view-page .section-card.court-section .court-section-heading-actions .court-collapse-all-label,
+html body.live-view-page .section-card.waiting-courts-section .waiting-court-section-heading-actions .court-collapse-all-label {
+  display: inline-block !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+@media (max-width: 560px) {
+  html body.live-view-page .section-card.court-section .court-section-heading-actions .court-collapse-all-icon,
+  html body.live-view-page .section-card.waiting-courts-section .waiting-court-section-heading-actions .court-collapse-all-icon {
+    flex-basis: 13px !important;
+    width: 13px !important;
+    min-width: 13px !important;
+    height: 13px !important;
+    min-height: 13px !important;
+  }
+}
+
+
+/* Lucide icons for Live Rankings / Matches headings and empty states. */
+html body.live-view-page .section-card .live-tab-section-heading h2 .live-tab-heading-icon {
+  display: block;
+  flex: 0 0 21px;
+  width: 21px;
+  min-width: 21px;
+  height: 21px;
+  min-height: 21px;
+  margin: 0 1px 0 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: middle;
+}
+html body.live-view-page .section-card .live-ranking-empty > .live-ranking-empty-icon {
+  display: block;
+  flex: 0 0 30px;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  margin: 0 0 2px;
+  fill: none;
+  stroke: var(--teal);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: .94;
+}
+@media (max-width: 560px) {
+  html body.live-view-page .section-card .live-tab-section-heading h2 .live-tab-heading-icon {
+    flex-basis: 19px;
+    width: 19px;
+    min-width: 19px;
+    height: 19px;
+    min-height: 19px;
+  }
+  html body.live-view-page .section-card .live-ranking-empty > .live-ranking-empty-icon {
+    flex-basis: 28px;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    min-height: 28px;
+  }
+}
+
+/* LIGHT MODE — stronger, distinct color coding for court player categories.
+   These targeted fills override the shared white-frosted court badge surface
+   without changing gender badges, dark mode, sizing, or layout. */
+html[data-theme="light"] body.live-view-page .court-player-category.skill-beg {
+  background: #dceeff !important;
+  background-color: #dceeff !important;
+  border: 1px solid #79b9e8 !important;
+  color: #164e78 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 1px 2px rgba(22,78,120,.10) !important;
+}
+html[data-theme="light"] body.live-view-page .court-player-category.skill-nov {
+  background: #d8f3e8 !important;
+  background-color: #d8f3e8 !important;
+  border: 1px solid #70c9a6 !important;
+  color: #145b46 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 1px 2px rgba(20,91,70,.10) !important;
+}
+html[data-theme="light"] body.live-view-page .court-player-category.skill-int {
+  background: #fff0c7 !important;
+  background-color: #fff0c7 !important;
+  border: 1px solid #d9ac42 !important;
+  color: #634600 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 1px 2px rgba(99,70,0,.10) !important;
+}
+html[data-theme="light"] body.live-view-page .court-player-category.skill-adv {
+  background: #ebddfa !important;
+  background-color: #ebddfa !important;
+  border: 1px solid #b797df !important;
+  color: #54317d !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 1px 2px rgba(84,49,125,.10) !important;
+}
+html[data-theme="light"] body.live-view-page .court-player-category.skill-exp {
+  background: #fbe0e4 !important;
+  background-color: #fbe0e4 !important;
+  border: 1px solid #e49aa5 !important;
+  color: #872b3a !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 1px 2px rgba(135,43,58,.10) !important;
+}
+
+
+/* New finished-match count on the mobile Matches shortcut. */
+html body.live-view-page .mobile-header-icon-button[data-live-tab="matches"] { position: relative; }
+html body.live-view-page .mobile-header-icon-button .matches-notification-badge {
+  position: absolute; top: -3px; right: -3px; z-index: 3;
+  min-width: 15px; height: 15px; padding: 0 4px; box-sizing: border-box;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0.5px solid var(--live-header-surface, #17252b); border-radius: 999px;
+  background: #e32636; color: #fff; font: 500 9px/1 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none;
+  box-shadow: 0 0 0 rgba(0,0,0,.24);
+}
+html body.live-view-page .mobile-header-icon-button .matches-notification-badge[hidden] { display: none !important; }
+html[data-theme="light"] body.live-view-page .mobile-header-icon-button .matches-notification-badge {
+  border-color: #fff; background: #d7192d; color: #fff;
 }

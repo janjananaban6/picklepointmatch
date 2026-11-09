@@ -8,6 +8,10 @@
   const LIVE_CHANNEL_NAME = `pickle-point-match-live-view${organizerScope ? '-' + organizerScope.replace(/[^a-zA-Z0-9_-]/g,'') : ''}`;
   function scopedApiUrl(path, params = {}) { const url = new URL(path, window.location.origin); const scope = resolvedOrganizerId || organizerScope; if (scope) url.searchParams.set('organizer',scope); Object.entries(params).forEach(([key,value])=>url.searchParams.set(key,String(value))); return url.pathname+url.search; }
   const THEME_STORAGE_KEY = 'picklepoint_live_view_theme_v1';
+  // Respect an existing device choice; otherwise start in the light palette.
+  let hadLocalThemePreference = false;
+  let localThemeChangedByUser = false;
+  try { hadLocalThemePreference = ['light', 'night'].includes(localStorage.getItem(THEME_STORAGE_KEY)); } catch (error) {}
   const $ = id => document.getElementById(id);
   let currentState = null;
   let currentStateSignature = null;
@@ -42,19 +46,16 @@
   // Render browser-style search highlights while keeping player names HTML-safe.
   const highlightSearchMatch = (value, term) => {
     const text = String(value ?? '');
-    const query = String(term ?? '').trim();
-    if (!query) return escapeHTML(text);
-    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp(escapedQuery, 'gi');
-    let output = '';
-    let cursor = 0;
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      output += escapeHTML(text.slice(cursor, match.index));
-      output += `<mark class="live-ranking-search-hit">${escapeHTML(match[0])}</mark>`;
-      cursor = pattern.lastIndex;
-    }
-    return output + escapeHTML(text.slice(cursor));
+    const terms = [...new Set((Array.isArray(term) ? term : [term]).map(value => String(value ?? '').trim()).filter(Boolean))]
+      .sort((a, b) => b.length - a.length);
+    if (!terms.length) return escapeHTML(text);
+    const escapedTerms = terms.map(query => query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const pattern = new RegExp(`(${escapedTerms.join('|')})`, 'gi');
+    return text.split(pattern).map(part =>
+      terms.some(query => part.toLocaleLowerCase() === query.toLocaleLowerCase())
+        ? `<mark class="live-ranking-search-hit">${escapeHTML(part)}</mark>`
+        : escapeHTML(part)
+    ).join('');
   };
   const playerName = p => p
     ? String(p.name || 'Player') + (String(p.nickname || '').trim() ? ` (${String(p.nickname).trim()})` : '')
@@ -193,30 +194,57 @@
     el.querySelector('span').textContent = label;
   }
 
+  function syncLivePageThemeToggle(theme) {
+    const button = $('livePageThemeToggle');
+    if (!button) return;
+    const isLight = theme === 'light';
+    const nextMode = isLight ? 'dark' : 'light';
+    button.setAttribute('aria-pressed', String(!isLight));
+    button.setAttribute('aria-label', `Switch to ${nextMode} mode`);
+    button.title = `Switch to ${nextMode} mode`;
+  }
+
   function applyTheme(theme) {
     const normalized = theme === 'light' ? 'light' : 'night';
     document.documentElement.dataset.theme = normalized;
     const themeColorMeta = document.querySelector('meta[name="theme-color"]');
     if (themeColorMeta) themeColorMeta.content = normalized === 'light' ? '#f1f7f8' : '#072f38';
+    syncLivePageThemeToggle(normalized);
     try { localStorage.setItem(THEME_STORAGE_KEY, normalized); } catch (error) {}
   }
 
+  $('livePageThemeToggle')?.addEventListener('click', () => {
+    localThemeChangedByUser = true;
+    const nextTheme = document.documentElement.dataset.theme === 'light' ? 'night' : 'light';
+    applyTheme(nextTheme);
+    // Authenticated organizer browsers can also publish the selection to the
+    // shared live theme stream; public viewers still keep their local choice.
+    if (['http:', 'https:'].includes(location.protocol)) {
+      fetch('/api/live-theme', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: nextTheme }),
+        cache: 'no-store'
+      }).catch(() => {});
+    }
+  });
+
   async function loadRemoteTheme() {
-    if (!['http:', 'https:'].includes(location.protocol)) return;
+    if (!['http:', 'https:'].includes(location.protocol) || hadLocalThemePreference || localThemeChangedByUser) return;
     try {
       const response = await fetch('/api/live-theme', { cache: 'no-store' });
-      if (!response.ok) return;
+      if (!response.ok || hadLocalThemePreference || localThemeChangedByUser) return;
       const data = await response.json();
-      if (data && (data.theme === 'light' || data.theme === 'night')) applyTheme(data.theme);
+      if (!hadLocalThemePreference && !localThemeChangedByUser && data && (data.theme === 'light' || data.theme === 'night')) applyTheme(data.theme);
     } catch (error) {}
   }
 
   function loadTheme() {
     try {
       const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-      return savedTheme === 'light' || savedTheme === 'night' ? savedTheme : 'night';
+      return savedTheme === 'light' || savedTheme === 'night' ? savedTheme : 'light';
     } catch (error) {
-      return 'night';
+      return 'light';
     }
   }
 
@@ -307,10 +335,9 @@
       return nickname || firstName || 'Player';
     };
     const teamLabel = players => players.filter(Boolean).map(shortPlayerName).filter(Boolean).join(' · ') || 'Open court';
-    const categoryClasses = { BEG: 'skill-beg', NOV: 'skill-nov', INT: 'skill-int', ADV: 'skill-adv', EXP: 'skill-exp' };
     const marker = (player, slotClass) => {
       const category = String(player?.category || '').trim().toUpperCase();
-      const categoryClass = categoryClasses[category] || '';
+      const categoryClass = playerCategoryClass(player);
       const genderClass = player ? playerGenderClass(player) : '';
       const genderLabel = genderClass === 'female' ? 'Female' : 'Male';
       const accessibleName = player ? `${playerName(player)}${categoryClass ? `, ${category} category` : ''}${player ? `, ${genderLabel}` : ''}` : 'Open slot';
@@ -391,16 +418,27 @@
     </article>`;
   }
 
+  function renderLiveLockedPartnerBadge(player, uniqueKey) {
+    const fullName = String(player?.lockedPartnerFullName || player?.lockedPartnerName || '').trim();
+    const partnerName = String(player?.lockedPartnerName || fullName.split(/\s+/)[0] || '').trim();
+    if (!partnerName && player?.lockedIn !== true) return '';
+    const badgeName = partnerName || 'Locked';
+    const partnerTitle = fullName || 'Locked-in partner';
+    const safeKey = String(uniqueKey || 'live-ranking').replace(/[^a-zA-Z0-9_-]/g, '-');
+    const gradientId = `live-ranking-lock-gradient-${safeKey}`;
+    return `<span class="queue-locked-partner-inline queue-lock-icon-inline" title="Locked in with ${escapeHTML(partnerTitle)}" aria-label="Locked in with partner ${escapeHTML(partnerTitle)}" role="img"><svg class="queue-lock-svg" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><defs><linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#08d2e8"/><stop offset="100%" stop-color="#3884d5"/></linearGradient></defs><path d="M170 244V166a86 86 0 0 1 172 0v78" fill="none" stroke="url(#${gradientId})" stroke-width="50" stroke-linecap="round"/><path fill="url(#${gradientId})" fill-rule="evenodd" d="M148 216H364C388.3 216 408 235.7 408 260V404C408 428.3 388.3 448 364 448H148C123.7 448 104 428.3 104 404V260C104 235.7 123.7 216 148 216Z M256 273a32 32 0 0 0 -14 60v51a14 14 0 0 0 28 0v-51a32 32 0 0 0 -14 -60Z"/></svg><span class="queue-locked-partner-name">${escapeHTML(badgeName)}</span></span>`;
+  }
+
   function renderLiveRanking(listId = 'pageRankingList', searchInputId = 'pageRankingSearch', preserveScroll = true) {
     const list = $(listId);
     if (!list) return;
     const ranking = Array.isArray(currentState?.ranking) ? currentState.ranking : [];
     if (!currentState?.active || currentState?.liveRankingEnabled === false) {
-      replaceListContent(list, '<div class="live-ranking-empty"><span aria-hidden="true">🏆</span><strong>Rankings unavailable</strong><span>Live rankings are currently disabled for this momment.</span><span>Request on QM to enable the live ranking.</span></div>', preserveScroll);
+      replaceListContent(list, '<div class="live-ranking-empty"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="live-ranking-empty-icon lucide lucide-user-search preview-icon" aria-hidden="true" focusable="false"><circle cx="10" cy="7" r="4"/><path d="M10.3 15H7a4 4 0 0 0-4 4v2"/><circle cx="17" cy="17" r="3"/><path d="m21 21-1.9-1.9"/></svg><strong>Rankings unavailable</strong><span>Live rankings are currently disabled for this moment.</span><span>Request on QM to enable the live ranking.</span></div>', preserveScroll);
       return;
     }
     if (!ranking.length) {
-      replaceListContent(list, '<div class="live-ranking-empty"><span aria-hidden="true">🏆</span><strong>No ranking standings yet</strong><span>Complete a recorded match to start the live ranking.</span></div>', preserveScroll);
+      replaceListContent(list, '<div class="live-ranking-empty"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="live-ranking-empty-icon lucide lucide-user-search preview-icon" aria-hidden="true" focusable="false"><circle cx="10" cy="7" r="4"/><path d="M10.3 15H7a4 4 0 0 0-4 4v2"/><circle cx="17" cy="17" r="3"/><path d="m21 21-1.9-1.9"/></svg><strong>No ranking standings yet</strong><span>Complete a recorded match to start the live ranking.</span></div>', preserveScroll);
       return;
     }
 
@@ -410,7 +448,8 @@
       .filter(({ player }) => {
         const category = String(player.category || '').trim().toUpperCase();
         if (liveRankingCategoryFilter !== 'ALL' && category !== liveRankingCategoryFilter) return false;
-        const isLockedIn = player.lockedIn === true;
+        const isLockedIn = player.lockedIn === true ||
+          Boolean(String(player.lockedPartnerName || player.lockedPartnerFullName || '').trim());
         if (liveRankingScopeFilter === 'SOLO' && isLockedIn) return false;
         if (liveRankingScopeFilter === 'LOCK_IN' && !isLockedIn) return false;
         if (!searchTerm) return true;
@@ -421,7 +460,7 @@
       });
 
     if (!filteredRanking.length) {
-      replaceListContent(list, `<div class="live-ranking-empty"><span aria-hidden="true">🔎</span><strong>No players found</strong><span>No players match “${escapeHTML(String($(searchInputId)?.value || '').trim())}”. Try another name.</span></div>`, preserveScroll);
+      replaceListContent(list, `<div class="live-ranking-empty"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="live-ranking-empty-icon lucide lucide-user-search preview-icon" aria-hidden="true" focusable="false"><circle cx="10" cy="7" r="4"/><path d="M10.3 15H7a4 4 0 0 0-4 4v2"/><circle cx="17" cy="17" r="3"/><path d="m21 21-1.9-1.9"/></svg><strong>No players found</strong><span>No players match “${escapeHTML(String($(searchInputId)?.value || '').trim())}”. Try another name.</span></div>`, preserveScroll);
       return;
     }
 
@@ -438,10 +477,11 @@
       const categoryClass = ({ BEG: 'skill-beg', NOV: 'skill-nov', INT: 'skill-int', ADV: 'skill-adv', EXP: 'skill-exp' })[category] || '';
       const winRate = Math.max(0, Math.min(100, Number(p.winRate) || 0));
       const rankClass = rank >= 1 && rank <= 3 ? ` rank-${rank}` : '';
+      const lockedPartnerBadge = renderLiveLockedPartnerBadge(p, p.id ?? rank);
       return `<article class="live-ranking-row${rankClass}">
         <div class="live-ranking-position" aria-label="Rank ${rank}">${position}</div>
         <div class="live-ranking-main">
-          <div class="live-ranking-name-line"><strong>${highlightSearchMatch(displayName, searchTerm)}</strong><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span>${category ? `<span class="live-ranking-category ${categoryClass}">${escapeHTML(category)}</span>` : ''}${p.playing ? '<span class="live-ranking-playing">Playing</span>' : ''}</div>
+          <div class="live-ranking-name-line"><strong>${highlightSearchMatch(displayName, searchTerm)}</strong><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span>${category ? `<span class="live-ranking-category ${categoryClass}">${escapeHTML(category)}</span>` : ''}${lockedPartnerBadge}${p.playing ? '<span class="live-ranking-playing">Playing</span>' : ''}</div>
           <div class="live-ranking-stats"><span>${Number(p.wins) || 0}W - ${Number(p.losses) || 0}L</span><span>${Number(p.matches) || 0} match${Number(p.matches) === 1 ? '' : 'es'}</span></div>
           <div class="live-ranking-progress" aria-label="Win rate ${winRate}%"><span style="width:${winRate}%"></span></div>
         </div>
@@ -451,35 +491,60 @@
   }
 
   function renderRecentMatches(preserveScroll = true) {
+    // When the full-history controller is available, it owns the Matches list.
+    // This prevents the live 12-item snapshot renderer from fighting the
+    // full-history renderer and repeatedly replacing a potentially large DOM.
+    const fullHistoryRenderer = window.PPM_renderFullMatchHistoryList;
+    if (typeof fullHistoryRenderer === 'function') {
+      try {
+        if (fullHistoryRenderer(preserveScroll) === true) return;
+      } catch (error) {
+        console.error('Full match history renderer failed; using live snapshot.', error);
+      }
+    }
     const list = $('matchesList');
     if (!list) return;
     const matches = Array.isArray(currentState?.recentMatches) ? currentState.recentMatches : [];
     const count = $('matchesSectionCount');
     if (!currentState?.active || currentState?.liveMatchesEnabled === false) {
       setTextIfChanged(count, '(0)');
-      replaceListContent(list, '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>Matches unavailable</strong><span>Live matches are currently disabled for this momment.</span><span>Request on QM to enable the live matches.</span></div>', preserveScroll);
+      replaceListContent(list, '<div class="live-ranking-empty"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="live-ranking-empty-icon lucide lucide-file-search-corner preview-icon" aria-hidden="true" focusable="false"><path d="M11.1 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.589 3.588A2.4 2.4 0 0 1 20 8v3.25"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="m21 22-2.88-2.88"/><circle cx="16" cy="17" r="3"/></svg><strong>Matches unavailable</strong><span>Live matches are currently disabled for this moment.</span><span>Request on QM to enable the live matches.</span></div>', preserveScroll);
       return;
     }
-    const rawSearchTerm = String($('pageMatchesSearch')?.value || '').trim();
+    const matchupControls = $('pageMatchesFilterControls');
+    const matchupFilterOpen = !!(matchupControls && !matchupControls.hidden);
+    const rawSearchTerm = matchupFilterOpen ? '' : String($('pageMatchesSearch')?.value || '').trim();
     const searchTerm = rawSearchTerm.toLocaleLowerCase();
-    // Match search is intentionally player-name-only; court, score, and match metadata
-    // remain visible in results but do not affect which matches are filtered in.
+    const matchupFirst = String($('pageMatchesNameOne')?.value || '').trim().toLocaleLowerCase();
+    const matchupSecond = String($('pageMatchesNameTwo')?.value || '').trim().toLocaleLowerCase();
+    // The optional matchup filter requires the two names to appear on opposing sides.
     const filteredMatches = matches.filter(match => {
-      if (!searchTerm) return true;
-      return [match.winner, match.loser]
+      const team1 = Array.isArray(match.team1Names) && match.team1Names.length ? match.team1Names : [match.winner];
+      const team2 = Array.isArray(match.team2Names) && match.team2Names.length ? match.team2Names : [match.loser];
+      const includes = (names, needle) => !needle || names.some(name => String(name || '').toLocaleLowerCase().includes(needle));
+      let matchupMatches = true;
+      if (matchupFirst && matchupSecond) {
+        matchupMatches = (includes(team1, matchupFirst) && includes(team2, matchupSecond))
+          || (includes(team2, matchupFirst) && includes(team1, matchupSecond));
+      } else if (matchupFirst || matchupSecond) {
+        const partial = matchupFirst || matchupSecond;
+        matchupMatches = includes(team1, partial) || includes(team2, partial);
+      }
+      const ordinarySearchMatches = !searchTerm || [match.winner, match.loser]
         .some(name => String(name || '').toLocaleLowerCase().includes(searchTerm));
+      return matchupMatches && ordinarySearchMatches;
     });
 
     // Keep the section count in sync with the same filtered results shown below.
     setTextIfChanged(count, `(${filteredMatches.length})`);
 
     if (!matches.length) {
-      replaceListContent(list, '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>No recorded matches yet</strong><span>Finished matches will appear here after they are recorded.</span></div>', preserveScroll);
+      replaceListContent(list, '<div class="live-ranking-empty"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="live-ranking-empty-icon lucide lucide-file-search-corner preview-icon" aria-hidden="true" focusable="false"><path d="M11.1 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.589 3.588A2.4 2.4 0 0 1 20 8v3.25"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="m21 22-2.88-2.88"/><circle cx="16" cy="17" r="3"/></svg><strong>No recorded matches yet</strong><span>Finished matches will appear here after they are recorded.</span></div>', preserveScroll);
       return;
     }
 
     if (!filteredMatches.length) {
-      replaceListContent(list, `<div class="live-ranking-empty"><span aria-hidden="true">🔎</span><strong>No matches found</strong><span>No player names match “${escapeHTML(rawSearchTerm)}”. Try another name.</span></div>`, preserveScroll);
+      replaceListContent(list, `<div class="live-ranking-empty"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="live-ranking-empty-icon lucide lucide-file-search-corner preview-icon" aria-hidden="true" focusable="false"><path d="M11.1 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.589 3.588A2.4 2.4 0 0 1 20 8v3.25"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="m21 22-2.88-2.88"/><circle cx="16" cy="17" r="3"/></svg><strong>No matches found</strong><span>No player names match “${escapeHTML(rawSearchTerm)}”. Try another name.</span></div>`, preserveScroll);
       return;
     }
 
@@ -494,13 +559,16 @@
         : '';
       const duration = String(match.duration || '').trim();
       const matchMeta = [endedAt, duration].filter(Boolean).join(' · ');
+      const highlightTerms = matchupFilterOpen ? [matchupFirst, matchupSecond] : rawSearchTerm;
       return `<article class="live-match-row">
         <div class="live-match-topline"><strong>${escapeHTML(court)}</strong><span>${escapeHTML(matchMeta)}</span></div>
-        <div class="live-match-result"><div class="live-match-winner"><span class="live-match-outcome">WINNER</span><strong>${highlightSearchMatch(winner, rawSearchTerm)}</strong></div><span class="live-match-vs">VS</span><div class="live-match-loser"><span class="live-match-outcome">OPPONENT</span><strong>${highlightSearchMatch(loser, rawSearchTerm)}</strong></div></div>
+        <div class="live-match-result"><div class="live-match-winner"><span class="live-match-outcome">WINNER</span><strong>${highlightSearchMatch(winner, highlightTerms)}</strong></div><span class="live-match-vs">VS</span><div class="live-match-loser"><span class="live-match-outcome">OPPONENT</span><strong>${highlightSearchMatch(loser, highlightTerms)}</strong></div></div>
         ${score ? `<div class="live-match-score">${escapeHTML(score)}</div>` : ''}
       </article>`;
     }).join(''), preserveScroll);
   }
+
+  window.PPM_refreshLiveMatches = preserveScroll => renderRecentMatches(preserveScroll !== false);
 
   function setLiveTab(tabName) {
     const allowed = ['queue', 'rankings', 'matches'];
@@ -525,7 +593,8 @@
     if (!list) return;
 
     const players = Array.isArray(queue) ? queue : [];
-    const rawSearchTerm = String($('queueListSearch')?.value || '').trim();
+    const queueSearchIsOpen = $('queueSearchToggle')?.getAttribute('aria-expanded') === 'true';
+    const rawSearchTerm = queueSearchIsOpen ? String($('queueListSearch')?.value || '').trim() : '';
     const searchTerm = rawSearchTerm.toLocaleLowerCase();
     const filteredPlayers = players
       .map((player, index) => ({ player, index }))
@@ -546,12 +615,9 @@
       const waitingSince = p.waitingSince || p.queuedAt || null;
       const genderClass = playerGenderClass(p);
       const genderLabel = genderClass === 'female' ? 'Female' : 'Male';
-      const lockedPartnerName = String(p.lockedPartnerName || '').trim();
-      const lockedPartnerIndicator = lockedPartnerName
-        ? `<span class="queue-locked-partner-inline" title="Locked in with ${escapeHTML(lockedPartnerName)}" aria-label="Locked in with partner ${escapeHTML(lockedPartnerName)}" role="img">🔒${escapeHTML(lockedPartnerName)}</span>`
-        : '';
+      const lockedPartnerIndicator = renderLiveLockedPartnerBadge(p, `queue-${p.id ?? index}`);
       const displayedName = highlightSearchMatch(playerName(p), rawSearchTerm);
-      return `<div class="queue-item"><div class="queue-avatar-stack" aria-label="${genderLabel} player, queue position ${index + 1}"><div class="queue-avatar ${genderClass}" aria-hidden="true">${playerAvatarMarkup(p)}</div><span class="queue-position-badge" aria-label="Queue position ${index + 1}">${index + 1}</span></div><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${displayedName}</div><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span>${lockedPartnerIndicator}</div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
+      return `<div class="queue-item"><div class="queue-avatar-stack" aria-label="${genderLabel} player, queue position ${index + 1}"><div class="queue-avatar ${genderClass}" aria-hidden="true">${playerAvatarMarkup(p)}</div><span class="queue-position-badge" aria-label="Queue position ${index + 1}">${index + 1}</span></div><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${displayedName}</div><span class="queue-player-meta"><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span>${lockedPartnerIndicator}</span></div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
     }).join('');
   }
 
@@ -728,10 +794,19 @@
     else setConnection('', 'Connecting');
   }
 
+  let lastNotifiedLiveViewSignature = null;
+  let lastNotifiedLiveViewOrganizerId = '';
   function notifyLiveViewPageState(value = currentState) {
+    const organizerId = resolvedOrganizerId || organizerScope || '';
+    const signature = value && typeof value === 'object' ? stateContentSignature(value) : '';
+    // The server sends periodic timestamp-only heartbeats. They do not change
+    // match availability or history, so do not wake the full-history renderer.
+    if (signature === lastNotifiedLiveViewSignature && organizerId === lastNotifiedLiveViewOrganizerId) return;
+    lastNotifiedLiveViewSignature = signature;
+    lastNotifiedLiveViewOrganizerId = organizerId;
     try {
       window.dispatchEvent(new CustomEvent('ppm-live-view-state', {
-        detail: {state: value && typeof value === 'object' ? value : null, organizerId: resolvedOrganizerId || organizerScope || ''}
+        detail: {state: value && typeof value === 'object' ? value : null, organizerId}
       }));
     } catch (_) {}
   }
@@ -881,7 +956,7 @@
       });
       source.addEventListener('live-theme', event => {
         const theme = String(event.data || '').trim();
-        if (theme === 'light' || theme === 'night') applyTheme(theme);
+        if (!hadLocalThemePreference && !localThemeChangedByUser && (theme === 'light' || theme === 'night')) applyTheme(theme);
       });
       source.onopen = () => markServerConnected();
       source.onerror = () => {
@@ -922,6 +997,7 @@
       try { acceptState(JSON.parse(event.newValue)); } catch (error) {}
     }
     if (event.key === THEME_STORAGE_KEY && event.newValue) {
+      localThemeChangedByUser = true;
       applyTheme(event.newValue);
     }
   });
@@ -1417,6 +1493,18 @@
   const waitingCourtsCollapseToggle = $('waitingCourtsCollapseToggle');
   const waitingCourtsList = $('waitingCourtsList');
 
+  const COURT_COLLAPSE_ICON_MARKUP = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="court-collapse-all-icon court-collapse-icon-collapse lucide lucide-list-chevrons-down-up" aria-hidden="true" focusable="false"><path d="M3 5h8"/><path d="M3 12h8"/><path d="M3 19h8"/><path d="m15 5 3 3 3-3"/><path d="m15 19 3-3 3 3"/></svg>';
+  const COURT_EXPAND_ICON_MARKUP = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="court-collapse-all-icon court-collapse-icon-expand lucide lucide-list-chevrons-up-down" aria-hidden="true" focusable="false"><path d="M3 5h8"/><path d="M3 12h8"/><path d="M3 19h8"/><path d="m15 8 3-3 3 3"/><path d="m15 16 3 3 3-3"/></svg>';
+
+  function updateCourtCollapseToggle(toggle, allExpanded, subject) {
+    if (!toggle) return;
+    const actionLabel = allExpanded ? 'Collapse all' : 'Expand all';
+    toggle.innerHTML = `${allExpanded ? COURT_COLLAPSE_ICON_MARKUP : COURT_EXPAND_ICON_MARKUP}<span class="court-collapse-all-label">${actionLabel}</span>`;
+    toggle.setAttribute('aria-expanded', String(allExpanded));
+    toggle.setAttribute('aria-label', `${actionLabel} ${subject}`);
+    toggle.title = `${actionLabel} ${subject}`;
+  }
+
   function syncWaitingCourtsCollapseToggle() {
     if (!waitingCourtsCollapseToggle || !waitingCourtsList) return;
     const cards = Array.from(waitingCourtsList.querySelectorAll(':scope > .court-card[data-waiting-court-collapse-key]'));
@@ -1425,10 +1513,7 @@
     waitingCourtsCollapseToggle.hidden = cards.length === 0;
     const allExpanded = cards.length > 0 && cards.every(card => card.classList.contains('is-expanded'));
     waitingCourtsCollapseToggle.disabled = cards.length === 0;
-    waitingCourtsCollapseToggle.textContent = allExpanded ? 'Collapse all' : 'Expand all';
-    waitingCourtsCollapseToggle.setAttribute('aria-expanded', String(allExpanded));
-    waitingCourtsCollapseToggle.setAttribute('aria-label', allExpanded ? 'Collapse all waiting courts' : 'Expand all waiting courts');
-    waitingCourtsCollapseToggle.title = allExpanded ? 'Collapse all waiting courts' : 'Expand all waiting courts';
+    updateCourtCollapseToggle(waitingCourtsCollapseToggle, allExpanded, 'waiting courts');
   }
 
   function updateCourtCardExpanded(card, expanded) {
@@ -1481,10 +1566,7 @@
     courtCollapseAllToggle.hidden = cards.length === 0;
     const allExpanded = cards.length > 0 && cards.every(card => card.classList.contains('is-expanded'));
     courtCollapseAllToggle.disabled = cards.length === 0;
-    courtCollapseAllToggle.textContent = allExpanded ? 'Collapse all' : 'Expand all';
-    courtCollapseAllToggle.setAttribute('aria-expanded', String(allExpanded));
-    courtCollapseAllToggle.setAttribute('aria-label', allExpanded ? 'Collapse all courts' : 'Expand all courts');
-    courtCollapseAllToggle.title = allExpanded ? 'Collapse all courts' : 'Expand all courts';
+    updateCourtCollapseToggle(courtCollapseAllToggle, allExpanded, 'courts');
   }
 
   function setAllRegularCourtsExpanded(expanded) {
@@ -1673,6 +1755,7 @@
         if (queueSearchToggle.getAttribute('aria-expanded') !== 'true') return;
         queueSearchSlot.classList.add('is-open');
         queueSearchPanel.classList.add('is-open');
+        renderQueueList(currentState?.queue);
         queueListSearch.focus();
       });
       return;
@@ -1680,11 +1763,9 @@
 
     queueSearchSlot.classList.remove('is-open');
     queueSearchPanel.classList.remove('is-open');
-    // Clear the filter when dismissing the field so the full queue is restored.
-    if (queueListSearch.value) {
-      queueListSearch.value = '';
-      renderQueueList(currentState?.queue);
-    }
+    // Hide the field without discarding its query. The query is suspended while
+    // closed, then reapplied automatically when the field is opened again.
+    renderQueueList(currentState?.queue);
     queueSearchHideTimer = setTimeout(() => {
       if (queueSearchToggle.getAttribute('aria-expanded') !== 'true'
           && !queueSearchSlot.classList.contains('is-open')) {
@@ -1748,7 +1829,7 @@
         button.classList.toggle('active', active);
         button.setAttribute('aria-pressed', String(active));
       });
-      renderLiveRanking('pageRankingList', 'pageRankingSearch', false);
+      renderLiveRanking('pageRankingList', 'pageRankingSearch', true);
     } else if (scopeButton) {
       liveRankingScopeFilter = scopeButton.dataset.liveRankingScope || 'EVERYONE';
       pageRankingFilterControls.querySelectorAll('[data-live-ranking-scope]').forEach(button => {
@@ -1756,26 +1837,14 @@
         button.classList.toggle('active', active);
         button.setAttribute('aria-pressed', String(active));
       });
-      renderLiveRanking('pageRankingList', 'pageRankingSearch', false);
+      renderLiveRanking('pageRankingList', 'pageRankingSearch', true);
     }
   });
-  $('pageRankingSearch')?.addEventListener('input', () => renderLiveRanking('pageRankingList', 'pageRankingSearch', false));
-  $('pageMatchesSearch')?.addEventListener('input', () => renderRecentMatches(false));
+  $('pageRankingSearch')?.addEventListener('input', () => renderLiveRanking('pageRankingList', 'pageRankingSearch', true));
+  $('pageMatchesSearch')?.addEventListener('input', () => renderRecentMatches(true));
+  $('pageMatchesNameOne')?.addEventListener('input', () => renderRecentMatches(true));
+  $('pageMatchesNameTwo')?.addEventListener('input', () => renderRecentMatches(true));
 
-  const mobileLiveRefresh = $('mobileLiveRefresh');
-  if (mobileLiveRefresh) {
-    mobileLiveRefresh.addEventListener('click', async () => {
-      if (mobileLiveRefresh.disabled) return;
-      mobileLiveRefresh.disabled = true;
-      mobileLiveRefresh.classList.add('is-refreshing');
-      try {
-        await refreshRemoteState();
-      } finally {
-        mobileLiveRefresh.classList.remove('is-refreshing');
-        mobileLiveRefresh.disabled = false;
-      }
-    });
-  }
   document.querySelectorAll('[data-live-tab]').forEach(button => {
     button.addEventListener('click', () => setLiveTab(button.dataset.liveTab));
     button.addEventListener('keydown', event => {

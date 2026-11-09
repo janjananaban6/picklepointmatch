@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="live-view.css?v=panel-count-light-transparent-20261022-10&mzoom=20261024-1">
   <link rel="stylesheet" href="style.css?v=stability-cleanup-20261030-1&previous=registration-area-shared-20261020-1&mzoom=20261024-1">
-  <link rel="stylesheet" href="registration-page.css?v=organizer-queue-auto-register-20261104-1&avatar-carousel-optional-20261104-1">
+  <link rel="stylesheet" href="registration-page.css?v=organizer-queue-auto-register-20261104-1&avatar-carousel-optional-20261104-1&cloud-player-suggestions-polish-20261108-3-checkin-style-responsive&responsive-icons-20261108-2">
   <link rel="stylesheet" href="network-skeleton.css?v=network-validation-20261027-1">
   <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
   <script src="network-validation.js?v=network-validation-20261106-2-registration-post-bypass"></script>
@@ -39,52 +39,19 @@
     <div class="registration-page-panel-icon registration-page-icon-float" aria-hidden="true"><img src="registration-page-panel-icon.png?v=registration-panel-icon-float-20261026-2" alt=""></div>
     <section class="event-heading registration-page-intro">
       <h1 id="registrationPageTitle">Register as a Player</h1>
-      <p>Complete your player profile to join this organizer’s live queue. Your profile will also be saved to Registered Player Cloud.</p>
+      <p>Complete your player profile to join this organizer’s live queue. Your information will be saved to the Registered Player Cloud for future registration.</p>
     </section>
 
     <div id="registrationLinkNotice" class="registration-link-notice" role="alert" hidden></div>
 
     <section class="registration-page-panel" id="registrationPagePanel" aria-labelledby="registrationPageTitle">
       <div class="registration-area registration-page-form" id="registrationArea">
-        <section class="registration-avatar-picker" aria-label="Optional profile avatar selection">
-          <div class="registration-avatar-picker-head">
-            <span class="registration-field-label">PROFILE AVATAR <span class="registration-avatar-optional">OPTIONAL</span></span>
-            <span class="registration-avatar-picker-hint"><span aria-hidden="true">↔</span> Skip to auto-assign</span>
-          </div>
-          <div class="registration-avatar-carousel" id="registrationAvatarCarousel" role="group" aria-label="Swipe or scroll to choose an avatar">
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-01" aria-label="Choose avatar 01" aria-pressed="false"><img src="registration-avatar-01.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-02" aria-label="Choose avatar 02" aria-pressed="false"><img src="registration-avatar-02.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-03" aria-label="Choose avatar 03" aria-pressed="false"><img src="registration-avatar-03.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-04" aria-label="Choose avatar 04" aria-pressed="false"><img src="registration-avatar-04.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-05" aria-label="Choose avatar 05" aria-pressed="false"><img src="registration-avatar-05.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-06" aria-label="Choose avatar 06" aria-pressed="false"><img src="registration-avatar-06.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-07" aria-label="Choose avatar 07" aria-pressed="false"><img src="registration-avatar-07.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-08" aria-label="Choose avatar 08" aria-pressed="false"><img src="registration-avatar-08.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-09" aria-label="Choose avatar 09" aria-pressed="false"><img src="registration-avatar-09.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-10" aria-label="Choose avatar 10" aria-pressed="false"><img src="registration-avatar-10.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-11" aria-label="Choose avatar 11" aria-pressed="false"><img src="registration-avatar-11.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-12" aria-label="Choose avatar 12" aria-pressed="false"><img src="registration-avatar-12.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-13" aria-label="Choose avatar 13" aria-pressed="false"><img src="registration-avatar-13.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-14" aria-label="Choose avatar 14" aria-pressed="false"><img src="registration-avatar-14.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-15" aria-label="Choose avatar 15" aria-pressed="false"><img src="registration-avatar-15.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-16" aria-label="Choose avatar 16" aria-pressed="false"><img src="registration-avatar-16.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-17" aria-label="Choose avatar 17" aria-pressed="false"><img src="registration-avatar-17.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-18" aria-label="Choose avatar 18" aria-pressed="false"><img src="registration-avatar-18.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-19" aria-label="Choose avatar 19" aria-pressed="false"><img src="registration-avatar-19.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-20" aria-label="Choose avatar 20" aria-pressed="false"><img src="registration-avatar-20.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-            <button type="button" class="registration-avatar-option" data-avatar-id="avatar-21" aria-label="Choose avatar 21" aria-pressed="false"><img src="registration-avatar-21.png" alt="" width="80" height="80" loading="lazy" draggable="false"></button>
-          </div>
-          <div class="registration-avatar-selected-line is-auto-assigned" aria-live="polite" aria-atomic="true">
-            <span class="registration-avatar-selected-check" aria-hidden="true">✦</span>
-            <span id="registrationAvatarSelectedLabel">No avatar selected · System will assign one automatically</span>
-          </div>
-        </section>
-
         <div class="registration-field registration-fullname-row">
           <label class="registration-field-label" for="registerFullname">FULL NAME <span class="registration-required-star" aria-hidden="true">*</span></label>
           <div class="registration-text-wrap">
-            <input id="registerFullname" type="text" inputmode="text" maxlength="120" placeholder="e.g., Juan Dela Cruz" autocomplete="name" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="next" required>
+            <input id="registerFullname" type="text" inputmode="text" maxlength="120" placeholder="e.g., Juan Dela Cruz" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="next" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="registeredPlayerSuggestions" required>
             <button type="button" class="registration-enye-btn" data-target="registerFullname" title="Insert Ñ" aria-label="Insert Ñ">Ñ</button>
+            <div class="registration-player-suggestions" id="registeredPlayerSuggestions" role="listbox" aria-label="Registered Player Cloud suggestions" hidden></div>
           </div>
         </div>
 
@@ -133,15 +100,15 @@
             <div id="registrationDuprDuplicateMessage" class="registration-duplicate-message" role="status" aria-live="polite" hidden></div>
             <div id="registrationDuplicateMessage" class="registration-duplicate-message" role="status" aria-live="polite" hidden></div>
           </div>
-          <button type="button" class="register-save-btn" id="registerSaveBtn" disabled>Save to Registered Player Cloud</button>
+          <button type="button" class="register-save-btn" id="registerSaveBtn" disabled>Register as a Player</button>
         </div>
       </div>
 
-      <div class="registration-page-footnote"><span aria-hidden="true">☁</span> Your profile is saved to Registered Player Cloud and added to this organizer’s live waiting queue.</div>
+      <div class="registration-page-footnote"><span aria-hidden="true">☁</span> Upon registration, your player profile will be added to the Registered Player Cloud and this organizer’s live waiting queue.</div>
     </section>
     <span id="registrationConnectionStatus" class="connection-status registration-connection-footer" role="status" aria-live="polite"><i aria-hidden="true"></i><span>Connecting</span></span>
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
   </main>
-  <script src="registration-app.js?v=registration-single-sse-20261106-3&avatar-carousel-optional-20261104-1&queue-confirmation-20261104-2" defer></script>
+  <script src="registration-app.js?v=registration-player-button-20261108-1&queue-confirmation-20261104-2&cloud-player-suggestions-polish-20261108-3-checkin-style-responsive&checkin-verify-20261108-1&cloud-legacy-values-20261108-2&editable-cloud-profile-checkin-20261108-1" defer></script>
 </body>
 </html>

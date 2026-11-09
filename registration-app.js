@@ -72,7 +72,12 @@
         }
         registrationLinkInvalid = false;
         organizerValidated = true;
+        // Load the organizer's current queue before rendering cloud suggestions,
+        // so players already checked in on another device show as completed.
+        updateAppPlayers(data.state);
         updateRegistrationSessionState(data.state);
+        const searchInput = $('registerFullname');
+        if (!selectedCloudPlayer && searchInput?.value.trim()) renderPlayerSuggestions(searchInput.value);
         return true;
       } catch (_) {
         showRegistrationFormWhileConnecting('Unable to reach the organizer server right now. You may complete the form; Save will verify the live session directly with the server.');
@@ -99,9 +104,50 @@
     if (duprMessage && !registrationDuprSession) { duprMessage.hidden = true; duprMessage.textContent = ''; }
   }
   const SKILLS = new Set(['BEG', 'NOV', 'INT', 'ADV', 'EXP']);
+  const SKILL_VALUES = {
+    BEG: 'BEG', BEGINNER: 'BEG', BEGINNERS: 'BEG',
+    NOV: 'NOV', NOVICE: 'NOV', NOVICES: 'NOV',
+    INT: 'INT', INTERMEDIATE: 'INT',
+    ADV: 'ADV', ADVANCE: 'ADV', ADVANCED: 'ADV',
+    EXP: 'EXP', EXPERT: 'EXP', EXPERTS: 'EXP'
+  };
+  // Labels match the Registered Player Cloud list exactly.
+  const SKILL_LABELS = {BEG:'BEGINNERS', NOV:'NOVICE', INT:'INTERMEDIATE', ADV:'ADVANCE', EXP:'EXPERT'};
+
+  function normalizeSkillCategory(value) {
+    // Match queueing.html's cloudCategoryCode(): accept category names and
+    // legacy labels even when a cloud record has extra text after the label.
+    const token = String(value || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+    if (/^(BEG|BEGINNER|BEGINNERS)/.test(token)) return 'BEG';
+    if (/^(NOV|NOVICE|NOVICES)/.test(token)) return 'NOV';
+    if (/^(INT|INTERMEDIATE)/.test(token)) return 'INT';
+    if (/^(ADV|ADVANCE|ADVANCED)/.test(token)) return 'ADV';
+    if (/^(EXP|EXPERT|EXPERTS)/.test(token)) return 'EXP';
+    return SKILL_VALUES[token] || '';
+  }
+
+  function normalizePlayerSkill(player) {
+    const candidates = [player?.category, player?.skill, player?.level, player?.skillLevel, player?.skill_level, player?.playerCategory, player?.player_category];
+    for (const value of candidates) {
+      const normalized = normalizeSkillCategory(value);
+      if (normalized) return normalized;
+    }
+    return '';
+  }
+
+  function normalizePlayerGender(player) {
+    const candidates = [player?.gender, player?.sex, player?.playerGender, player?.player_gender];
+    for (const value of candidates) {
+      const token = String(value || '').trim().toLowerCase();
+      if (['male', 'm', 'man', 'men'].includes(token)) return 'Male';
+      if (['female', 'f', 'woman', 'women'].includes(token)) return 'Female';
+    }
+    return '';
+  }
   let selectedGender = '';
   let selectedSkill = '';
   let selectedAvatarId = '';
+  let selectedCloudPlayer = null;
   let cloudPlayers = [];
   let appPlayers = [];
   let submitting = false;
@@ -263,14 +309,47 @@
       || null;
   }
 
+  function isSelectedCloudPlayer(player = selectedCloudPlayer) {
+    const fullname = String($('registerFullname')?.value || '').trim();
+    return !!(player && String(player.cloudId ?? '').trim() && normalizedName(fullname) === normalizedName(player.name));
+  }
+
+  function queueDuplicateForCloudPlayer(player) {
+    if (!player) return null;
+    const cloudId = String(player.cloudId ?? '').trim();
+    const playerName = normalizedName(player.name);
+    if (!cloudId && !playerName) return null;
+    return appPlayers.find(candidate =>
+      (cloudId && String(candidate?.registeredCloudId || candidate?.registrationCloudId || '').trim() === cloudId)
+      || (playerName && normalizedName(candidate?.name) === playerName)
+    ) || null;
+  }
+
+  function queueDuplicateForSelectedPlayer() {
+    if (!isSelectedCloudPlayer()) return null;
+    return queueDuplicateForCloudPlayer(selectedCloudPlayer);
+  }
+
   function updateDuplicateMessage() {
     const input = $('registerFullname');
     const message = $('registrationDuplicateMessage');
     if (!input || !message) return null;
     const fullname = input.value.trim();
-    const duplicate = duplicatePlayer(fullname);
+    let duplicate = null;
+    if (isSelectedCloudPlayer()) {
+      duplicate = queueDuplicateForSelectedPlayer();
+      if (duplicate) {
+        message.textContent = `${selectedCloudPlayer.name} is already in this organizer’s live session.`;
+        message.hidden = false;
+      } else {
+        message.textContent = '';
+        message.hidden = true;
+      }
+      return duplicate;
+    }
+    duplicate = duplicatePlayer(fullname);
     if (duplicate) {
-      message.textContent = `This user is already registered: ${duplicate.name}`;
+      message.textContent = `This player is already registered: ${duplicate.name}. Select the player from the suggestions to check in.`;
       message.hidden = false;
     } else {
       message.textContent = '';
@@ -300,6 +379,11 @@
     if (!input || !message) return null;
     const duprId = input.value.trim().toUpperCase();
     const duplicate = duplicateDuprPlayer(duprId);
+    if (isSelectedCloudPlayer() && duplicate && String(duplicate.cloudId ?? '') === String(selectedCloudPlayer.cloudId ?? '')) {
+      message.textContent = '';
+      message.hidden = true;
+      return null;
+    }
     if (duplicate) {
       message.textContent = `This DUPR ID: ${duprId} is already registered under the name: ${duplicate.name}.`;
       message.hidden = false;
@@ -310,16 +394,228 @@
     return duplicate;
   }
 
+  function registrationGenderSvgIcon(gender) {
+    const value = String(gender || '').trim().toLowerCase();
+    const isFemale = ['female', 'f', 'woman', 'women'].includes(value);
+    return isFemale
+      ? '<svg class="gender-symbol gender-symbol-female" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="4.8" r="3.55" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.4v5.9M5.25 11.35h5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>'
+      : '<svg class="gender-symbol gender-symbol-male" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.35" cy="10.65" r="3.45" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.8 8.2 14.1 1.9M9.35 1.9h4.75v4.75" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
   function updateSubmitButton() {
     const fullname = String($('registerFullname')?.value || '').trim();
+    const isCloudCheckIn = isSelectedCloudPlayer();
     const duplicate = updateDuplicateMessage();
     const duprId = String($('registerDuprId')?.value || '').trim();
-    const duplicateDupr = updateDuprDuplicateMessage();
+    const duplicateDupr = isCloudCheckIn ? null : updateDuprDuplicateMessage();
     const duprComplete = !registrationDuprSession || /^[A-Z0-9]{6}$/.test(duprId.toUpperCase());
-    const complete = fullname.length > 0 && duprComplete && !!selectedGender && SKILLS.has(selectedSkill);
+    // A selected cloud profile pre-fills the form, but nickname, gender, and
+    // skill remain editable. Check In submits those current form values so
+    // both the queue entry and the saved cloud profile use the edited details.
+    const complete = isCloudCheckIn
+      ? !!(fullname && selectedCloudPlayer?.cloudId && isSelectedCloudPlayer()
+          && ['Male','Female'].includes(selectedGender) && SKILLS.has(selectedSkill))
+      : fullname.length > 0 && duprComplete && !!selectedGender && SKILLS.has(selectedSkill);
     const button = $('registerSaveBtn');
-    if (button) button.disabled = !(!!organizerScope && !registrationLinkInvalid && (!organizerValidated || registrationSessionAvailable) && complete && !duplicate && !duplicateDupr && !submitting);
-    return {fullname, duplicate, duplicateDupr, complete};
+    if (button) {
+      button.textContent = submitting
+        ? (isCloudCheckIn ? 'Checking In…' : 'Registering…')
+        : (isCloudCheckIn ? 'Check In' : 'Register as a Player');
+      button.disabled = !(!!organizerScope && !registrationLinkInvalid && (!organizerValidated || registrationSessionAvailable) && complete && !duplicate && !duplicateDupr && !submitting);
+      button.dataset.action = isCloudCheckIn ? 'check-in' : 'register';
+    }
+    return {fullname, duplicate, duplicateDupr, complete, isCloudCheckIn};
+  }
+
+  function hidePlayerSuggestions() {
+    const list = $('registeredPlayerSuggestions');
+    const input = $('registerFullname');
+    if (list) { list.hidden = true; list.replaceChildren(); }
+    if (input) input.setAttribute('aria-expanded', 'false');
+  }
+
+  function chooseCloudPlayer(player) {
+    if (!player || !String(player.cloudId ?? '').trim()) return;
+    selectedCloudPlayer = player;
+    const fullname = $('registerFullname');
+    const nickname = $('registerNickname');
+    const duprId = $('registerDuprId');
+    const selfRating = $('registerSelfRating');
+    if (fullname) fullname.value = String(player.name || '');
+    if (nickname) nickname.value = String(player.nickname || '');
+    if (duprId) duprId.value = String(player.duprId ?? player.duprID ?? player.dupr_id ?? player.dupr ?? '').trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
+    if (selfRating) selfRating.value = String(player.selfRating ?? player.self_rating ?? '');
+    selectedGender = normalizePlayerGender(player);
+    document.querySelectorAll('.gender-choice').forEach(button => {
+      const selected = !!selectedGender && button.dataset.gender === selectedGender;
+      button.classList.toggle('selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+    const category = normalizePlayerSkill(player);
+    selectedSkill = category;
+    document.querySelectorAll('.registration-skill-btn').forEach(button => {
+      const selected = !!selectedSkill && button.dataset.skill === selectedSkill;
+      button.classList.toggle('selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+    selectedAvatarId = String(player.avatarId ?? player.avatarID ?? player.avatar_id ?? '').trim();
+    hidePlayerSuggestions();
+    updateSubmitButton();
+    hideFeedback();
+  }
+
+  function renderPlayerSuggestions(query) {
+    const list = $('registeredPlayerSuggestions');
+    const input = $('registerFullname');
+    if (!list || !input) return;
+    if (isSelectedCloudPlayer()) { hidePlayerSuggestions(); return; }
+    const normalizedQuery = normalizedName(query);
+    if (!normalizedQuery) { hidePlayerSuggestions(); return; }
+
+    const matches = cloudPlayers
+      .filter(player => {
+        if (!String(player?.cloudId ?? '').trim()) return false;
+        const name = normalizedName(player?.name);
+        const nickname = normalizedName(player?.nickname);
+        return name.includes(normalizedQuery) || nickname.includes(normalizedQuery);
+      })
+      .sort((a, b) => {
+        const aName = normalizedName(a?.name);
+        const bName = normalizedName(b?.name);
+        const aRank = aName === normalizedQuery ? 0 : aName.startsWith(normalizedQuery) ? 1 : 2;
+        const bRank = bName === normalizedQuery ? 0 : bName.startsWith(normalizedQuery) ? 1 : 2;
+        return aRank - bRank || aName.localeCompare(bName);
+      })
+      .slice(0, 8);
+
+    // No match means this is a new registration. Keep the suggestion panel
+    // completely hidden rather than showing an empty-state warning.
+    if (!matches.length) { hidePlayerSuggestions(); return; }
+
+    list.replaceChildren();
+    matches.forEach(player => {
+      const alreadyCheckedIn = !!queueDuplicateForCloudPlayer(player);
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = `registration-player-suggestion${alreadyCheckedIn ? ' is-checked-in' : ''}`;
+      option.dataset.cloudId = String(player.cloudId ?? '');
+      option.disabled = alreadyCheckedIn;
+      option.setAttribute('role', 'option');
+      option.setAttribute('aria-selected', String(alreadyCheckedIn));
+      option.setAttribute('aria-disabled', String(alreadyCheckedIn));
+
+      const copy = document.createElement('span');
+      copy.className = 'registration-player-suggestion-copy';
+
+      const nameLine = document.createElement('span');
+      nameLine.className = 'registration-player-suggestion-name-line';
+      const name = document.createElement('span');
+      name.className = 'registration-player-suggestion-name';
+      name.textContent = String(player.name || 'Player');
+      nameLine.appendChild(name);
+
+      const nicknameValue = String(player.nickname || '').trim();
+      if (nicknameValue) {
+        const nickname = document.createElement('span');
+        nickname.className = 'registration-player-suggestion-nickname';
+        nickname.textContent = `(${nicknameValue})`;
+        nameLine.appendChild(nickname);
+      }
+
+      const normalizedGender = normalizePlayerGender(player);
+      const gender = normalizedGender === 'Male' ? 'male' : normalizedGender === 'Female' ? 'female' : '';
+      if (gender) {
+        const genderIcon = document.createElement('span');
+        genderIcon.className = `registration-player-suggestion-gender is-${gender}`;
+        genderIcon.innerHTML = registrationGenderSvgIcon(gender);
+        genderIcon.setAttribute('role', 'img');
+        genderIcon.setAttribute('aria-label', gender === 'male' ? 'Male' : 'Female');
+        nameLine.appendChild(genderIcon);
+      }
+
+      const details = document.createElement('span');
+      details.className = 'registration-player-suggestion-details';
+      const category = normalizePlayerSkill(player);
+      if (category) {
+        const skillBadge = document.createElement('span');
+        skillBadge.className = `registration-player-suggestion-badge registration-player-suggestion-skill cloud-category-badge skill-${category.toLowerCase()}`;
+        skillBadge.textContent = SKILL_LABELS[category] || category;
+        details.appendChild(skillBadge);
+      }
+      const duprValue = String(player.duprId || player.duprID || player.dupr_id || player.dupr || '')
+        .trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '');
+      if (duprValue) {
+        const duprBadge = document.createElement('span');
+        duprBadge.className = 'registration-player-suggestion-badge registration-player-suggestion-dupr cloud-dupr-badge';
+        duprBadge.textContent = `DUPR: ${duprValue}`;
+        details.appendChild(duprBadge);
+      }
+
+      copy.append(nameLine);
+      if (details.childElementCount) copy.append(details);
+
+      const plus = document.createElement('span');
+      plus.className = `registration-player-suggestion-arrow${alreadyCheckedIn ? ' is-checked-in' : ''}`;
+      plus.setAttribute('aria-hidden', 'true');
+      plus.textContent = alreadyCheckedIn ? '✓' : '+';
+      option.append(copy, plus);
+      if (!alreadyCheckedIn) option.addEventListener('click', () => chooseCloudPlayer(player));
+      list.appendChild(option);
+    });
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+  }
+
+  function clearSelectedCloudPlayerDetails() {
+    selectedCloudPlayer = null;
+    const nickname = $('registerNickname');
+    const duprId = $('registerDuprId');
+    const selfRating = $('registerSelfRating');
+    if (nickname) nickname.value = '';
+    if (duprId) duprId.value = '';
+    if (selfRating) selfRating.value = '';
+    selectedGender = '';
+    selectedSkill = '';
+    selectAvatar('');
+    document.querySelectorAll('.gender-choice').forEach(button => {
+      button.classList.remove('selected');
+      button.setAttribute('aria-pressed', 'false');
+    });
+    document.querySelectorAll('.registration-skill-btn').forEach(button => {
+      button.classList.remove('selected');
+      button.setAttribute('aria-pressed', 'false');
+    });
+    const duprMessage = $('registrationDuprDuplicateMessage');
+    if (duprMessage) { duprMessage.textContent = ''; duprMessage.hidden = true; }
+    const duplicateMessage = $('registrationDuplicateMessage');
+    if (duplicateMessage) { duplicateMessage.textContent = ''; duplicateMessage.hidden = true; }
+  }
+
+  function bindPlayerSuggestions() {
+    const input = $('registerFullname');
+    const list = $('registeredPlayerSuggestions');
+    if (!input || !list) return;
+    input.addEventListener('input', () => {
+      renderPlayerSuggestions(input.value);
+      updateSubmitButton();
+    });
+    input.addEventListener('focus', () => {
+      if (!selectedCloudPlayer && input.value.trim()) renderPlayerSuggestions(input.value);
+    });
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { hidePlayerSuggestions(); return; }
+      if (event.key === 'Enter' && !list.hidden) {
+        const first = list.querySelector('.registration-player-suggestion:not(:disabled)');
+        if (first) {
+          event.preventDefault();
+          const match = cloudPlayers.find(player => String(player.cloudId ?? '') === String(first.dataset.cloudId ?? ''));
+          if (match) chooseCloudPlayer(match);
+        }
+      }
+    });
+    document.addEventListener('pointerdown', event => {
+      if (!list.contains(event.target) && !input.closest('.registration-text-wrap')?.contains(event.target)) hidePlayerSuggestions();
+    });
   }
 
   function selectAvatar(avatarId) {
@@ -519,6 +815,8 @@
         window.clearTimeout(cloudRetryTimer);
         cloudRetryTimer = null;
         bindCloudEvents();
+        const searchInput = $('registerFullname');
+        if (!selectedCloudPlayer && searchInput?.value.trim()) renderPlayerSuggestions(searchInput.value);
         updateSubmitButton();
         return true;
       } catch (error) {
@@ -546,6 +844,8 @@
         try {
           const payload = JSON.parse(event.data);
           cloudPlayers = Array.isArray(payload.records?.players) ? payload.records.players : [];
+          const searchInput = $('registerFullname');
+          if (!selectedCloudPlayer && searchInput?.value.trim()) renderPlayerSuggestions(searchInput.value);
           updateSubmitButton();
         } catch (_) {}
       });
@@ -554,6 +854,8 @@
           const payload = JSON.parse(event.data);
           updateAppPlayers(payload.state);
           updateRegistrationSessionState(payload.state);
+          const searchInput = $('registerFullname');
+          if (!selectedCloudPlayer && searchInput?.value.trim()) renderPlayerSuggestions(searchInput.value);
           updateSubmitButton();
         } catch (_) {}
       });
@@ -565,6 +867,8 @@
   }
 
   function resetForm() {
+    selectedCloudPlayer = null;
+    hidePlayerSuggestions();
     $('registerFullname').value = '';
     $('registerNickname').value = '';
     $('registerDuprId').value = '';
@@ -583,6 +887,154 @@
     updateSubmitButton();
   }
 
+  async function verifyCloudPlayerCheckIn(player) {
+    if (!player) return null;
+    try {
+      const response = await fetch(scopedApiUrl('/api/app-state', {_ : Date.now()}), {
+        cache: 'no-store',
+        credentials: 'same-origin',
+        headers: {'Accept': 'application/json'}
+      });
+      if (!response.ok) return null;
+      const payload = await response.json().catch(() => null);
+      if (!payload || payload.ok !== true || (payload.organizerId && String(payload.organizerId) !== organizerScope)) return null;
+      const state = payload.state || {};
+      updateAppPlayers(state);
+      const cloudId = String(player.cloudId ?? '').trim();
+      const name = normalizedName(player.name);
+      const found = [...(Array.isArray(state.players) ? state.players : []), ...(Array.isArray(state.left) ? state.left : [])]
+        .find(candidate =>
+          (cloudId && String(candidate?.registeredCloudId || candidate?.registrationCloudId || '').trim() === cloudId)
+          || (name && normalizedName(candidate?.name) === name)
+        );
+      return found ? {player: found, state} : {player: null, state};
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function finishCloudPlayerCheckIn(playerName, title = 'Player Checked In', detailPrefix = 'was added to this organizer’s live waiting queue.', cloudPlayer = null) {
+    organizerValidated = true;
+    registrationLinkInvalid = false;
+    registrationSessionAvailable = true;
+    registrationSessionBlockReason = '';
+    // Reflect the successful check-in immediately on this device; the live
+    // app-state event will reconcile the complete queue snapshot afterward.
+    if (cloudPlayer && !queueDuplicateForCloudPlayer(cloudPlayer)) {
+      appPlayers.push({name:String(cloudPlayer.name || playerName || ''), registeredCloudId:String(cloudPlayer.cloudId || '')});
+    }
+    const notice = $('registrationLinkNotice');
+    if (notice) notice.hidden = true;
+    const panel = $('registrationPagePanel');
+    if (panel) panel.hidden = false;
+    setConnection(true, 'Live session active');
+    showFeedback(title, `${playerName} ${detailPrefix}`);
+    resetForm();
+    $('registerFullname').focus();
+  }
+
+  async function checkInSelectedCloudPlayer() {
+    if (submitting) return;
+    if (!selectedCloudPlayer || !isSelectedCloudPlayer()) {
+      showRegistrationError('Select a player from the Registered Player Cloud suggestions before checking in.');
+      return;
+    }
+    if (!organizerScope || registrationLinkInvalid) {
+      showFeedback('Registration link unavailable', 'Please open the organizer-specific registration QR code or link supplied by your organizer.', true);
+      return;
+    }
+    if (organizerValidated && !registrationSessionAvailable) {
+      showFeedback(registrationSessionId ? 'Registration QR unavailable' : 'No active live session', registrationSessionBlockReason || 'Registration is closed until the organizer starts a live session.', true);
+      return;
+    }
+    const state = updateSubmitButton();
+    // Capture the editable values currently shown in the form. The cloud ID
+    // continues to identify the existing profile; the fields below are the
+    // requested updates to apply when this player checks in.
+    const selectedPlayer = {
+      ...selectedCloudPlayer,
+      nickname: String($('registerNickname')?.value || '').normalize('NFC').trim().replace(/\s+/g, ' ').slice(0, 80),
+      gender: selectedGender,
+      category: selectedSkill
+    };
+    if (state.duplicate) {
+      showFeedback('Player already in this queue', `${selectedPlayer.name} is already in this organizer’s live session.`, true);
+      return;
+    }
+    if (!state.complete) {
+      showRegistrationError('Please confirm the player’s gender and skill level before checking in.');
+      return;
+    }
+
+    submitting = true;
+    hideFeedback();
+    updateSubmitButton();
+    try {
+      const requestParams = {dupr:registrationDuprSession ? '1' : '0'};
+      if (registrationSessionId) requestParams.session = registrationSessionId;
+      const response = await fetch(scopedApiUrl('/api/register-player', requestParams), {
+        method: 'POST',
+        headers: {'Content-Type':'application/json', 'Accept':'application/json'},
+        cache: 'no-store',
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          checkInExisting:true,
+          cloudId:String(selectedPlayer.cloudId),
+          nickname:selectedPlayer.nickname,
+          gender:selectedPlayer.gender,
+          category:selectedPlayer.category,
+          organizerId:organizerScope,
+          sessionId:registrationSessionId
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 409 && data.noActiveSession) {
+        organizerValidated = true;
+        registrationLinkInvalid = false;
+        updateRegistrationSessionState({sessionActive:data.sessionActive===true,sessionId:data.sessionId||null,sessionEndedAt:data.sessionEndedAt||null});
+        showFeedback(data.sessionMismatch ? 'Registration QR expired' : 'No active live session', data.error || registrationSessionBlockReason, true);
+        return;
+      }
+      if (response.status === 409 && data.duplicate) {
+        const verification = await verifyCloudPlayerCheckIn(selectedPlayer);
+        if (verification?.player) {
+          finishCloudPlayerCheckIn(selectedPlayer.name, 'Already Checked In', 'is already in this organizer’s live session.', selectedPlayer);
+          return;
+        }
+        showFeedback('Player already in this queue', data.error || `${selectedPlayer.name} is already in this organizer’s live session.`, true);
+        return;
+      }
+      if (!response.ok || !data.ok || data.queued !== true) {
+        // Confirm the organizer state before reporting a failure. The server may
+        // have committed the queue write even if the response was interrupted.
+        const verification = await verifyCloudPlayerCheckIn(selectedPlayer);
+        if (verification?.player) {
+          finishCloudPlayerCheckIn(selectedPlayer.name, 'Player Checked In', 'was added to this organizer’s live waiting queue.', selectedPlayer);
+          return;
+        }
+        throw new Error(data.error || `The server rejected check-in (HTTP ${response.status}). Your selection is still on the form; please retry.`);
+      }
+
+      finishCloudPlayerCheckIn(data.queuePlayer?.name || data.player?.name || selectedPlayer.name, 'Player Checked In', 'was added to this organizer’s live waiting queue.', selectedPlayer);
+    } catch (error) {
+      // A dropped connection can happen after a successful server-side commit.
+      // Read the organizer queue to distinguish that case from a real failure.
+      const verification = await verifyCloudPlayerCheckIn(selectedPlayer);
+      if (verification?.player) {
+        finishCloudPlayerCheckIn(selectedPlayer.name, 'Player Checked In', 'was added to this organizer’s live waiting queue.', selectedPlayer);
+      } else {
+        const detail = error instanceof TypeError
+          ? 'Unable to reach the check-in service. Your selected player is still on this form. Check your connection, then press Check In again.'
+          : (error.message || 'Check-in could not be confirmed. Your selected player is still on this form; please retry.');
+        showFeedback('Unable to confirm check-in', detail, true);
+      }
+    } finally {
+      submitting = false;
+      updateSubmitButton();
+    }
+  }
+
   async function submitRegistration() {
     if (submitting) return;
     if (!organizerScope || registrationLinkInvalid) {
@@ -596,7 +1048,8 @@
       showFeedback(registrationSessionId ? 'Registration QR unavailable' : 'No active live session', registrationSessionBlockReason || 'Registration is closed until the organizer starts a live session.', true);
       return;
     }
-    const {fullname, duplicate, duplicateDupr, complete} = updateSubmitButton();
+    const {fullname, duplicate, duplicateDupr, complete, isCloudCheckIn} = updateSubmitButton();
+    if (isCloudCheckIn) return checkInSelectedCloudPlayer();
     hideFeedback();
     if (duplicateDupr) {
       const duprId = String($('registerDuprId')?.value || '').trim().toUpperCase();
@@ -679,7 +1132,6 @@
       }
     } finally {
       submitting = false;
-      if (button) button.textContent = 'Save to Registered Player Cloud';
       updateSubmitButton();
     }
   }
@@ -688,6 +1140,10 @@
     ['registerFullname', 'registerNickname'].forEach(id => {
       const input = $(id);
       input.addEventListener('input', () => {
+        if (id === 'registerFullname' && selectedCloudPlayer
+          && normalizedName(input.value) !== normalizedName(selectedCloudPlayer.name)) {
+          clearSelectedCloudPlayerDetails();
+        }
         const start = input.selectionStart ?? input.value.length;
         const end = input.selectionEnd ?? start;
         input.value = formatName(input.value);
@@ -713,7 +1169,7 @@
   document.querySelectorAll('.gender-choice').forEach(button => button.addEventListener('click', () => selectGender(button.dataset.gender)));
   document.querySelectorAll('.registration-skill-btn').forEach(button => button.addEventListener('click', () => selectSkill(button.dataset.skill)));
   $('registerSaveBtn').addEventListener('click', submitRegistration);
-  $('registerFullname').addEventListener('keydown', event => { if (event.key === 'Enter') submitRegistration(); });
+  $('registerFullname').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.defaultPrevented) submitRegistration(); });
   $('registerDuprId').addEventListener('input', () => {
     const input = $('registerDuprId');
     const start = input.selectionStart ?? input.value.length;
@@ -733,6 +1189,7 @@
     hideFeedback();
   });
   bindNameHelpers();
+  bindPlayerSuggestions();
   bindAvatarPicker();
   syncDuprRegistrationFields();
   if ($('registrationPagePanel')) $('registrationPagePanel').hidden = !organizerScope;

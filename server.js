@@ -27,7 +27,7 @@ let sharedCloudRevision = 0;
 let sharedCloudUpdatedAt = null;
 let sharedCloudClientId = null;
 let sharedCloudPersistenceQueue = Promise.resolve();
-let liveTheme = 'night';
+let liveTheme = 'light';
 const subscribers = new Set();
 const liveSubscriberScopes = new Map();
 const sharedSubscribers = new Set();
@@ -549,6 +549,12 @@ function mergeRegisteredQueuePlayersIntoSnapshot(incomingState, currentState) {
     merged.sessionMetrics.newRegistered = currentNewRegistered;
     changed = true;
   }
+  const currentCloudCheckins = Number(currentState.sessionMetrics?.cloudCheckins) || 0;
+  const incomingCloudCheckins = Number(merged.sessionMetrics?.cloudCheckins) || 0;
+  if (currentCloudCheckins > incomingCloudCheckins) {
+    merged.sessionMetrics.cloudCheckins = currentCloudCheckins;
+    changed = true;
+  }
   const maxPlayerId = allMergedPeople().reduce((max, person) => Math.max(max, Number(person?.id) || 0), 0);
   merged.nextPlayer = Math.max(Number(merged.nextPlayer) || 1, Number(currentState.nextPlayer) || 1, maxPlayerId + 1);
   return changed ? merged : null;
@@ -1008,6 +1014,73 @@ function enrichLiveStateAvatars(state) {
     ranking: Array.isArray(state.ranking) ? state.ranking.map(enrichLivePlayerAvatar) : []
   };
 }
+// The organizer app state is the source of truth for lock-in pairs. Rebuild
+// partner labels for both the public queue and ranking instead of relying on
+// the browser's published snapshot, whose allowlisted queue fields omit them.
+function enrichLiveStateLockedPartners(liveState, organizerId) {
+  if (!liveState || typeof liveState !== 'object') return liveState;
+  const appState = getOrganizerAppEntry(organizerId)?.state;
+  if (!appState || !Array.isArray(appState.lockedPartners)) return liveState;
+
+  const roster = [
+    ...(Array.isArray(appState.players) ? appState.players : []),
+    ...(Array.isArray(appState.left) ? appState.left : [])
+  ];
+  const playersById = new Map(roster.map(player => [String(player?.id), player]));
+  const partnerByPlayerId = new Map();
+  for (const pair of appState.lockedPartners) {
+    if (!Array.isArray(pair) || pair.length !== 2) continue;
+    const firstId = String(pair[0] ?? '').trim();
+    const secondId = String(pair[1] ?? '').trim();
+    if (!firstId || !secondId || firstId === secondId) continue;
+    partnerByPlayerId.set(firstId, secondId);
+    partnerByPlayerId.set(secondId, firstId);
+  }
+
+  // The public live-state publisher intentionally allowlists queue fields and
+  // drops lock-in metadata. Rebuild that metadata from the organizer's
+  // authoritative app state for BOTH queue rows and ranking rows so it remains
+  // present on the initial GET, the initial SSE packet, and every later update.
+  const enrichPlayer = player => {
+    if (!player || typeof player !== 'object') return player;
+    const playerId = String(player.id ?? '').trim();
+    const partnerId = partnerByPlayerId.get(playerId);
+    if (partnerId == null) {
+      return {
+        ...player,
+        lockedIn: false,
+        lockedPartnerId: null,
+        lockedPartnerName: '',
+        lockedPartnerFullName: ''
+      };
+    }
+
+    const partner = playersById.get(String(partnerId));
+    const existingPartnerName = String(player.lockedPartnerName || '').trim();
+    const existingPartnerFullName = String(player.lockedPartnerFullName || '').trim();
+    const partnerName = String(partner?.name || existingPartnerName || existingPartnerFullName).trim();
+    const partnerNickname = String(partner?.nickname || '').trim();
+    const partnerFullName = partnerName && partnerNickname &&
+      partnerNickname.toLocaleLowerCase() !== partnerName.toLocaleLowerCase()
+      ? `${partnerName} (${partnerNickname})`
+      : (partnerName || existingPartnerFullName);
+    const partnerFirstName = partnerName.split(/\s+/)[0] || 'Locked';
+
+    return {
+      ...player,
+      lockedIn: true,
+      lockedPartnerId: String(partnerId),
+      lockedPartnerName: partnerFirstName,
+      lockedPartnerFullName: partnerFullName || 'Locked-in partner'
+    };
+  };
+
+  return {
+    ...liveState,
+    queue: Array.isArray(liveState.queue) ? liveState.queue.map(enrichPlayer) : liveState.queue,
+    ranking: Array.isArray(liveState.ranking) ? liveState.ranking.map(enrichPlayer) : liveState.ranking
+  };
+}
 function normalizeTimestamp(value) {
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
   if (typeof value === 'string' && value.trim()) {
@@ -1023,7 +1096,7 @@ function broadcast(snapshot = latestState, organizerId = null) {
   // The initial GET endpoint already enriched old snapshots. Keep the SSE path
   // identical; otherwise a raw event arriving after the GET strips avatarId and
   // makes Live View revert from profile images to initials.
-  const publishedSnapshot = enrichLiveStateAvatars(snapshot);
+  const publishedSnapshot = enrichLiveStateAvatars(enrichLiveStateLockedPartners(snapshot, organizerId));
   const packet = `event: live-state\ndata: ${JSON.stringify(publishedSnapshot)}\n\n`;
   for (const res of subscribers) {
     if ((liveSubscriberScopes.get(res) || null) !== (organizerId || null)) continue;
@@ -2158,6 +2231,133 @@ async function handle(req, res) {
         : ['1','true','dupr'].includes(String(requestedDuprMode).trim().toLowerCase());
       const duprId = isDuprSession ? String(body?.duprId || '').trim().toUpperCase() : '';
       const selfRating = isDuprSession ? String(body?.selfRating || '').trim() : '';
+
+      // Existing Registered Player Cloud profiles can check in without creating
+      // another cloud record. Resolve every profile detail server-side by cloudId.
+      if (body?.checkInExisting === true) {
+        const requestedCloudId = String(body?.cloudId ?? '').trim();
+        if (!requestedCloudId) return sendJson(res,400,{ok:false,error:'Select a player from Registered Player Cloud before checking in.'});
+        return await withRegisteredPlayerCommitLock(() => withOrganizerAppStateWriteLock(organizerId, async () => {
+          let registrationSessionStatus = getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId);
+          if (!registrationSessionStatus.active) return sendJson(res,409,registrationSessionUnavailableResponse(registrationSessionStatus));
+
+          const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
+          const currentPlayers = Array.isArray(currentRecords.players) ? currentRecords.players : [];
+          const currentCloudPlayer = currentPlayers.find(player => String(player?.cloudId ?? '').trim() === requestedCloudId);
+          if (!currentCloudPlayer) return sendJson(res,404,{ok:false,error:'This player is no longer available in Registered Player Cloud. Refresh the page and select the player again.'});
+
+          // Keep the cloud record canonical for fields that may be stored under
+          // older aliases, while accepting the editable form values on check-in.
+          const playerName = String(currentCloudPlayer.name || '').normalize('NFC').trim().replace(/\s+/g,' ');
+          const normalizeCloudGender = value => {
+            const token = String(value || '').trim().toLowerCase();
+            return ['male','m','man','men'].includes(token) ? 'Male'
+              : ['female','f','woman','women'].includes(token) ? 'Female' : '';
+          };
+          const normalizeCloudCategory = value => {
+            const token = String(value || '').trim().toUpperCase().replace(/[^A-Z]/g,'');
+            if (/^(BEG|BEGINNER|BEGINNERS)/.test(token)) return 'BEG';
+            if (/^(NOV|NOVICE|NOVICES)/.test(token)) return 'NOV';
+            if (/^(INT|INTERMEDIATE)/.test(token)) return 'INT';
+            if (/^(ADV|ADVANCE|ADVANCED)/.test(token)) return 'ADV';
+            if (/^(EXP|EXPERT|EXPERTS)/.test(token)) return 'EXP';
+            return '';
+          };
+          const savedGender = [currentCloudPlayer.gender,currentCloudPlayer.sex,currentCloudPlayer.playerGender,currentCloudPlayer.player_gender]
+            .map(normalizeCloudGender).find(Boolean) || '';
+          const savedCategory = [currentCloudPlayer.category,currentCloudPlayer.skill,currentCloudPlayer.level,currentCloudPlayer.skillLevel,currentCloudPlayer.skill_level,currentCloudPlayer.playerCategory,currentCloudPlayer.player_category]
+            .map(normalizeCloudCategory).find(Boolean) || '';
+          const nickname = String(body?.nickname ?? currentCloudPlayer.nickname ?? '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,80);
+          const gender = body?.gender !== undefined ? normalizeCloudGender(body.gender) : savedGender;
+          const category = body?.category !== undefined ? normalizeCloudCategory(body.category) : savedCategory;
+          const avatarId = normalizeAvatarId(currentCloudPlayer.avatarId ?? currentCloudPlayer.avatarID ?? currentCloudPlayer.avatar_id) || fallbackAvatarIdForPlayer({name:playerName,gender});
+          const playerDuprId = String(currentCloudPlayer.duprId ?? currentCloudPlayer.duprID ?? currentCloudPlayer.dupr_id ?? currentCloudPlayer.dupr ?? '')
+            .trim().replace(/^DUPR\s*:\s*/i,'').replace(/\s+/g,'').toUpperCase();
+          const playerSelfRating = String(currentCloudPlayer.selfRating ?? currentCloudPlayer.self_rating ?? '').trim();
+          if (!playerName || playerName.length > 120) return sendJson(res,400,{ok:false,error:'The selected cloud player has an invalid name. Ask the organizer to review this profile.'});
+          if (!gender) return sendJson(res,400,{ok:false,error:'This player profile is missing a valid gender. Ask the organizer to update Registered Player Cloud.'});
+          if (!['BEG','NOV','INT','ADV','EXP'].includes(category)) return sendJson(res,400,{ok:false,error:'This player profile is missing a valid skill level. Ask the organizer to update Registered Player Cloud.'});
+          if (isDuprSession && !/^[A-Z0-9]{6}$/.test(playerDuprId)) return sendJson(res,400,{ok:false,error:'This saved player profile does not have a valid DUPR ID. Ask the organizer to update Registered Player Cloud.'});
+          if (isDuprSession && playerSelfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(playerSelfRating)) return sendJson(res,400,{ok:false,error:'This saved player profile has an invalid self rating. Ask the organizer to update Registered Player Cloud.'});
+
+          registrationSessionStatus = getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId);
+          if (!registrationSessionStatus.active) return sendJson(res,409,registrationSessionUnavailableResponse(registrationSessionStatus));
+          const organizerEntry = getOrganizerAppEntry(organizerId);
+          const organizerState = organizerEntry?.state ? JSON.parse(JSON.stringify(organizerEntry.state)) : null;
+          if (!organizerState || organizerState.sessionActive !== true || getSessionId(organizerState) !== registrationSessionStatus.sessionId) {
+            return sendJson(res,409,registrationSessionUnavailableResponse(getOrganizerRegistrationSessionStatus(organizerId,requestedSessionId)));
+          }
+          organizerState.players = Array.isArray(organizerState.players) ? organizerState.players : [];
+          organizerState.left = Array.isArray(organizerState.left) ? organizerState.left : [];
+          organizerState.queue = Array.isArray(organizerState.queue) ? organizerState.queue : [];
+          const alreadyInOrganizerSession = [...organizerState.players,...organizerState.left].find(player =>
+            String(player?.registeredCloudId || '').trim() === requestedCloudId
+            || normalizePlayerName(player?.name) === normalizePlayerName(playerName)
+          );
+          if (alreadyInOrganizerSession) {
+            return sendJson(res,409,{ok:false,duplicate:true,duplicateType:'organizerQueue',error:`${playerName} is already in this organizer’s live session.`,player:{name:playerName}});
+          }
+
+          let nextPlayerId = Math.max(1,Math.floor(Number(organizerState.nextPlayer) || 1));
+          const occupiedIds = new Set([...organizerState.players,...organizerState.left].map(player => String(player?.id)));
+          while (occupiedIds.has(String(nextPlayerId))) nextPlayerId += 1;
+          const now = Date.now();
+          const checkedInAt = new Date(now).toISOString();
+          // Save the edited profile fields back into Registered Player Cloud.
+          // This makes the updated nickname, gender, and category persist for
+          // future organizers and future visits, not just this queue entry.
+          const nextCloudRecords = JSON.parse(JSON.stringify(currentRecords));
+          nextCloudRecords.players = Array.isArray(nextCloudRecords.players) ? nextCloudRecords.players : [];
+          const cloudPlayer = nextCloudRecords.players.find(player => String(player?.cloudId ?? '').trim() === requestedCloudId);
+          if (!cloudPlayer) return sendJson(res,404,{ok:false,error:'This player is no longer available in Registered Player Cloud. Refresh the page and select the player again.'});
+          cloudPlayer.nickname = nickname;
+          cloudPlayer.gender = gender;
+          cloudPlayer.category = category;
+          const queuePlayer = {
+            id:nextPlayerId,name:playerName,nickname,wins:Number(cloudPlayer.wins) || 0,court:null,gender,category,avatarId,
+            duprId:playerDuprId,selfRating:playerSelfRating,queuedAt:now,waitingSince:now,registeredCloudId:cloudPlayer.cloudId
+          };
+          organizerState.players.push(queuePlayer);
+          if (!organizerState.queue.some(id => String(id) === String(nextPlayerId))) organizerState.queue.push(nextPlayerId);
+          organizerState.nextPlayer = nextPlayerId + 1;
+          organizerState.sessionMetrics = organizerState.sessionMetrics && typeof organizerState.sessionMetrics === 'object'
+            ? {...organizerState.sessionMetrics} : {cloudCheckins:0,newRegistered:0};
+          organizerState.sessionMetrics.cloudCheckins = (Number(organizerState.sessionMetrics.cloudCheckins) || 0) + 1;
+          organizerState.sessionMetrics.newRegistered = Number(organizerState.sessionMetrics.newRegistered) || 0;
+
+          const nextOrganizerEntry = {revision:(Number(organizerEntry.revision) || 0) + 1,updatedAt:checkedInAt,clientId:'registration-page',state:organizerState};
+          const previousCloudRecords = sharedCloudRecords;
+          const previousCloudRevision = sharedCloudRevision;
+          const previousCloudUpdatedAt = sharedCloudUpdatedAt;
+          const previousCloudClientId = sharedCloudClientId;
+          sharedCloudRecords = nextCloudRecords;
+          sharedCloudRevision += 1;
+          sharedCloudUpdatedAt = checkedInAt;
+          sharedCloudClientId = 'registration-page';
+          try {
+            // Persist the profile update and this organizer's queue entry
+            // together (one transaction on database-backed deployments).
+            await persistSharedCloudRecords([{
+              key:`app-state:${organizerId}`,
+              filePath:organizerDataPath('app-state',organizerId),
+              value:nextOrganizerEntry
+            }]);
+          } catch (error) {
+            sharedCloudRecords = previousCloudRecords;
+            sharedCloudRevision = previousCloudRevision;
+            sharedCloudUpdatedAt = previousCloudUpdatedAt;
+            sharedCloudClientId = previousCloudClientId;
+            throw error;
+          }
+          organizerAppStates.set(organizerId,nextOrganizerEntry);
+          broadcastNamedEvent('cloud-records',{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
+          broadcastNamedEvent('app-state',{revision:nextOrganizerEntry.revision,updatedAt:nextOrganizerEntry.updatedAt,clientId:nextOrganizerEntry.clientId,state:nextOrganizerEntry.state,organizerId},organizerId);
+          // Return a minimal player payload. A cloud profile may include an
+          // uploaded avatar data URL, which the check-in page does not need.
+          return sendJson(res,200,{ok:true,player:{cloudId:cloudPlayer.cloudId,name:playerName,nickname,gender,category},queuePlayer:{id:queuePlayer.id,name:queuePlayer.name,registeredCloudId:queuePlayer.registeredCloudId,nickname,gender,category},queued:true,queuePosition:organizerState.queue.length,cloudOnly:false,cloudCount:sharedCloudRecords.players.length,cloudRevision:sharedCloudRevision,appRevision:nextOrganizerEntry.revision,organizerId,checkIn:true,profileUpdated:true});
+        }));
+      }
+
       if (!name || name.length > 120) return sendJson(res, 400, {ok:false,error:'Please enter a name (maximum 120 characters).'});
       if (!['Male','Female'].includes(gender)) return sendJson(res, 400, {ok:false,error:'Please select Male or Female.'});
       if (!['BEG','NOV','INT','ADV','EXP'].includes(category)) return sendJson(res, 400, {ok:false,error:'Please select a skill level.'});
@@ -2263,7 +2463,7 @@ async function handle(req, res) {
     const organizerId = requestedScope ? (accountById(requestedScope)?.id || null) : resolveOrganizerId(req,url,null,true);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     const organizer = organizerId ? accountById(organizerId) : null;
-    const liveState = enrichLiveStateAvatars(getOrganizerLiveState(organizerId));
+    const liveState = enrichLiveStateAvatars(enrichLiveStateLockedPartners(getOrganizerLiveState(organizerId), organizerId));
     return sendJson(res, 200, {ok:true,state:liveState,organizerId,organizerName:organizer ? String(organizer.displayName || organizer.username) : null,organizerLogo:organizer ? organizerLogoFor(organizer) : null});
   }
   if (url.pathname === '/api/live-state' && req.method === 'POST') {
@@ -2320,7 +2520,10 @@ async function handle(req, res) {
           losses:Math.max(0,Number(p?.losses)||0),
           winRate:Math.max(0,Math.min(100,Number(p?.winRate)||0)),
           totalSeconds:Math.max(0,Number(p?.totalSeconds)||0),
-          playing:!!p?.playing
+          playing:!!p?.playing,
+          lockedIn:p?.lockedIn===true,
+          lockedPartnerName:String(p?.lockedPartnerName||'').slice(0,80),
+          lockedPartnerFullName:String(p?.lockedPartnerFullName||'').slice(0,160)
         })) : [],
         eventRules:{target:Math.max(1,Number(body.eventRules?.target)||11),winBy:Math.max(1,Number(body.eventRules?.winBy)||1),type:String(body.eventRules?.type||'Doubles').slice(0,30)},
         recentMatches:Array.isArray(body.recentMatches)?body.recentMatches.slice(0,12).map(m=>({id:m?.id,court:String(m?.court||'Court').slice(0,100),winner:String(m?.winner||'').slice(0,300),loser:String(m?.loser||'').slice(0,300),score:String(m?.score||'').slice(0,30),endedAt:m?.endedAt||null,duration:String(m?.duration||'').slice(0,40)})):[]
@@ -2406,7 +2609,7 @@ async function handle(req, res) {
     res.writeHead(200, {'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
     res.write('retry: 2000\n\n');
     const scopedState = getOrganizerLiveState(organizerId);
-    if (scopedState) res.write(`event: live-state\ndata: ${JSON.stringify(enrichLiveStateAvatars(scopedState))}\n\n`);
+    if (scopedState) res.write(`event: live-state\ndata: ${JSON.stringify(enrichLiveStateAvatars(enrichLiveStateLockedPartners(scopedState, organizerId)))}\n\n`);
     res.write(`event: live-theme\ndata: ${liveTheme}\n\n`);
     subscribers.add(res);
     liveSubscriberScopes.set(res,organizerId || null);

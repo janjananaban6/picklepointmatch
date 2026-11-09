@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="live-view.css?v=queue-search-compact-height-20261023-1&mzoom=20261024-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-compact-collapse-20261105-2&livetabs=radius15-min35-responsive-20261024-5&organizer-logo=20261024-2&organizer-stat-match=20261024-1&avatar-sync=20261029-2&live-width-440-responsive-stack-20261104-2&court-scroll-all-devices-20261104-2&live-header-brand-scrollbar-flat-sections-20261105-5&card-surface-scrollbar-hotfix-20261105-6&court-header-timer-inline-20261105-2&court-mini-timer-mobile-stable-20261105-1&court-collapse-fixed-shell-20261106-1&court-heading-actions-20261105-2&court-timer-summary-stability-20261105-1&court-heading-toggle-threshold-20261105-1&live-ranking-filter-pill-20261106-1&matches-search-filter-disabled-20261106-1&queue-court-pill-controls-20261106-1&court-expanded-flow-layout-20261106-1">
+  <link rel="stylesheet" href="live-view.css?v=live-audit-cleanup-20261109-1&queue-search-compact-height-20261023-1&filter-list-toggle-state-20261109-1&mzoom=20261024-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-compact-collapse-20261105-2&livetabs=radius15-min35-responsive-20261024-5&organizer-logo=20261024-2&organizer-stat-match=20261024-1&avatar-sync=20261029-2&live-width-440-responsive-stack-20261104-2&court-scroll-all-devices-20261104-2&live-header-brand-scrollbar-flat-sections-20261105-5&card-surface-scrollbar-hotfix-20261105-6&court-header-timer-inline-20261105-2&court-mini-timer-mobile-stable-20261105-1&court-collapse-fixed-shell-20261106-1&court-heading-actions-20261105-2&court-timer-summary-stability-20261105-1&court-heading-toggle-threshold-20261105-1&live-ranking-filter-pill-20261106-1&matches-matchup-search-20261107-1&queue-court-pill-controls-20261106-1&court-expanded-flow-layout-20261106-1&matchup-search=20261107-2&search-filter-blue-static=20261107-1&search-hover-neutral-gray-surface=20261107-2&ranking-lock-inline=20261107-3&queue-lock-partner-snapshot=20261107-1&ranking-podium-background=20261109-1&desktop-filter-circle-theme-toggle=20261109-1&header-no-bounce-glass-badges=20261109-1&dark-glass-ranking-status=20261109-1&light-badge-parity-matches-toggle-circle=20261109-1&court-player-white-glass-ranking-circle-seam-fix=20261109-1&court-layout-collapse-svg-icons=20261109-1&live-heading-empty-svg-icons=20261109-1&court-category-light-contrast=20261109-1">
   <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261023-1&mzoom=20261024-1&live-search-border-parity=20261106-2-blue">
   <link rel="stylesheet" href="network-skeleton.css?v=network-validation-20261027-1">
   <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
@@ -57,6 +57,605 @@
     }
   </style>
 
+
+<style id="live-page-search-filter-theme-responsive-20261107">
+/* Live-only search and filter surfaces follow the active theme. */
+html body.live-view-page .section-card .live-ranking-searchbar,
+html body.live-view-page .section-card .live-matches-searchbar,
+html body.live-view-page .section-card .live-matchup-search-wrap {
+  border: 1px solid var(--line) !important;
+  border-color: var(--line) !important;
+  background: var(--panel2) !important;
+  color: var(--muted) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: border-color .14s ease, background-color .14s ease !important;
+  min-width: 0 !important;
+}
+html body.live-view-page .section-card .live-ranking-searchbar:hover:not(:focus-within),
+html body.live-view-page .section-card .live-matches-searchbar:hover:not(:focus-within),
+html body.live-view-page .section-card .live-matchup-search-wrap:hover:not(:focus-within) {
+  border-color: var(--line) !important;
+  background: var(--panel2) !important;
+}
+html body.live-view-page .section-card .live-ranking-searchbar:focus-within {
+  border: 1px solid #38bdf8 !important;
+  border-color: #38bdf8 !important;
+  background: var(--panel2) !important;
+}
+html body.live-view-page .section-card .live-matches-searchbar:focus-within:has(#pageMatchesSearch:focus),
+html body.live-view-page .section-card .live-matchup-search-wrap:focus-within {
+  border: 1px solid #007bff !important;
+  border-color: #007bff !important;
+  background: var(--panel2) !important;
+}
+html body.live-view-page .section-card .live-tab-search input,
+html body.live-view-page .section-card .live-matchup-search-wrap input {
+  min-width: 0 !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+  cursor: text !important;
+}
+html body.live-view-page .section-card .live-tab-search input::placeholder,
+html body.live-view-page .section-card .live-matchup-search-wrap input::placeholder {
+  color: var(--muted) !important;
+  opacity: .9 !important;
+}
+
+/* Filter buttons remain visually calm, but keep a clear click/keyboard affordance. */
+html body.live-view-page .section-card .live-ranking-filter-toggle,
+html body.live-view-page .section-card .live-matches-filter-toggle,
+html body.live-view-page .section-card .live-ranking-filter-toggle:hover,
+html body.live-view-page .section-card .live-matches-filter-toggle:hover,
+html body.live-view-page .section-card .live-ranking-filter-toggle:active,
+html body.live-view-page .section-card .live-matches-filter-toggle:active,
+html body.live-view-page .section-card .live-ranking-filter-toggle.is-open,
+html body.live-view-page .section-card .live-matches-filter-toggle.is-open {
+  border-color: var(--line) !important;
+  background: var(--panel) !important;
+  color: var(--muted) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  cursor: pointer !important;
+}
+html body.live-view-page .section-card .live-ranking-filter-toggle:focus-visible,
+html body.live-view-page .section-card .live-matches-filter-toggle:focus-visible {
+  outline: 2px solid #38bdf8 !important;
+  outline-offset: 2px !important;
+}
+
+/* The light palette keeps the search surface white; dark mode uses panel2. */
+html[data-theme="light"] body.live-view-page .section-card .live-ranking-searchbar,
+html[data-theme="light"] body.live-view-page .section-card .live-matches-searchbar,
+html[data-theme="light"] body.live-view-page .section-card .live-matchup-search-wrap {
+  background: #fff !important;
+  color: #5b7379 !important;
+}
+html[data-theme="light"] body.live-view-page .section-card .live-ranking-searchbar:focus-within,
+html[data-theme="light"] body.live-view-page .section-card .live-matches-searchbar:focus-within:has(#pageMatchesSearch:focus),
+html[data-theme="light"] body.live-view-page .section-card .live-matchup-search-wrap:focus-within {
+  background: #fff !important;
+}
+html[data-theme="light"] body.live-view-page .section-card .live-tab-search input,
+html[data-theme="light"] body.live-view-page .section-card .live-matchup-search-wrap input {
+  color: #18383e !important;
+}
+
+/* Stable sizing prevents the two-player search row from squeezing on phones. */
+html body.live-view-page .section-card .live-matches-filter-controls {
+  grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr) !important;
+  width: 100% !important;
+  max-width: 440px !important;
+  min-width: 0 !important;
+}
+html body.live-view-page .section-card .live-matchup-search-wrap,
+html body.live-view-page .section-card .live-matchup-search-wrap input {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+@media (max-width: 560px) {
+  html body.live-view-page .section-card .live-ranking-searchbar,
+  html body.live-view-page .section-card .live-matches-searchbar {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  html body.live-view-page .section-card .live-matches-filter-controls {
+    max-width: none !important;
+    grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr) !important;
+    gap: 5px !important;
+  }
+  html body.live-view-page .section-card .live-matchup-search-wrap {
+    padding-right: 8px !important;
+    padding-left: 8px !important;
+  }
+}
+@media (max-width: 360px) {
+  html body.live-view-page .section-card .live-matches-filter-controls {
+    grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr) !important;
+    gap: 4px !important;
+  }
+  html body.live-view-page .section-card .live-matchup-vs {
+    min-width: 18px !important;
+    font-size: 8px !important;
+  }
+}
+
+/* Queue search uses the same neutral pill treatment as the tab searches. */
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel {
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 440px !important;
+  min-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  overflow: hidden !important;
+  border: 1px solid var(--line) !important;
+  border-color: var(--line) !important;
+  border-radius: 9999px !important;
+  background: var(--panel2) !important;
+  color: var(--muted) !important;
+  box-shadow: none !important;
+}
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open {
+  height: 35px !important;
+  min-height: 35px !important;
+  border-color: var(--line) !important;
+  background: var(--panel2) !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+html[data-theme="light"] body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel,
+html[data-theme="light"] body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open {
+  border-color: var(--line) !important;
+  background: #fff !important;
+}
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel:hover:not(:focus-within),
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel:focus-within {
+  border-color: var(--line) !important;
+  background: var(--panel2) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+html[data-theme="light"] body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel:hover:not(:focus-within),
+html[data-theme="light"] body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel:focus-within {
+  border-color: var(--line) !important;
+  background: #fff !important;
+}
+/* The device stylesheet has a more-specific open-state rule; neutralize it here. */
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open:hover:not(:focus-within),
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open:focus-within,
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open:active {
+  border-color: var(--line) !important;
+  background: var(--panel2) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+html[data-theme="light"] body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open:hover:not(:focus-within),
+html[data-theme="light"] body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open:focus-within,
+html[data-theme="light"] body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open:active {
+  border-color: var(--line) !important;
+  background: #fff !important;
+}
+html body.live-view-page .section-card.queue-section #queueSearchPanel .queue-search-field-icon {
+  flex: 0 0 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  color: var(--muted) !important;
+}
+html body.live-view-page .section-card.queue-section #queueSearchPanel #queueListSearch {
+  display: block !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 36px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  line-height: 1.25 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html body.live-view-page .section-card.queue-section #queueSearchPanel #queueListSearch::placeholder {
+  color: var(--muted) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  opacity: .85 !important;
+}
+@media (max-width: 560px) {
+  html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open {
+    height: 36px !important;
+    min-height: 36px !important;
+  }
+  html body.live-view-page .section-card.queue-section #queueSearchPanel #queueListSearch {
+    height: 32px !important;
+    font-size: 16px !important;
+  }
+  html body.live-view-page .section-card.queue-section #queueSearchPanel #queueListSearch::placeholder {
+    font-size: 12px !important;
+  }
+}
+
+/* Search and filter triggers do not gain a colored hover surface. */
+html body.live-view-page .section-card.queue-section .queue-search-toggle:hover,
+html body.live-view-page .section-card.queue-section .queue-search-toggle:active {
+  border: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+/* Filter buttons stay neutral in idle, hover, active, and open states. */
+html body.live-view-page .section-card .live-ranking-filter-toggle,
+html body.live-view-page .section-card .live-matches-filter-toggle,
+html body.live-view-page .section-card .live-ranking-filter-toggle:hover,
+html body.live-view-page .section-card .live-matches-filter-toggle:hover,
+html body.live-view-page .section-card .live-ranking-filter-toggle:active,
+html body.live-view-page .section-card .live-matches-filter-toggle:active,
+html body.live-view-page .section-card .live-ranking-filter-toggle.is-open,
+html body.live-view-page .section-card .live-matches-filter-toggle.is-open {
+  border-color: var(--line) !important;
+  background: var(--panel) !important;
+  color: var(--muted) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+/* Give every Live View search field the same clear rounded active edge.
+   This intentionally overrides the earlier neutral focus-border reset above. */
+html body.live-view-page .section-card .live-ranking-searchbar:focus-within,
+html body.live-view-page .section-card .live-matches-searchbar:focus-within,
+html body.live-view-page .section-card .live-matchup-search-wrap:focus-within {
+  border: 1px solid #007bff !important;
+  border-color: #007bff !important;
+  border-style: solid !important;
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
+  background: var(--panel2) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Queue search has a more-specific neutral open/focus rule, so restore the
+   same active border explicitly for that wrapper as well. */
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open:focus-within,
+html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open:active {
+  border: 1px solid #007bff !important;
+  border-color: #007bff !important;
+  border-style: solid !important;
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+@media (max-width: 560px) {
+  html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+
+/* QUEUE SEARCH ACTIVE EDGE — make the queue wrapper react to the focused input.
+   The slot + panel state selector outranks the older neutral-border overrides. */
+html body.live-view-page .section-card.queue-section #queueSearchSlot.queue-search-slot.is-open #queueSearchPanel.queue-search-panel.is-open:focus-within {
+  border: 1px solid #007bff !important;
+  border-color: #007bff !important;
+  border-style: solid !important;
+  border-radius: 9999px !important;
+  -webkit-border-radius: 9999px !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+html[data-theme="light"] body.live-view-page .section-card.queue-section #queueSearchSlot.queue-search-slot.is-open #queueSearchPanel.queue-search-panel.is-open:focus-within {
+  border-color: #007bff !important;
+  background: #fff !important;
+}
+</style>
+
+
+<style id="mobile-queue-player-wrap-flow-20261109">
+  /* Flatten the metadata wrapper by default to preserve the existing
+     iPad/desktop flex layout exactly. Phones group these details together. */
+  html body.live-view-page .queue-player-meta {
+    display: contents;
+  }
+
+  @media (max-width: 560px) {
+    html body.live-view-page .section-card.queue-section #queueList .queue-player-line {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      column-gap: 5px !important;
+      row-gap: 3px !important;
+    }
+
+    html body.live-view-page .section-card.queue-section #queueList .queue-player-line > .queue-player {
+      flex: 0 1 auto !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      white-space: normal !important;
+      word-break: normal !important;
+      overflow-wrap: anywhere !important;
+      line-height: 1.3 !important;
+    }
+
+    html body.live-view-page .section-card.queue-section #queueList .queue-player-line > .queue-player-meta {
+      display: inline-flex !important;
+      flex: 0 0 auto !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      gap: 4px !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      white-space: nowrap !important;
+    }
+  }
+</style>
+
+
+  <style id="mobile-queue-search-input-fix-20261109">
+    /* Phone-only queue search alignment and matching placeholder/typed text size.
+       The input uses a 16px computed font to prevent iOS Safari focus zoom;
+       scaling it to 75% makes both placeholder and typed text appear as 12px. */
+    @media (max-width: 767px) {
+      html body.live-view-page .section-card.queue-section #queueSearchPanel #queueListSearch {
+        display: block !important;
+        flex: 0 0 calc((100% - 25px) * 1.333333) !important;
+        width: calc((100% - 25px) * 1.333333) !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: 40px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-size: 16px !important;
+        font-weight: 400 !important;
+        letter-spacing: 0 !important;
+        line-height: 1.2 !important;
+        text-align: left !important;
+        text-indent: 0 !important;
+        direction: ltr !important;
+        vertical-align: middle !important;
+        align-self: center !important;
+        transform: scale(.75) !important;
+        transform-origin: left center !important;
+        -webkit-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
+      }
+      html body.live-view-page .section-card.queue-section #queueSearchPanel #queueListSearch::placeholder,
+      html body.live-view-page .section-card.queue-section #queueSearchPanel #queueListSearch::-webkit-input-placeholder {
+        font-size: 16px !important;
+        font-weight: 400 !important;
+        letter-spacing: 0 !important;
+        line-height: 1.2 !important;
+        text-align: left !important;
+        opacity: .85 !important;
+      }
+    }
+  </style>
+
+  <style id="mobile-ranking-matches-search-input-fix-20261109">
+    /* Match the mobile queue search behavior on Rankings and Matches.
+       Inputs retain a 16px computed font to prevent iOS Safari auto-zoom,
+       then scale to a compact 12px visual size with the placeholder aligned
+       at the true left/start edge. The filter button remains in its position. */
+    @media (max-width: 767px) {
+      html body.live-view-page .section-card .live-ranking-searchbar,
+      html body.live-view-page .section-card .live-matches-searchbar {
+        --pp-search-expanded-width: 85.333333px;
+        --pp-search-negative-margin-base: 21.333333px;
+      }
+
+      html body.live-view-page .section-card .live-ranking-searchbar #pageRankingSearch,
+      html body.live-view-page .section-card .live-matches-searchbar #pageMatchesSearch {
+        display: block !important;
+        flex: 0 0 calc(133.333333% - var(--pp-search-expanded-width)) !important;
+        width: calc(133.333333% - var(--pp-search-expanded-width)) !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: 40px !important;
+        margin: 0 !important;
+        margin-right: calc(var(--pp-search-negative-margin-base) - 33.333333%) !important;
+        padding: 0 !important;
+        font-size: 16px !important;
+        font-weight: 400 !important;
+        letter-spacing: 0 !important;
+        line-height: 1.2 !important;
+        text-align: left !important;
+        text-indent: 0 !important;
+        direction: ltr !important;
+        vertical-align: middle !important;
+        align-self: center !important;
+        transform: scale(.75) !important;
+        transform-origin: left center !important;
+        -webkit-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
+        -webkit-text-fill-color: currentColor !important;
+      }
+
+      html body.live-view-page .section-card .live-ranking-searchbar #pageRankingSearch::placeholder,
+      html body.live-view-page .section-card .live-ranking-searchbar #pageRankingSearch::-webkit-input-placeholder,
+      html body.live-view-page .section-card .live-matches-searchbar #pageMatchesSearch::placeholder,
+      html body.live-view-page .section-card .live-matches-searchbar #pageMatchesSearch::-webkit-input-placeholder {
+        font-size: 16px !important;
+        font-weight: 400 !important;
+        letter-spacing: 0 !important;
+        line-height: 1.2 !important;
+        text-align: left !important;
+        opacity: .85 !important;
+      }
+    }
+
+    /* The filter button is 28px wide at phone widths; adjust the available
+       search-field calculation so the button and icon stay exactly in place. */
+    @media (max-width: 560px) {
+      html body.live-view-page .section-card .live-ranking-searchbar,
+      html body.live-view-page .section-card .live-matches-searchbar {
+        --pp-search-expanded-width: 82.666667px;
+        --pp-search-negative-margin-base: 20.666667px;
+      }
+    }
+  </style>
+
+  <style id="unified-live-search-control-size-20261109">
+    /* Keep the visible search controls the same height as the queue search.
+       The queue panel is 35px on tablet/desktop and 36px on narrow phones;
+       Rankings, Matches, and the two-player matchup row follow that sizing. */
+    html body.live-view-page .section-card.queue-section #queueSearchPanel.queue-search-panel.is-open,
+    html body.live-view-page .section-card .live-ranking-searchbar,
+    html body.live-view-page .section-card .live-matches-searchbar {
+      box-sizing: border-box !important;
+      height: 35px !important;
+      min-height: 35px !important;
+      max-height: 35px !important;
+      align-items: center !important;
+    }
+
+    html body.live-view-page .section-card .live-ranking-searchbar #pageRankingSearch,
+    html body.live-view-page .section-card .live-matches-searchbar #pageMatchesSearch,
+    html body.live-view-page .section-card #pageMatchesFilterControls .live-matchup-search-wrap input {
+      box-sizing: border-box !important;
+      min-width: 0 !important;
+      height: 100% !important;
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      font-family: var(--pp-search-font, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif) !important;
+      font-size: 12px !important;
+      font-style: normal !important;
+      font-weight: 400 !important;
+      letter-spacing: 0 !important;
+      line-height: 1.25 !important;
+      text-align: left !important;
+      text-indent: 0 !important;
+      direction: ltr !important;
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      -webkit-text-size-adjust: 100% !important;
+      text-size-adjust: 100% !important;
+    }
+
+    html body.live-view-page .section-card .live-ranking-searchbar #pageRankingSearch::placeholder,
+    html body.live-view-page .section-card .live-ranking-searchbar #pageRankingSearch::-webkit-input-placeholder,
+    html body.live-view-page .section-card .live-matches-searchbar #pageMatchesSearch::placeholder,
+    html body.live-view-page .section-card .live-matches-searchbar #pageMatchesSearch::-webkit-input-placeholder,
+    html body.live-view-page .section-card #pageMatchesFilterControls .live-matchup-search-wrap input::placeholder,
+    html body.live-view-page .section-card #pageMatchesFilterControls .live-matchup-search-wrap input::-webkit-input-placeholder {
+      font-family: var(--pp-search-font, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif) !important;
+      font-size: 12px !important;
+      font-style: normal !important;
+      font-weight: 400 !important;
+      letter-spacing: 0 !important;
+      line-height: 1.25 !important;
+      text-align: left !important;
+      opacity: .85 !important;
+    }
+
+    /* The two-player filter row and its input capsules match the queue search
+       height as well, without changing the existing VS column or grid spacing. */
+    html body.live-view-page .section-card #pageMatchesFilterControls.live-matches-filter-controls {
+      box-sizing: border-box !important;
+      height: 35px !important;
+      min-height: 35px !important;
+      max-height: 35px !important;
+      align-items: center !important;
+    }
+    html body.live-view-page .section-card #pageMatchesFilterControls .live-matchup-search-wrap {
+      box-sizing: border-box !important;
+      height: 35px !important;
+      min-height: 35px !important;
+      max-height: 35px !important;
+      align-items: center !important;
+    }
+
+    /* The queue search gains a 1px height increase on narrow phones; mirror it
+       so all three live-page search areas stay level at those widths too. */
+    @media (max-width: 560px) {
+      html body.live-view-page .section-card .live-ranking-searchbar,
+      html body.live-view-page .section-card .live-matches-searchbar,
+      html body.live-view-page .section-card #pageMatchesFilterControls.live-matches-filter-controls,
+      html body.live-view-page .section-card #pageMatchesFilterControls .live-matchup-search-wrap {
+        height: 36px !important;
+        min-height: 36px !important;
+        max-height: 36px !important;
+      }
+    }
+
+    /* Touch devices keep a 16px computed input font to prevent iOS Safari zoom.
+       A 0.75 visual scale makes both typed text and placeholders appear at the
+       same compact 12px size as queueListSearch. */
+    @media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+      html body.live-view-page .section-card .live-ranking-searchbar #pageRankingSearch,
+      html body.live-view-page .section-card .live-matches-searchbar #pageMatchesSearch,
+      html body.live-view-page .section-card #pageMatchesFilterControls .live-matchup-search-wrap input {
+        height: 40px !important;
+        font-size: 16px !important;
+        font-weight: 400 !important;
+        line-height: 1.2 !important;
+        transform: scale(.75) !important;
+        transform-origin: left center !important;
+        -webkit-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
+      }
+
+      html body.live-view-page .section-card .live-ranking-searchbar #pageRankingSearch::placeholder,
+      html body.live-view-page .section-card .live-ranking-searchbar #pageRankingSearch::-webkit-input-placeholder,
+      html body.live-view-page .section-card .live-matches-searchbar #pageMatchesSearch::placeholder,
+      html body.live-view-page .section-card .live-matches-searchbar #pageMatchesSearch::-webkit-input-placeholder,
+      html body.live-view-page .section-card #pageMatchesFilterControls .live-matchup-search-wrap input::placeholder,
+      html body.live-view-page .section-card #pageMatchesFilterControls .live-matchup-search-wrap input::-webkit-input-placeholder {
+        font-size: 16px !important;
+        font-weight: 400 !important;
+        line-height: 1.2 !important;
+      }
+
+      html body.live-view-page .section-card #pageMatchesFilterControls .live-matchup-search-wrap input {
+        flex: 0 0 133.333333% !important;
+        width: 133.333333% !important;
+        max-width: none !important;
+        margin-right: -33.333333% !important;
+        padding: 0 !important;
+      }
+    }
+
+    /* iPad/touch-width primary search fields retain their reserved icon and
+       filter-button space while compensating for the 0.75 visual text scale.
+       Phone-specific sizing above remains untouched. */
+    @media (min-width: 768px) and (max-width: 1024px),
+           (min-width: 768px) and (pointer: coarse),
+           (min-width: 768px) and (any-pointer: coarse) {
+      html body.live-view-page .section-card .live-ranking-searchbar,
+      html body.live-view-page .section-card .live-matches-searchbar {
+        --pp-search-expanded-width: 85.333333px;
+        --pp-search-negative-margin-base: 21.333333px;
+      }
+      html body.live-view-page .section-card .live-ranking-searchbar #pageRankingSearch,
+      html body.live-view-page .section-card .live-matches-searchbar #pageMatchesSearch {
+        flex: 0 0 calc(133.333333% - var(--pp-search-expanded-width)) !important;
+        width: calc(133.333333% - var(--pp-search-expanded-width)) !important;
+        max-width: none !important;
+        margin-right: calc(var(--pp-search-negative-margin-base) - 33.333333%) !important;
+      }
+    }
+  </style>
 </head>
 <body class="live-view-page">
   <header class="live-header">
@@ -86,10 +685,15 @@
       </div>
       <div class="mobile-live-header-actions" aria-label="Live view actions">
         <button class="mobile-header-icon-button" type="button" data-live-tab="rankings" aria-label="Leaderboard" aria-selected="false" title="Leaderboard">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 4h8v4a4 4 0 0 1-8 0V4Z"/><path d="M8 6H4v2a4 4 0 0 0 4 4M16 6h4v2a4 4 0 0 1-4 4M12 12v5M8 21h8M10 17h4v4h-4z"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trophy preview-icon" aria-hidden="true" focusable="false"><path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2"/><path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2"/><path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3"/><path d="M4 22h16"/><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"/></svg>
         </button>
         <button class="mobile-header-icon-button" type="button" data-live-tab="matches" aria-label="Matches" aria-selected="false" title="Matches">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 3.5h10a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6M9 16h4"/><path d="M3 6.5v12a2 2 0 0 0 2 2"/></svg>
+          <span class="matches-notification-badge" id="mobileMatchesNotificationBadge" aria-label="0 new finished matches" hidden>0</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-swatch-book preview-icon" aria-hidden="true" focusable="false"><path d="M11 17a4 4 0 0 1-8 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2Z"/><path d="M16.7 13H19a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H7"/><path d="M 7 17h.01"/><path d="m11 8 2.3-2.3a2.4 2.4 0 0 1 3.404.004L18.6 7.6a2.4 2.4 0 0 1 .026 3.434L9.9 19.8"/></svg>
+        </button>
+        <button id="livePageThemeToggle" class="mobile-header-icon-button live-theme-icon-button" type="button" aria-pressed="false" aria-label="Switch to dark mode" title="Switch to dark mode">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun preview-icon live-theme-icon live-theme-icon-sun" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41-1.41"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon preview-icon live-theme-icon live-theme-icon-moon" aria-hidden="true" focusable="false"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
         </button>
         <span id="mobileLiveStatus" class="mobile-live-status" aria-live="polite"><i aria-hidden="true"></i><span>LIVE</span></span>
       </div>
@@ -128,10 +732,10 @@
             </div>
             <div class="court-section-heading-actions">
               <button id="courtLayoutToggle" class="court-layout-toggle" type="button" hidden aria-controls="courtsList" aria-pressed="false" aria-label="Switch courts to horizontal scrolling" title="Switch courts to horizontal scrolling">
-                <svg class="court-layout-icon court-layout-icon-horizontal" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.5" y="4" width="13" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 7.2h9M5.5 10h9M5.5 12.8h9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                <svg class="court-layout-icon court-layout-icon-vertical" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.4" y="6.3" width="2.1" height="7.4" rx="0.35" fill="currentColor"/><rect x="7" y="4.1" width="6" height="11.8" rx="0.7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.7 6.4h2.6M8.7 13.5h2.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x="14.5" y="6.3" width="2.1" height="7.4" rx="0.35" fill="currentColor"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="court-layout-icon court-layout-icon-horizontal lucide lucide-unfold-horizontal" aria-hidden="true" focusable="false"><path d="M16 12h6"/><path d="M8 12H2"/><path d="M12 2v2"/><path d="M12 8v2"/><path d="M12 14v2"/><path d="M12 20v2"/><path d="m19 15 3-3-3-3"/><path d="m5 9-3 3 3 3"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="court-layout-icon court-layout-icon-vertical lucide lucide-unfold-vertical" aria-hidden="true" focusable="false"><path d="M12 22v-6"/><path d="M12 8V2"/><path d="M4 12H2"/><path d="M10 12H8"/><path d="M16 12h-2"/><path d="M22 12h-2"/><path d="m15 19-3 3-3-3"/><path d="m15 5-3-3-3 3"/></svg>
               </button>
-              <button id="courtCollapseAllToggle" class="court-collapse-all-toggle" type="button" hidden aria-controls="courtsList" aria-expanded="false" aria-label="Expand all courts" title="Expand all courts" disabled>Expand all</button>
+              <button id="courtCollapseAllToggle" class="court-collapse-all-toggle" type="button" hidden aria-controls="courtsList" aria-expanded="false" aria-label="Expand all courts" title="Expand all courts" disabled><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="court-collapse-all-icon court-collapse-icon-expand lucide lucide-list-chevrons-up-down" aria-hidden="true" focusable="false"><path d="M3 5h8"/><path d="M3 12h8"/><path d="M3 19h8"/><path d="m15 8 3-3 3 3"/><path d="m15 16 3 3 3-3"/></svg><span class="court-collapse-all-label">Expand all</span></button>
             </div>
           </div>
           <div id="courtsList" class="courts-grid"><div class="empty-state">Waiting for court information…</div></div>
@@ -143,9 +747,6 @@
           <div class="section-heading queue-section-heading">
             <h2><span class="queue-heading-label">QUEUE</span><span class="queue-heading-separator" aria-hidden="true">·</span><span id="queueSectionCount" class="queue-waiting-count">0 WAITING</span></h2>
             <div class="queue-heading-actions">
-              <span class="queue-waiting-icon" aria-hidden="true">
-                <svg viewBox="0 0 12 12" focusable="false"><path d="M3.25 1.5h5.5M3.25 10.5h5.5M4 2.1c0 1.5 2 1.6 2 3.9s-2 2.4-2 3.9M8 2.1c0 1.5-2 1.6-2 3.9s2 2.4 2 3.9" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
-              </span>
               <button id="queueSearchToggle" class="queue-search-toggle" type="button" aria-controls="queueSearchPanel" aria-expanded="false" aria-label="Show queue search" title="Search players in queue">
                 <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
               </button>
@@ -153,8 +754,8 @@
             </div>
           </div>
           <div id="queueSearchSlot" class="queue-search-slot" hidden>
-            <label id="queueSearchPanel" class="queue-search-panel" for="queueListSearch" hidden>
-              <svg class="queue-search-field-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <label id="queueSearchPanel" class="queue-search-panel live-tab-search live-ranking-searchbar" for="queueListSearch" hidden>
+              <svg class="queue-search-field-icon live-tab-search-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
               <input id="queueListSearch" type="search" placeholder="Search queue player..." aria-label="Search players in queue" autocomplete="off" spellcheck="false">
             </label>
           </div>
@@ -170,10 +771,10 @@
             </div>
             <div class="court-section-heading-actions waiting-court-section-heading-actions">
               <button id="waitingCourtLayoutToggle" class="court-layout-toggle" type="button" hidden aria-controls="waitingCourtsList" aria-pressed="false" aria-label="Switch waiting courts to horizontal scrolling" title="Switch waiting courts to horizontal scrolling">
-                <svg class="court-layout-icon court-layout-icon-horizontal" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.5" y="4" width="13" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 7.2h9M5.5 10h9M5.5 12.8h9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                <svg class="court-layout-icon court-layout-icon-vertical" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3.4" y="6.3" width="2.1" height="7.4" rx="0.35" fill="currentColor"/><rect x="7" y="4.1" width="6" height="11.8" rx="0.7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.7 6.4h2.6M8.7 13.5h2.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x="14.5" y="6.3" width="2.1" height="7.4" rx="0.35" fill="currentColor"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="court-layout-icon court-layout-icon-horizontal lucide lucide-unfold-horizontal" aria-hidden="true" focusable="false"><path d="M16 12h6"/><path d="M8 12H2"/><path d="M12 2v2"/><path d="M12 8v2"/><path d="M12 14v2"/><path d="M12 20v2"/><path d="m19 15 3-3-3-3"/><path d="m5 9-3 3 3 3"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="court-layout-icon court-layout-icon-vertical lucide lucide-unfold-vertical" aria-hidden="true" focusable="false"><path d="M12 22v-6"/><path d="M12 8V2"/><path d="M4 12H2"/><path d="M10 12H8"/><path d="M16 12h-2"/><path d="M22 12h-2"/><path d="m15 19-3 3-3-3"/><path d="m15 5-3-3-3 3"/></svg>
               </button>
-              <button id="waitingCourtsCollapseToggle" class="court-collapse-all-toggle waiting-courts-collapse-toggle" type="button" hidden aria-controls="waitingCourtsList" aria-expanded="false" aria-label="Expand all waiting courts" title="Expand all waiting courts">Expand all</button>
+              <button id="waitingCourtsCollapseToggle" class="court-collapse-all-toggle waiting-courts-collapse-toggle" type="button" hidden aria-controls="waitingCourtsList" aria-expanded="false" aria-label="Expand all waiting courts" title="Expand all waiting courts"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="court-collapse-all-icon court-collapse-icon-expand lucide lucide-list-chevrons-up-down" aria-hidden="true" focusable="false"><path d="M3 5h8"/><path d="M3 12h8"/><path d="M3 19h8"/><path d="m15 8 3-3 3 3"/><path d="m15 16 3 3 3-3"/></svg><span class="court-collapse-all-label">Expand all</span></button>
             </div>
           </div>
           <div id="waitingCourtsList" class="courts-grid" aria-hidden="false"></div>
@@ -183,12 +784,12 @@
 
     <section id="liveRankingsPanel" class="live-tab-panel" role="tabpanel" aria-labelledby="rankingsTab" data-live-panel="rankings" hidden>
       <section class="section-card live-tab-card">
-        <div class="section-heading live-tab-section-heading"><div><h2>🏆 Rankings</h2><p>Player standings from recorded matches.</p></div></div>
+        <div class="section-heading live-tab-section-heading"><div><h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="live-tab-heading-icon lucide lucide-trophy" aria-hidden="true" focusable="false"><path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2"/><path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2"/><path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3"/><path d="M4 22h16"/><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"/></svg><span>Rankings</span></h2><p>Player standings from recorded matches.</p></div></div>
         <div class="live-tab-search live-ranking-searchbar" role="search">
           <svg class="live-tab-search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
           <input id="pageRankingSearch" type="search" placeholder="Search player name..." aria-label="Search player rankings" autocomplete="off" spellcheck="false">
           <button id="pageRankingFilterToggle" class="live-ranking-filter-toggle" type="button" aria-expanded="false" aria-controls="pageRankingFilterControls" aria-label="Open ranking filters" title="Open ranking filters">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-filter-plus" aria-hidden="true" focusable="false"><path d="M12 5H2"/><path d="M6 12h12"/><path d="M9 19h6"/><path d="M16 5h6"/><path d="M19 8V2"/></svg>
           </button>
         </div>
         <div id="pageRankingFilterControls" class="live-ranking-filter-controls" aria-label="Ranking filters" hidden>
@@ -206,27 +807,32 @@
             <button type="button" class="leaderboard-filter-chip player-lockin" data-live-ranking-scope="LOCK_IN" aria-pressed="false"><span class="leaderboard-filter-lock-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="4.5" y="10" width="15" height="11" rx="2.3"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/><circle cx="12" cy="15" r="1.2"/></svg></span>Lock-in</button>
           </div>
         </div>
-        <div id="pageRankingList" class="live-ranking-list live-ranking-page-list" aria-live="polite"><div class="live-ranking-empty">Complete a match to start the ranking.</div></div>
+        <div id="pageRankingList" class="live-ranking-list live-ranking-page-list" aria-live="polite"><div class="live-ranking-empty"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="live-ranking-empty-icon lucide lucide-user-search preview-icon" aria-hidden="true" focusable="false"><circle cx="10" cy="7" r="4"/><path d="M10.3 15H7a4 4 0 0 0-4 4v2"/><circle cx="17" cy="17" r="3"/><path d="m21 21-1.9-1.9"/></svg><strong>No ranking standings yet</strong><span>Complete a recorded match to start the live ranking.</span></div></div>
       </section>
     </section>
 
     <section id="liveMatchesPanel" class="live-tab-panel" role="tabpanel" aria-labelledby="matchesTab" data-live-panel="matches" hidden>
       <section class="section-card live-tab-card">
-        <div class="section-heading live-tab-section-heading"><div><h2>🏓 Matches <span id="matchesSectionCount" class="panel-count">(0)</span></h2><p>Most recent match results.</p></div></div>
+        <div class="section-heading live-tab-section-heading"><div><h2><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="live-tab-heading-icon lucide lucide-swatch-book" aria-hidden="true" focusable="false"><path d="M11 17a4 4 0 0 1-8 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2Z"/><path d="M16.7 13H19a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H7"/><path d="M 7 17h.01"/><path d="m11 8 2.3-2.3a2.4 2.4 0 0 1 3.404.004L18.6 7.6a2.4 2.4 0 0 1 .026 3.434L9.9 19.8"/></svg><span>Matches</span> <span id="matchesSectionCount" class="panel-count">(0)</span></h2><p>Most recent match results.</p></div></div>
         <div class="live-tab-search live-matches-searchbar" role="search">
           <svg class="live-tab-search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
           <input id="pageMatchesSearch" type="search" placeholder="Search player name..." aria-label="Search match results by player name" autocomplete="off" spellcheck="false">
-          <button class="live-ranking-filter-toggle live-matches-filter-toggle" type="button" disabled aria-disabled="true" aria-label="Match filters are not available yet" title="Filters are not available yet">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg>
+          <button id="pageMatchesFilterToggle" class="live-ranking-filter-toggle live-matches-filter-toggle" type="button" aria-expanded="false" aria-controls="pageMatchesFilterControls" aria-label="Open matchup filters" title="Filter matches by two opposing players">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-filter-plus" aria-hidden="true" focusable="false"><path d="M12 5H2"/><path d="M6 12h12"/><path d="M9 19h6"/><path d="M16 5h6"/><path d="M19 8V2"/></svg>
           </button>
         </div>
-        <div id="matchesList" class="live-matches-list" aria-live="polite"><div class="empty-state">No recorded matches yet.</div></div>
+        <div id="pageMatchesFilterControls" class="live-matches-filter-controls" aria-label="Find matches between two players" hidden>
+          <label class="live-matchup-search-wrap"><input id="pageMatchesNameOne" type="search" placeholder="e.g. name" aria-label="First opposing player name" autocomplete="off" spellcheck="false"></label>
+          <span class="live-matchup-vs" aria-hidden="true">VS</span>
+          <label class="live-matchup-search-wrap"><input id="pageMatchesNameTwo" type="search" placeholder="e.g. name" aria-label="Second opposing player name" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <div id="matchesList" class="live-matches-list" aria-live="polite"><div class="live-ranking-empty"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="live-ranking-empty-icon lucide lucide-file-search-corner preview-icon" aria-hidden="true" focusable="false"><path d="M11.1 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.589 3.588A2.4 2.4 0 0 1 20 8v3.25"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="m21 22-2.88-2.88"/><circle cx="16" cy="17" r="3"/></svg><strong>No recorded matches yet</strong><span>Finished matches will appear here after they are recorded.</span></div></div>
       </section>
     </section>
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
     </main>
   </div>
-  <script src="live-view.js?v=avatar-sync-20261029-2&court-scroll-all-devices-20261104-2&mouse-drag-scroll-20261104-1&live-header-unified-transparent-icons-20261105-4&court-layout-mobile-no-flip-20261105-2&court-layout-scroll-anchor-stable-20261105-1&court-collapse-status-diagram-20261105-1&court-timer-refresh-stability-20261105-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-card-collapse-20261105-2&court-heading-toggle-threshold-20261105-1&court-fixed-shell-20261106-1&live-connection-single-source-20261106-1&live-ranking-filters-20261106-1&court-expanded-flow-layout-20261106-1" defer></script>
+  <script src="live-view.js?v=live-audit-cleanup-20261109-1&avatar-sync-20261029-2&court-scroll-all-devices-20261104-2&mouse-drag-scroll-20261104-1&live-header-unified-transparent-icons-20261105-4&court-layout-mobile-no-flip-20261105-2&court-layout-scroll-anchor-stable-20261105-1&court-collapse-status-diagram-20261105-1&court-timer-refresh-stability-20261105-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-card-collapse-20261105-2&court-heading-toggle-threshold-20261105-1&court-fixed-shell-20261106-1&live-connection-single-source-20261106-1&live-ranking-filters-20261106-1&court-expanded-flow-layout-20261106-1&matchup-search=20261107-3&matchup-search-highlight=20261107-1&live-stable-search-theme-20261107-1&ranking-lock-inline=20261107-3&queue-lock-partner-snapshot=20261107-1&queue-player-mobile-wrap=20261109-1&live-header-theme-icon=20261109-1&court-layout-collapse-svg-icons=20261109-1&live-heading-empty-svg-icons=20261109-1&matches-single-renderer-20261109-1&live-search-empty-state-svg-icons-20261109-2" defer></script>
 
   <script id="live-page-only-interaction-fixes">
     (() => {
@@ -242,14 +848,43 @@
       }, true);
 
       // Use a dedicated scroll container only while Rankings or Matches is selected.
-      const panelIds = ['liveQueuePanel', 'liveRankingsPanel', 'liveMatchesPanel'];
+      const panelIds = ['liveRankingsPanel', 'liveMatchesPanel'];
       const panels = panelIds.map(id => document.getElementById(id)).filter(Boolean);
       const syncPanelScrollMode = () => {
-        const listPanelIsOpen = ['liveRankingsPanel', 'liveMatchesPanel'].some(id => {
-          const panel = document.getElementById(id);
-          return panel && !panel.hidden;
-        });
+        const rankingPanel = document.getElementById('liveRankingsPanel');
+        const matchesPanel = document.getElementById('liveMatchesPanel');
+        const rankingToggle = document.getElementById('pageRankingFilterToggle');
+        const matchesToggle = document.getElementById('pageMatchesFilterToggle');
+        const rankingIsOpen = Boolean(rankingPanel && !rankingPanel.hidden);
+        const matchesIsOpen = Boolean(matchesPanel && !matchesPanel.hidden);
+
+        const listPanelIsOpen = rankingIsOpen || matchesIsOpen;
         document.body.classList.toggle('live-list-scroll-mode', listPanelIsOpen);
+
+        // A filter control is available only while its own list panel is selected.
+        // Keep the disabled state in sync with the actual panel visibility so it
+        // cannot be activated while its Ranking or Matches view is switched off.
+        if (rankingToggle) {
+          rankingToggle.disabled = !rankingIsOpen;
+          rankingToggle.setAttribute('aria-disabled', String(!rankingIsOpen));
+        }
+        if (matchesToggle) {
+          matchesToggle.disabled = !matchesIsOpen;
+          matchesToggle.setAttribute('aria-disabled', String(!matchesIsOpen));
+        }
+
+        if (!rankingIsOpen) {
+          const controls = document.getElementById('pageRankingFilterControls');
+          controls?.setAttribute('hidden', '');
+          rankingToggle?.classList.remove('is-open');
+          rankingToggle?.setAttribute('aria-expanded', 'false');
+        }
+        if (!matchesIsOpen) {
+          const controls = document.getElementById('pageMatchesFilterControls');
+          controls?.setAttribute('hidden', '');
+          matchesToggle?.classList.remove('is-open');
+          matchesToggle?.setAttribute('aria-expanded', 'false');
+        }
       };
 
       const panelObserver = new MutationObserver(syncPanelScrollMode);
@@ -258,6 +893,56 @@
         attributeFilter: ['hidden']
       }));
       syncPanelScrollMode();
+
+      // Filters stay open when the user clicks elsewhere. They close only when
+      // their own icon is toggled, Escape is pressed, or the active card changes.
+      document.addEventListener('click', event => {
+        const tab = event.target.closest?.('[data-live-tab]');
+        if (!tab) return;
+        const activeTab = document.querySelector('nav.live-tabs [data-live-tab].is-active');
+        if (activeTab?.dataset.liveTab === tab.dataset.liveTab) return;
+
+        const rankingControls = document.getElementById('pageRankingFilterControls');
+        const rankingToggle = document.getElementById('pageRankingFilterToggle');
+        if (rankingControls && !rankingControls.hidden) {
+          rankingControls.hidden = true;
+          rankingToggle?.classList.remove('is-open');
+          rankingToggle?.setAttribute('aria-expanded', 'false');
+          rankingToggle?.setAttribute('aria-label', 'Open ranking filters');
+          if (rankingToggle) rankingToggle.title = 'Open ranking filters';
+        }
+
+        const matchupControls = document.getElementById('pageMatchesFilterControls');
+        const matchupToggle = document.getElementById('pageMatchesFilterToggle');
+        const matchupSearch = document.getElementById('pageMatchesSearch');
+        if (matchupControls && !matchupControls.hidden) {
+          matchupControls.hidden = true;
+          matchupSearch?.closest('.live-matches-searchbar')?.classList.remove('is-matchup-filter-open');
+          if (matchupSearch) matchupSearch.disabled = false;
+          matchupToggle?.classList.remove('is-open');
+          matchupToggle?.setAttribute('aria-expanded', 'false');
+          matchupToggle?.setAttribute('aria-label', 'Open matchup filters');
+          if (matchupToggle) matchupToggle.title = 'Filter matches by two opposing players';
+        }
+      }, true);
+
+      const rankingToggle = document.getElementById('pageRankingFilterToggle');
+      const rankingControls = document.getElementById('pageRankingFilterControls');
+      const closeRankingFilters = (restoreFocus = false) => {
+        if (!rankingControls || rankingControls.hidden) return;
+        rankingControls.hidden = true;
+        rankingToggle?.classList.remove('is-open');
+        rankingToggle?.setAttribute('aria-expanded', 'false');
+        rankingToggle?.setAttribute('aria-label', 'Open ranking filters');
+        if (rankingToggle) rankingToggle.title = 'Open ranking filters';
+        if (restoreFocus) rankingToggle?.focus();
+      };
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && rankingControls && !rankingControls.hidden) {
+          event.preventDefault();
+          closeRankingFilters(true);
+        }
+      });
 
     })();
   </script>
@@ -269,6 +954,10 @@
       const list = document.getElementById('matchesList');
       const count = document.getElementById('matchesSectionCount');
       const search = document.getElementById('pageMatchesSearch');
+      const matchupNameOne = document.getElementById('pageMatchesNameOne');
+      const matchupNameTwo = document.getElementById('pageMatchesNameTwo');
+      const matchupToggle = document.getElementById('pageMatchesFilterToggle');
+      const matchupControls = document.getElementById('pageMatchesFilterControls');
       if (!list || !count) return;
 
       const params = new URLSearchParams(location.search);
@@ -276,35 +965,88 @@
       let allHistoryMatches = [];
       let historyLoaded = false;
       let historyRevision = -1;
+      let historyDataVersion = 0;
       let totalMatchCount = null;
       // The queueing-page Live Matches switch is the source of truth.
       // Keep the flag from both the public live snapshot and the full app-state stream.
       let liveMatchesEnabled = null;
       let liveSessionActive = null;
+      let hasLiveSnapshotAvailability = false;
       let lastRenderedSignature = '';
-      let lastRenderedMarkup = '';
       let preservedScrollTop = 0;
       let appStateRequestInFlight = false;
-      let lastHistoryUpdateAt = 0;
       let appStateStream = null;
       let appStateStreamConnected = false;
+      const matchesShortcut = document.querySelector('.mobile-header-icon-button[data-live-tab="matches"]');
+      const notificationBadge = document.getElementById('mobileMatchesNotificationBadge');
+      const notificationStorageKey = `ppm-live-matches-seen:${organizerId || 'default'}`;
+      let knownFinishedMatchIds = new Set();
+      let notificationCount = 0;
+      let notificationBaselineReady = false;
+      try {
+        const savedNotifications = JSON.parse(localStorage.getItem(notificationStorageKey) || '{}');
+        notificationCount = Math.max(0, Number(savedNotifications.count) || 0);
+        knownFinishedMatchIds = new Set(Array.isArray(savedNotifications.knownIds) ? savedNotifications.knownIds.map(String) : []);
+        notificationBaselineReady = knownFinishedMatchIds.size > 0 || savedNotifications.initialized === true;
+      } catch (_) {}
+      const persistMatchNotifications = () => {
+        try {
+          localStorage.setItem(notificationStorageKey, JSON.stringify({
+            count: notificationCount,
+            knownIds: [...knownFinishedMatchIds].slice(-500),
+            initialized: notificationBaselineReady
+          }));
+        } catch (_) {}
+      };
+      const renderMatchNotificationBadge = () => {
+        if (!notificationBadge) return;
+        notificationBadge.textContent = notificationCount > 99 ? '99+' : String(notificationCount);
+        notificationBadge.hidden = notificationCount < 1;
+        notificationBadge.setAttribute('aria-label', `${notificationCount} new finished ${notificationCount === 1 ? 'match' : 'matches'}`);
+        if (matchesShortcut) matchesShortcut.title = notificationCount ? `${notificationCount} new finished ${notificationCount === 1 ? 'match' : 'matches'}` : 'Matches';
+      };
+      const acknowledgeFinishedMatches = () => {
+        if (!notificationCount) return;
+        notificationCount = 0;
+        persistMatchNotifications();
+        renderMatchNotificationBadge();
+      };
+      matchesShortcut?.addEventListener('click', acknowledgeFinishedMatches);
+      renderMatchNotificationBadge();
+      const trackNewFinishedMatches = logs => {
+        const ids = (Array.isArray(logs) ? logs : []).map(log => String(log?.id ?? '')).filter(Boolean);
+        if (!notificationBaselineReady) {
+          knownFinishedMatchIds = new Set(ids);
+          notificationBaselineReady = true;
+          persistMatchNotifications();
+          return;
+        }
+        let added = 0;
+        for (const id of ids) {
+          if (!knownFinishedMatchIds.has(id)) { knownFinishedMatchIds.add(id); added += 1; }
+        }
+        if (added) {
+          notificationCount += added;
+          persistMatchNotifications();
+          renderMatchNotificationBadge();
+        }
+      };
 
       const escapeText = value => String(value ?? '').replace(/[&<>"']/g, char => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       }[char]));
       const highlight = (value, query) => {
         const source = String(value ?? '');
-        const term = String(query ?? '').trim();
-        if (!term) return escapeText(source);
-        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(escaped, 'gi');
-        let output = '', cursor = 0, match;
-        while ((match = regex.exec(source)) !== null) {
-          output += escapeText(source.slice(cursor, match.index));
-          output += `<mark class="live-ranking-search-hit">${escapeText(match[0])}</mark>`;
-          cursor = regex.lastIndex;
-        }
-        return output + escapeText(source.slice(cursor));
+        const terms = [...new Set((Array.isArray(query) ? query : [query]).map(value => String(value ?? '').trim()).filter(Boolean))]
+          .sort((a, b) => b.length - a.length);
+        if (!terms.length) return escapeText(source);
+        const escapedTerms = terms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        const regex = new RegExp(`(${escapedTerms.join('|')})`, 'gi');
+        return source.split(regex).map(part =>
+          terms.some(term => part.toLocaleLowerCase() === term.toLocaleLowerCase())
+            ? `<mark class="live-ranking-search-hit">${escapeText(part)}</mark>`
+            : escapeText(part)
+        ).join('');
       };
       const apiUrl = (path, extra = {}) => {
         const url = new URL(path, location.origin);
@@ -374,96 +1116,240 @@
         ...(Array.isArray(match.team1Names) ? match.team1Names : []),
         ...(Array.isArray(match.team2Names) ? match.team2Names : [])
       ];
-      const getFilteredMatches = () => {
-        const needle = String(search?.value || '').trim().toLocaleLowerCase();
-        if (!needle) return allHistoryMatches;
-        return allHistoryMatches.filter(match => searchableNames(match)
-          .some(name => String(name || '').toLocaleLowerCase().includes(needle)));
+      const sideValues = (match, side) => {
+        const values = Array.isArray(match?.[`${side}Names`]) ? match[`${side}Names`].filter(Boolean).map(String) : [];
+        if (values.length) return values;
+        return [String(side === 'team1' ? (match?.winner || '') : (match?.loser || ''))].filter(Boolean);
       };
-      const render = () => {
-        const term = String(search?.value || '').trim();
-        const matches = getFilteredMatches();
+      const sideHasName = (match, side, query) => {
+        const needle = normalizePlayerName(query);
+        return !needle || sideValues(match, side).some(name => normalizePlayerName(name).includes(needle));
+      };
+      const matchupPasses = match => {
+        if (!matchupControls || matchupControls.hidden) return true;
+        const first = String(matchupNameOne?.value || '').trim();
+        const second = String(matchupNameTwo?.value || '').trim();
+        if (!first && !second) return true;
+        const firstOn1 = sideHasName(match, 'team1', first);
+        const firstOn2 = sideHasName(match, 'team2', first);
+        if (first && second) {
+          const secondOn1 = sideHasName(match, 'team1', second);
+          const secondOn2 = sideHasName(match, 'team2', second);
+          return (firstOn1 && secondOn2) || (firstOn2 && secondOn1);
+        }
+        const partial = first || second;
+        return sideHasName(match, 'team1', partial) || sideHasName(match, 'team2', partial);
+      };
+      const getFilteredMatches = () => {
+        const matchupFilterOpen = !!(matchupControls && !matchupControls.hidden);
+        const needle = matchupFilterOpen ? '' : String(search?.value || '').trim().toLocaleLowerCase();
+        return allHistoryMatches.filter(match => matchupPasses(match) && (!needle || searchableNames(match)
+          .some(name => String(name || '').toLocaleLowerCase().includes(needle))));
+      };
+      const MATCHES_EMPTY_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="live-ranking-empty-icon lucide lucide-file-search-corner preview-icon" aria-hidden="true" focusable="false"><path d="M11.1 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.589 3.588A2.4 2.4 0 0 1 20 8v3.25"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="m21 22-2.88-2.88"/><circle cx="16" cy="17" r="3"/></svg>';
+      const emptyMatchStateMarkup = (heading, message, secondaryMessage = '') => `
+        <div class="live-ranking-empty">${MATCHES_EMPTY_ICON}
+          <strong>${escapeText(heading)}</strong>
+          <span>${escapeText(message)}</span>
+          ${secondaryMessage ? `<span>${escapeText(secondaryMessage)}</span>` : ''}
+        </div>`;
+      const MATCHES_UNAVAILABLE_MARKUP = emptyMatchStateMarkup(
+        'Matches unavailable',
+        'Live matches are currently disabled for this moment.',
+        'Request on QM to enable the live matches.'
+      );
+      const NO_MATCHES_MARKUP = emptyMatchStateMarkup(
+        'No recorded matches yet',
+        'Finished matches will appear here after they are recorded.'
+      );
+      const render = (preserveScroll = true) => {
         const matchesAvailable = liveMatchesEnabled !== false && liveSessionActive !== false;
-        const countValue = !matchesAvailable
-          ? 0
-          : (historyLoaded
-            ? (term ? matches.length : Math.max(matches.length, totalMatchCount ?? 0))
-            : (totalMatchCount !== null ? totalMatchCount : list.querySelectorAll('.live-match-row').length));
+
+        // Fast path: when Live Matches is OFF, do not filter, serialize, or map
+        // the full match history. This keeps the page responsive even when the
+        // organizer has accumulated a large number of match records.
+        if (!matchesAvailable) {
+          if (count.textContent !== '(0)') count.textContent = '(0)';
+          if (list.innerHTML !== MATCHES_UNAVAILABLE_MARKUP) {
+            list.innerHTML = MATCHES_UNAVAILABLE_MARKUP;
+            list.scrollTop = 0;
+            preservedScrollTop = 0;
+          }
+          lastRenderedSignature = 'matches-unavailable';
+          return true;
+        }
+
+        // Until the full app-state is loaded, let the compact live snapshot
+        // renderer provide its small recent-match list as a fallback.
+        if (!historyLoaded) {
+          const fallbackCount = totalMatchCount !== null
+            ? totalMatchCount
+            : list.querySelectorAll('.live-match-row').length;
+          const nextCount = `(${Math.max(0, Number(fallbackCount) || 0)})`;
+          if (count.textContent !== nextCount) count.textContent = nextCount;
+          return false;
+        }
+
+        const matchupFilterOpen = !!(matchupControls && !matchupControls.hidden);
+        const term = matchupFilterOpen ? '' : String(search?.value || '').trim();
+        const firstTerm = matchupFilterOpen ? String(matchupNameOne?.value || '').trim() : '';
+        const secondTerm = matchupFilterOpen ? String(matchupNameTwo?.value || '').trim() : '';
+        const hasSearchFilter = !!(term || firstTerm || secondTerm);
+        const matches = getFilteredMatches();
+        const countValue = hasSearchFilter
+          ? matches.length
+          : Math.max(matches.length, totalMatchCount ?? 0);
         const nextCount = `(${Math.max(0, Number(countValue) || 0)})`;
         if (count.textContent !== nextCount) count.textContent = nextCount;
 
-        if (!historyLoaded) {
-          if (!matchesAvailable) {
-            const unavailableMarkup = '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>Matches unavailable</strong><span>Live matches are currently disabled for this moment.</span><span>Request on QM to enable the live matches.</span></div>';
-            if (list.innerHTML !== unavailableMarkup) {
-              list.innerHTML = unavailableMarkup;
-              list.scrollTop = 0;
-              preservedScrollTop = 0;
-            }
-            lastRenderedMarkup = unavailableMarkup;
-          }
-          return;
-        }
-
-        const signature = JSON.stringify([matchesAvailable, term, matches.map(match => [match.id, match.court, match.winner, match.loser, match.team1Names, match.team2Names, match.score, match.endedAt, match.duration])]);
-        if (signature === lastRenderedSignature && list.innerHTML === lastRenderedMarkup) return;
+        // Data version + filter terms are enough to identify a rendered result.
+        // Avoid JSON-stringifying every match (and its nested player arrays) on
+        // each live update; that became expensive for long-running sessions.
+        const signature = `${historyDataVersion}|${term}|${firstTerm}|${secondTerm}`;
+        if (signature === lastRenderedSignature) return true;
         lastRenderedSignature = signature;
 
         let markup;
-        if (!matchesAvailable) {
-          markup = '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>Matches unavailable</strong><span>Live matches are currently disabled for this moment.</span><span>Request on QM to enable the live matches.</span></div>';
-        } else if (!allHistoryMatches.length) {
-          markup = '<div class="live-ranking-empty"><span aria-hidden="true">🏓</span><strong>No recorded matches yet</strong><span>Finished matches will appear here after they are recorded.</span></div>';
+        if (!allHistoryMatches.length) {
+          markup = NO_MATCHES_MARKUP;
         } else if (!matches.length) {
-          markup = `<div class="live-ranking-empty"><span aria-hidden="true">🔎</span><strong>No matches found</strong><span>No player names match “${escapeText(term)}”. Try another name.</span></div>`;
+          const searchLabel = firstTerm && secondTerm ? `${firstTerm} vs ${secondTerm}` : (firstTerm || secondTerm || term);
+          markup = emptyMatchStateMarkup(
+            'No matches found',
+            `No matches found for “${searchLabel}”. Try another name.`
+          );
         } else {
           markup = matches.map(match => {
             const date = match.endedAt ? new Date(match.endedAt) : null;
             const endedAt = date && !Number.isNaN(date.getTime())
               ? date.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
             const meta = [endedAt, match.duration].filter(Boolean).join(' · ');
+            const highlightTerms = matchupFilterOpen ? [firstTerm, secondTerm] : term;
             return `<article class="live-match-row" data-history-match-id="${escapeText(match.id)}">
               <div class="live-match-topline"><strong>${escapeText(match.court)}</strong><span>${escapeText(meta)}</span></div>
-              <div class="live-match-result"><div class="live-match-winner"><span class="live-match-outcome">WINNER</span><strong>${highlight(match.winner || 'Winner not recorded', term)}</strong></div><span class="live-match-vs">VS</span><div class="live-match-loser"><span class="live-match-outcome">OPPONENT</span><strong>${highlight(match.loser || 'Opponent not recorded', term)}</strong></div></div>
+              <div class="live-match-result"><div class="live-match-winner"><span class="live-match-outcome">WINNER</span><strong>${highlight(match.winner || 'Winner not recorded', highlightTerms)}</strong></div><span class="live-match-vs">VS</span><div class="live-match-loser"><span class="live-match-outcome">OPPONENT</span><strong>${highlight(match.loser || 'Opponent not recorded', highlightTerms)}</strong></div></div>
               ${match.score ? `<div class="live-match-score">${escapeText(match.score)}</div>` : ''}
             </article>`;
           }).join('');
         }
-        if (list.innerHTML !== markup) {
-          // The built-in 12-item renderer may briefly replace this full history.
-          // Restore the user's last scroll position after reclaiming the list.
-          const scrollTop = list.innerHTML === lastRenderedMarkup ? list.scrollTop : preservedScrollTop;
-          list.innerHTML = markup;
-          list.scrollTop = Math.max(0, scrollTop || 0);
-          preservedScrollTop = list.scrollTop;
-        }
-        lastRenderedMarkup = markup;
+
+        const scrollTop = preserveScroll ? (list.scrollTop || preservedScrollTop) : 0;
+        list.innerHTML = markup;
+        list.scrollTop = Math.max(0, scrollTop || 0);
+        preservedScrollTop = list.scrollTop;
+        return true;
+      };
+
+      // One owner for matchesList: live-view.js calls this hook before using its
+      // 12-item snapshot renderer. Return false only while full history is not
+      // ready and the list is available, so the compact snapshot can be used.
+      window.PPM_renderFullMatchHistoryList = preserveScroll => {
+        if (preserveScroll === false) preservedScrollTop = 0;
+        if (!historyLoaded && liveMatchesEnabled !== false && liveSessionActive !== false) return false;
+        return render(preserveScroll !== false);
       };
       const applyFullHistory = payload => {
         const state = payload?.state;
         if (!state || !Array.isArray(state.logs)) return false;
+        trackNewFinishedMatches(state.logs);
+
         const revision = Number(payload?.revision);
         if (Number.isFinite(revision) && revision < historyRevision) return false;
+
+        const wasAvailable = liveMatchesEnabled !== false && liveSessionActive !== false;
+        // Once the public Live View snapshot has arrived, it is the authoritative
+        // source for ON/OFF availability. An app-state fetch can race the two
+        // queueing-page POST requests and briefly return the previous switch value.
+        const nextLiveMatchesEnabled = hasLiveSnapshotAvailability
+          ? liveMatchesEnabled
+          : (typeof state.liveMatchesEnabled === 'boolean'
+            ? state.liveMatchesEnabled
+            : (liveMatchesEnabled === null ? true : liveMatchesEnabled));
+        const nextSessionActive = hasLiveSnapshotAvailability
+          ? liveSessionActive
+          : (typeof state.sessionActive === 'boolean' ? state.sessionActive : liveSessionActive);
+        const willBeAvailable = nextLiveMatchesEnabled !== false && nextSessionActive !== false;
+        const availabilityChanged = wasAvailable !== willBeAvailable;
+        const sameRevision = Number.isFinite(revision) && revision === historyRevision;
+
+        liveMatchesEnabled = nextLiveMatchesEnabled;
+        liveSessionActive = nextSessionActive;
         if (Number.isFinite(revision)) historyRevision = revision;
-        if (typeof state.liveMatchesEnabled === 'boolean') liveMatchesEnabled = state.liveMatchesEnabled;
-        else if (liveMatchesEnabled === null) liveMatchesEnabled = true;
-        if (typeof state.sessionActive === 'boolean') liveSessionActive = state.sessionActive;
+        totalMatchCount = state.logs.length;
+
+        // A disabled list does not need the potentially large logs array mapped
+        // into display objects. Mark history as not loaded so turning it back on
+        // triggers a single fresh load instead of doing work while hidden.
+        if (!willBeAvailable) {
+          const hadHistory = historyLoaded || allHistoryMatches.length > 0;
+          historyLoaded = false;
+          if (hadHistory) {
+            allHistoryMatches = [];
+            historyDataVersion += 1;
+          }
+          if (availabilityChanged || hadHistory || lastRenderedSignature !== 'matches-unavailable') render(false);
+          return true;
+        }
+
+        // Repeated polling at the same app-state revision should not rebuild
+        // the entire history. A transition from OFF to ON still loads when
+        // historyLoaded is false.
+        if (sameRevision && historyLoaded && !availabilityChanged) return false;
+
         allHistoryMatches = state.logs.slice().reverse().map(log => logToMatch(log, state));
         historyLoaded = true;
-        totalMatchCount = allHistoryMatches.length;
-        lastHistoryUpdateAt = Date.now();
-        render();
+        historyDataVersion += 1;
+        lastRenderedSignature = '';
+        render(true);
         return true;
       };
       const applyLiveCount = state => {
         if (!state || typeof state !== 'object') return;
-        if (typeof state.liveMatchesEnabled === 'boolean') liveMatchesEnabled = state.liveMatchesEnabled;
-        if (typeof state.active === 'boolean') liveSessionActive = state.active;
+        const wasAvailable = liveMatchesEnabled !== false && liveSessionActive !== false;
+        const previousCount = totalMatchCount;
+        if (typeof state.liveMatchesEnabled === 'boolean') {
+          hasLiveSnapshotAvailability = true;
+          liveMatchesEnabled = state.liveMatchesEnabled;
+        }
+        if (typeof state.active === 'boolean') {
+          hasLiveSnapshotAvailability = true;
+          liveSessionActive = state.active;
+        }
         const value = Number(state.matchCount);
         if (Number.isFinite(value) && value >= 0) totalMatchCount = Math.floor(value);
-        // Apply the queueing-page switch immediately, even before the slower
-        // complete-history app-state event arrives.
-        render();
+        const isAvailable = liveMatchesEnabled !== false && liveSessionActive !== false;
+
+        if (wasAvailable !== isAvailable) {
+          lastRenderedSignature = '';
+          if (!isAvailable) {
+            // Release the full history when the feature is switched OFF. The
+            // list is unavailable, so retaining thousands of mapped rows only
+            // wastes memory until the feature is enabled again.
+            historyLoaded = false;
+            allHistoryMatches = [];
+            historyDataVersion += 1;
+          }
+          render(false);
+          return;
+        }
+
+        // Match-count heartbeats do not require filtering or rebuilding the
+        // full list. Keep the count current without touching the match rows.
+        if (!historyLoaded && totalMatchCount !== previousCount) {
+          if (!isAvailable) {
+            if (count.textContent !== '(0)') count.textContent = '(0)';
+          } else {
+            const nextCount = `(${Math.max(0, totalMatchCount || 0)})`;
+            if (count.textContent !== nextCount) count.textContent = nextCount;
+          }
+        } else if (historyLoaded && isAvailable && totalMatchCount !== previousCount) {
+          const hasActiveFilter = (!!matchupControls && !matchupControls.hidden)
+            || !!String(search?.value || '').trim();
+          if (!hasActiveFilter) {
+            const nextCount = `(${Math.max(allHistoryMatches.length, totalMatchCount || 0)})`;
+            if (count.textContent !== nextCount) count.textContent = nextCount;
+          }
+        }
       };
       const fetchFullHistory = async () => {
         if (appStateRequestInFlight || !organizerId || !['http:', 'https:'].includes(location.protocol)) return;
@@ -506,29 +1392,62 @@
       const ensureHistorySync = (refresh = false) => {
         if (!organizerId || !['http:', 'https:'].includes(location.protocol)) return;
         startHistoryStream();
+        // Stay subscribed so an ON change is received, but never download the
+        // entire log history while Live Matches is disabled or the session is off.
+        if (liveMatchesEnabled === false || liveSessionActive === false) return;
         if (refresh || !historyLoaded) fetchFullHistory();
       };
 
-      // live-view.js paints its 12-item public snapshot on each live update.
-      // Keep the full-history count/list authoritative when that renderer runs.
-      const countObserver = new MutationObserver(() => {
-        if (historyLoaded) render();
-        else if (totalMatchCount !== null) {
-          const expected = `(${totalMatchCount})`;
-          if (count.textContent !== expected) count.textContent = expected;
-        }
-      });
-      countObserver.observe(count, { childList: true, characterData: true, subtree: true });
-      const listObserver = new MutationObserver(() => {
-        if (historyLoaded && list.innerHTML !== lastRenderedMarkup) render();
-      });
-      listObserver.observe(list, { childList: true, subtree: true });
+      // Matches rendering is coordinated through PPM_renderFullMatchHistoryList;
+      // avoid observing child mutations that can trigger competing full re-renders.
 
       list.addEventListener('scroll', () => { preservedScrollTop = list.scrollTop; }, { passive: true });
-      search?.addEventListener('input', () => {
-        preservedScrollTop = 0;
-        list.scrollTop = 0;
+      const refreshMatchFilters = () => {
+        // Keep the user's current list position while the results update.
+        // Route through the Live View's single renderer so the compact recent
+        // snapshot remains usable until the full history has finished loading.
+        preservedScrollTop = list.scrollTop;
+        if (typeof window.PPM_refreshLiveMatches === 'function') {
+          window.PPM_refreshLiveMatches(true);
+          return;
+        }
         render();
+      };
+      matchupToggle?.addEventListener('click', () => {
+        if (!matchupControls) return;
+        const opening = matchupControls.hidden;
+        const searchbar = search?.closest('.live-matches-searchbar');
+        matchupControls.hidden = !opening;
+        searchbar?.classList.toggle('is-matchup-filter-open', opening);
+        if (search) search.disabled = opening;
+        matchupToggle.classList.toggle('is-open', opening);
+        matchupToggle.setAttribute('aria-expanded', String(opening));
+        matchupToggle.setAttribute('aria-label', opening ? 'Close matchup filters' : 'Open matchup filters');
+        matchupToggle.title = opening ? 'Hide matchup filters' : 'Filter matches by two opposing players';
+        // Keep both typed matchup values when the panel closes. They are ignored
+        // while closed and restored automatically the next time it opens.
+        refreshMatchFilters();
+        if (opening) matchupNameOne?.focus();
+        else search?.focus();
+      });
+
+      const closeMatchupFilters = (restoreFocus = false) => {
+        if (!matchupControls || matchupControls.hidden) return;
+        matchupControls.hidden = true;
+        search?.closest('.live-matches-searchbar')?.classList.remove('is-matchup-filter-open');
+        if (search) search.disabled = false;
+        matchupToggle?.classList.remove('is-open');
+        matchupToggle?.setAttribute('aria-expanded', 'false');
+        matchupToggle?.setAttribute('aria-label', 'Open matchup filters');
+        if (matchupToggle) matchupToggle.title = 'Filter matches by two opposing players';
+        refreshMatchFilters();
+        if (restoreFocus) matchupToggle?.focus();
+      };
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && matchupControls && !matchupControls.hidden) {
+          event.preventDefault();
+          closeMatchupFilters(true);
+        }
       });
       // live-view.js owns the only /api/live-state request and /api/live-events
       // stream. It shares the resolved organizer scope and current snapshot here.
@@ -555,6 +1474,7 @@
       window.setInterval(() => {
         if (document.visibilityState !== 'visible') return;
         startHistoryStream();
+        if (liveMatchesEnabled === false || liveSessionActive === false) return;
         if (!appStateStreamConnected) fetchFullHistory();
       }, 15000);
     })();
