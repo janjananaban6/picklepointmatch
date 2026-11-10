@@ -140,6 +140,54 @@ function accountByUsername(username) {
   const normalized = String(username || '').trim().toLocaleLowerCase();
   return organizerAccounts.find(account => account && String(account.username || '').trim().toLocaleLowerCase() === normalized) || null;
 }
+function slugifyOrganizerName(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+    .replace(/-+$/g, '');
+}
+function uniqueOrganizerSlug(displayName, username, excludeId = '') {
+  const base = slugifyOrganizerName(displayName) || slugifyOrganizerName(username) || 'organizer';
+  const used = new Set(organizerAccounts
+    .filter(account => account && account.id !== excludeId)
+    .map(account => String(account.slug || '').trim().toLowerCase())
+    .filter(Boolean));
+  if (!used.has(base)) return base;
+  const owner = organizerAccounts.find(account => account && account.id === excludeId);
+  const clubSuffix = String(owner?.clubId || '').replace(/[^a-z0-9-]/gi, '').toLowerCase();
+  const suffix = clubSuffix || slugifyOrganizerName(username) || 'club';
+  let candidate = `${base}-${suffix}`.slice(0, 70).replace(/-+$/g, '');
+  let sequence = 2;
+  while (used.has(candidate)) {
+    candidate = `${base}-${suffix}-${sequence++}`.slice(0, 70).replace(/-+$/g, '');
+  }
+  return candidate;
+}
+function ensureOrganizerSlug(account) {
+  if (!account || typeof account !== 'object') return false;
+  const current = String(account.slug || '').trim().toLowerCase();
+  const safeCurrent = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(current) ? current : '';
+  const duplicate = safeCurrent && organizerAccounts.some(other => other && other !== account && String(other.slug || '').trim().toLowerCase() === safeCurrent);
+  if (safeCurrent && !duplicate) {
+    if (account.slug !== safeCurrent) { account.slug = safeCurrent; return true; }
+    return false;
+  }
+  account.slug = uniqueOrganizerSlug(account.displayName, account.username, account.id);
+  return true;
+}
+function accountBySlug(slug) {
+  const normalized = String(slug || '').trim().toLowerCase();
+  if (!normalized) return null;
+  return organizerAccounts.find(account => account && String(account.slug || '').trim().toLowerCase() === normalized && account.active === true && effectiveApprovalStatus(account) === 'approved') || null;
+}
+function accountByPublicIdentifier(value) {
+  const identifier = String(value || '').trim();
+  return accountById(identifier) || accountBySlug(identifier);
+}
 function getAuthSession(req, requestedRole = 'organizer') {
   if (!SESSION_SECRET) return null;
   const role = requestedRole === 'panel' ? 'panel' : 'organizer';
@@ -332,6 +380,7 @@ function organizerPublicRecord(account) {
   return {
     id:account.id,
     clubId:String(account.clubId || '').trim() || null,
+    slug:String(account.slug || '').trim() || null,
     username:account.username,
     displayName:account.displayName || account.username,
     profileImage:organizerLogoFor(account),
@@ -375,7 +424,7 @@ function resolveOrganizerId(req, url, body = null, allowDefault = false) {
   const auth = getAuthSession(req);
   if (auth?.role === 'organizer') return auth.organizerId;
   const requested = String(url?.searchParams?.get('organizer') || body?.organizerId || '').trim();
-  if (requested) return accountById(requested)?.id || null;
+  if (requested) return accountByPublicIdentifier(requested)?.id || null;
   if (allowDefault) return getDefaultOrganizer()?.id || null;
   return null;
 }
@@ -1157,6 +1206,7 @@ async function handle(req, res) {
       username:auth?.username || null,
       displayName:auth?.displayName || null,
       organizerId:auth?.organizerId || null,
+      organizerSlug:auth?.role === 'organizer' ? String(accountById(auth.organizerId)?.slug || '') : null,
       organizerLogo:auth?.role === 'organizer' ? organizerLogoFor(accountById(auth.organizerId)) : null
     });
   }
@@ -1168,6 +1218,7 @@ async function handle(req, res) {
       .filter(account => account && account.active === true && effectiveApprovalStatus(account) === 'approved' && account.username)
       .map(account => ({
         id: String(account.id),
+        slug: String(account.slug || ''),
         username: String(account.username),
         displayName: String(account.displayName || account.username),
         profileImage: organizerLogoFor(account),
@@ -1268,6 +1319,7 @@ async function handle(req, res) {
         return sendJson(res, 400, {ok:false,error:'Please choose a valid PNG, JPG, or WebP logo. Large logos are compressed automatically before saving.'});
       }
       const account = makeOrganizerRecord(username,password,displayName,'self-registration');
+      account.slug = uniqueOrganizerSlug(displayName, username, account.id);
       account.profileImage = profileImage || null;
       account.duprId = duprId;
       account.active = false;
@@ -1463,6 +1515,7 @@ async function handle(req, res) {
       if (!displayName) return sendJson(res, 400, {ok:false,error:'Enter an organizer or venue name.'});
       if (username.toLocaleLowerCase() === PANEL_USERNAME.toLocaleLowerCase() || accountByUsername(username)) return sendJson(res, 409, {ok:false,error:'That username is already in use.'});
       const account = makeOrganizerRecord(username,password,displayName,'panel');
+      account.slug = uniqueOrganizerSlug(displayName, username, account.id);
       organizerAccounts.push(account);
       await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts},{key:'club-id-sequence',filePath:CLUB_ID_SEQUENCE_FILE,value:clubIdSequenceRecord()}]);
       return sendJson(res, 201, {ok:true,organizer:organizerPanelRecord(account)});
@@ -1628,7 +1681,7 @@ async function handle(req, res) {
     // Scoped links stay tied to their organizer even if the visitor has a
     // different organizer cookie. An unscoped public request is not allowed.
     const organizerId = requestedScope
-      ? (accountById(requestedScope)?.id || null)
+      ? (accountByPublicIdentifier(requestedScope)?.id || null)
       : (auth?.role === 'organizer' ? auth.organizerId : null);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     if (!organizerId) return sendJson(res,401,{ok:false,error:'An organizer-specific registration link or organizer login is required.'});
@@ -1733,7 +1786,7 @@ async function handle(req, res) {
     const requestedScope = String(url.searchParams.get('organizer') || '').trim();
     const auth = getAuthSession(req);
     const organizerId = requestedScope
-      ? (accountById(requestedScope)?.id || null)
+      ? (accountByPublicIdentifier(requestedScope)?.id || null)
       : (auth?.role === 'organizer' ? auth.organizerId : null);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     if (!organizerId) return sendJson(res,401,{ok:false,error:'An organizer-specific registration link or organizer login is required.'});
@@ -1786,7 +1839,7 @@ async function handle(req, res) {
     if (attendanceChanged) await saveOrganizerAttendance(organizerId,attendance);
     return sendJson(res,200,{
       ok:true,
-      organizer:{id:organizerId,username:auth.username || account?.username || '',displayName:account?.displayName || auth.displayName || auth.username || 'Organizer',logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account?.showOnLeaderboard !== false},
+      organizer:{id:organizerId,slug:String(account?.slug || ''),username:auth.username || account?.username || '',displayName:account?.displayName || auth.displayName || auth.username || 'Organizer',logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account?.showOnLeaderboard !== false},
       appState:appEntry.state || null,
       appRevision:appEntry.revision || 0,
       records:{players,sessions,logs,attendanceBySession},
@@ -1821,7 +1874,7 @@ async function handle(req, res) {
       const account = accountById(auth.organizerId);
       if (!account) return sendJson(res,404,{ok:false,error:'Organizer account not found.'});
       if (req.method === 'GET') {
-        return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName || account.username,logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard !== false}});
+        return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName || account.username,slug:String(account.slug || ''),logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard !== false}});
       }
       const body = await readBody(req,4 * 1024 * 1024);
       const displayName = String(body?.displayName || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,80);
@@ -1851,7 +1904,7 @@ async function handle(req, res) {
       if (duprId !== undefined) account.duprId = duprId;
       account.showOnLeaderboard = body?.showOnLeaderboard !== false;
       await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
-      return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName,logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard}});
+      return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName,slug:String(account.slug || ''),logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard}});
     } catch (err) {
       return sendJson(res,err.statusCode || 500,{ok:false,error:err.statusCode===413?'Logo file is too large.':err.message||'Unable to save organizer settings.'});
     }
@@ -2221,7 +2274,7 @@ async function handle(req, res) {
       const avatarId = normalizeAvatarId(requestedAvatarId) || fallbackAvatarIdForPlayer({name,gender});
       const requestedScope = String(url.searchParams.get('organizer') || body?.organizerId || '').trim();
       if (!requestedScope) return sendJson(res, 400, {ok:false,error:'Organizer-specific registration link required. Please scan the QR code or use the link provided by your organizer.'});
-      const organizerId = accountById(requestedScope)?.id || null;
+      const organizerId = accountByPublicIdentifier(requestedScope)?.id || null;
       if (!organizerId) return sendJson(res, 400, {ok:false,error:'Organizer link is invalid or inactive. Ask the organizer for an updated registration link.'});
 
       const requestedSessionId = String(url.searchParams.get('session') || body?.sessionId || '').trim();
@@ -2460,7 +2513,7 @@ async function handle(req, res) {
     const requestedScope = String(url.searchParams.get('organizer') || '').trim();
     // A QR/shared Live View URL is explicitly scoped to its organizer. Honor
     // that scope even if this browser has a different organizer login cookie.
-    const organizerId = requestedScope ? (accountById(requestedScope)?.id || null) : resolveOrganizerId(req,url,null,true);
+    const organizerId = requestedScope ? (accountByPublicIdentifier(requestedScope)?.id || null) : resolveOrganizerId(req,url,null,true);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     const organizer = organizerId ? accountById(organizerId) : null;
     const liveState = enrichLiveStateAvatars(enrichLiveStateLockedPartners(getOrganizerLiveState(organizerId), organizerId));
@@ -2582,7 +2635,7 @@ async function handle(req, res) {
     const requestedScope = String(url.searchParams.get('organizer') || '').trim();
     const auth = getAuthSession(req);
     const organizerId = requestedScope
-      ? (accountById(requestedScope)?.id || null)
+      ? (accountByPublicIdentifier(requestedScope)?.id || null)
       : (auth?.role === 'organizer' ? auth.organizerId : null);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     if (!organizerId) return sendJson(res,401,{ok:false,error:'An organizer-specific registration link or organizer login is required.'});
@@ -2604,7 +2657,7 @@ async function handle(req, res) {
     const requestedScope = String(url.searchParams.get('organizer') || '').trim();
     // Match the HTTP snapshot lookup so EventSource never subscribes to another
     // organizer's queue just because the browser has a login cookie.
-    const organizerId = requestedScope ? (accountById(requestedScope)?.id || null) : resolveOrganizerId(req,url,null,true);
+    const organizerId = requestedScope ? (accountByPublicIdentifier(requestedScope)?.id || null) : resolveOrganizerId(req,url,null,true);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     res.writeHead(200, {'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
     res.write('retry: 2000\n\n');
@@ -2624,8 +2677,11 @@ async function handle(req, res) {
   let pathname;
   try { pathname = decodeURIComponent(url.pathname); } catch (_) { return sendJson(res,400,{ok:false,error:'Invalid path'}); }
   if (pathname === '/') pathname = '/index.html';
+  const organizerLivePath = pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/live\.html$/i);
+  if (organizerLivePath && !accountBySlug(organizerLivePath[1])) return sendJson(res,404,{ok:false,error:'Organizer Live View link was not found or is inactive.'});
+  const isOrganizerLivePath = !!organizerLivePath;
   const name = path.basename(pathname);
-  if (!allowedFiles.has(name) || pathname.includes('..')) return sendJson(res,404,{ok:false,error:'Not found'});
+  if (!allowedFiles.has(name) || pathname.includes('..') || (pathname.includes('/') && pathname !== `/${name}` && !isOrganizerLivePath)) return sendJson(res,404,{ok:false,error:'Not found'});
   // Keep the server-side role check as a first layer. The tab-auth.js gate
   // adds the stricter per-tab check because browser cookies are shared across
   // tabs and therefore cannot prove that this particular tab signed in.
@@ -2645,7 +2701,7 @@ async function handle(req, res) {
     if (!stat.isFile()) return sendJson(res,404,{ok:false,error:'Not found'});
     const extension=path.extname(filePath).toLowerCase();
     const mutableAsset=['.html','.js','.css'].includes(extension);
-    const noStorePage = ['index.html','dashboard.html','panel.html','session.html','queueing.html'].includes(name);
+    const noStorePage = ['index.html','dashboard.html','panel.html','session.html','queueing.html','live.html'].includes(name);
     const cacheControl = noStorePage ? 'private, no-store, max-age=0' : (mutableAsset ? 'no-cache, must-revalidate' : 'public, max-age=300');
     res.writeHead(200, {'Content-Type':MIME[extension]||'application/octet-stream','Content-Length':stat.size,'Cache-Control':cacheControl,'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});
     if(req.method==='HEAD')return res.end();
@@ -2663,6 +2719,9 @@ async function handle(req, res) {
     organizerAccounts = Array.isArray(savedAccounts) ? savedAccounts.filter(account => account && typeof account === 'object' && account.id && account.username && account.passwordHash) : [];
     let accountsChanged = !Array.isArray(savedAccounts);
     if (ensureOrganizerClubIds()) accountsChanged = true;
+    for (const account of organizerAccounts) {
+      if (ensureOrganizerSlug(account)) accountsChanged = true;
+    }
     for (const account of organizerAccounts) {
       const status = String(account.approvalStatus || '').trim().toLowerCase();
       const source = organizerCreatedBy(account);
@@ -2724,7 +2783,9 @@ async function handle(req, res) {
       account.applicationSubmittedAt = account.applicationSubmittedAt || account.createdAt || new Date().toISOString();
     }
     if (AUTH_USERNAME && AUTH_PASSWORD && !accountByUsername(AUTH_USERNAME)) {
-      organizerAccounts.push(makeOrganizerRecord(AUTH_USERNAME,AUTH_PASSWORD,AUTH_USERNAME,'legacy-environment'));
+      const legacyAccount = makeOrganizerRecord(AUTH_USERNAME,AUTH_PASSWORD,AUTH_USERNAME,'legacy-environment');
+      legacyAccount.slug = uniqueOrganizerSlug(legacyAccount.displayName, legacyAccount.username, legacyAccount.id);
+      organizerAccounts.push(legacyAccount);
       accountsChanged = true;
     }
     const accountEntries = [];

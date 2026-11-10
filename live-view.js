@@ -1,7 +1,10 @@
 (() => {
   'use strict';
-  const LIVE_VIEW_STORAGE_KEY = `picklepoint_live_view_state_v1${new URLSearchParams(window.location.search).get('organizer') ? '_' + String(new URLSearchParams(window.location.search).get('organizer')).replace(/[^a-zA-Z0-9_-]/g,'') : ''}`;
-  const organizerScope = String(new URLSearchParams(window.location.search).get('organizer') || '').trim();
+  const livePagePathMatch = window.location.pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/live\.html$/i);
+  const livePagePathSlug = livePagePathMatch ? decodeURIComponent(livePagePathMatch[1]) : '';
+  const livePageQueryScope = String(new URLSearchParams(window.location.search).get('organizer') || '').trim();
+  const organizerScope = livePageQueryScope || livePagePathSlug;
+  const LIVE_VIEW_STORAGE_KEY = `picklepoint_live_view_state_v1${organizerScope ? '_' + organizerScope.replace(/[^a-zA-Z0-9_-]/g,'') : ''}`;
   // Resolve the public organizer scope from the first successful snapshot when
   // the page is opened without an explicit organizer query parameter.
   let resolvedOrganizerId = organizerScope;
@@ -89,7 +92,7 @@
     // Prefer the exact saved registration choice; only profiles without a saved
     // choice use the stable, gender-matched fallback shared with queueing/server.
     const avatarId = normalizeLiveAvatarId(p?.avatarId ?? p?.avatarID ?? p?.avatar_id ?? p?.selectedAvatarId ?? p?.profileAvatarId) || fallbackLiveAvatarId(p);
-    return `<img class="live-profile-avatar-image" src="registration-${avatarId}.png" alt="" aria-hidden="true" loading="eager" decoding="async" draggable="false">`;
+    return `<img class="live-profile-avatar-image" src="/registration-${avatarId}.png" alt="" aria-hidden="true" loading="eager" decoding="async" draggable="false">`;
   };
   // Do not let a stale/legacy SSE event erase an avatar already resolved by the
   // server's GET response. Match by player ID first, then by name + nickname.

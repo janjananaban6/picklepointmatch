@@ -1614,6 +1614,8 @@ function publishLiveViewState(keepalive=false){
   return snapshot;
 }
 function getLiveViewUrl(){
+  const slug=String(window.PPM_ORGANIZER_SLUG||'').trim();
+  if(slug)return new URL(`/${encodeURIComponent(slug)}/live.html`,window.location.origin);
   const url=new URL('live.html',window.location.href);
   if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);
   return url;
@@ -1625,6 +1627,103 @@ function openLiveView(){
   const url=getLiveViewUrl();
   window.open(url.href,'_blank','noopener');
 }
+// Prepare the organizer mark for QR overlays: keep existing alpha, remove a
+// plain edge-connected background of any color, and always export a PNG.
+async function makeQrOrganizerLogoTransparentPng(source){
+  const raw=String(source||'').trim();
+  if(!/^data:image\/(?:png|jpeg|webp);base64,/i.test(raw))return raw;
+  try{
+    const image=await new Promise((resolve,reject)=>{
+      const element=new Image();
+      element.onload=()=>resolve(element);
+      element.onerror=()=>reject(new Error('Organizer logo could not be decoded.'));
+      element.src=raw;
+    });
+    if(!image.naturalWidth||!image.naturalHeight)return raw;
+    const maxSide=512;
+    const scale=Math.min(1,maxSide/Math.max(image.naturalWidth,image.naturalHeight));
+    const width=Math.max(1,Math.round(image.naturalWidth*scale));
+    const height=Math.max(1,Math.round(image.naturalHeight*scale));
+    const canvas=document.createElement('canvas');
+    canvas.width=width;canvas.height=height;
+    const context=canvas.getContext('2d',{willReadFrequently:true});
+    if(!context)return raw;
+    context.clearRect(0,0,width,height);
+    context.drawImage(image,0,0,width,height);
+    const imageData=context.getImageData(0,0,width,height);
+    const pixels=imageData.data;
+    const pixelCount=width*height;
+    const edgeSamples=[];
+    const stride=Math.max(1,Math.floor(Math.min(width,height)/350));
+    for(let x=0;x<width;x+=stride)edgeSamples.push(x,x+(height-1)*width);
+    for(let y=0;y<height;y+=stride)edgeSamples.push(y*width,y*width+width-1);
+    let transparentEdges=0;
+    const buckets=new Map();
+    for(const index of edgeSamples){
+      const offset=index*4;
+      if(pixels[offset+3]<24){transparentEdges++;continue;}
+      const r=pixels[offset],g=pixels[offset+1],b=pixels[offset+2];
+      const key=((r>>5)<<6)|((g>>5)<<3)|(b>>5);
+      let entry=buckets.get(key);
+      if(!entry){entry={count:0,r:0,g:0,b:0};buckets.set(key,entry);}
+      entry.count++;entry.r+=r;entry.g+=g;entry.b+=b;
+    }
+    // Existing transparent PNG/WebP logos remain untouched apart from PNG export.
+    if(transparentEdges<=edgeSamples.length*.3){
+      let dominant=null;
+      for(const entry of buckets.values())if(!dominant||entry.count>dominant.count)dominant=entry;
+      const validEdgeCount=Math.max(1,edgeSamples.length-transparentEdges);
+      if(dominant&&dominant.count/validEdgeCount>=.13){
+        const background={r:dominant.r/dominant.count,g:dominant.g/dominant.count,b:dominant.b/dominant.count};
+        let spread=0;
+        for(const index of edgeSamples){
+          const offset=index*4;if(pixels[offset+3]<24)continue;
+          const distance=Math.hypot(pixels[offset]-background.r,pixels[offset+1]-background.g,pixels[offset+2]-background.b);
+          if(distance<=55)spread+=distance;
+        }
+        const averageSpread=spread/Math.max(1,dominant.count);
+        const tolerance=Math.max(38,Math.min(72,38+averageSpread*1.25));
+        const visited=new Uint8Array(pixelCount);
+        const queue=new Int32Array(pixelCount);
+        let head=0,tail=0;
+        const visit=index=>{
+          if(index<0||index>=pixelCount||visited[index])return;
+          visited[index]=1;
+          const offset=index*4;
+          if(pixels[offset+3]<12){queue[tail++]=index;return;}
+          const distance=Math.hypot(pixels[offset]-background.r,pixels[offset+1]-background.g,pixels[offset+2]-background.b);
+          if(distance<=tolerance)queue[tail++]=index;
+        };
+        for(let x=0;x<width;x++){visit(x);visit((height-1)*width+x);}
+        for(let y=0;y<height;y++){visit(y*width);visit(y*width+width-1);}
+        while(head<tail){
+          const index=queue[head++],x=index%width;
+          if(x>0)visit(index-1);
+          if(x<width-1)visit(index+1);
+          if(index>=width)visit(index-width);
+          if(index<pixelCount-width)visit(index+width);
+        }
+        if(tail/pixelCount>=.008){
+          for(let i=0;i<pixelCount;i++){
+            if(!visited[i])continue;
+            const offset=i*4;
+            if(pixels[offset+3]<12){pixels[offset+3]=0;continue;}
+            const distance=Math.hypot(pixels[offset]-background.r,pixels[offset+1]-background.g,pixels[offset+2]-background.b);
+            const t=Math.max(0,Math.min(1,(distance-tolerance*.32)/(tolerance*.68)));
+            const feather=t*t*(3-2*t);
+            pixels[offset+3]=Math.round(pixels[offset+3]*feather);
+          }
+          context.putImageData(imageData,0,0);
+        }
+      }
+    }
+    return canvas.toDataURL('image/png');
+  }catch(_){
+    // A failed conversion must never block QR generation; use the source image.
+    return raw;
+  }
+}
+
 function syncLiveViewOrganizerQrLogo(forceRefresh=false){
   const logo=$('liveViewOrganizerQrLogo');
   if(!logo)return;
@@ -1639,11 +1738,13 @@ function syncLiveViewOrganizerQrLogo(forceRefresh=false){
   logo.dataset.organizerLogoReady='loading';
   fetch(`/api/live-state?organizer=${encodeURIComponent(organizerId)}`,{cache:'no-store',credentials:'same-origin'})
     .then(response=>response.ok?response.json():null)
-    .then(data=>{
+    .then(async data=>{
       if(logo.dataset.organizerLogoId!==organizerId)return;
       const organizerLogo=typeof data?.organizerLogo==='string'?data.organizerLogo.trim():'';
+      const displayLogo=organizerLogo?await makeQrOrganizerLogoTransparentPng(organizerLogo):'pickleball-p-emblem.png';
+      if(logo.dataset.organizerLogoId!==organizerId)return;
       logo.onerror=null;
-      logo.src=organizerLogo||'pickleball-p-emblem.png';
+      logo.src=displayLogo||'pickleball-p-emblem.png';
       logo.dataset.hasCustomOrganizerLogo=organizerLogo?'true':'false';
       logo.onerror=()=>{
         logo.onerror=null;
@@ -1838,11 +1939,13 @@ function syncRegistrationQrOrganizerLogo(forceRefresh=false){
   logo.hidden=true;
   fetch(`/api/live-state?organizer=${encodeURIComponent(organizerId)}`,{cache:'no-store',credentials:'same-origin'})
     .then(response=>response.ok?response.json():null)
-    .then(data=>{
+    .then(async data=>{
       if(logo.dataset.organizerLogoId!==organizerId)return;
       const organizerLogo=typeof data?.organizerLogo==='string'?data.organizerLogo.trim():'';
+      const displayLogo=organizerLogo?await makeQrOrganizerLogoTransparentPng(organizerLogo):'pickleball-p-emblem.png';
+      if(logo.dataset.organizerLogoId!==organizerId)return;
       logo.onerror=null;
-      logo.src=organizerLogo||'pickleball-p-emblem.png';
+      logo.src=displayLogo||'pickleball-p-emblem.png';
       logo.dataset.hasCustomOrganizerLogo=organizerLogo?'true':'false';
       logo.onerror=()=>{
         logo.onerror=null;
@@ -3847,13 +3950,6 @@ function checkInCloudPlayerFromSearch(id){
   renderQueue();
   renderRegisteredSearch();
 }
-function addRegisteredToQueue(id){
-  const p=player(id); if(!p)return;
-  if(p.court){toast(`${p.name} is currently on a court.`);return;}
-  if(state.queue.includes(id)){toast(`${p.name} is already in Queue.`);return;}
-  p.queuedAt=p.queuedAt||Date.now(); p.waitingSince=Date.now(); state.queue.push(id); saveState(); render(); toast(`${p.name} added to Queue.`);
-}
-
 function getLockedPartnerId(playerId){
   const pair=(state.lockedPartners||[]).find(ids=>ids.map(Number).includes(Number(playerId)));
   return pair?Number(pair.find(id=>Number(id)!==Number(playerId))):null;

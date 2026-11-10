@@ -26525,3 +26525,27 @@ html body[data-page="queueing"] #courtSettingsModal #courtSettingsNameInput:focu
   border-color: #27bdb1 !important;
   box-shadow: 0 0 0 3px rgba(39, 189, 177, .15) !important;
 }
+
+
+/* QR modal title icons and compact organizer-logo overlays. */
+.live-view-qr-heading h2{
+  display:flex;align-items:center;gap:9px;
+}
+.live-view-qr-heading h2 .qr-title-icon{
+  display:block;flex:0 0 21px;width:21px;height:21px;
+}
+.live-view-qr-image-wrap .live-view-qr-center-logo{
+  width:38px;height:38px;padding:0;border:0;border-radius:0;
+  object-fit:contain;background:transparent;box-shadow:none;
+}
+@media(max-width:560px){
+  .live-view-qr-image-wrap .live-view-qr-center-logo{width:36px;height:36px;}
+}
+
+/* Queueing court status borders: blue for ready courts, amber dashed for empty waiting slots. */
+html body[data-page="queueing"] #courtsList .court-box.ready-box:not(.waiting-box) {
+  border-color: #93C5FD !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box.empty-court-box {
+  border: 2px dashed #f59e0b !important;
+}
