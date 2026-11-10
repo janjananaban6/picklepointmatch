@@ -9,7 +9,7 @@
   <title>Organizer Dashboard — Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
   <style id="ppm-tab-auth-curtain">html{visibility:hidden}</style>
-  <script src="tab-auth.js?v=tab-scoped-auth-20261102-1"></script>
+  <script src="tab-auth.js?v=cookie-session-auth-20261110-1"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -19,7 +19,7 @@
 <body class="organizer-dashboard-page">
   <header class="dashboard-topbar">
     <div class="dashboard-topbar-inner">
-      <a class="dashboard-brand" id="dashboardBrandLink" href="dashboard.html" title="Go to dashboard home" aria-label="Organizer dashboard home">
+      <a class="dashboard-brand" id="dashboardBrandLink" href="/dashboard" title="Go to dashboard home" aria-label="Organizer dashboard home">
         <span class="dashboard-brand-logo-wrap"><img id="organizerLogo" src="pickleball-p-emblem.png" alt="Organizer logo" decoding="async" draggable="false"></span>
         <span class="dashboard-brand-copy">
           <strong id="organizerClubName">Organizer Dashboard</strong>
@@ -30,7 +30,7 @@
         </span>
       </a>
       <nav class="dashboard-actions" aria-label="Organizer actions">
-        <a class="dashboard-action create-action" href="session.html" target="_blank" rel="noopener" aria-label="Create session" title="Create session">
+        <a class="dashboard-action create-action" href="/session" target="_blank" rel="noopener" aria-label="Create session" title="Create session">
           <svg class="dashboard-action-icon-svg create-action-icon" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M511,207 L508,203 L388,133 L384,146 L384,164 L390,184 L387,186 L185,218 L183,215 L183,167 L187,160 L397,126 L401,122 L402,117 L399,112 L247,25 L41,58 L32,65 L28,73 L27,131 L30,138 L33,141 L56,156 L56,224 L58,229 L62,234 L103,260 L3,325 L0,329 L1,336 L4,339 L11,341 L260,385 L264,389 L267,397 L267,464 L264,470 L259,470 L13,425 L6,425 L2,427 L0,435 L4,440 L246,484 L268,486 L447,359 L453,352 L455,346 L456,316 L504,309 L510,305 L511,299 L509,295 L506,293 L497,293 L304,325 L247,333 L244,328 L244,269 L246,263 L253,258 L500,219 L507,217 L510,214 Z"/></svg>
           <span>Create Session</span>
         </a>

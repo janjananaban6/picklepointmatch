@@ -1,6 +1,6 @@
 PICKLE POINT MATCH - LOCAL TEST SERVER
 
-1. Install Node.js 18 or newer on your Windows computer: https://nodejs.org/
+1. Install Node.js 24 LTS on your Windows computer: https://nodejs.org/
 2. Extract the entire project ZIP to a normal folder (not inside the ZIP preview).
 3. Double-click start-local.bat.
 4. The script checks the Node.js version, installs dependencies if needed, starts
@@ -27,3 +27,10 @@ FOR DEPLOYMENT:
   values shown above.
 - The start-local.bat settings apply only to the process launched by that file;
   they do not change your Windows system environment or Render settings.
+
+AUTHENTICATION FLOW TESTS:
+- Sign in once from index.html as an organizer. Dashboard should open.
+- From Dashboard, open Session, then Queueing. Neither transition should ask you to sign in again.
+- Open /queueing in another tab in the SAME browser profile. It should open because the same HttpOnly organizer cookie is sent.
+- Open /queueing in a separate browser profile, private window, or another device. It must redirect to login until that browser/device signs in.
+- Panel authentication is separate: signing into Panel does not grant organizer access, and organizer sign-in does not grant Panel access.

@@ -19,13 +19,13 @@
     }
     button.addEventListener('click', async () => {
       if (isSessionPage) {
-        window.location.href = '/dashboard.html';
+        window.location.href = '/dashboard';
         return;
       }
       if (!window.confirm('Log out of the organizer account?')) return;
       button.disabled = true;
       try { await fetch('/api/logout', {method:'POST',credentials:'same-origin',cache:'no-store',headers:{'X-PPM-Auth-Role':'organizer'}}); } catch (_) {}
-      window.location.replace('/index.html');
+      window.location.replace('/');
     });
     if (sessionFooter) {
       sessionFooter.appendChild(button);
@@ -37,8 +37,9 @@
 
   window.PPM_AUTH_READY = fetch('/api/auth-status', {cache:'no-store',credentials:'same-origin',headers:{'X-PPM-Auth-Role':'organizer'}}).then(response => response.json()).then(status => {
     if (!status.authenticated || status.role !== 'organizer') {
-      const next = encodeURIComponent(window.location.pathname.slice(1) + window.location.search);
-      window.location.replace(`/index.html?next=${next}`);
+      const cleanPath = window.location.pathname.replace(/\.html$/i, '').replace(/^\//, '');
+      const next = encodeURIComponent(cleanPath + window.location.search);
+      window.location.replace(`/?next=${next}`);
       return null;
     }
     window.PPM_ORGANIZER_ID = status.organizerId || '';
@@ -48,7 +49,7 @@
     if (document.body?.dataset?.page !== 'queueing') addLogoutButton();
     return status;
   }).catch(() => {
-    window.location.replace('/index.html');
+    window.location.replace('/');
     return null;
   });
 })();

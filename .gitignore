@@ -1,0 +1,15 @@
+# Dependencies and local tooling
+node_modules/
+npm-debug.log*
+*.log
+.DS_Store
+
+# Runtime records contain organizer credentials, player details, and match history.
+# Keep these out of source control; production uses the persistent PostgreSQL database.
+/data/*
+!/data/.gitkeep
+
+# Local environment files must never be committed.
+.env
+.env.*
+!.env.example

@@ -620,22 +620,25 @@
         throw new Error('The server response was incomplete. Please refresh the login page and try again.');
       }
 
-      if (typeof result.tabSession !== 'string' || !result.tabSession) {
-        throw new Error('The server did not return a secure tab session. Please refresh and try again.');
+      // The server has set the role-specific HttpOnly cookie. Same-origin
+      // Dashboard, Session, and Queueing navigation can now reuse that login.
+      const defaultDestination = result.role === 'panel' ? '/panel' : '/dashboard';
+      const permittedDestinations = result.role === 'panel'
+        ? new Set(['/panel'])
+        : new Set(['/dashboard', '/queueing', '/session']);
+      let destination = defaultDestination;
+      const requestedNext = new URLSearchParams(window.location.search).get('next') || '';
+      if (requestedNext) {
+        try {
+          const requestedUrl = new URL(requestedNext, window.location.origin);
+          const cleanPath = requestedUrl.pathname.replace(/\.html$/i, '') || '/';
+          if (requestedUrl.origin === window.location.origin && permittedDestinations.has(cleanPath)) {
+            destination = cleanPath + requestedUrl.search;
+          }
+        } catch (_) { /* Keep the role's safe default destination. */ }
       }
-      const panelTabKey = 'ppm-panel-tab-session-v1';
-      const organizerTabKey = 'ppm-organizer-tab-session-v1';
-      const ownTabKey = result.role === 'panel' ? panelTabKey : organizerTabKey;
-      const otherTabKey = result.role === 'panel' ? organizerTabKey : panelTabKey;
-      try {
-        window.sessionStorage.removeItem(otherTabKey);
-        window.sessionStorage.setItem(ownTabKey, result.tabSession);
-      } catch (_) {
-        throw new Error('This browser is blocking tab session storage. Enable site storage, then sign in again.');
-      }
-      const destination = result.role === 'panel' ? '/panel.html' : '/dashboard.html';
-      // Sign in navigates this same tab. The signed token is scoped to this
-      // tab, so typing either page URL in a new tab still requires sign-in.
+      // The signed HttpOnly cookie remains available to same-origin pages
+      // in this browser, including pages opened in another tab.
       window.location.replace(destination);
     } catch (error) {
       const detail = String(error?.message || '');

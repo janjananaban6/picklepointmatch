@@ -364,7 +364,7 @@
       window.alert('Your browser blocked session storage, so the queue could not be opened. Please allow site storage and try again.');
       return;
     }
-    window.location.assign('queueing.html?create=1');
+    window.location.assign('/queueing?create=1');
   }
 
   document.querySelectorAll('#liveQueueMatchType .live-queue-choice').forEach(button => button.addEventListener('click', () => {
@@ -405,7 +405,7 @@
   $('continueLiveQueueBtn')?.addEventListener('click', () => {
     if (!hasExistingQueue(currentState) || isNavigating) return;
     isNavigating = true;
-    window.location.assign('queueing.html');
+    window.location.assign('/queueing');
   });
 
   syncSessionName();

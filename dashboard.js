@@ -156,7 +156,7 @@
   async function fetchJson(url, options={}) {
     const response=await fetch(url,{cache:'no-store',credentials:'same-origin',...options});
     const body=await response.json().catch(()=>null);
-    if(response.status===401){window.location.replace(`/index.html?next=${encodeURIComponent('dashboard.html')}`);throw new Error('Please sign in again.');}
+    if(response.status===401){window.location.replace(`/?next=${encodeURIComponent('dashboard')}`);throw new Error('Please sign in again.');}
     if(!response.ok||!body||body.ok===false)throw new Error(body?.error||`Request failed (${response.status}).`);
     return body;
   }
@@ -2367,8 +2367,7 @@
     if(!confirmed)return;
     $('logoutButton').disabled=true;
     try{await fetch('/api/logout',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'X-PPM-Auth-Role':'organizer'}});}catch(_){/* Local navigation still ends the visible session. */}
-    try{window.sessionStorage.removeItem('ppm-organizer-tab-session-v1');}catch(_){/* The page still navigates away. */}
-    window.location.replace('/index.html');
+    window.location.replace('/');
   });
 
   loadDuprSubmittedMatchKeys();

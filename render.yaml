@@ -2,6 +2,8 @@ services:
   - type: web
     name: picklepointmatch
     runtime: node
+    # Free tier is retained to avoid enabling paid billing without owner approval.
+    # Upgrade before production use; see DEPLOYMENT-SECURITY-CHECKLIST.md.
     plan: free
     buildCommand: npm install --omit=dev
     startCommand: npm start
@@ -12,6 +14,8 @@ services:
         fromDatabase:
           name: pickle-point-match-db
           property: connectionString
+      - key: NODE_ENV
+        value: production
       - key: ORGANIZER_USERNAME
         value: organizer
       - key: ORGANIZER_PASSWORD
@@ -25,6 +29,7 @@ services:
 
 databases:
   - name: pickle-point-match-db
+    # Free PostgreSQL is temporary and has no managed backups; upgrade for production.
     databaseName: pickle_point_match
     user: pickle_point_match
     plan: free

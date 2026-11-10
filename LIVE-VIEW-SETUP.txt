@@ -20,14 +20,21 @@ DEPLOY ONLINE (RENDER EXAMPLE)
 2. Create a GitHub repository and upload the CONTENTS of this folder (including render.yaml, package.json, server.js, index.html, queueing.html, start-page.js, queueing-app-loader.js, script.js, CSS and image files).
 3. Sign in to Render and choose New > Blueprint, then connect the GitHub repository containing render.yaml.
 4. Deploy the service. Render will assign a public URL similar to https://your-service-name.onrender.com.
-5. Open that HTTPS URL on the organizer computer. The root URL opens the Organizer Login (`index.html`). After sign-in, the previous Start Screen is available at `session.html`; creating or continuing a session opens the Queueing workspace (`queueing.html`).
+5. Open that HTTPS URL on the organizer computer. The root URL opens Organizer Login. After sign-in, the Start Screen is available at `/session`; creating or continuing a session opens the Queueing workspace at `/queueing`.
 6. Create or continue a live queue. Click “QR Share” in the topbar and show/print the QR for players.
-7. Scan the organizer Live View QR with a phone using mobile data or Wi-Fi. It opens the organizer-specific URL: https://your-service-name.onrender.com/organizer-slug/live.html. The older /live.html?organizer=... links remain supported.
+7. Scan the organizer Live View QR with a phone using mobile data or Wi-Fi. It opens the organizer-specific URL: https://your-service-name.onrender.com/organizer-slug/live. The older /live?organizer=... links remain supported.
 8. Keep the organizer page open and connected to the same deployed service during the session so updates keep being published.
+
+CLEAN PAGE URLS
+----------------
+- `/dashboard`, `/panel`, `/session`, `/queueing`, `/registration`, and `/live` are the extensionless page routes.
+- Each organizer's public Live View uses `/<organizer-slug>/live`.
+- Old `.html` page links automatically redirect to their clean equivalents.
+- `/queueing` and `/dashboard` require an organizer sign-in. `/panel` requires a Panel Administrator sign-in. Dashboard and Panel use secure HttpOnly login cookies shared across pages in the same browser. A different browser or device must sign in independently.
 
 RUN LOCALLY FIRST
 -----------------
-1. Install Node.js 18 or newer: https://nodejs.org/
+1. Install Node.js 24 LTS: https://nodejs.org/
 2. Open a terminal in this folder.
 3. Run: npm start
 4. Open http://localhost:3000 on the organizer computer.
@@ -38,5 +45,5 @@ DATA / HOSTING NOTES
 - Live View broadcasts one current live session at a time.
 - This build uses the included Node server and its live-state snapshot. It is intended for one running server instance; do not scale it to multiple instances without shared storage/pub-sub.
 - Some free hosting plans can sleep and use temporary disk storage. Keep the organizer page open during the session; it republishes the latest queue snapshot every 30 seconds while the session is active. If the organizer page was closed during a host restart, reopen it to republish the locally saved queue.
-- Organizer sign-in protects `session.html`, `queueing.html`, and organizer write APIs. Public player registration (`Registration.html`) and Live View (`live.html`) remain accessible so players can register and watch the queue. Configure `ORGANIZER_USERNAME`, `ORGANIZER_PASSWORD`, and `SESSION_SECRET` in Render and keep the password secret.
+- Organizer sign-in protects `/session`, `/queueing`, `/dashboard`, and organizer write APIs. Panel Administrator sign-in protects `/panel`. Public player registration (`/registration`) and Live View (`/live` or `/<organizer-slug>/live`) remain accessible so players can register and watch the queue. Configure `ORGANIZER_USERNAME`, `ORGANIZER_PASSWORD`, and `SESSION_SECRET` in Render and keep the password secret.
 - The QR code image is generated through the external QR Server image endpoint, so an internet connection is needed to display the QR image. The copy-link button still provides the exact URL.

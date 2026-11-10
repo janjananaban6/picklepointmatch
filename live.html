@@ -961,7 +961,7 @@ html[data-theme="light"] body.live-view-page .section-card.queue-section #queueS
       if (!list || !count) return;
 
       const params = new URLSearchParams(location.search);
-      const livePagePathMatch = location.pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/live\.html$/i);
+      const livePagePathMatch = location.pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/live$/i);
       const livePagePathSlug = livePagePathMatch ? decodeURIComponent(livePagePathMatch[1]) : '';
       let organizerId = String(params.get('organizer') || livePagePathSlug).trim();
       let allHistoryMatches = [];
@@ -980,13 +980,15 @@ html[data-theme="light"] body.live-view-page .section-card.queue-section #queueS
       let appStateStream = null;
       let appStateStreamConnected = false;
       const matchesShortcut = document.querySelector('.mobile-header-icon-button[data-live-tab="matches"]');
+      const matchesTab = document.getElementById('matchesTab');
       const notificationBadge = document.getElementById('mobileMatchesNotificationBadge');
-      // Notification counts are intentionally per page visit. A visitor opening
-      // the public URL (including from a QR code) starts with every match already
-      // recorded for this organizer as unread on this visit.
-      let knownFinishedMatchIds = new Set();
+      // Public Live View app-state responses intentionally omit private match
+      // logs. Use the already-published, organizer-scoped matchCount instead of
+      // requiring log IDs; this keeps notifications working without exposing
+      // full match history to public QR visitors.
       let notificationCount = 0;
       let notificationBaselineReady = false;
+      let lastObservedFinishedMatchCount = null;
       let matchesOpenedBeforeInitialHistory = false;
       const renderMatchNotificationBadge = () => {
         if (!notificationBadge) return;
@@ -1001,28 +1003,31 @@ html[data-theme="light"] body.live-view-page .section-card.queue-section #queueS
         renderMatchNotificationBadge();
       };
       matchesShortcut?.addEventListener('click', acknowledgeFinishedMatches);
+      matchesTab?.addEventListener('click', acknowledgeFinishedMatches);
       renderMatchNotificationBadge();
-      const trackNewFinishedMatches = logs => {
-        const ids = [...new Set((Array.isArray(logs) ? logs : [])
-          .map(log => String(log?.id ?? '').trim())
-          .filter(Boolean))];
+      const trackFinishedMatchCount = value => {
+        const nextCount = Number(value);
+        if (!Number.isFinite(nextCount) || nextCount < 0) return;
+        const normalizedCount = Math.floor(nextCount);
         if (!notificationBaselineReady) {
-          knownFinishedMatchIds = new Set(ids);
+          lastObservedFinishedMatchCount = normalizedCount;
           notificationBaselineReady = true;
-          // Initial page visit: show the entire finished-match history count,
-          // unless the visitor already opened Matches while history was loading.
-          notificationCount = matchesOpenedBeforeInitialHistory ? 0 : ids.length;
+          // Initial page visit: show the organizer's current finished-match
+          // count as unread, unless Matches was opened while the first snapshot
+          // was loading.
+          notificationCount = matchesOpenedBeforeInitialHistory ? 0 : normalizedCount;
           renderMatchNotificationBadge();
           return;
         }
-        let added = 0;
-        for (const id of ids) {
-          if (!knownFinishedMatchIds.has(id)) {
-            knownFinishedMatchIds.add(id);
-            added += 1;
-          }
+        // Session transitions can reset the published count. Rebase silently;
+        // only increases after the latest baseline represent new notifications.
+        if (normalizedCount < lastObservedFinishedMatchCount) {
+          lastObservedFinishedMatchCount = normalizedCount;
+          return;
         }
-        if (added) {
+        const added = normalizedCount - lastObservedFinishedMatchCount;
+        lastObservedFinishedMatchCount = normalizedCount;
+        if (added > 0) {
           notificationCount += added;
           renderMatchNotificationBadge();
         }
@@ -1247,7 +1252,10 @@ html[data-theme="light"] body.live-view-page .section-card.queue-section #queueS
       const applyFullHistory = payload => {
         const state = payload?.state;
         if (!state || !Array.isArray(state.logs)) return false;
-        trackNewFinishedMatches(state.logs);
+        // If this is an authenticated/legacy response containing logs, keep
+        // the same count baseline. Public responses are intentionally redacted
+        // and are tracked from the public Live View snapshot below.
+        trackFinishedMatchCount(state.logs.length);
 
         const revision = Number(payload?.revision);
         if (Number.isFinite(revision) && revision < historyRevision) return false;
@@ -1312,7 +1320,10 @@ html[data-theme="light"] body.live-view-page .section-card.queue-section #queueS
           liveSessionActive = state.active;
         }
         const value = Number(state.matchCount);
-        if (Number.isFinite(value) && value >= 0) totalMatchCount = Math.floor(value);
+        if (Number.isFinite(value) && value >= 0) {
+          totalMatchCount = Math.floor(value);
+          trackFinishedMatchCount(totalMatchCount);
+        }
         const isAvailable = liveMatchesEnabled !== false && liveSessionActive !== false;
 
         if (wasAvailable !== isAvailable) {
@@ -1461,7 +1472,7 @@ html[data-theme="light"] body.live-view-page .section-card.queue-section #queueS
       window.addEventListener('pageshow', () => ensureHistorySync(true));
 
       // QR links normally carry an organizer ID or use the organizer slug in
-      // the path (/:organizerSlug/live.html). Plain /live.html URLs keep the
+      // the path (/:organizerSlug/live). Plain /live URLs keep the
       // legacy default/login scope behavior, and the main Live View resolves it and
       // emits it through ppm-live-view-state above.
       ensureHistorySync(true);

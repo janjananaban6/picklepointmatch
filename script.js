@@ -468,7 +468,7 @@ function applySharedAppState(payload,force=false){
         if(document.body?.dataset.page==='queueing'){
           remoteSessionEndRedirectInProgress=true;
           try{sessionStorage.setItem('liveQueueView','start');}catch(e){}
-          window.location.replace('session.html');
+          window.location.replace('/session');
         }else{
           showLiveQueueStartScreen();
         }
@@ -1365,7 +1365,7 @@ async function endSession(){
   publishLiveViewState(true);
   endSessionSaveInProgress=false;
   if(document.body?.dataset.page==='queueing'){
-    window.location.assign('session.html');
+    window.location.assign('/session');
     return;
   }
   showLiveQueueStartScreen();
@@ -1615,8 +1615,8 @@ function publishLiveViewState(keepalive=false){
 }
 function getLiveViewUrl(){
   const slug=String(window.PPM_ORGANIZER_SLUG||'').trim();
-  if(slug)return new URL(`/${encodeURIComponent(slug)}/live.html`,window.location.origin);
-  const url=new URL('live.html',window.location.href);
+  if(slug)return new URL(`/${encodeURIComponent(slug)}/live`,window.location.origin);
+  const url=new URL('/live',window.location.origin);
   if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);
   return url;
 }
@@ -1921,7 +1921,7 @@ async function copyLiveViewQrLink(){
   try{await navigator.clipboard.writeText(field.value);toast('Live View link copied.');}
   catch(e){field.focus();field.select();let copied=false;try{copied=document.execCommand('copy');}catch(err){}toast(copied?'Live View link copied.':'Select and copy the Live View link.');}
 }
-function getRegistrationPageUrl(){const url=new URL('Registration.html',window.location.href);if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);if(state.sessionId)url.searchParams.set('session',String(state.sessionId));url.searchParams.set('dupr',isCurrentSessionDupr()?'1':'0');return url;}
+function getRegistrationPageUrl(){const url=new URL('/registration',window.location.origin);if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);if(state.sessionId)url.searchParams.set('session',String(state.sessionId));url.searchParams.set('dupr',isCurrentSessionDupr()?'1':'0');return url;}
 function syncRegistrationQrOrganizerLogo(forceRefresh=false){
   const logo=$('registrationQrBrandLogo');
   if(!logo)return;
@@ -4646,7 +4646,7 @@ function openCourtSettings(){
   $('courtSettingsModal').classList.remove('hidden');
   setTimeout(()=>{$('courtSettingsNameInput')?.focus();},0);
 }
-function closeCourtSettings(){ $('courtSettingsModal').classList.add('hidden'); courtSettingsDraft=null; if(IS_QUEUEING_PAGE&&new URLSearchParams(location.search).get('settings')==='1')window.location.replace('/dashboard.html'); }
+function closeCourtSettings(){ $('courtSettingsModal').classList.add('hidden'); courtSettingsDraft=null; if(IS_QUEUEING_PAGE&&new URLSearchParams(location.search).get('settings')==='1')window.location.replace('/dashboard'); }
 function draftCourt(id){return courtSettingsDraft?.find(c=>c.id===id);}
 function renderCourtSettings(){
   const pool=$('courtSettingsPool'), skills=$('courtSettingsSkills'), quick=$('courtSettingsQuickAdd');
@@ -6203,7 +6203,7 @@ function bindTopbarBackButton(){
   button.addEventListener('click',()=>{
     if(button.disabled)return;
     if(document.body?.dataset.page==='queueing'){
-      window.location.assign('session.html');
+      window.location.assign('/session');
       return;
     }
     showLiveQueueStartScreen();

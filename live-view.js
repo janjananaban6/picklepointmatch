@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const livePagePathMatch = window.location.pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/live\.html$/i);
+  const livePagePathMatch = window.location.pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/live$/i);
   const livePagePathSlug = livePagePathMatch ? decodeURIComponent(livePagePathMatch[1]) : '';
   const livePageQueryScope = String(new URLSearchParams(window.location.search).get('organizer') || '').trim();
   const organizerScope = livePageQueryScope || livePagePathSlug;

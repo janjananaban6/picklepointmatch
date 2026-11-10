@@ -1,71 +1,36 @@
 (() => {
   'use strict';
 
-  const path = String(window.location.pathname || '').toLowerCase();
-  const role = path.endsWith('/panel.html') || path === '/panel.html'
+  const rawPath = String(window.location.pathname || '/').toLowerCase().replace(/\/+$/, '') || '/';
+  const path = rawPath.replace(/\.html$/i, '');
+  const role = path === '/panel'
     ? 'panel'
-    : (path.endsWith('/dashboard.html') || path === '/dashboard.html' ? 'organizer' : '');
+    : (['/dashboard', '/queueing'].includes(path) ? 'organizer' : '');
   if (!role) return;
 
-  const storageKey = role === 'panel' ? 'ppm-panel-tab-session-v1' : 'ppm-organizer-tab-session-v1';
   const next = `${path.replace(/^\//, '')}${window.location.search || ''}`;
-  const loginUrl = `/index.html?next=${encodeURIComponent(next || (role === 'panel' ? 'panel.html' : 'dashboard.html'))}`;
+  const fallback = role === 'panel' ? 'panel' : 'dashboard';
+  const loginUrl = `/?next=${encodeURIComponent(next || fallback)}`;
   const root = document.documentElement;
   root.style.visibility = 'hidden';
 
-  let token = '';
-  try { token = window.sessionStorage.getItem(storageKey) || ''; } catch (_) {}
+  const returnToLogin = () => window.location.replace(loginUrl);
 
-  const returnToLogin = () => {
-    try { window.sessionStorage.removeItem(storageKey); } catch (_) {}
-    window.location.replace(loginUrl);
-  };
-
-  // A new tab has its own sessionStorage. A role cookie from another tab is
-  // deliberately not sufficient to reveal this page.
-  if (!token) {
-    returnToLogin();
-    return;
-  }
-
-  const nativeFetch = window.fetch.bind(window);
-  const authHeaders = () => ({
-    'X-PPM-Auth-Role': role,
-    'X-PPM-Tab-Scoped': '1',
-    'X-PPM-Tab-Session': token
-  });
-
-  window.fetch = (input, init = {}) => {
-    let target;
-    try {
-      const inputUrl = (typeof Request !== 'undefined' && input instanceof Request) ? input.url : String(input);
-      target = new URL(inputUrl, window.location.href);
-    } catch (_) {
-      return nativeFetch(input, init);
-    }
-    if (target.origin !== window.location.origin || !target.pathname.startsWith('/api/')) {
-      return nativeFetch(input, init);
-    }
-
-    const headers = new Headers((typeof Request !== 'undefined' && input instanceof Request) ? input.headers : undefined);
-    new Headers(init.headers || {}).forEach((value, name) => headers.set(name, value));
-    Object.entries(authHeaders()).forEach(([name, value]) => headers.set(name, value));
-    return nativeFetch(input, {...init, headers});
-  };
-
-  // Check the role and signature before making the protected page visible.
-  nativeFetch('/api/auth-status', {
+  // The server sends an HttpOnly, role-specific cookie after sign-in. Cookies
+  // are automatically shared by same-origin pages in this browser profile.
+  // A separate device/browser has no such cookie and is redirected to login.
+  fetch('/api/auth-status', {
     method: 'GET',
     cache: 'no-store',
     credentials: 'same-origin',
-    headers: authHeaders()
+    headers: {'X-PPM-Auth-Role': role}
   }).then(async response => {
     const status = await response.json().catch(() => null);
     if (!response.ok || !status || status.authenticated !== true || status.role !== role) {
       returnToLogin();
       return;
     }
-    window.PPM_TAB_AUTH = {role, storageKey};
+    window.PPM_TAB_AUTH = {role, sessionType: 'http-only-cookie'};
     document.getElementById('ppm-tab-auth-curtain')?.remove();
     root.style.removeProperty('visibility');
   }).catch(returnToLogin);

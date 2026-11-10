@@ -32,6 +32,9 @@ const subscribers = new Set();
 const liveSubscriberScopes = new Map();
 const sharedSubscribers = new Set();
 const sharedSubscriberScopes = new Map();
+const sharedSubscriberPublic = new Map();
+const requestRateBuckets = new Map();
+let rateLimiterOperations = 0;
 let dbPool = null;
 let organizerAccounts = [];
 let nextClubIdSequence = 1;
@@ -191,20 +194,15 @@ function accountByPublicIdentifier(value) {
 function getAuthSession(req, requestedRole = 'organizer') {
   if (!SESSION_SECRET) return null;
   const role = requestedRole === 'panel' ? 'panel' : 'organizer';
-  // Keep one signed session per role. This lets the Panel and Organizer
-  // remain authenticated in separate tabs without overwriting one another.
-  // The fallback to the old cookie for Panel accepts existing pre-update
-  // administrator sessions until they expire or are replaced by a new login.
-  // Panel and Dashboard pages use a tab-scoped signed token. Browser cookies
-  // are shared across tabs, so they cannot by themselves prove that this
-  // particular tab completed sign-in. Other legacy organizer pages may still
-  // use the role cookie when they do not send the tab-scoped marker.
-  const tabScoped = String(req.headers['x-ppm-tab-scoped'] || '').trim() === '1';
-  const token = tabScoped
-    ? String(req.headers['x-ppm-tab-session'] || '').trim()
-    : (role === 'panel'
-      ? (getCookieValue(req, PANEL_AUTH_COOKIE) || getCookieValue(req, AUTH_COOKIE))
-      : getCookieValue(req, AUTH_COOKIE));
+  // A successful login creates a signed HttpOnly cookie scoped to this role.
+  // Browsers automatically send it to every same-origin page in this browser
+  // profile, so Dashboard -> Session -> Queueing works without a second login.
+  // A different device/browser has no cookie and must sign in independently.
+  // The fallback to the old shared cookie for Panel accepts pre-update admin
+  // sessions until they expire or are replaced by a new login.
+  const token = role === 'panel'
+    ? (getCookieValue(req, PANEL_AUTH_COOKIE) || getCookieValue(req, AUTH_COOKIE))
+    : getCookieValue(req, AUTH_COOKIE);
   if (!token) return null;
   const parts = token.split('.');
   if (parts.length !== 2) return null;
@@ -232,8 +230,10 @@ function getAuthSession(req, requestedRole = 'organizer') {
 }
 function isAuthenticated(req) { return getAuthSession(req, 'organizer')?.role === 'organizer'; }
 function isPanelAuthenticated(req) { return getAuthSession(req, 'panel')?.role === 'panel'; }
-function isTabAuthenticated(req, role) {
-  return String(req.headers['x-ppm-tab-scoped'] || '').trim() === '1' && getAuthSession(req, role)?.role === role;
+function hasRoleSession(req, role) {
+  // Cookie-based role verification is shared across pages in the same browser,
+  // but is not shared with a separate device or browser profile.
+  return getAuthSession(req, role)?.role === role;
 }
 function makeSessionToken(username, role = 'organizer', organizerId = null) {
   const now = Date.now();
@@ -891,6 +891,112 @@ function sendJson(res, status, data) {
   res.writeHead(status, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
   res.end(JSON.stringify(data));
 }
+function setSecurityHeaders(req, res) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+  if (process.env.NODE_ENV === 'production' || forwardedProto === 'https') {
+    res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  }
+}
+function requestClientIp(req) {
+  // Render's Cloudflare edge overwrites CF-Connecting-IP with the visitor IP.
+  // Prefer it over X-Forwarded-For, which may contain caller-supplied values.
+  const cloudflareIp = String(req.headers['cf-connecting-ip'] || '').trim();
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const candidate = cloudflareIp || forwarded || String(req.socket?.remoteAddress || 'unknown');
+  return candidate.slice(0, 100) || 'unknown';
+}
+function rateLimitRecord(key, limit, windowMs, increment = true) {
+  const now = Date.now();
+  let entry = requestRateBuckets.get(key);
+  if (!entry || entry.resetAt <= now) {
+    if (!increment) return {allowed:true, count:0, retryAfter:0};
+    entry = {count:0, resetAt:now + windowMs};
+  }
+  if (increment) entry.count += 1;
+  requestRateBuckets.set(key, entry);
+  rateLimiterOperations += 1;
+  if (rateLimiterOperations % 500 === 0 || requestRateBuckets.size > 12000) {
+    for (const [bucketKey, bucket] of requestRateBuckets) {
+      if (!bucket || bucket.resetAt <= now) requestRateBuckets.delete(bucketKey);
+    }
+    // Bound memory use if attackers rotate usernames or other limiter keys.
+    while (requestRateBuckets.size > 20000) {
+      const oldestKey = requestRateBuckets.keys().next().value;
+      if (oldestKey === undefined) break;
+      requestRateBuckets.delete(oldestKey);
+    }
+  }
+  const retryAfter = Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
+  return {allowed:entry.count <= limit, count:entry.count, retryAfter};
+}
+function clearRateLimit(key) { requestRateBuckets.delete(key); }
+function sendRateLimited(res, retryAfter, message = 'Too many attempts. Please try again later.') {
+  res.setHeader('Retry-After', String(Math.max(1, retryAfter || 60)));
+  res.setHeader('Cache-Control', 'no-store');
+  return sendJson(res, 429, {ok:false,error:message,retryAfter:Math.max(1, retryAfter || 60)});
+}
+function sameOriginRequest(req) {
+  const origin = String(req.headers.origin || '').trim();
+  if (!origin) return String(req.headers['sec-fetch-site'] || '').toLowerCase() !== 'cross-site';
+  let parsed;
+  try { parsed = new URL(origin); } catch (_) { return false; }
+  const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim();
+  const requestHost = String(forwardedHost || req.headers.host || '').trim();
+  if (!requestHost || parsed.host.toLowerCase() !== requestHost.toLowerCase()) return false;
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+  const expectedProtocol = forwardedProto || (req.socket?.encrypted ? 'https' : 'http');
+  return parsed.protocol === `${expectedProtocol}:`;
+}
+function publicCloudPlayer(player) {
+  if (!player || typeof player !== 'object') return null;
+  return {
+    cloudId: player.cloudId ?? null,
+    name: String(player.name || '').slice(0, 120),
+    nickname: String(player.nickname || '').slice(0, 80),
+    gender: String(player.gender || '').slice(0, 20),
+    category: String(player.category || '').slice(0, 10),
+    avatarId: normalizeAvatarId(player.avatarId ?? player.avatarID ?? player.avatar_id) || null
+  };
+}
+function publicCloudRecords(records) {
+  return {
+    players: (Array.isArray(records?.players) ? records.players : []).map(publicCloudPlayer).filter(Boolean),
+    // Match logs, attendance, archived sessions, DUPR IDs, ratings, and player statistics
+    // are private organizer data and are never sent to the public registration QR page.
+    logs: [],
+    sessions: []
+  };
+}
+function publicRegistrationAppState(state) {
+  if (!state || typeof state !== 'object') return null;
+  const publicPlayer = player => ({
+    id: player?.id ?? null,
+    name: String(player?.name || '').slice(0, 120),
+    registeredCloudId: String(player?.registeredCloudId || player?.registrationCloudId || '').slice(0, 80)
+  });
+  return {
+    sessionId: getSessionId(state) || null,
+    sessionName: String(state.sessionName || '').slice(0, 120),
+    sessionActive: state.sessionActive === true,
+    sessionEndedAt: state.sessionEndedAt || null,
+    players: (Array.isArray(state.players) ? state.players : []).map(publicPlayer),
+    left: (Array.isArray(state.left) ? state.left : []).map(publicPlayer)
+  };
+}
+function publicSharedEventPayload(eventName, payload) {
+  if (eventName === 'cloud-records') {
+    return {...payload, records:publicCloudRecords(payload?.records)};
+  }
+  if (eventName === 'app-state') {
+    return {...payload, state:publicRegistrationAppState(payload?.state)};
+  }
+  return payload;
+}
 function normalizePlayerName(value) {
   return String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
@@ -1153,10 +1259,15 @@ function broadcast(snapshot = latestState, organizerId = null) {
   }
 }
 function broadcastNamedEvent(eventName, payload, organizerId = null) {
-  const packet = `event: ${eventName}\ndata: ${JSON.stringify(payload)}\n\n`;
   for (const res of sharedSubscribers) {
     if (eventName === 'app-state' && (sharedSubscriberScopes.get(res) || null) !== (organizerId || null)) continue;
-    try { res.write(packet); } catch (_) { sharedSubscribers.delete(res); sharedSubscriberScopes.delete(res); }
+    const outgoing = sharedSubscriberPublic.get(res) === true ? publicSharedEventPayload(eventName, payload) : payload;
+    const packet = `event: ${eventName}\ndata: ${JSON.stringify(outgoing)}\n\n`;
+    try { res.write(packet); } catch (_) {
+      sharedSubscribers.delete(res);
+      sharedSubscriberScopes.delete(res);
+      sharedSubscriberPublic.delete(res);
+    }
   }
 }
 function broadcastTheme() {
@@ -1180,16 +1291,26 @@ async function readBody(req, limit = 2 * 1024 * 1024) {
   try { return JSON.parse(raw); } catch (_) { const err = new Error('Invalid JSON'); err.statusCode = 400; throw err; }
 }
 async function handle(req, res) {
+  setSecurityHeaders(req, res);
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const isPrivilegedMutation = !['GET','HEAD','OPTIONS'].includes(req.method) && (
+    url.pathname.startsWith('/api/panel/') ||
+    url.pathname.startsWith('/api/organizer-dashboard') ||
+    url.pathname === '/api/organizer-settings' ||
+    ['/api/login','/api/logout','/api/register-organizer','/api/register-player','/api/app-state','/api/cloud-records','/api/live-state','/api/live-theme'].includes(url.pathname)
+  );
+  if (isPrivilegedMutation && !sameOriginRequest(req)) {
+    return sendJson(res, 403, {ok:false,error:'Cross-origin request blocked.'});
+  }
 
-  if (url.pathname.startsWith('/api/panel/') && !isTabAuthenticated(req, 'panel')) {
-    return sendJson(res, 401, {ok:false,error:'Panel administrator tab sign-in required.'});
+  if (url.pathname.startsWith('/api/panel/') && !hasRoleSession(req, 'panel')) {
+    return sendJson(res, 401, {ok:false,error:'Panel Administrator login required.'});
   }
   const isOrganizerDashboardApi = url.pathname === '/api/organizer-dashboard'
     || url.pathname.startsWith('/api/organizer-dashboard/')
     || url.pathname === '/api/organizer-settings';
-  if (isOrganizerDashboardApi && !isTabAuthenticated(req, 'organizer')) {
-    return sendJson(res, 401, {ok:false,error:'Organizer dashboard tab sign-in required.'});
+  if (isOrganizerDashboardApi && !hasRoleSession(req, 'organizer')) {
+    return sendJson(res, 401, {ok:false,error:'Organizer login required.'});
   }
 
   if (url.pathname === '/api/auth-status' && req.method === 'GET') {
@@ -1234,15 +1355,24 @@ async function handle(req, res) {
   }
 
   if (url.pathname === '/api/login' && req.method === 'POST') {
+    const ip = requestClientIp(req);
+    const burst = rateLimitRecord(`login-burst:${ip}`, 30, 60 * 1000, true);
+    if (!burst.allowed) return sendRateLimited(res, burst.retryAfter, 'Too many sign-in requests. Please wait before trying again.');
     if (!SESSION_SECRET || (!panelIsConfigured() && !organizerAccounts.some(account => account.active === true && effectiveApprovalStatus(account) === 'approved'))) {
       return sendJson(res, 503, {ok:false,error:'Login is not configured yet. Configure PANEL_USERNAME, PANEL_PASSWORD, SESSION_SECRET, or register an organizer after setup.'});
     }
-    // Login attempts are not counted or locked out. A failed sign-in returns a normal
-    // 401 response, and users can correct credentials and retry immediately.
+    // Failed attempts are counted per username/IP and per IP to slow brute-force attacks.
     try {
       const body = await readBody(req, 16 * 1024);
-      const username = String(body?.username || '').trim();
+      const username = String(body?.username || '').trim().slice(0, 80);
       const password = String(body?.password || '');
+      const identityRateKey = `login-failed:${ip}:${username.toLowerCase()}`;
+      const ipFailureRateKey = `login-failed-ip:${ip}`;
+      const identityStatus = rateLimitRecord(identityRateKey, 5, 15 * 60 * 1000, false);
+      const ipFailureStatus = rateLimitRecord(ipFailureRateKey, 20, 15 * 60 * 1000, false);
+      if (identityStatus.count >= 5 || ipFailureStatus.count >= 20) {
+        return sendRateLimited(res, Math.max(identityStatus.retryAfter, ipFailureStatus.retryAfter), 'Too many failed sign-in attempts. Please wait 15 minutes before trying again.');
+      }
       let role = null;
       let account = null;
       if (panelIsConfigured() && safeEqual(username, PANEL_USERNAME) && safeEqual(password, PANEL_PASSWORD)) {
@@ -1252,8 +1382,14 @@ async function handle(req, res) {
         if (account && account.active === true && effectiveApprovalStatus(account) === 'approved' && verifyPassword(password, account.passwordHash)) role = 'organizer';
       }
       if (!role) {
+        const identityFailure = rateLimitRecord(identityRateKey, 5, 15 * 60 * 1000, true);
+        const ipFailure = rateLimitRecord(ipFailureRateKey, 20, 15 * 60 * 1000, true);
+        if (identityFailure.count >= 5 || ipFailure.count >= 20) {
+          return sendRateLimited(res, Math.max(identityFailure.retryAfter, ipFailure.retryAfter), 'Too many failed sign-in attempts. Please wait before trying again.');
+        }
         return sendJson(res, 401, {ok:false,error:'Incorrect username or password, or this account is inactive.'});
       }
+      clearRateLimit(identityRateKey);
       if (role === 'organizer') {
         account.lastLoginAt = new Date().toISOString();
         if (!account.passwordEncrypted) account.passwordEncrypted = encryptOrganizerPassword(password);
@@ -1276,15 +1412,15 @@ async function handle(req, res) {
         sessionCookies.push(`${AUTH_COOKIE}=; ${cookieOptions(req, 0)}`);
       }
       const sessionCookieName = role === 'panel' ? PANEL_AUTH_COOKIE : AUTH_COOKIE;
-      const tabSession = makeSessionToken(authUsername,role,authId);
-      sessionCookies.push(`${sessionCookieName}=${tabSession}; ${cookieOptions(req, SESSION_MAX_AGE_SECONDS)}`);
+      const sessionToken = makeSessionToken(authUsername,role,authId);
+      sessionCookies.push(`${sessionCookieName}=${sessionToken}; ${cookieOptions(req, SESSION_MAX_AGE_SECONDS)}`);
       res.writeHead(200, {
         'Content-Type':'application/json; charset=utf-8',
         'Cache-Control':'no-store',
         'Set-Cookie':sessionCookies,
         'X-Content-Type-Options':'nosniff'
       });
-      return res.end(JSON.stringify({ok:true,role,username:authUsername,displayName:role === 'organizer' ? (account.displayName || account.username) : null,organizerId:authId,expiresIn:SESSION_MAX_AGE_SECONDS,tabSession}));
+      return res.end(JSON.stringify({ok:true,role,username:authUsername,displayName:role === 'organizer' ? (account.displayName || account.username) : null,organizerId:authId,expiresIn:SESSION_MAX_AGE_SECONDS}));
     } catch (err) {
       const statusCode = err.statusCode || 503;
       const errorText = err.statusCode === 413
@@ -1298,11 +1434,12 @@ async function handle(req, res) {
   }
 
   if (url.pathname === '/api/register-organizer' && req.method === 'POST') {
+    const registrationLimit = rateLimitRecord(`organizer-application:${requestClientIp(req)}`, 5, 60 * 60 * 1000, true);
+    if (!registrationLimit.allowed) return sendRateLimited(res, registrationLimit.retryAfter, 'Too many organizer applications from this network. Please try again later.');
     if (!SESSION_SECRET) return sendJson(res, 503, {ok:false,error:'Organizer registration is not configured. Set SESSION_SECRET on the server and redeploy.'});
-    // Public organizer registration intentionally has no application-level attempt lockout.
-    // Logos are compressed in the browser; the larger body allowance also accommodates cached clients.
+    // Logos are compressed in the browser; cap the request to limit abuse.
     try {
-      const body = await readBody(req, 16 * 1024 * 1024);
+      const body = await readBody(req, 4 * 1024 * 1024);
       const username = String(body?.username || '').trim();
       const displayName = String(body?.displayName || '').trim().replace(/\s+/g, ' ').slice(0, 80);
       const duprId = String(body?.duprId || '').trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase().slice(0, 40);
@@ -1636,9 +1773,12 @@ async function handle(req, res) {
     return res.end(JSON.stringify({ok:true}));
   }
 
-  // Organizer write APIs require login. Player registration is handled separately
-  // and requires a valid organizer-scoped share link.
-  if (req.method === 'POST' && ['/api/app-state','/api/cloud-records','/api/live-state','/api/live-theme'].includes(url.pathname) && !isAuthenticated(req)) {
+  // Organizer data mutations require a valid signed HttpOnly organizer cookie.
+  // Public player registration is handled separately.
+  if (req.method === 'POST' && ['/api/app-state','/api/cloud-records','/api/live-state'].includes(url.pathname) && !hasRoleSession(req, 'organizer')) {
+    return sendJson(res, 401, {ok:false,error:'Organizer login required.'});
+  }
+  if (req.method === 'POST' && url.pathname === '/api/live-theme' && !isAuthenticated(req)) {
     return sendJson(res, 401, {ok:false,error:'Organizer login required.'});
   }
 
@@ -1652,10 +1792,10 @@ async function handle(req, res) {
     let body;
     let contentType;
     if (url.pathname === '/robots.txt') {
-      body = `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /Registration.html\nSitemap: ${origin}/sitemap.xml\n`;
+      body = `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /registration\nSitemap: ${origin}/sitemap.xml\n`;
       contentType = 'text/plain; charset=utf-8';
     } else {
-      const pages = ['/', '/live.html'];
+      const pages = ['/', '/live'];
       const xmlEscape = value => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
       body = `<?xml version="1.0" encoding="UTF-8"?>\n` +
         `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
@@ -1678,15 +1818,16 @@ async function handle(req, res) {
   if (url.pathname === '/api/app-state' && req.method === 'GET') {
     const requestedScope = String(url.searchParams.get('organizer') || '').trim();
     const auth = getAuthSession(req);
-    // Scoped links stay tied to their organizer even if the visitor has a
-    // different organizer cookie. An unscoped public request is not allowed.
+    // Scoped public registration links receive only the fields needed for
+    // duplicate-checking and live-session validation. Full queue state is private.
     const organizerId = requestedScope
       ? (accountByPublicIdentifier(requestedScope)?.id || null)
-      : (auth?.role === 'organizer' ? auth.organizerId : null);
+      : (hasRoleSession(req, 'organizer') ? auth?.organizerId : null);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     if (!organizerId) return sendJson(res,401,{ok:false,error:'An organizer-specific registration link or organizer login is required.'});
     const entry = getOrganizerAppEntry(organizerId);
-    return sendJson(res, 200, {ok:true,revision:entry.revision,state:entry.state,updatedAt:entry.updatedAt,clientId:entry.clientId||null,organizerId});
+    const state = requestedScope ? publicRegistrationAppState(entry.state) : entry.state;
+    return sendJson(res, 200, {ok:true,revision:entry.revision,state,updatedAt:entry.updatedAt,clientId:entry.clientId||null,organizerId,organizerSlug:String(accountById(organizerId)?.slug || '')});
   }
   if (url.pathname === '/api/app-state' && req.method === 'POST') {
     try {
@@ -1787,11 +1928,12 @@ async function handle(req, res) {
     const auth = getAuthSession(req);
     const organizerId = requestedScope
       ? (accountByPublicIdentifier(requestedScope)?.id || null)
-      : (auth?.role === 'organizer' ? auth.organizerId : null);
+      : (hasRoleSession(req, 'organizer') ? auth?.organizerId : null);
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     if (!organizerId) return sendJson(res,401,{ok:false,error:'An organizer-specific registration link or organizer login is required.'});
-    // The organizer scope authorizes the link; records remain in one shared cloud.
-    return sendJson(res, 200, {ok:true, revision:sharedCloudRevision, records:sharedCloudRecords, updatedAt:sharedCloudUpdatedAt});
+    const publicScope = !!requestedScope;
+    const records = publicScope ? publicCloudRecords(sharedCloudRecords) : sharedCloudRecords;
+    return sendJson(res, 200, {ok:true, revision:sharedCloudRevision, records, updatedAt:sharedCloudUpdatedAt});
   }
   if (url.pathname === '/api/organizer-dashboard' && req.method === 'GET') {
     const auth = getAuthSession(req);
@@ -2264,6 +2406,8 @@ async function handle(req, res) {
   // Register a player profile in the shared cloud and immediately add it to
   // the live queue belonging to the organizer selected by this registration link.
   if (url.pathname === '/api/register-player' && req.method === 'POST') {
+    const registrationAttempt = rateLimitRecord(`player-registration:${requestClientIp(req)}`, 120, 10 * 60 * 1000, true);
+    if (!registrationAttempt.allowed) return sendRateLimited(res, registrationAttempt.retryAfter, 'Too many registration attempts from this network. Please wait before trying again.');
     try {
       const body = await readBody(req, 16 * 1024);
       const name = String(body?.name || '').normalize('NFC').trim().replace(/\s+/g, ' ');
@@ -2634,20 +2778,26 @@ async function handle(req, res) {
   if (url.pathname === '/api/shared-events' && req.method === 'GET') {
     const requestedScope = String(url.searchParams.get('organizer') || '').trim();
     const auth = getAuthSession(req);
-    const organizerId = requestedScope
+    const publicScope = !!requestedScope;
+    const organizerId = publicScope
       ? (accountByPublicIdentifier(requestedScope)?.id || null)
       : (auth?.role === 'organizer' ? auth.organizerId : null);
-    if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
+    if (publicScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     if (!organizerId) return sendJson(res,401,{ok:false,error:'An organizer-specific registration link or organizer login is required.'});
-    res.writeHead(200, {'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
-    res.write('retry: 2000\n\n');
+    const streamLimit = rateLimitRecord(`shared-stream:${requestClientIp(req)}`, 120, 60 * 1000, true);
+    if (!streamLimit.allowed) return sendRateLimited(res, streamLimit.retryAfter, 'Too many live data connections. Please wait and retry.');
+    res.writeHead(200, {'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-store, no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
+    res.write('retry: 5000\n\n');
     const appEntry = getOrganizerAppEntry(organizerId);
-    if (appEntry.state) res.write(`event: app-state\ndata: ${JSON.stringify({...appEntry,organizerId})}\n\n`);
-    if (sharedCloudRecords) res.write(`event: cloud-records\ndata: ${JSON.stringify({revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords})}\n\n`);
+    const initialAppPayload = {...appEntry,organizerId};
+    const initialCloudPayload = {revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords};
+    res.write(`event: app-state\ndata: ${JSON.stringify(publicScope ? publicSharedEventPayload('app-state', initialAppPayload) : initialAppPayload)}\n\n`);
+    if (sharedCloudRecords) res.write(`event: cloud-records\ndata: ${JSON.stringify(publicScope ? publicSharedEventPayload('cloud-records', initialCloudPayload) : initialCloudPayload)}\n\n`);
     sharedSubscribers.add(res);
     sharedSubscriberScopes.set(res,organizerId || null);
+    sharedSubscriberPublic.set(res,publicScope);
     const heartbeat = setInterval(()=>{try{res.write(': keep-alive\n\n');}catch(_){cleanup();}},20000);
-    const cleanup = () => { clearInterval(heartbeat); sharedSubscribers.delete(res); sharedSubscriberScopes.delete(res); };
+    const cleanup = () => { clearInterval(heartbeat); sharedSubscribers.delete(res); sharedSubscriberScopes.delete(res); sharedSubscriberPublic.delete(res); };
     res.on('close', cleanup);
     res.on('error', cleanup);
     req.on('aborted', cleanup);
@@ -2676,24 +2826,54 @@ async function handle(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res,405,{ok:false,error:'Method not allowed'});
   let pathname;
   try { pathname = decodeURIComponent(url.pathname); } catch (_) { return sendJson(res,400,{ok:false,error:'Invalid path'}); }
-  if (pathname === '/') pathname = '/index.html';
-  const organizerLivePath = pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/live\.html$/i);
+  // Canonical extensionless page URLs. Keep the legacy .html URLs working
+  // through redirects so old bookmarks and QR codes continue to resolve.
+  const cleanPageRoutes = new Map([
+    ['/','index.html'],
+    ['/dashboard','dashboard.html'],
+    ['/panel','panel.html'],
+    ['/queueing','queueing.html'],
+    ['/session','session.html'],
+    ['/registration','Registration.html'],
+    ['/live','live.html']
+  ]);
+  const legacyPageRedirects = new Map([
+    ['/index.html','/'],
+    ['/dashboard.html','/dashboard'],
+    ['/panel.html','/panel'],
+    ['/queueing.html','/queueing'],
+    ['/session.html','/session'],
+    ['/registration.html','/registration'],
+    ['/live.html','/live']
+  ]);
+  if (pathname.length > 1 && pathname.endsWith('/')) return setRedirect(res, `${pathname.replace(/\/+$/, '')}${url.search || ''}`);
+  const normalizedPath = pathname.toLowerCase();
+  const legacyOrganizerLivePath = pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/live\.html$/i);
+  if (legacyOrganizerLivePath) {
+    if (!accountBySlug(legacyOrganizerLivePath[1])) return sendJson(res,404,{ok:false,error:'Organizer Live View link was not found or is inactive.'});
+    return setRedirect(res, `/${legacyOrganizerLivePath[1]}/live${url.search || ''}`);
+  }
+  if (legacyPageRedirects.has(normalizedPath)) {
+    return setRedirect(res, `${legacyPageRedirects.get(normalizedPath)}${url.search || ''}`);
+  }
+  const organizerLivePath = pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/live$/i);
   if (organizerLivePath && !accountBySlug(organizerLivePath[1])) return sendJson(res,404,{ok:false,error:'Organizer Live View link was not found or is inactive.'});
   const isOrganizerLivePath = !!organizerLivePath;
-  const name = path.basename(pathname);
-  if (!allowedFiles.has(name) || pathname.includes('..') || (pathname.includes('/') && pathname !== `/${name}` && !isOrganizerLivePath)) return sendJson(res,404,{ok:false,error:'Not found'});
-  // Keep the server-side role check as a first layer. The tab-auth.js gate
-  // adds the stricter per-tab check because browser cookies are shared across
-  // tabs and therefore cannot prove that this particular tab signed in.
+  const routeFile = cleanPageRoutes.get(normalizedPath);
+  const name = isOrganizerLivePath ? 'live.html' : (routeFile || path.basename(pathname));
+  if (!allowedFiles.has(name) || pathname.includes('..') || (pathname.includes('/') && pathname !== `/${name}` && !routeFile && !isOrganizerLivePath)) return sendJson(res,404,{ok:false,error:'Not found'});
+  // Enforce login on the server before protected HTML is sent. The signed
+  // HttpOnly role cookie is shared by same-origin pages in this browser profile;
+  // another device/browser has no cookie and must authenticate separately.
   if (name === 'panel.html' && !isPanelAuthenticated(req)) {
-    return setRedirect(res, '/index.html?next=panel.html');
+    return setRedirect(res, '/?next=panel');
   }
   if (name === 'dashboard.html' && !isAuthenticated(req)) {
-    return setRedirect(res, `/index.html?next=${encodeURIComponent('dashboard.html')}`);
+    return setRedirect(res, '/?next=dashboard');
   }
   if ((name === 'session.html' || name === 'queueing.html') && !isAuthenticated(req)) {
-    const next = `${name}${url.search || ''}`;
-    return setRedirect(res, `/index.html?next=${encodeURIComponent(next)}`);
+    const next = `${name === 'queueing.html' ? 'queueing' : 'session'}${url.search || ''}`;
+    return setRedirect(res, `/?next=${encodeURIComponent(next)}`);
   }
   const filePath = path.join(ROOT,name);
   try {
@@ -2701,7 +2881,7 @@ async function handle(req, res) {
     if (!stat.isFile()) return sendJson(res,404,{ok:false,error:'Not found'});
     const extension=path.extname(filePath).toLowerCase();
     const mutableAsset=['.html','.js','.css'].includes(extension);
-    const noStorePage = ['index.html','dashboard.html','panel.html','session.html','queueing.html','live.html'].includes(name);
+    const noStorePage = ['index.html','dashboard.html','panel.html','session.html','queueing.html','live.html','Registration.html'].includes(name);
     const cacheControl = noStorePage ? 'private, no-store, max-age=0' : (mutableAsset ? 'no-cache, must-revalidate' : 'public, max-age=300');
     res.writeHead(200, {'Content-Type':MIME[extension]||'application/octet-stream','Content-Length':stat.size,'Cache-Control':cacheControl,'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});
     if(req.method==='HEAD')return res.end();
@@ -2711,6 +2891,9 @@ async function handle(req, res) {
 
 (async()=>{
   try {
+    if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL is required in production. Configure a persistent PostgreSQL database before deployment.');
+    }
     await initializeStorage();
 
     const savedAccounts = await loadStored('organizer-accounts', ORGANIZERS_FILE);
@@ -2882,10 +3065,17 @@ async function handle(req, res) {
     process.exit(1);
   }
   const server=http.createServer((req,res)=>{handle(req,res).catch(err=>{console.error('Request error:',err);if(!res.headersSent)sendJson(res,500,{ok:false,error:'Internal server error'});else res.end();});});
-  server.listen(PORT,HOST,()=>console.log(`Pickle Point Match running at http://localhost:${PORT}\nLive View: http://localhost:${PORT}/live.html\nFor another device on the same Wi-Fi, use this computer's local IP address.`));
+  server.headersTimeout = 15000;
+  server.requestTimeout = 30000;
+  server.keepAliveTimeout = 5000;
+  server.maxRequestsPerSocket = 1000;
+  server.listen(PORT,HOST,()=>console.log(`Pickle Point Match running at http://localhost:${PORT}\nLive View: http://localhost:${PORT}/live\nFor another device on the same Wi-Fi, use this computer's local IP address.`));
   const shutdown=()=>{
     for(const res of subscribers){try{res.end();}catch(_){}}
     for(const res of sharedSubscribers){try{res.end();}catch(_){}}
+    sharedSubscribers.clear();
+    sharedSubscriberScopes.clear();
+    sharedSubscriberPublic.clear();
     server.close(async()=>{
       if (dbPool) { try { await dbPool.end(); } catch (_) {} }
       process.exit(0);

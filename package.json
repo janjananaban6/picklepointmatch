@@ -4,12 +4,13 @@
   "private": true,
   "description": "Pickle Point Match queueing system with public real-time Live View",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "import:legacy-data": "node scripts/import-legacy-data.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=24 <27"
   },
   "dependencies": {
-    "pg": "^8.16.3"
+    "pg": "^8.23.1"
   }
 }

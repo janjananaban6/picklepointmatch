@@ -129,7 +129,7 @@
     });
     const data = await response.json().catch(() => ({}));
     if (response.status === 401) {
-      window.location.replace('/index.html');
+      window.location.replace('/');
       throw new Error('Your administrator session has expired. Please sign in again.');
     }
     if (!response.ok || data.ok === false) throw new Error(data.error || 'The request could not be completed.');
@@ -441,7 +441,7 @@
     try {
       const response = await fetch('/api/panel/registered-players.csv', {cache:'no-store', credentials:'same-origin'});
       if (response.status === 401) {
-        window.location.replace('/index.html');
+        window.location.replace('/');
         throw new Error('Your administrator session has expired. Please sign in again.');
       }
       if (!response.ok) {
@@ -1164,8 +1164,7 @@
     } catch (_) {
       // End the local panel session even if the server cannot be reached.
     }
-    try { window.sessionStorage.removeItem('ppm-panel-tab-session-v1'); } catch (_) {}
-    window.location.replace('/index.html');
+    window.location.replace('/');
   });
   modal.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', closeModal));
   $('confirmAccountAction').addEventListener('click', confirmPendingAction);
@@ -1208,9 +1207,9 @@
   fetch('/api/auth-status', {cache:'no-store', credentials:'same-origin', headers:{'X-PPM-Auth-Role':'panel'}})
     .then(response => response.json())
     .then(status => {
-      if (!status.authenticated || status.role !== 'panel') { window.location.replace('/index.html'); return; }
+      if (!status.authenticated || status.role !== 'panel') { window.location.replace('/'); return; }
       loadAccounts();
       loadRegisteredPlayerSummary();
     })
-    .catch(() => window.location.replace('/index.html'));
+    .catch(() => window.location.replace('/'));
 })();

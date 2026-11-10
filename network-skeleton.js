@@ -26,10 +26,10 @@
   function screenType() {
     const path = (window.location.pathname || '').toLowerCase();
     if (path.endsWith('/index.html') || path === '/' || document.body?.classList.contains('organizer-login-page')) return 'login';
-    if (path.endsWith('/panel.html') || document.body?.classList.contains('panel-page')) return 'panel';
-    if (path.endsWith('/session.html') || document.body?.dataset?.page === 'start') return 'start';
-    if (path.endsWith('/queueing.html') || document.body?.dataset?.page === 'queueing') return 'queueing';
-    if (path.endsWith('/registration.html') || document.body?.classList.contains('registration-page-body')) return 'registration';
+    if (path.endsWith('/panel.html') || path === '/panel' || document.body?.classList.contains('panel-page')) return 'panel';
+    if (path.endsWith('/session.html') || path === '/session' || document.body?.dataset?.page === 'start') return 'start';
+    if (path.endsWith('/queueing.html') || path === '/queueing' || document.body?.dataset?.page === 'queueing') return 'queueing';
+    if (path.endsWith('/registration.html') || path === '/registration' || document.body?.classList.contains('registration-page-body')) return 'registration';
     return 'live';
   }
 

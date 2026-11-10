@@ -10,7 +10,7 @@ if errorlevel 1 (
 where node >nul 2>nul
 if errorlevel 1 (
   echo ERROR: Node.js is not installed.
-  echo Install Node.js 18 or newer, then run this file again.
+  echo Install Node.js 24 LTS, then run this file again.
   echo Download: https://nodejs.org/
   pause
   exit /b 1
@@ -22,8 +22,8 @@ if not defined NODE_MAJOR (
   pause
   exit /b 1
 )
-if %NODE_MAJOR% LSS 18 (
-  echo ERROR: Node.js 18 or newer is required. Current major version: %NODE_MAJOR%
+if %NODE_MAJOR% LSS 24 (
+  echo ERROR: Node.js 24 LTS is required. Current major version: %NODE_MAJOR%
   pause
   exit /b 1
 )

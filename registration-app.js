@@ -66,7 +66,7 @@
           return false;
         }
         const data = await response.json();
-        if (!data || String(data.organizerId || '') !== organizerScope) {
+        if (!data || (String(data.organizerId || '') !== organizerScope && String(data.organizerSlug || '').toLowerCase() !== organizerScope.toLowerCase())) {
           showRegistrationLinkNotice('This organizer registration link is invalid or inactive. Please ask the organizer for an updated QR code or link.');
           return false;
         }
