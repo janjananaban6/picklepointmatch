@@ -2,7 +2,9 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const registrationParams = new URLSearchParams(window.location.search);
-  const organizerScope = String(registrationParams.get('organizer') || '').trim();
+  const registrationPathMatch = window.location.pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/registration$/i);
+  const registrationPathSlug = registrationPathMatch ? decodeURIComponent(registrationPathMatch[1]) : '';
+  const organizerScope = String(registrationParams.get('organizer') || registrationPathSlug).trim();
   const registrationSessionId = String(registrationParams.get('session') || '').trim();
   const registrationDuprSession = ['1', 'true', 'dupr'].includes(String(registrationParams.get('dupr') || '').trim().toLowerCase());
   let organizerValidated = false;

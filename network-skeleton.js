@@ -29,7 +29,7 @@
     if (path.endsWith('/panel.html') || path === '/panel' || document.body?.classList.contains('panel-page')) return 'panel';
     if (path.endsWith('/session.html') || path === '/session' || document.body?.dataset?.page === 'start') return 'start';
     if (path.endsWith('/queueing.html') || path === '/queueing' || document.body?.dataset?.page === 'queueing') return 'queueing';
-    if (path.endsWith('/registration.html') || path === '/registration' || document.body?.classList.contains('registration-page-body')) return 'registration';
+    if (path.endsWith('/registration.html') || path === '/registration' || /^\/[a-z0-9]+(?:-[a-z0-9]+)*\/registration$/i.test(path) || document.body?.classList.contains('registration-page-body')) return 'registration';
     return 'live';
   }
 

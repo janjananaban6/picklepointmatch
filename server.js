@@ -2853,15 +2853,23 @@ async function handle(req, res) {
     if (!accountBySlug(legacyOrganizerLivePath[1])) return sendJson(res,404,{ok:false,error:'Organizer Live View link was not found or is inactive.'});
     return setRedirect(res, `/${legacyOrganizerLivePath[1]}/live${url.search || ''}`);
   }
+  const legacyOrganizerRegistrationPath = pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/registration\.html$/i);
+  if (legacyOrganizerRegistrationPath) {
+    if (!accountBySlug(legacyOrganizerRegistrationPath[1])) return sendJson(res,404,{ok:false,error:'Organizer registration link was not found or is inactive.'});
+    return setRedirect(res, `/${legacyOrganizerRegistrationPath[1]}/registration${url.search || ''}`);
+  }
   if (legacyPageRedirects.has(normalizedPath)) {
     return setRedirect(res, `${legacyPageRedirects.get(normalizedPath)}${url.search || ''}`);
   }
   const organizerLivePath = pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/live$/i);
   if (organizerLivePath && !accountBySlug(organizerLivePath[1])) return sendJson(res,404,{ok:false,error:'Organizer Live View link was not found or is inactive.'});
+  const organizerRegistrationPath = pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/registration$/i);
+  if (organizerRegistrationPath && !accountBySlug(organizerRegistrationPath[1])) return sendJson(res,404,{ok:false,error:'Organizer registration link was not found or is inactive.'});
   const isOrganizerLivePath = !!organizerLivePath;
+  const isOrganizerRegistrationPath = !!organizerRegistrationPath;
   const routeFile = cleanPageRoutes.get(normalizedPath);
-  const name = isOrganizerLivePath ? 'live.html' : (routeFile || path.basename(pathname));
-  if (!allowedFiles.has(name) || pathname.includes('..') || (pathname.includes('/') && pathname !== `/${name}` && !routeFile && !isOrganizerLivePath)) return sendJson(res,404,{ok:false,error:'Not found'});
+  const name = isOrganizerLivePath ? 'live.html' : (isOrganizerRegistrationPath ? 'Registration.html' : (routeFile || path.basename(pathname)));
+  if (!allowedFiles.has(name) || pathname.includes('..') || (pathname.includes('/') && pathname !== `/${name}` && !routeFile && !isOrganizerLivePath && !isOrganizerRegistrationPath)) return sendJson(res,404,{ok:false,error:'Not found'});
   // Enforce login on the server before protected HTML is sent. The signed
   // HttpOnly role cookie is shared by same-origin pages in this browser profile;
   // another device/browser has no cookie and must authenticate separately.

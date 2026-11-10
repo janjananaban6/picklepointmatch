@@ -1921,7 +1921,7 @@ async function copyLiveViewQrLink(){
   try{await navigator.clipboard.writeText(field.value);toast('Live View link copied.');}
   catch(e){field.focus();field.select();let copied=false;try{copied=document.execCommand('copy');}catch(err){}toast(copied?'Live View link copied.':'Select and copy the Live View link.');}
 }
-function getRegistrationPageUrl(){const url=new URL('/registration',window.location.origin);if(window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);if(state.sessionId)url.searchParams.set('session',String(state.sessionId));url.searchParams.set('dupr',isCurrentSessionDupr()?'1':'0');return url;}
+function getRegistrationPageUrl(){const slug=String(window.PPM_ORGANIZER_SLUG||'').trim();const url=new URL(slug?`/${encodeURIComponent(slug)}/registration`:'/registration',window.location.origin);if(!slug&&window.PPM_ORGANIZER_ID)url.searchParams.set('organizer',window.PPM_ORGANIZER_ID);if(state.sessionId)url.searchParams.set('session',String(state.sessionId));url.searchParams.set('dupr',isCurrentSessionDupr()?'1':'0');return url;}
 function syncRegistrationQrOrganizerLogo(forceRefresh=false){
   const logo=$('registrationQrBrandLogo');
   if(!logo)return;
