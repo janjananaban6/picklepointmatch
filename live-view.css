@@ -1519,7 +1519,7 @@ html body .section-card.court-section .section-heading.court-section-heading {
   justify-content: space-between;
   gap: 10px;
   min-height: 16px;
-  margin: 5px 0 11px;
+  margin: 5px 0 10px;
 }
 html body .section-card.court-section .section-heading.court-section-heading h2 {
   display: block;
@@ -5642,8 +5642,8 @@ html body .section-card.waiting-courts-section .section-heading.waiting-court-se
   justify-content: space-between !important;
   flex-wrap: nowrap !important;
   gap: 10px !important;
-  min-height: 16px !important;
-  margin: 5px 0 11px !important;
+  min-height: 10px !important;
+  margin: 0 0 10px !important;
 }
 html body .section-card.waiting-courts-section .section-heading.waiting-court-section-heading .waiting-court-section-heading-main {
   display: inline-flex !important;

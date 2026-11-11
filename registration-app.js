@@ -33,14 +33,17 @@
     updateSubmitButton();
   }
 
-  function showRegistrationFormWhileConnecting(message) {
+  function showRegistrationFormWhileConnecting(_message) {
     if (!organizerScope || registrationLinkInvalid) return;
     const panel = $('registrationPagePanel');
     const notice = $('registrationLinkNotice');
     if (panel) panel.hidden = false;
+    // Keep transient connection messages out of the document flow. The
+    // connection indicator already reports Offline/Reconnecting, and adding
+    // then removing a banner above the form makes the panel jump on refresh.
     if (notice) {
-      notice.textContent = message || 'Connecting to the organizer server. You can complete the form now; the server will verify the live session when you save.';
-      notice.hidden = false;
+      notice.textContent = '';
+      notice.hidden = true;
     }
     setConnection(false, navigator.onLine === false ? 'Offline' : 'Reconnecting');
     updateSubmitButton();
@@ -137,6 +140,13 @@
     return '';
   }
 
+  function getCloudPlayerDuprId(player) {
+    const value = [player?.duprId, player?.duprID, player?.dupr_id, player?.dupr]
+      .find(candidate => candidate !== undefined && candidate !== null
+        && String(candidate).trim() !== '' && !['0','NR'].includes(String(candidate).trim().toUpperCase())) || '';
+    return String(value).trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
+  }
+
   function normalizePlayerGender(player) {
     const candidates = [player?.gender, player?.sex, player?.playerGender, player?.player_gender];
     for (const value of candidates) {
@@ -175,9 +185,12 @@
     if (!organizerValidated) {
       if (panel) panel.hidden = !organizerScope || registrationLinkInvalid;
       if (organizerScope && !registrationLinkInvalid) {
+        // Keep the panel at a stable document position while initial session
+        // validation is pending. Only show the notice for a real invalid or
+        // expired link, not for the normal connecting state.
         if (notice) {
-          notice.textContent = 'Connecting to the organizer server. You can complete the form now; the server will verify the live session when you save.';
-          notice.hidden = false;
+          notice.textContent = '';
+          notice.hidden = true;
         }
         setConnection(false, navigator.onLine === false ? 'Offline' : 'Reconnecting');
       }
@@ -364,9 +377,7 @@
     const normalizedId = String(duprId || '').trim().toUpperCase();
     if (!normalizedId) return null;
     return cloudPlayers.find(player => {
-      const registeredId = String(player?.duprId ?? player?.duprID ?? player?.dupr_id ?? '')
-        .trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
-      return registeredId === normalizedId;
+      return getCloudPlayerDuprId(player) === normalizedId;
     }) || null;
   }
 
@@ -408,15 +419,16 @@
     const fullname = String($('registerFullname')?.value || '').trim();
     const isCloudCheckIn = isSelectedCloudPlayer();
     const duplicate = updateDuplicateMessage();
-    const duprId = String($('registerDuprId')?.value || '').trim();
-    const duplicateDupr = isCloudCheckIn ? null : updateDuprDuplicateMessage();
-    const duprComplete = !registrationDuprSession || /^[A-Z0-9]{6}$/.test(duprId.toUpperCase());
-    // A selected cloud profile pre-fills the form, but nickname, gender, and
-    // skill remain editable. Check In submits those current form values so
-    // both the queue entry and the saved cloud profile use the edited details.
+    const duprId = String($('registerDuprId')?.value || '').trim().toUpperCase();
+    const duplicateDupr = registrationDuprSession && !isCloudCheckIn ? updateDuprDuplicateMessage() : null;
+    // DUPR ID is mandatory and must be six alphanumeric characters in a DUPR
+    // session. The server enforces the same rule for both check-ins and new profiles.
+    const duprComplete = !registrationDuprSession || /^[A-Z0-9]{6}$/.test(duprId);
+    // A selected cloud profile pre-fills the form, but its editable profile
+    // details (including DUPR ID) are saved back to the cloud on successful check-in.
     const complete = isCloudCheckIn
       ? !!(fullname && selectedCloudPlayer?.cloudId && isSelectedCloudPlayer()
-          && ['Male','Female'].includes(selectedGender) && SKILLS.has(selectedSkill))
+          && duprComplete && ['Male','Female'].includes(selectedGender) && SKILLS.has(selectedSkill))
       : fullname.length > 0 && duprComplete && !!selectedGender && SKILLS.has(selectedSkill);
     const button = $('registerSaveBtn');
     if (button) {
@@ -436,6 +448,32 @@
     if (input) input.setAttribute('aria-expanded', 'false');
   }
 
+  async function attachSelectedCloudPlayerDuprDetails(player) {
+    const cloudId = String(player?.cloudId ?? '').trim();
+    if (!registrationDuprSession || !cloudId) return;
+    const requestParams = {dupr:'1',cloudId};
+    if (registrationSessionId) requestParams.session = registrationSessionId;
+    try {
+      const response = await fetch(scopedApiUrl('/api/registration-player-details', requestParams), {
+        cache:'no-store', credentials:'same-origin', headers:{'Accept':'application/json'}
+      });
+      if (!response.ok) return;
+      const data = await response.json().catch(() => ({}));
+      if (!data.ok || String(selectedCloudPlayer?.cloudId ?? '').trim() !== cloudId || !isSelectedCloudPlayer()) return;
+      const duprId = getCloudPlayerDuprId(data.player);
+      const selfRating = String(data.player?.selfRating ?? data.player?.self_rating ?? '').trim();
+      const duprInput = $('registerDuprId');
+      const ratingInput = $('registerSelfRating');
+      if (duprInput) duprInput.value = duprId;
+      if (ratingInput) ratingInput.value = selfRating;
+      selectedCloudPlayer = {...selectedCloudPlayer,duprId,selfRating};
+      updateSubmitButton();
+    } catch (_) {
+      // Check-in remains available from the selected cloud profile even if the
+      // optional DUPR detail lookup is temporarily unavailable.
+    }
+  }
+
   function chooseCloudPlayer(player) {
     if (!player || !String(player.cloudId ?? '').trim()) return;
     selectedCloudPlayer = player;
@@ -445,8 +483,8 @@
     const selfRating = $('registerSelfRating');
     if (fullname) fullname.value = String(player.name || '');
     if (nickname) nickname.value = String(player.nickname || '');
-    if (duprId) duprId.value = String(player.duprId ?? player.duprID ?? player.dupr_id ?? player.dupr ?? '').trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
-    if (selfRating) selfRating.value = String(player.selfRating ?? player.self_rating ?? '');
+    if (duprId) duprId.value = getCloudPlayerDuprId(player);
+    if (selfRating) selfRating.value = String(player.selfRating ?? player.self_rating ?? '').trim();
     selectedGender = normalizePlayerGender(player);
     document.querySelectorAll('.gender-choice').forEach(button => {
       const selected = !!selectedGender && button.dataset.gender === selectedGender;
@@ -464,6 +502,7 @@
     hidePlayerSuggestions();
     updateSubmitButton();
     hideFeedback();
+    attachSelectedCloudPlayerDuprDetails(player);
   }
 
   function renderPlayerSuggestions(query) {
@@ -544,8 +583,7 @@
         skillBadge.textContent = SKILL_LABELS[category] || category;
         details.appendChild(skillBadge);
       }
-      const duprValue = String(player.duprId || player.duprID || player.dupr_id || player.dupr || '')
-        .trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '');
+      const duprValue = getCloudPlayerDuprId(player);
       if (duprValue) {
         const duprBadge = document.createElement('span');
         duprBadge.className = 'registration-player-suggestion-badge registration-player-suggestion-dupr cloud-dupr-badge';
@@ -957,8 +995,25 @@
       ...selectedCloudPlayer,
       nickname: String($('registerNickname')?.value || '').normalize('NFC').trim().replace(/\s+/g, ' ').slice(0, 80),
       gender: selectedGender,
-      category: selectedSkill
+      category: selectedSkill,
+      duprId: registrationDuprSession ? String($('registerDuprId')?.value || '').trim().toUpperCase() : '',
+      selfRating: registrationDuprSession ? String($('registerSelfRating')?.value || '').trim() : ''
     };
+    if (registrationDuprSession && !selectedPlayer.duprId) {
+      showRegistrationError('DUPR ID is required for this DUPR session. Enter the player’s 6-character DUPR ID to check in.');
+      $('registerDuprId')?.focus();
+      return;
+    }
+    if (registrationDuprSession && !/^[A-Z0-9]{6}$/.test(selectedPlayer.duprId)) {
+      showRegistrationError('DUPR ID must contain exactly 6 letters or numbers (for example, 1A2B3C).');
+      $('registerDuprId')?.focus();
+      return;
+    }
+    if (registrationDuprSession && selectedPlayer.selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selectedPlayer.selfRating)) {
+      showRegistrationError('Enter self rating as a number, such as 2.5, or a range such as 2.5/4.0.');
+      $('registerSelfRating')?.focus();
+      return;
+    }
     if (state.duplicate) {
       showFeedback('Player already in this queue', `${selectedPlayer.name} is already in this organizer’s live session.`, true);
       return;
@@ -985,6 +1040,7 @@
           nickname:selectedPlayer.nickname,
           gender:selectedPlayer.gender,
           category:selectedPlayer.category,
+          ...(registrationDuprSession ? {duprId:selectedPlayer.duprId,selfRating:selectedPlayer.selfRating} : {}),
           organizerId:organizerScope,
           sessionId:registrationSessionId
         })
@@ -999,6 +1055,10 @@
         return;
       }
       if (response.status === 409 && data.duplicate) {
+        if (data.duplicateType === 'duprId') {
+          showFeedback('DUPR ID already registered', data.error || 'This DUPR ID is already assigned to another Registered Player Cloud profile.', true);
+          return;
+        }
         const verification = await verifyCloudPlayerCheckIn(selectedPlayer);
         if (verification?.player) {
           finishCloudPlayerCheckIn(selectedPlayer.name, 'Already Checked In', 'is already in this organizer’s live session.', selectedPlayer);
@@ -1065,7 +1125,7 @@
     if (!fullname) { showRegistrationError('Please enter the player’s full name.'); $('registerFullname').focus(); return; }
     const duprId = registrationDuprSession ? String($('registerDuprId')?.value || '').trim().toUpperCase() : '';
     const selfRating = registrationDuprSession ? String($('registerSelfRating')?.value || '').trim() : '';
-    if (registrationDuprSession && !duprId) { showRegistrationError('Please enter the player’s DUPR ID.'); $('registerDuprId').focus(); return; }
+    if (registrationDuprSession && !duprId) { showRegistrationError('DUPR ID is required for this DUPR session. Enter the player’s 6-character DUPR ID.'); $('registerDuprId').focus(); return; }
     if (registrationDuprSession && !/^[A-Z0-9]{6}$/.test(duprId)) { showRegistrationError('DUPR ID must contain exactly 6 letters or numbers (for example, 1A2B3C).'); $('registerDuprId').focus(); return; }
     if (registrationDuprSession && selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) { showRegistrationError('Enter self rating as a number, such as 2.5, or a range such as 2.5/4.0.'); $('registerSelfRating').focus(); return; }
     if (!selectedGender) { showRegistrationError('Please select Male or Female.'); return; }
@@ -1196,10 +1256,10 @@
   syncDuprRegistrationFields();
   if ($('registrationPagePanel')) $('registrationPagePanel').hidden = !organizerScope;
   if ($('registrationLinkNotice')) {
-    $('registrationLinkNotice').textContent = organizerScope
-      ? 'Connecting to the organizer server. You can complete the form now; the server will verify the live session when you save.'
-      : 'This registration page is organizer-specific. Please scan the registration QR code or open the link provided by your organizer.';
-    $('registrationLinkNotice').hidden = false;
+    // A valid organizer link starts quietly; showing a temporary banner here
+    // and hiding it after the first API response changes the panel's position.
+    $('registrationLinkNotice').textContent = '';
+    $('registrationLinkNotice').hidden = true;
   }
   if (!organizerScope) showRegistrationLinkNotice('This registration page is organizer-specific. Please scan the registration QR code or open the link provided by your organizer.');
   syncRegistrationEyebrowTheme();

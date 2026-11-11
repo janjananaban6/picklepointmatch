@@ -234,7 +234,7 @@ td{font-size:10px;padding:9px 8px;border-bottom:1px solid #edf0f4;}
 .live-box{border:2px solid #8adfd5;background:#fbfffe;border-radius:14px;}
 .live-head{padding:13px 14px;background:#fbfffe;border-bottom:1px solid #e8efef;}
 .live-meta{padding:10px 14px;color:#7e8995;font-size:10px;}
-.matchmaking-sheet{padding:10px 12px 4px;}
+.matchmaking-sheet{padding:2px 10px 5px;}
 .match-team{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid #e5d5b5;border-radius:11px;padding:10px;background:#fffdf7;min-height:88px;}
 .match-team.team-two{border-color:#dfe4e8;background:#fff;}
 .match-players{min-width:0;}
@@ -587,8 +587,8 @@ body{overflow-y:auto;}
 .left-chevron:hover::before{color:#0b9f96;}
 .queue-modern-item .gender-symbol{display:none!important;}
 .history-detail-box{width:520px;max-width:94vw;padding:18px 20px 20px;}
-.history-detail-box .modal-head{padding-bottom:8px;border-bottom:1px solid #edf0f3;}
-.history-detail-box .modal-actions{justify-content:center;align-items:center;gap:10px;margin-top:18px;padding-top:12px;border-top:1px solid #edf0f3;}
+.history-detail-box .modal-head{padding-bottom:8px;}
+.history-detail-box .modal-actions{justify-content:center;align-items:center;gap:10px;margin-top:18px;padding-top:12px;}
 .history-detail-box .modal-actions button{min-width:110px;text-align:center;}
 .detail-score-grid{grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr);gap:12px;margin-top:14px;align-items:stretch;}
 .detail-team{min-height:150px;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;padding:12px;}
@@ -606,7 +606,7 @@ body{overflow-y:auto;}
 .left-chevron:hover::before{border-color:#0b9f96;}
 .left-chevron:focus-visible{outline:2px solid #18b8ad;outline-offset:2px;}
 .ready-actions{display:grid!important;grid-template-columns:1fr 1.15fr 1fr;gap:7px;align-items:stretch;}
-.ready-actions button{min-width:0!important;width:100%;height:36px;padding:8px 6px!important;border-radius:8px!important;font-size:9px!important;font-weight:900!important;white-space:nowrap;}
+.ready-actions button{min-width:0!important;width:100%;height:38px;padding:8px 6px!important;border-radius:8px!important;font-size:9px!important;font-weight:900!important;white-space:nowrap;}
 .ready-actions .ready-cancel{background:#eef1f3;color:#7b8793;border:1px solid #dce2e7;}
 .ready-actions .ready-cancel.active{background:#fff0f2;color:#d33e4c;border-color:#ffd2d8;}
 .ready-actions .ready-cancel:not(.active):hover{background:#f5fffd;color:#0b9f96;border-color:#a9e5df;}
@@ -671,7 +671,7 @@ body{overflow-y:auto;}
 }
 .history-detail-box .modal-head{
   padding-bottom:7px!important;
-  border-bottom:1px solid #edf0f3!important;
+  
 }
 .history-detail-box .modal-head h2{
   font-size:14px!important;
@@ -1133,7 +1133,7 @@ body{overflow-y:auto;}
 .ready-actions .auto-match-ready{
   min-width:0!important;
   width:100%!important;
-  height:36px!important;
+  height:38px!important;
   padding:8px 6px!important;
   border-radius:8px!important;
   border:1px solid #c8dfe0!important;
@@ -5694,7 +5694,7 @@ no surrounding edge or box. */
   grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr)!important;
   align-items:stretch!important;
   gap:10px!important;
-  padding:10px 12px 4px!important;
+  padding:2px 10px 5px!important;
   background:#fff!important;
 }
 .ready-match-sheet .ready-match-team{
@@ -5861,7 +5861,7 @@ button,.queue-mode-btn,.court-actions button,.live-actions button{overflow-wrap:
 .modal-box{width:100%;padding:14px;max-height:calc(100dvh - 16px);border-radius:10px;margin:auto 0;}
 .modal-actions{flex-wrap:wrap;}
 .modal-actions button{flex:1 1 auto;min-width:0;}
-.ready-match-sheet{grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr)!important;gap:4px!important;padding:7px 6px!important;}
+.ready-match-sheet{grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr)!important;gap:4px!important;padding:5px 5px!important;}
 .ready-match-sheet .ready-match-team{padding:6px!important;}
 .ready-match-sheet .ready-team-heading{gap:4px;font-size:9px!important;}
 .ready-match-sheet .ready-team-heading:after{padding:2px 4px!important;font-size:8px!important;}
@@ -6829,9 +6829,9 @@ the bottom Close button remains. */
   cursor:text;outline-offset:3px;letter-spacing:0;
 }
 .event-title:hover{color:#d7f8f5;}
-.event-stats{font-size:10px;gap:5px;}
+.event-stats{font-size:10px;gap:4px;}
 .top-actions{gap:6px;margin-left:8px;}
-.top-actions button{font-size:11px;padding:6px 9px;border-radius:6px;}
+.top-actions button{font-size:10px;padding:6px 9px;border-radius:9999px;}
 .top-actions .online{padding:6px 9px;border-radius:6px;}
 @media(max-width:600px) {.topbar{padding:8px 10px;min-height:0;display:flex;gap:8px;align-items:center;}
 .topbar-logo{font-size:22px;}
@@ -10672,7 +10672,7 @@ on tablet/iPad and smaller screens, align queue card borders with the
     grid-auto-flow: row !important;
     align-items: stretch !important;
     gap: 8px !important;
-    padding: 10px 12px 12px !important;
+    padding: 2px 10px 5px !important;
     width: 100% !important;
     min-width: 0 !important;
     box-sizing: border-box !important;
@@ -13133,7 +13133,7 @@ existing buttons, scoring, and modal behavior remain unchanged. */
   background-color:transparent!important;
   background-image:none!important;
   box-shadow:none!important;
-  border-bottom:1px solid #edf3e8!important;
+  
 }
 #historyDetailModal .modal-box.history-detail-box .modal-head h2{
   color:#17472a!important;
@@ -13150,7 +13150,7 @@ existing buttons, scoring, and modal behavior remain unchanged. */
   gap:8px!important;
   margin:10px 0 0!important;
   padding-top:8px!important;
-  border-top:1px solid #edf3e8!important;
+  
   background:#ffffff!important;
   box-sizing:border-box!important;
 }
@@ -13214,7 +13214,7 @@ existing buttons, scoring, and modal behavior remain unchanged. */
   max-width:100%!important;
   margin:12px 0 0!important;
   padding:10px 0 0!important;
-  border-top:1px solid #edf3e8!important;
+  
   box-sizing:border-box!important;
 }
 #historyDetailModal .modal-box.history-detail-box .modal-actions button{
@@ -13259,7 +13259,7 @@ existing buttons, scoring, and modal behavior remain unchanged. */
   max-width:100%!important;
   margin:12px 0 0!important;
   padding:8px 0 0!important;
-  border-top:1px solid #edf3e8!important;
+  
   box-sizing:border-box!important;
 }
 #historyDetailModal .modal-box.history-detail-box .modal-actions button{
@@ -14201,7 +14201,7 @@ html body #historyDetailModal .modal-box.history-detail-box .modal-head {
   color: #183b40 !important;
   background: #ffffff !important;
   background-image: none !important;
-  border-bottom: 1px solid #e0eaeb !important;
+  
   box-shadow: none !important;
 }
 html body #historyDetailModal .modal-box.history-detail-box .modal-head h2 {
@@ -14329,7 +14329,7 @@ html body #historyDetailModal .modal-box.history-detail-box .detail-player-row s
 html body #historyDetailModal .modal-box.history-detail-box .modal-actions {
   color: #183b40 !important;
   background: #ffffff !important;
-  border-top: 1px solid #e0eaeb !important;
+  
 }
 html body #historyDetailModal .modal-box.history-detail-box .modal-actions button {
   border-radius: 8px !important;
@@ -16988,7 +16988,7 @@ html body header.topbar div.top-actions > button#liveViewQrOpenBtn#liveViewQrOpe
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  min-height: 30px !important;
+  min-height: 28px !important;
   padding: 5px 10px !important;
   border: 1px solid #2a8d88 !important;
   border-radius: 10px !important;
@@ -17046,10 +17046,10 @@ html body header.topbar div.top-actions > span.online:not(.offline):focus-visibl
   display: inline-flex !important;
   align-items: center !important;
   gap: 7px !important;
-  min-height: 30px !important;
+  min-height: 28px !important;
   padding: 4px 9px !important;
   border: 1px dashed #8bc8ff !important;
-  border-radius: 999px !important;
+  border-radius: 9999px !important;
   background: rgba(139,200,255,.045) !important;
   background-color: rgba(139,200,255,.045) !important;
   color: #8bc8ff !important;
@@ -17074,10 +17074,10 @@ html body header.topbar div.top-actions > span.online.offline:focus-visible {
   display: inline-flex !important;
   align-items: center !important;
   gap: 7px !important;
-  min-height: 30px !important;
+  min-height: 28px !important;
   padding: 4px 9px !important;
   border: 1px dashed #ffc25c !important;
-  border-radius: 999px !important;
+  border-radius: 9999px !important;
   background: rgba(255,194,92,.045) !important;
   background-color: rgba(255,194,92,.045) !important;
   color: #ffc25c !important;
@@ -18907,7 +18907,7 @@ labels, colors, and behavior stay the same. */
   line-height: 1 !important;
   white-space: nowrap !important;
   box-sizing: border-box !important;
-  border-radius: 10px !important;
+  border-radius: 9999px !important;
 }
 .workspace > .courts-panel > .panel-title .court-header-actions {
   display: flex !important;
@@ -18933,7 +18933,7 @@ labels, colors, and behavior stay the same. */
   line-height: 1 !important;
   white-space: nowrap !important;
   box-sizing: border-box !important;
-  border-radius: 10px !important;
+  border-radius: 9999px !important;
 }
 .workspace > .courts-panel > .panel-title .court-header-actions #courtSettingsBtn {
   flex: 0 0 auto !important;
@@ -18950,7 +18950,7 @@ html body header.topbar div.top-actions > button#liveViewRegisterBtn:focus-visib
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  min-height: 30px !important;
+  min-height: 28px !important;
   padding: 5px 10px !important;
   border: 1px solid #2a8d88 !important;
   border-radius: 10px !important;
@@ -19655,7 +19655,7 @@ html body[data-page="queueing"] header.topbar div.top-actions > button#tabletRes
   -webkit-appearance: none !important;
   appearance: none !important;
   border: 1px solid rgba(113, 231, 224, .48) !important;
-  border-radius: 10px !important;
+  border-radius: 9999px !important;
   background: linear-gradient(135deg,
     rgba(255, 255, 255, .19) 0%,
     rgba(255, 255, 255, .075) 46%,
@@ -19743,13 +19743,13 @@ html body[data-page="queueing"] header.topbar .top-actions > .live-view-qr-open-
 }
 html body[data-page="queueing"] header.topbar .top-actions > .live-view-qr-open-btn > .live-view-qr-button-icon {
   display: block !important;
-  flex: 0 0 16px !important;
-  width: 16px !important;
-  height: 16px !important;
-  min-width: 16px !important;
-  min-height: 16px !important;
-  max-width: 16px !important;
-  max-height: 16px !important;
+  flex: 0 0 15px !important;
+  width: 15px !important;
+  height: 15px !important;
+  min-width: 15px !important;
+  min-height: 15px !important;
+  max-width: 15px !important;
+  max-height: 15px !important;
   color: currentColor !important;
   overflow: visible !important;
 }
@@ -26547,5 +26547,5 @@ html body[data-page="queueing"] #courtsList .court-box.ready-box:not(.waiting-bo
   border-color: #93C5FD !important;
 }
 html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box.empty-court-box {
-  border: 2px dashed #f59e0b !important;
+  border: 2px dashed #FCD34D !important;
 }

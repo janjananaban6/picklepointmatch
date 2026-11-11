@@ -946,6 +946,7 @@ html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip:acti
    Desktop and iPad landscape retain the previously verified 10px dialog gaps.
    iPad portrait uses the measured, live topbar height in the rule below. */
 @media screen and (min-width: 768px) {
+  html body[data-page="queueing"] #tabletResultsModal.tablet-results-modal.is-open,
   html body[data-page="queueing"] #podiumExpandModal.modal:not(.hidden),
   html body[data-page="queueing"] #cloudRecordsModal.modal:not(.hidden),
   html body[data-page="queueing"] #leftPlayersModal.modal:not(.hidden) {
@@ -964,6 +965,7 @@ html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip:acti
     overscroll-behavior: none !important;
   }
 
+  html body[data-page="queueing"] #tabletResultsModal .tablet-results-dialog,
   html body[data-page="queueing"] #podiumExpandModal > .modal-box.podium-expand-modal-box,
   html body[data-page="queueing"] #cloudRecordsModal > .modal-box.cloud-records-modal-box,
   html body[data-page="queueing"] #leftPlayersModal > .modal-box.left-players-modal-box {
@@ -1004,6 +1006,7 @@ html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip:acti
    --queueing-topbar-height; the dialog then starts exactly 10px below it and
    ends exactly 10px above the viewport bottom. */
 @media screen and (min-width: 768px) and (max-width: 1100px) and (orientation: portrait) {
+  html body[data-page="queueing"] #tabletResultsModal.tablet-results-modal.is-open,
   html body[data-page="queueing"] #podiumExpandModal.modal:not(.hidden),
   html body[data-page="queueing"] #cloudRecordsModal.modal:not(.hidden),
   html body[data-page="queueing"] #leftPlayersModal.modal:not(.hidden) {
@@ -1013,6 +1016,7 @@ html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip:acti
     padding-left: 10px !important;
   }
 
+  html body[data-page="queueing"] #tabletResultsModal .tablet-results-dialog,
   html body[data-page="queueing"] #podiumExpandModal > .modal-box.podium-expand-modal-box,
   html body[data-page="queueing"] #cloudRecordsModal > .modal-box.cloud-records-modal-box,
   html body[data-page="queueing"] #cloudRecordsModal.has-cloud-player-edit-panel > .modal-box.cloud-records-modal-box,
@@ -1072,4 +1076,113 @@ html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip:acti
 /* Keep the leaderboard controls hidden until the first ranked player exists. */
 html body[data-page="queueing"] #rankingView .leaderboard-heading[hidden] {
   display: none !important;
+}
+
+
+/* WAITING COURTS — stable two-line player details.
+   Line 1 is always the player identity. Line 2 shows DUPR (when enabled) followed
+   immediately by elapsed waiting time. When DUPR is hidden, only the waiting time
+   remains on line 2. The shared fixed slot height is preserved. */
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-identity {
+  position: relative !important;
+  display: block !important;
+  align-self: stretch !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  gap: 0 !important;
+  overflow: visible !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-primary-line {
+  top: 18% !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line {
+  position: absolute !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: 0 !important;
+  z-index: 3 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-flow: row nowrap !important;
+  gap: 4px !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .court-dupr-badge,
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .court-dupr-inline-edit {
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  align-self: center !important;
+  flex: 0 0 auto !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-time {
+  display: inline-block !important;
+  flex: 0 0 auto !important;
+  width: max-content !important;
+  min-width: max-content !important;
+  max-width: none !important;
+  overflow: visible !important;
+  color: #64748b !important;
+  font-family: inherit !important;
+  font-size: 6.8px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
+}
+@media (max-width: 600px) {
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-primary-line {
+    top: 23% !important;
+  }
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line {
+    gap: 3px !important;
+    height: 15px !important;
+    min-height: 15px !important;
+    max-height: 15px !important;
+  }
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-time {
+    font-size: 6.8px !important;
+  }
+}
+
+
+/* Waiting-time severity: the elapsed-time text and adjacent clock icon
+   share the same tone: neutral under 10 minutes, amber at 10 minutes,
+   and red from 15 minutes onward. The DUPR badge and slot layout remain untouched. */
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .slot-waiting-time.slot-waiting-normal {
+  color: #64748b !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .slot-waiting-time.slot-waiting-amber {
+  color: #d97706 !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .slot-waiting-time.slot-waiting-red {
+  color: #dc2626 !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .queueing-clock-icon.slot-waiting-normal {
+  color: #64748b !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .queueing-clock-icon.slot-waiting-amber {
+  color: #d97706 !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .queueing-clock-icon.slot-waiting-red {
+  color: #dc2626 !important;
 }

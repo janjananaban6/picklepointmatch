@@ -952,6 +952,29 @@ function sameOriginRequest(req) {
   const expectedProtocol = forwardedProto || (req.socket?.encrypted ? 'https' : 'http');
   return parsed.protocol === `${expectedProtocol}:`;
 }
+function isDuprRegistrationSessionState(state) {
+  const sessionName = String(state?.sessionName || '').trim();
+  // The explicit NON DUPR marker must override an older saved DUPR flag.
+  if (/^\(NON\s+DUPR\s+MATCH\)/i.test(sessionName)) return false;
+  return state?.duprMatch === true || /^\(DUPR\s+MATCH\)/i.test(sessionName);
+}
+function canExposeRegistrationDuprDetails(organizerId, requestedSessionId) {
+  if (!organizerId || !requestedSessionId) return false;
+  const status = getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId);
+  if (!status.active) return false;
+  return isDuprRegistrationSessionState(getOrganizerAppEntry(organizerId)?.state);
+}
+function registeredCloudDuprId(player) {
+  const value = [player?.duprId, player?.duprID, player?.dupr_id, player?.dupr]
+    .find(candidate => candidate !== undefined && candidate !== null
+      && String(candidate).trim() !== '' && !['0','NR'].includes(String(candidate).trim().toUpperCase())) || '';
+  return String(value).trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
+}
+function registeredCloudSelfRating(player) {
+  const value = [player?.selfRating, player?.self_rating]
+    .find(candidate => candidate !== undefined && candidate !== null && String(candidate).trim() !== '') || '';
+  return String(value).trim();
+}
 function publicCloudPlayer(player) {
   if (!player || typeof player !== 'object') return null;
   return {
@@ -1935,6 +1958,26 @@ async function handle(req, res) {
     const records = publicScope ? publicCloudRecords(sharedCloudRecords) : sharedCloudRecords;
     return sendJson(res, 200, {ok:true, revision:sharedCloudRevision, records, updatedAt:sharedCloudUpdatedAt});
   }
+  // Return one player's DUPR details only after they select that player on a
+  // registration page tied to the organizer's currently active DUPR session.
+  if (url.pathname === '/api/registration-player-details' && req.method === 'GET') {
+    const detailAttempt = rateLimitRecord(`registration-player-details:${requestClientIp(req)}`, 120, 10 * 60 * 1000, true);
+    if (!detailAttempt.allowed) return sendRateLimited(res, detailAttempt.retryAfter, 'Too many player-detail requests. Please wait before trying again.');
+    const requestedScope = String(url.searchParams.get('organizer') || '').trim();
+    const organizerId = requestedScope ? (accountByPublicIdentifier(requestedScope)?.id || null) : null;
+    if (!organizerId) return sendJson(res,404,{ok:false,error:'Organizer registration link was not found.'});
+    const requestedDuprMode = ['1','true','dupr'].includes(String(url.searchParams.get('dupr') || '').trim().toLowerCase());
+    const requestedSessionId = String(url.searchParams.get('session') || '').trim();
+    const cloudId = String(url.searchParams.get('cloudId') || '').trim();
+    if (!requestedDuprMode || !cloudId) return sendJson(res,400,{ok:false,error:'A DUPR session and selected player are required.'});
+    if (!canExposeRegistrationDuprDetails(organizerId, requestedSessionId)) {
+      return sendJson(res,409,{ok:false,error:'This registration link is not connected to the active DUPR session. Scan the current Register QR code.'});
+    }
+    const players = Array.isArray(sharedCloudRecords?.players) ? sharedCloudRecords.players : [];
+    const player = players.find(item => String(item?.cloudId ?? '').trim() === cloudId);
+    if (!player) return sendJson(res,404,{ok:false,error:'This player is no longer available in Registered Player Cloud. Refresh and select the player again.'});
+    return sendJson(res,200,{ok:true,player:{cloudId:player.cloudId,duprId:registeredCloudDuprId(player),selfRating:registeredCloudSelfRating(player)}});
+  }
   if (url.pathname === '/api/organizer-dashboard' && req.method === 'GET') {
     const auth = getAuthSession(req);
     if (auth?.role !== 'organizer' || !auth.organizerId) return sendJson(res,401,{ok:false,error:'Organizer login required.'});
@@ -2422,10 +2465,9 @@ async function handle(req, res) {
       if (!organizerId) return sendJson(res, 400, {ok:false,error:'Organizer link is invalid or inactive. Ask the organizer for an updated registration link.'});
 
       const requestedSessionId = String(url.searchParams.get('session') || body?.sessionId || '').trim();
-      const requestedDuprMode = url.searchParams.get('dupr');
-      const isDuprSession = requestedDuprMode === null
-        ? body?.duprMatch === true
-        : ['1','true','dupr'].includes(String(requestedDuprMode).trim().toLowerCase());
+      // The active organizer session is authoritative. Do not let a modified or
+      // stale public URL switch a live DUPR session into non-DUPR registration.
+      const isDuprSession = isDuprRegistrationSessionState(getOrganizerAppEntry(organizerId)?.state);
       const duprId = isDuprSession ? String(body?.duprId || '').trim().toUpperCase() : '';
       const selfRating = isDuprSession ? String(body?.selfRating || '').trim() : '';
 
@@ -2468,14 +2510,14 @@ async function handle(req, res) {
           const gender = body?.gender !== undefined ? normalizeCloudGender(body.gender) : savedGender;
           const category = body?.category !== undefined ? normalizeCloudCategory(body.category) : savedCategory;
           const avatarId = normalizeAvatarId(currentCloudPlayer.avatarId ?? currentCloudPlayer.avatarID ?? currentCloudPlayer.avatar_id) || fallbackAvatarIdForPlayer({name:playerName,gender});
-          const playerDuprId = String(currentCloudPlayer.duprId ?? currentCloudPlayer.duprID ?? currentCloudPlayer.dupr_id ?? currentCloudPlayer.dupr ?? '')
-            .trim().replace(/^DUPR\s*:\s*/i,'').replace(/\s+/g,'').toUpperCase();
-          const playerSelfRating = String(currentCloudPlayer.selfRating ?? currentCloudPlayer.self_rating ?? '').trim();
+          const playerDuprId = isDuprSession ? duprId : registeredCloudDuprId(currentCloudPlayer);
+          const playerSelfRating = isDuprSession ? selfRating : registeredCloudSelfRating(currentCloudPlayer);
           if (!playerName || playerName.length > 120) return sendJson(res,400,{ok:false,error:'The selected cloud player has an invalid name. Ask the organizer to review this profile.'});
           if (!gender) return sendJson(res,400,{ok:false,error:'This player profile is missing a valid gender. Ask the organizer to update Registered Player Cloud.'});
           if (!['BEG','NOV','INT','ADV','EXP'].includes(category)) return sendJson(res,400,{ok:false,error:'This player profile is missing a valid skill level. Ask the organizer to update Registered Player Cloud.'});
-          if (isDuprSession && !/^[A-Z0-9]{6}$/.test(playerDuprId)) return sendJson(res,400,{ok:false,error:'This saved player profile does not have a valid DUPR ID. Ask the organizer to update Registered Player Cloud.'});
-          if (isDuprSession && playerSelfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(playerSelfRating)) return sendJson(res,400,{ok:false,error:'This saved player profile has an invalid self rating. Ask the organizer to update Registered Player Cloud.'});
+          if (isDuprSession && !playerDuprId) return sendJson(res,400,{ok:false,error:'DUPR ID is required for this DUPR session. Enter the player’s 6-character DUPR ID before checking in.'});
+          if (isDuprSession && !/^[A-Z0-9]{6}$/.test(playerDuprId)) return sendJson(res,400,{ok:false,error:'DUPR ID must contain exactly 6 letters or numbers (for example, 1A2B3C).'});
+          if (isDuprSession && playerSelfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(playerSelfRating)) return sendJson(res,400,{ok:false,error:'Enter self rating as a number or a numeric range, such as 2.5/4.0.'});
 
           registrationSessionStatus = getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId);
           if (!registrationSessionStatus.active) return sendJson(res,409,registrationSessionUnavailableResponse(registrationSessionStatus));
@@ -2494,6 +2536,15 @@ async function handle(req, res) {
           if (alreadyInOrganizerSession) {
             return sendJson(res,409,{ok:false,duplicate:true,duplicateType:'organizerQueue',error:`${playerName} is already in this organizer’s live session.`,player:{name:playerName}});
           }
+          if (isDuprSession) {
+            const duplicateDupr = currentPlayers.find(player =>
+              String(player?.cloudId ?? '').trim() !== requestedCloudId
+              && registeredCloudDuprId(player) === playerDuprId
+            );
+            if (duplicateDupr) {
+              return sendJson(res,409,{ok:false,duplicate:true,duplicateType:'duprId',error:`This DUPR ID: ${playerDuprId} is already registered under the name: ${duplicateDupr.name}.`,player:{name:duplicateDupr.name,duprId:playerDuprId}});
+            }
+          }
 
           let nextPlayerId = Math.max(1,Math.floor(Number(organizerState.nextPlayer) || 1));
           const occupiedIds = new Set([...organizerState.players,...organizerState.left].map(player => String(player?.id)));
@@ -2501,8 +2552,8 @@ async function handle(req, res) {
           const now = Date.now();
           const checkedInAt = new Date(now).toISOString();
           // Save the edited profile fields back into Registered Player Cloud.
-          // This makes the updated nickname, gender, and category persist for
-          // future organizers and future visits, not just this queue entry.
+          // DUPR ID and self rating are included only in an active DUPR session;
+          // non-DUPR check-ins leave those cloud fields untouched.
           const nextCloudRecords = JSON.parse(JSON.stringify(currentRecords));
           nextCloudRecords.players = Array.isArray(nextCloudRecords.players) ? nextCloudRecords.players : [];
           const cloudPlayer = nextCloudRecords.players.find(player => String(player?.cloudId ?? '').trim() === requestedCloudId);
@@ -2510,6 +2561,10 @@ async function handle(req, res) {
           cloudPlayer.nickname = nickname;
           cloudPlayer.gender = gender;
           cloudPlayer.category = category;
+          if (isDuprSession) {
+            cloudPlayer.duprId = playerDuprId;
+            cloudPlayer.selfRating = playerSelfRating;
+          }
           const queuePlayer = {
             id:nextPlayerId,name:playerName,nickname,wins:Number(cloudPlayer.wins) || 0,court:null,gender,category,avatarId,
             duprId:playerDuprId,selfRating:playerSelfRating,queuedAt:now,waitingSince:now,registeredCloudId:cloudPlayer.cloudId
@@ -2551,13 +2606,16 @@ async function handle(req, res) {
           broadcastNamedEvent('app-state',{revision:nextOrganizerEntry.revision,updatedAt:nextOrganizerEntry.updatedAt,clientId:nextOrganizerEntry.clientId,state:nextOrganizerEntry.state,organizerId},organizerId);
           // Return a minimal player payload. A cloud profile may include an
           // uploaded avatar data URL, which the check-in page does not need.
-          return sendJson(res,200,{ok:true,player:{cloudId:cloudPlayer.cloudId,name:playerName,nickname,gender,category},queuePlayer:{id:queuePlayer.id,name:queuePlayer.name,registeredCloudId:queuePlayer.registeredCloudId,nickname,gender,category},queued:true,queuePosition:organizerState.queue.length,cloudOnly:false,cloudCount:sharedCloudRecords.players.length,cloudRevision:sharedCloudRevision,appRevision:nextOrganizerEntry.revision,organizerId,checkIn:true,profileUpdated:true});
+          return sendJson(res,200,{ok:true,player:{cloudId:cloudPlayer.cloudId,name:playerName,nickname,gender,category,duprId:playerDuprId,selfRating:playerSelfRating},queuePlayer:{id:queuePlayer.id,name:queuePlayer.name,registeredCloudId:queuePlayer.registeredCloudId,nickname,gender,category,duprId:playerDuprId,selfRating:playerSelfRating},queued:true,queuePosition:organizerState.queue.length,cloudOnly:false,cloudCount:sharedCloudRecords.players.length,cloudRevision:sharedCloudRevision,appRevision:nextOrganizerEntry.revision,organizerId,checkIn:true,profileUpdated:true});
         }));
       }
 
       if (!name || name.length > 120) return sendJson(res, 400, {ok:false,error:'Please enter a name (maximum 120 characters).'});
       if (!['Male','Female'].includes(gender)) return sendJson(res, 400, {ok:false,error:'Please select Male or Female.'});
       if (!['BEG','NOV','INT','ADV','EXP'].includes(category)) return sendJson(res, 400, {ok:false,error:'Please select a skill level.'});
+      const initialRegistrationSessionStatus = getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId);
+      if (!initialRegistrationSessionStatus.active) return sendJson(res, 409, registrationSessionUnavailableResponse(initialRegistrationSessionStatus));
+      if (isDuprSession && !duprId) return sendJson(res, 400, {ok:false,error:'DUPR ID is required for this DUPR session. Enter the player’s 6-character DUPR ID.'});
       if (isDuprSession && !/^[A-Z0-9]{6}$/.test(duprId)) return sendJson(res, 400, {ok:false,error:'DUPR ID must contain exactly 6 letters or numbers (for example, 1A2B3C).'});
       if (isDuprSession && selfRating && !/^\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?$/.test(selfRating)) return sendJson(res, 400, {ok:false,error:'Enter self rating as a number or a numeric range, such as 2.5/4.0.'});
 
@@ -2569,13 +2627,11 @@ async function handle(req, res) {
 
         const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
         const currentPlayers = Array.isArray(currentRecords.players) ? currentRecords.players : [];
-        const duplicateDupr = isDuprSession && duprId ? currentPlayers.find(player => {
-          const registeredId = String(player?.duprId ?? player?.duprID ?? player?.dupr_id ?? '')
-            .trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
-          return registeredId === duprId;
-        }) : null;
+        const duplicateDupr = isDuprSession && duprId
+          ? currentPlayers.find(player => registeredCloudDuprId(player) === duprId)
+          : null;
         if (duplicateDupr) {
-          const registeredId = String(duplicateDupr.duprId ?? duplicateDupr.duprID ?? duplicateDupr.dupr_id ?? duprId).trim().toUpperCase();
+          const registeredId = registeredCloudDuprId(duplicateDupr) || duprId;
           return sendJson(res, 409, {ok:false,duplicate:true,duplicateType:'duprId',error:`This DUPR ID: ${duprId} is already registered under the name: ${duplicateDupr.name}.`,player:{name:duplicateDupr.name,duprId:registeredId}});
         }
         const duplicate = currentPlayers.find(player => normalizePlayerName(player?.name) === normalizePlayerName(name));

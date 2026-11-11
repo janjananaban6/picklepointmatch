@@ -656,6 +656,79 @@ html[data-theme="light"] body.live-view-page .section-card.queue-section #queueS
       }
     }
   </style>
+  <style id="live-page-queue-waiting-clock-animation">
+    /* Live page only: animated clock beside each queue waiting duration. */
+    html body.live-view-page #queueList .queue-waiting-time {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: flex-end !important;
+      gap: 3px !important;
+      line-height: 1 !important;
+    }
+
+    html body.live-view-page #queueList .queue-waiting-clock {
+      display: block;
+      width: 13px;
+      height: 13px;
+      flex: 0 0 13px;
+      overflow: visible;
+      color: currentColor;
+    }
+
+    html body.live-view-page #queueList .queue-waiting-clock-orbit {
+      transform-box: view-box;
+      transform-origin: 12px 12px;
+      animation: queueWaitingClockOrbit 9s linear infinite;
+    }
+
+    html body.live-view-page #queueList .queue-waiting-clock-minute {
+      transform-box: view-box;
+      transform-origin: 12px 12px;
+      animation: queueWaitingClockMinute 4s linear infinite;
+    }
+
+    html body.live-view-page #queueList .queue-waiting-clock-hour {
+      transform-box: view-box;
+      transform-origin: 12px 12px;
+      animation: queueWaitingClockHour 36s linear infinite;
+    }
+
+    html body.live-view-page #queueList .queue-waiting-time-label {
+      display: inline-block;
+      line-height: 1;
+      font: inherit;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @keyframes queueWaitingClockOrbit {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes queueWaitingClockMinute {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes queueWaitingClockHour {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 560px) {
+      html body.live-view-page #queueList .queue-waiting-clock {
+        width: 12px;
+        height: 12px;
+        flex-basis: 12px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html body.live-view-page #queueList .queue-waiting-clock-orbit,
+      html body.live-view-page #queueList .queue-waiting-clock-minute,
+      html body.live-view-page #queueList .queue-waiting-clock-hour {
+        animation: none !important;
+      }
+    }
+  </style>
+
 </head>
 <body class="live-view-page">
   <header class="live-header">
@@ -1485,6 +1558,77 @@ html[data-theme="light"] body.live-view-page .section-card.queue-section #queueS
         if (liveMatchesEnabled === false || liveSessionActive === false) return;
         if (!appStateStreamConnected) fetchFullHistory();
       }, 15000);
+    })();
+  </script>
+
+  <script id="live-page-queue-waiting-clock-enhancement">
+    (() => {
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const waitingList = document.getElementById('queueList');
+      if (!waitingList) return;
+
+      const makePath = (d, className) => {
+        const path = document.createElementNS(svgNS, 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', 'currentColor');
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        if (className) path.setAttribute('class', className);
+        return path;
+      };
+
+      const createClock = () => {
+        const svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('width', '24');
+        svg.setAttribute('height', '24');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+        svg.setAttribute('stroke-width', '2');
+        svg.setAttribute('stroke-linecap', 'round');
+        svg.setAttribute('stroke-linejoin', 'round');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('focusable', 'false');
+        svg.setAttribute('class', 'queue-waiting-clock');
+
+        const orbit = document.createElementNS(svgNS, 'g');
+        orbit.setAttribute('class', 'queue-waiting-clock-orbit');
+        orbit.append(
+          makePath('M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8'),
+          makePath('M3 3v5h5')
+        );
+
+        svg.append(
+          orbit,
+          makePath('M12 7v5', 'queue-waiting-clock-minute'),
+          makePath('M12 12l4 2', 'queue-waiting-clock-hour')
+        );
+        return svg;
+      };
+
+      const decorateWaitingTime = element => {
+        // live-view.js refreshes textContent periodically, so rebuild only
+        // when that refresh has replaced our icon/label pair.
+        if (element.querySelector('.queue-waiting-clock')) return;
+        const duration = element.textContent.trim();
+        const label = document.createElement('span');
+        label.className = 'queue-waiting-time-label';
+        label.textContent = duration;
+        element.replaceChildren(createClock(), label);
+      };
+
+      const decorateQueue = () => {
+        waitingList.querySelectorAll('.queue-waiting-time').forEach(decorateWaitingTime);
+      };
+
+      decorateQueue();
+      new MutationObserver(decorateQueue).observe(waitingList, {
+        childList: true,
+        characterData: true,
+        subtree: true
+      });
     })();
   </script>
 

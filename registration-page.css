@@ -3013,3 +3013,23 @@ html body.registration-page-body .registration-player-suggestion-arrow.is-checke
   line-height: 1 !important;
   padding: 0 !important;
 }
+
+/* Final mobile focus-zoom guard: keep every registration text field at Safari's
+   16px minimum on touch/tablet viewports.  The later rule intentionally wins
+   over older narrow-screen typography overrides without changing field layout. */
+@media (max-width: 1024px), (pointer: coarse), (any-pointer: coarse) {
+  html body.registration-page-body .registration-page-form.registration-area #registerFullname,
+  html body.registration-page-body .registration-page-form.registration-area #registerNickname,
+  html body.registration-page-body .registration-page-form.registration-area #registerDuprId,
+  html body.registration-page-body .registration-page-form.registration-area #registerSelfRating {
+    font-size: 16px !important;
+  }
+}
+
+
+/* Keep browser scroll anchoring from shifting the registration form when
+   connection state or cloud data changes during a refresh/reconnect. */
+html body.registration-page-body .registration-page-shell,
+html body.registration-page-body #registrationPagePanel {
+  overflow-anchor: none !important;
+}
