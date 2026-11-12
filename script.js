@@ -1,77 +1,13 @@
-// Keep refresh-only behavior scoped to queueing.html and desktop/iPad devices.
+// Keep queue rendering behavior scoped to queueing.html.
 const IS_QUEUEING_PAGE=document.body?.dataset.page==='queueing';
+// Keyed updates preserve DOM nodes, input focus, scroll, and touch targets on every device.
+const IS_QUEUEING_STABLE_RENDER=IS_QUEUEING_PAGE;
 const QUEUEING_CLOCK_ICON_MARKUP=IS_QUEUEING_PAGE?'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="queueing-clock-icon lucide lucide-rotate-ccw-clock preview-icon" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>':String.fromCodePoint(0x23F1,0xFE0E);
 const queueingUserAgent=navigator.userAgent||'';
 const queueingIsIPad=/iPad/i.test(queueingUserAgent)||(/Macintosh/i.test(queueingUserAgent)&&Number(navigator.maxTouchPoints)>1);
 const queueingIsPhone=!!(navigator.userAgentData&&navigator.userAgentData.mobile===true)||/iPhone|iPod|Android.*Mobile|Windows Phone|IEMobile|BlackBerry|webOS/i.test(queueingUserAgent);
 const IS_QUEUEING_DESKTOP_OR_IPAD=IS_QUEUEING_PAGE&&(queueingIsIPad||(!queueingIsPhone&&typeof window.matchMedia==='function'&&window.matchMedia('(min-width: 768px)').matches));
 if(IS_QUEUEING_PAGE)document.documentElement.classList.toggle('queueing-desktop-ipad',IS_QUEUEING_DESKTOP_OR_IPAD);
-
-// Queueing desktop/iPad dialogs: animate the dialog card independently from its
-// backdrop and delay `hidden` until the close transition has completed.
-const queueingDialogCloseTimers=new WeakMap();
-const QUEUEING_DIALOG_SLIDE_MS=420;
-function queueingDialogMotionEnabled(){
-  return IS_QUEUEING_DESKTOP_OR_IPAD&&
-    !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-}
-function openQueueingSlideModal(modal){
-  if(!modal)return;
-  const pending=queueingDialogCloseTimers.get(modal);
-  if(pending)window.clearTimeout(pending);
-  queueingDialogCloseTimers.delete(modal);
-
-  modal.classList.remove('hidden','is-closing','is-open');
-  modal.setAttribute('aria-hidden','false');
-  modal.inert=false;
-  if(!queueingDialogMotionEnabled()){
-    modal.classList.add('is-open');
-    return;
-  }
-  // Ensure the closed pose is committed before moving to the open pose.
-  void modal.offsetWidth;
-  requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      if(!modal.classList.contains('hidden')&&!modal.classList.contains('is-closing')){
-        modal.classList.add('is-open');
-      }
-    });
-  });
-}
-function closeQueueingSlideModal(modal,onClosed){
-  if(!modal)return;
-  const pending=queueingDialogCloseTimers.get(modal);
-  if(pending)window.clearTimeout(pending);
-  queueingDialogCloseTimers.delete(modal);
-
-  if(modal.classList.contains('hidden')){
-    modal.classList.remove('is-open','is-closing');
-    if(typeof onClosed==='function')onClosed();
-    return;
-  }
-  if(!queueingDialogMotionEnabled()){
-    modal.classList.remove('is-open','is-closing');
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden','true');
-    modal.inert=true;
-    if(typeof onClosed==='function')onClosed();
-    return;
-  }
-
-  modal.classList.remove('is-open');
-  modal.classList.add('is-closing');
-  modal.setAttribute('aria-hidden','true');
-  modal.inert=true;
-  const timer=window.setTimeout(()=>{
-    if(modal.classList.contains('is-closing')){
-      modal.classList.add('hidden');
-      modal.classList.remove('is-open','is-closing');
-      if(typeof onClosed==='function')onClosed();
-    }
-    queueingDialogCloseTimers.delete(modal);
-  },QUEUEING_DIALOG_SLIDE_MS);
-  queueingDialogCloseTimers.set(modal,timer);
-}
 
 const state={
   players:[],
@@ -731,10 +667,9 @@ function positionCloudPlayerEditPanel(){
   const viewportHeight=Math.max(280,Math.round(window.innerHeight||document.documentElement.clientHeight||280));
   const desktopGap=viewportWidth<=900?8:10;
   const desktopPanelWidth=Math.min(270,Math.max(175,Math.round(viewportWidth*.26)-10));
-  // Queueing is intended for desktop and iPad. Keep the editor side-by-side
-  // on those devices and let CSS reduce the records panel width when needed.
-  // The 8px overlay mode is reserved for narrow/non-desktop layouts only.
-  const compact=!IS_QUEUEING_DESKTOP_OR_IPAD;
+  // Use the side-by-side layout only when the unchanged 560px records panel,
+  // editor drawer, gap and safe viewport margins all fit without resizing.
+  const compact=viewportWidth<=640||viewportWidth<(560+desktopPanelWidth+desktopGap+24);
   const gap=compact?(viewportWidth<=360?5:7):desktopGap;
   const panelWidth=compact?Math.min(370,viewportWidth-38):desktopPanelWidth;
   modal.classList.toggle('cloud-player-edit-overlay-mode',compact);
@@ -968,7 +903,6 @@ function cancelCloudPlayerEdit(options={}){
     if(panel){panel.dataset.animationState='closed';panel.setAttribute('aria-hidden','true');panel.inert=true;}
     modal?.classList.remove('has-cloud-player-edit-panel','cloud-player-edit-overlay-mode');
     if(modal&&!modal.classList.contains('hidden'))renderCloudRecords();
-    if(typeof options.onComplete==='function')options.onComplete();
     return;
   }
 
@@ -987,7 +921,6 @@ function cancelCloudPlayerEdit(options={}){
     modal?.classList.remove('cloud-player-edit-overlay-mode');
     panel.dataset.animationState='closed';
     cloudPlayerEditPanelAnimationTimer=null;
-    if(typeof options.onComplete==='function')options.onComplete();
   },reducedMotion?0:720);
 }
 async function saveCloudPlayerEdit(){
@@ -2682,7 +2615,7 @@ function openLeftPlayersPopup(){
   const search=$('leftPlayersSearch');
   if(search)search.value='';
   renderLeftPlayersPopup();
-  openQueueingSlideModal($('leftPlayersModal'));
+  $('leftPlayersModal').classList.remove('hidden');
   /* Keep search unfocused on open so mobile keyboards do not launch automatically. */
 }
 function closePopupCategoryFilter(toggleId,controlsId,label){
@@ -2700,7 +2633,7 @@ function closeLeftPlayersPopup(){
   const search=$('leftPlayersSearch');
   if(search)search.value='';
   closePopupCategoryFilter('leftPlayersFilterToggle','leftPlayersFilterControls','left players');
-  closeQueueingSlideModal($('leftPlayersModal'));
+  $('leftPlayersModal').classList.add('hidden');
 }
 function renderLeftPlayersPopup(){
   const list=$('leftPlayersPopupList'); if(!list)return;
@@ -3216,9 +3149,17 @@ function filterCourtPicker(){
     const okName=!term||name.includes(term);
     const nameLabel=btn.querySelector('.picker-meta b');
     if(nameLabel){
-      const original=nameLabel.dataset.searchName||nameLabel.textContent||'';
-      nameLabel.dataset.searchName=original;
-      nameLabel.innerHTML=highlightSearchMatch(original,term);
+      const currentName=nameLabel.textContent||'';
+      if(nameLabel.dataset.searchName!==currentName){
+        nameLabel.dataset.searchName=currentName;
+        nameLabel.dataset.highlightSourceText='';
+      }
+      const original=nameLabel.dataset.searchName||currentName;
+      if(nameLabel.dataset.highlightTerm!==term||nameLabel.dataset.highlightSourceText!==original){
+        nameLabel.innerHTML=highlightSearchMatch(original,term);
+        nameLabel.dataset.highlightTerm=term;
+        nameLabel.dataset.highlightSourceText=original;
+      }
     }
     const okCategory=courtPickerFilters.category==='ALL'||category===courtPickerFilters.category;
     const okGender=courtPickerFilters.gender==='ALL'||gender===courtPickerFilters.gender;
@@ -3227,10 +3168,20 @@ function filterCourtPicker(){
     // Keep the wait badge live and automatically change its color by wait time.
     const waitBadge=btn.querySelector('.picker-wait');
     if(waitBadge){
-      waitBadge.innerHTML=`${QUEUEING_CLOCK_ICON_MARKUP}${formatWaitingDuration(wait)}`;
-      waitBadge.classList.remove('wait-yellow','wait-red');
-      if(wait>=15) waitBadge.classList.add('wait-red');
-      else if(wait>=10) waitBadge.classList.add('wait-yellow');
+      const waitValue=String(wait);
+      if(waitBadge.dataset.waitValue!==waitValue){
+        waitBadge.innerHTML=`${QUEUEING_CLOCK_ICON_MARKUP}${formatWaitingDuration(wait)}`;
+        waitBadge.dataset.waitValue=waitValue;
+      }
+      const waitTone=wait>=15?'wait-red':wait>=10?'wait-yellow':'';
+      if(waitTone){
+        if(!waitBadge.classList.contains(waitTone)){
+          waitBadge.classList.remove('wait-yellow','wait-red');
+          waitBadge.classList.add(waitTone);
+        }
+      }else if(waitBadge.classList.contains('wait-yellow')||waitBadge.classList.contains('wait-red')){
+        waitBadge.classList.remove('wait-yellow','wait-red');
+      }
     }
 
     const visible=okName&&okCategory&&okGender&&okWait;
@@ -3540,15 +3491,21 @@ function updateCourtPlayersModalTimer(courtId){
   const timeEl=$(`courtLineupTime-${c.id}`);
   if(!timeEl)return;
   if(c.waitingOnly){
-    timeEl.textContent='0:00';
-    timeEl.classList.remove('timer-blue','timer-amber','timer-red');
-    timeEl.classList.add('waiting');
+    if(timeEl.textContent!=='0:00')timeEl.textContent='0:00';
+    if(!timeEl.classList.contains('waiting')){
+      timeEl.classList.remove('timer-blue','timer-amber','timer-red');
+      timeEl.classList.add('waiting');
+    }
     return;
   }
   if(!c.playing)return;
-  timeEl.textContent=elapsed(c.start);
-  timeEl.classList.remove('waiting','timer-blue','timer-amber','timer-red');
-  timeEl.classList.add(courtLineupTimerClass(c.start));
+  const nextTime=elapsed(c.start);
+  if(timeEl.textContent!==nextTime)timeEl.textContent=nextTime;
+  const nextTone=courtLineupTimerClass(c.start);
+  if(!timeEl.classList.contains(nextTone)){
+    timeEl.classList.remove('waiting','timer-blue','timer-amber','timer-red');
+    timeEl.classList.add(nextTone);
+  }
 }
 
 function closeCourtPlayersModal(){
@@ -4496,12 +4453,12 @@ function renderQueue(){
   const queueCountBadge=$('queueCountBadge');
   // Paddle Stack count = everyone currently active: players waiting in Queue
   // plus players currently playing on courts. A player is counted only once.
-  const queueCountValues=IS_QUEUEING_DESKTOP_OR_IPAD
+  const queueCountValues=IS_QUEUEING_STABLE_RENDER
     ? state.queue.map(Number).filter(id=>Number.isSafeInteger(id)&&id>0)
     : state.queue;
   const courtCountValues=state.courts.flatMap(c=>Array.isArray(c.players)?c.players:[]);
   const queuedIds=new Set(queueCountValues);
-  const playingIds=new Set(IS_QUEUEING_DESKTOP_OR_IPAD
+  const playingIds=new Set(IS_QUEUEING_STABLE_RENDER
     ? courtCountValues.map(Number).filter(id=>Number.isSafeInteger(id)&&id>0)
     : courtCountValues
   );
@@ -4514,7 +4471,7 @@ function renderQueue(){
   const search=isRegisteredCloudSearchMode()?'':String($('registeredPlayerSearch')?.value||'').trim().toLowerCase();
   // Normalize and de-duplicate queue IDs for rendering. Old synced snapshots can
   // contain a numeric ID more than once or as both a number and a string.
-  const queueIds=IS_QUEUEING_DESKTOP_OR_IPAD
+  const queueIds=IS_QUEUEING_STABLE_RENDER
     ? [...new Set(state.queue.map(Number).filter(id=>Number.isSafeInteger(id)&&id>0))]
     : state.queue;
   const ids=queueIds.filter(id=>{const p=player(id);const hay=`${p?.name||''} ${p?.nickname||''}`.toLowerCase();return p&&(!search||hay.includes(search));});
@@ -4574,7 +4531,7 @@ function renderQueue(){
       </details>
     </div>`;
   }).join('');
-  if(IS_QUEUEING_DESKTOP_OR_IPAD)reconcileQueueingChildren(q,queueMarkup);
+  if(IS_QUEUEING_STABLE_RENDER)reconcileQueueingChildren(q,queueMarkup);
   else q.innerHTML=queueMarkup;
 
   // Portal the selector to <body>, then position it against the actual trigger.
@@ -4867,7 +4824,7 @@ function renderCourts(){
     : '';
   const courtsMarkup=`${realCourtsHtml}${waitingSectionHtml}`;
   const courtsList=$('courtsList');
-  if(IS_QUEUEING_DESKTOP_OR_IPAD)reconcileQueueingChildren(courtsList,courtsMarkup);
+  if(IS_QUEUEING_STABLE_RENDER)reconcileQueueingChildren(courtsList,courtsMarkup);
   else courtsList.innerHTML=courtsMarkup;
 
   realCourts.filter(c=>c.playing).forEach(c=>updateSubmitState(c.id));
@@ -5834,7 +5791,7 @@ function render(){
   const queueingScrollState=IS_QUEUEING_PAGE?{
     // Queue and court panels retain their items and scroll anchors through keyed updates.
     // Only the ranking/history tables still need scroll restoration after their contents refresh.
-    containers:Array.from(document.querySelectorAll(IS_QUEUEING_DESKTOP_OR_IPAD
+    containers:Array.from(document.querySelectorAll(IS_QUEUEING_STABLE_RENDER
       ? '#rankingTable,#historyTable'
       : '#queueList,#courtsList,#rankingTable,#historyTable'
     )).map(el=>({id:el.id,top:el.scrollTop,left:el.scrollLeft}))
@@ -5959,27 +5916,18 @@ $('importPlayersBtn').onclick=()=>{
   const search=$('cloudRecordsSearch');
   if(search)search.value='';
   loadCloudRecords();
-  openQueueingSlideModal($('cloudRecordsModal'));
+  $('cloudRecordsModal').classList.remove('hidden');
   renderCloudRecords();
 };
 $('topStats')?.addEventListener('click',e=>{const toggle=e.target.closest('#queueDuprLabelsToggle');if(!toggle||!isCurrentSessionDupr())return;state.duprLabelsEnabled=state.duprLabelsEnabled===false;saveState();syncQueueDuprLabelsToggle();toast(state.duprLabelsEnabled?'DUPR labels are ON.':'DUPR labels are OFF.');});
 $('cloudRecordsDone').onclick=()=>{
   pendingCloudDeleteId=null;
-  const modal=$('cloudRecordsModal');
-  const panel=$('cloudPlayerEditModal');
+  cancelCloudPlayerEdit({immediate:true});
   const search=$('cloudRecordsSearch');
   if(search)search.value='';
   closePopupCategoryFilter('cloudRecordsFilterToggle','cloudRecordsFilterControls','registered player');
-  const closeRecords=()=>closeQueueingSlideModal(modal,renderCloudRecords);
-  const editorIsOpen=cloudPlayerEditPanelOpen||
-    panel?.classList.contains('is-open')||
-    panel?.dataset.animationState==='closing';
-  if(editorIsOpen&&queueingDialogMotionEnabled()){
-    cancelCloudPlayerEdit({onComplete:closeRecords});
-  }else{
-    cancelCloudPlayerEdit({immediate:true});
-    closeRecords();
-  }
+  $('cloudRecordsModal').classList.add('hidden');
+  renderCloudRecords();
 };$('cloudRecordsSearch').addEventListener('input',renderCloudRecords);window.addEventListener('resize',scheduleCloudPlayerEditPanelPosition,{passive:true});$('cloudRecordsModal')?.addEventListener('scroll',scheduleCloudPlayerEditPanelPosition,{passive:true});const leftPlayersSearch=$('leftPlayersSearch');if(leftPlayersSearch)leftPlayersSearch.addEventListener('input',renderLeftPlayersPopup);
 $('importCancel').onclick=()=>$('importModal').classList.add('hidden');
 $('importSave').onclick=importPlayers;
@@ -6188,46 +6136,76 @@ try{
 }catch(e){}
 setResultsTab(savedResultsTab,false);
 
+function hasVisibleQueueingModal(){
+  return IS_QUEUEING_PAGE && !!document.querySelector(
+    'body[data-page="queueing"] .modal:not(.hidden), body[data-page="queueing"] #queueDuprEditModal:not(.hidden), body[data-page="queueing"] #tabletResultsModal.is-open'
+  );
+}
+
 setInterval(()=>{
-  state.courts.filter(c=>c.playing).forEach(c=>{ updateCourtPlayersModalTimer(c.id); const el=$(`timer-${c.id}`); if(el){el.textContent=elapsed(c.start); el.classList.remove('timer-normal','timer-yellow','timer-red'); el.classList.add(timerToneClass(c.start));} });
-  if(document.visibilityState!=='hidden'){
-    if(IS_QUEUEING_PAGE || openGenderPlayerId!==null || openCategoryPlayerId!==null || document.querySelector('.queue-lock-partner')){
-      // Queue timers update in place instead of replacing every queue row once
-      // per second. This preserves item positions, scroll, focus, and open details.
-      document.querySelectorAll('.queue-waiting-line[data-player-id], .slot-waiting-time[data-player-id]').forEach(el=>{
-        const p=player(Number(el.dataset.playerId));
-        if(p){
-          const waitingText=waitingAfterCheckin(p.waitingSince||p.queuedAt);
-          const isSlotWaitingTime=el.classList.contains('slot-waiting-time');
-          if(isSlotWaitingTime){
-            const fullLabel=el.querySelector('.slot-waiting-time-full');
-            const compactLabel=el.querySelector('.slot-waiting-time-compact');
-            if(fullLabel)fullLabel.textContent=waitingText;
-            if(compactLabel)compactLabel.textContent=waitingText.replace(/\bwaiting\b/g,'wait');
-            el.setAttribute('title',waitingText);
-            el.setAttribute('aria-label',waitingText);
-            const waitingTone=slotWaitingToneClass(p.waitingSince||p.queuedAt);
-            el.classList.remove('slot-waiting-normal','slot-waiting-amber','slot-waiting-red');
-            el.classList.add(waitingTone);
-            const waitingClock=el.parentElement?.querySelector('.queueing-clock-icon');
-            if(waitingClock){
-              waitingClock.classList.remove('slot-waiting-normal','slot-waiting-amber','slot-waiting-red');
-              waitingClock.classList.add(waitingTone);
-            }
-          }else{
-            // Queue-list rows still use their original single text node.
-            el.textContent=waitingText;
-          }
-        }
-      });
-      if(openCategoryPlayerId!==null) positionCategoryMenu(openCategoryPlayerId);
-      if(openGenderPlayerId!==null) positionGenderMenu(openGenderPlayerId);
-    }else{
-      // Preserve the existing timer/render behavior on any non-queueing page.
-      renderQueue();
+  if(document.visibilityState==='hidden')return;
+
+  // Updating content behind a translucent modal forces the browser to repaint the
+  // blurred backdrop. Freeze background-only clocks while a dialog is open.
+  if(hasVisibleQueueingModal()){
+    const courtPlayersModal=$('courtPlayersModal');
+    if(courtPlayersModal&&!courtPlayersModal.classList.contains('hidden')){
+      const courtId=Number($('courtPlayersModalBody')?.dataset.courtId);
+      if(courtId)updateCourtPlayersModalTimer(courtId);
     }
-    if(document.querySelector('.picker-player-list')) filterCourtPicker();
+    return;
   }
+
+  for(const c of state.courts){
+    if(!c.playing)continue;
+    const el=$(`timer-${c.id}`);
+    if(el){
+      const nextTime=elapsed(c.start);
+      if(el.textContent!==nextTime)el.textContent=nextTime;
+      const nextTone=timerToneClass(c.start);
+      if(!el.classList.contains(nextTone)){
+        el.classList.remove('timer-normal','timer-yellow','timer-red');
+        el.classList.add(nextTone);
+      }
+    }
+  }
+
+  if(IS_QUEUEING_PAGE || openGenderPlayerId!==null || openCategoryPlayerId!==null || document.querySelector('.queue-lock-partner')){
+    // Update only changed waiting labels. This avoids needless style/layout work
+    // on every clock tick and keeps player rows and touch targets in place.
+    document.querySelectorAll('.queue-waiting-line[data-player-id], .slot-waiting-time[data-player-id]').forEach(el=>{
+      const p=player(Number(el.dataset.playerId));
+      if(!p)return;
+      const waitingText=waitingAfterCheckin(p.waitingSince||p.queuedAt);
+      const isSlotWaitingTime=el.classList.contains('slot-waiting-time');
+      if(isSlotWaitingTime){
+        const fullLabel=el.querySelector('.slot-waiting-time-full');
+        const compactLabel=el.querySelector('.slot-waiting-time-compact');
+        if(fullLabel&&fullLabel.textContent!==waitingText)fullLabel.textContent=waitingText;
+        const compactText=waitingText.replace(/\bwaiting\b/g,'wait');
+        if(compactLabel&&compactLabel.textContent!==compactText)compactLabel.textContent=compactText;
+        if(el.getAttribute('title')!==waitingText)el.setAttribute('title',waitingText);
+        if(el.getAttribute('aria-label')!==waitingText)el.setAttribute('aria-label',waitingText);
+        const waitingTone=slotWaitingToneClass(p.waitingSince||p.queuedAt);
+        if(!el.classList.contains(waitingTone)){
+          el.classList.remove('slot-waiting-normal','slot-waiting-amber','slot-waiting-red');
+          el.classList.add(waitingTone);
+        }
+        const waitingClock=el.parentElement?.querySelector('.queueing-clock-icon');
+        if(waitingClock&&!waitingClock.classList.contains(waitingTone)){
+          waitingClock.classList.remove('slot-waiting-normal','slot-waiting-amber','slot-waiting-red');
+          waitingClock.classList.add(waitingTone);
+        }
+      }else if(el.textContent!==waitingText){
+        el.textContent=waitingText;
+      }
+    });
+    if(openCategoryPlayerId!==null)positionCategoryMenu(openCategoryPlayerId);
+    if(openGenderPlayerId!==null)positionGenderMenu(openGenderPlayerId);
+  }else{
+    renderQueue();
+  }
+  if(state.selectedCourt!==null&&document.querySelector('.picker-player-list'))filterCourtPicker();
 },1000);
 
 function hasExistingLiveQueue(){
