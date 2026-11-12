@@ -7,6 +7,72 @@ const queueingIsPhone=!!(navigator.userAgentData&&navigator.userAgentData.mobile
 const IS_QUEUEING_DESKTOP_OR_IPAD=IS_QUEUEING_PAGE&&(queueingIsIPad||(!queueingIsPhone&&typeof window.matchMedia==='function'&&window.matchMedia('(min-width: 768px)').matches));
 if(IS_QUEUEING_PAGE)document.documentElement.classList.toggle('queueing-desktop-ipad',IS_QUEUEING_DESKTOP_OR_IPAD);
 
+// Queueing desktop/iPad dialogs: animate the dialog card independently from its
+// backdrop and delay `hidden` until the close transition has completed.
+const queueingDialogCloseTimers=new WeakMap();
+const QUEUEING_DIALOG_SLIDE_MS=420;
+function queueingDialogMotionEnabled(){
+  return IS_QUEUEING_DESKTOP_OR_IPAD&&
+    !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+function openQueueingSlideModal(modal){
+  if(!modal)return;
+  const pending=queueingDialogCloseTimers.get(modal);
+  if(pending)window.clearTimeout(pending);
+  queueingDialogCloseTimers.delete(modal);
+
+  modal.classList.remove('hidden','is-closing','is-open');
+  modal.setAttribute('aria-hidden','false');
+  modal.inert=false;
+  if(!queueingDialogMotionEnabled()){
+    modal.classList.add('is-open');
+    return;
+  }
+  // Ensure the closed pose is committed before moving to the open pose.
+  void modal.offsetWidth;
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      if(!modal.classList.contains('hidden')&&!modal.classList.contains('is-closing')){
+        modal.classList.add('is-open');
+      }
+    });
+  });
+}
+function closeQueueingSlideModal(modal,onClosed){
+  if(!modal)return;
+  const pending=queueingDialogCloseTimers.get(modal);
+  if(pending)window.clearTimeout(pending);
+  queueingDialogCloseTimers.delete(modal);
+
+  if(modal.classList.contains('hidden')){
+    modal.classList.remove('is-open','is-closing');
+    if(typeof onClosed==='function')onClosed();
+    return;
+  }
+  if(!queueingDialogMotionEnabled()){
+    modal.classList.remove('is-open','is-closing');
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden','true');
+    modal.inert=true;
+    if(typeof onClosed==='function')onClosed();
+    return;
+  }
+
+  modal.classList.remove('is-open');
+  modal.classList.add('is-closing');
+  modal.setAttribute('aria-hidden','true');
+  modal.inert=true;
+  const timer=window.setTimeout(()=>{
+    if(modal.classList.contains('is-closing')){
+      modal.classList.add('hidden');
+      modal.classList.remove('is-open','is-closing');
+      if(typeof onClosed==='function')onClosed();
+    }
+    queueingDialogCloseTimers.delete(modal);
+  },QUEUEING_DIALOG_SLIDE_MS);
+  queueingDialogCloseTimers.set(modal,timer);
+}
+
 const state={
   players:[],
   left:[],
@@ -665,9 +731,10 @@ function positionCloudPlayerEditPanel(){
   const viewportHeight=Math.max(280,Math.round(window.innerHeight||document.documentElement.clientHeight||280));
   const desktopGap=viewportWidth<=900?8:10;
   const desktopPanelWidth=Math.min(270,Math.max(175,Math.round(viewportWidth*.26)-10));
-  // Use the side-by-side layout only when the unchanged 560px records panel,
-  // editor drawer, gap and safe viewport margins all fit without resizing.
-  const compact=viewportWidth<=640||viewportWidth<(560+desktopPanelWidth+desktopGap+24);
+  // Queueing is intended for desktop and iPad. Keep the editor side-by-side
+  // on those devices and let CSS reduce the records panel width when needed.
+  // The 8px overlay mode is reserved for narrow/non-desktop layouts only.
+  const compact=!IS_QUEUEING_DESKTOP_OR_IPAD;
   const gap=compact?(viewportWidth<=360?5:7):desktopGap;
   const panelWidth=compact?Math.min(370,viewportWidth-38):desktopPanelWidth;
   modal.classList.toggle('cloud-player-edit-overlay-mode',compact);
@@ -901,6 +968,7 @@ function cancelCloudPlayerEdit(options={}){
     if(panel){panel.dataset.animationState='closed';panel.setAttribute('aria-hidden','true');panel.inert=true;}
     modal?.classList.remove('has-cloud-player-edit-panel','cloud-player-edit-overlay-mode');
     if(modal&&!modal.classList.contains('hidden'))renderCloudRecords();
+    if(typeof options.onComplete==='function')options.onComplete();
     return;
   }
 
@@ -919,6 +987,7 @@ function cancelCloudPlayerEdit(options={}){
     modal?.classList.remove('cloud-player-edit-overlay-mode');
     panel.dataset.animationState='closed';
     cloudPlayerEditPanelAnimationTimer=null;
+    if(typeof options.onComplete==='function')options.onComplete();
   },reducedMotion?0:720);
 }
 async function saveCloudPlayerEdit(){
@@ -2613,7 +2682,7 @@ function openLeftPlayersPopup(){
   const search=$('leftPlayersSearch');
   if(search)search.value='';
   renderLeftPlayersPopup();
-  $('leftPlayersModal').classList.remove('hidden');
+  openQueueingSlideModal($('leftPlayersModal'));
   /* Keep search unfocused on open so mobile keyboards do not launch automatically. */
 }
 function closePopupCategoryFilter(toggleId,controlsId,label){
@@ -2631,7 +2700,7 @@ function closeLeftPlayersPopup(){
   const search=$('leftPlayersSearch');
   if(search)search.value='';
   closePopupCategoryFilter('leftPlayersFilterToggle','leftPlayersFilterControls','left players');
-  $('leftPlayersModal').classList.add('hidden');
+  closeQueueingSlideModal($('leftPlayersModal'));
 }
 function renderLeftPlayersPopup(){
   const list=$('leftPlayersPopupList'); if(!list)return;
@@ -5890,18 +5959,27 @@ $('importPlayersBtn').onclick=()=>{
   const search=$('cloudRecordsSearch');
   if(search)search.value='';
   loadCloudRecords();
-  $('cloudRecordsModal').classList.remove('hidden');
+  openQueueingSlideModal($('cloudRecordsModal'));
   renderCloudRecords();
 };
 $('topStats')?.addEventListener('click',e=>{const toggle=e.target.closest('#queueDuprLabelsToggle');if(!toggle||!isCurrentSessionDupr())return;state.duprLabelsEnabled=state.duprLabelsEnabled===false;saveState();syncQueueDuprLabelsToggle();toast(state.duprLabelsEnabled?'DUPR labels are ON.':'DUPR labels are OFF.');});
 $('cloudRecordsDone').onclick=()=>{
   pendingCloudDeleteId=null;
-  cancelCloudPlayerEdit({immediate:true});
+  const modal=$('cloudRecordsModal');
+  const panel=$('cloudPlayerEditModal');
   const search=$('cloudRecordsSearch');
   if(search)search.value='';
   closePopupCategoryFilter('cloudRecordsFilterToggle','cloudRecordsFilterControls','registered player');
-  $('cloudRecordsModal').classList.add('hidden');
-  renderCloudRecords();
+  const closeRecords=()=>closeQueueingSlideModal(modal,renderCloudRecords);
+  const editorIsOpen=cloudPlayerEditPanelOpen||
+    panel?.classList.contains('is-open')||
+    panel?.dataset.animationState==='closing';
+  if(editorIsOpen&&queueingDialogMotionEnabled()){
+    cancelCloudPlayerEdit({onComplete:closeRecords});
+  }else{
+    cancelCloudPlayerEdit({immediate:true});
+    closeRecords();
+  }
 };$('cloudRecordsSearch').addEventListener('input',renderCloudRecords);window.addEventListener('resize',scheduleCloudPlayerEditPanelPosition,{passive:true});$('cloudRecordsModal')?.addEventListener('scroll',scheduleCloudPlayerEditPanelPosition,{passive:true});const leftPlayersSearch=$('leftPlayersSearch');if(leftPlayersSearch)leftPlayersSearch.addEventListener('input',renderLeftPlayersPopup);
 $('importCancel').onclick=()=>$('importModal').classList.add('hidden');
 $('importSave').onclick=importPlayers;

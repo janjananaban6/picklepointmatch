@@ -1820,3 +1820,85 @@ html body[data-page="queueing"] #queueDuprEditModal {
                 transform .34s cubic-bezier(.4, 0, .2, 1) !important;
   }
 }
+
+
+/* Queueing desktop + iPad: visible slide-in/slide-out for the two cloud dialogs.
+   `is-open` is added on the next animation frame; `is-closing` keeps the card
+   mounted until the JS close timer finishes. */
+@media screen and (min-width: 641px) and (prefers-reduced-motion: no-preference) {
+  html.queueing-desktop-ipad body[data-page="queueing"] #cloudRecordsModal.modal,
+  html.queueing-desktop-ipad body[data-page="queueing"] #leftPlayersModal.modal {
+    opacity: 0 !important;
+    transition: opacity 320ms cubic-bezier(.22, 1, .36, 1) !important;
+    will-change: opacity;
+  }
+
+  html.queueing-desktop-ipad body[data-page="queueing"] #cloudRecordsModal.modal.is-open,
+  html.queueing-desktop-ipad body[data-page="queueing"] #leftPlayersModal.modal.is-open {
+    opacity: 1 !important;
+  }
+
+  html.queueing-desktop-ipad body[data-page="queueing"] #cloudRecordsModal.modal > .modal-box.cloud-records-modal-box,
+  html.queueing-desktop-ipad body[data-page="queueing"] #leftPlayersModal.modal > .modal-box.left-players-modal-box {
+    translate: 0 18px !important;
+    opacity: 0 !important;
+    transition:
+      translate 420ms cubic-bezier(.22, 1, .36, 1),
+      opacity 320ms cubic-bezier(.22, 1, .36, 1) !important;
+    will-change: translate, opacity;
+    backface-visibility: hidden;
+  }
+
+  html.queueing-desktop-ipad body[data-page="queueing"] #cloudRecordsModal.modal.is-open > .modal-box.cloud-records-modal-box,
+  html.queueing-desktop-ipad body[data-page="queueing"] #leftPlayersModal.modal.is-open > .modal-box.left-players-modal-box {
+    translate: 0 0 !important;
+    opacity: 1 !important;
+  }
+
+  /* ROOT FIX: never let the legacy 8px overlay rule suppress the parent shift
+     on a desktop/iPad viewport. Fit the records card beside the editor drawer,
+     then translate the complete records card by half of drawer + gap. */
+  html.queueing-desktop-ipad body[data-page="queueing"] #cloudRecordsModal.has-cloud-player-edit-panel > .modal-box.cloud-records-modal-box,
+  html.queueing-desktop-ipad body[data-page="queueing"] #cloudRecordsModal.cloud-player-edit-overlay-mode.has-cloud-player-edit-panel > .modal-box.cloud-records-modal-box {
+    box-sizing: border-box !important;
+    width: min(560px, calc(100vw - var(--cloud-player-edit-panel-width, 270px) - var(--cloud-player-edit-gap, 10px) - 32px)) !important;
+    max-width: min(560px, calc(100vw - var(--cloud-player-edit-panel-width, 270px) - var(--cloud-player-edit-gap, 10px) - 32px)) !important;
+    min-width: 0 !important;
+    translate: 0 0 !important;
+    transform: translate3d(calc((var(--cloud-player-edit-panel-width, 270px) + var(--cloud-player-edit-gap, 10px)) / 2), 0, 0) !important;
+    transition:
+      width 360ms cubic-bezier(.22, 1, .36, 1),
+      max-width 360ms cubic-bezier(.22, 1, .36, 1),
+      transform 680ms cubic-bezier(.4, 0, .2, 1) !important;
+    will-change: width, transform;
+  }
+
+  /* Keep the existing left-to-right drawer motion, and give the edit form its
+     own subtle vertical slide so the requested cloud-player-edit-box moves too. */
+  html.queueing-desktop-ipad body[data-page="queueing"] #cloudRecordsModal #cloudPlayerEditForm.cloud-player-edit-box {
+    opacity: 0 !important;
+    transform: translate3d(0, 14px, 0) !important;
+    transition:
+      opacity 420ms cubic-bezier(.4, 0, .2, 1),
+      transform 420ms cubic-bezier(.4, 0, .2, 1) !important;
+    will-change: opacity, transform;
+  }
+
+  html.queueing-desktop-ipad body[data-page="queueing"] #cloudRecordsModal > .cloud-player-edit-modal.is-open #cloudPlayerEditForm.cloud-player-edit-box {
+    opacity: 1 !important;
+    transform: translate3d(0, 0, 0) !important;
+  }
+}
+
+@media screen and (min-width: 641px) and (prefers-reduced-motion: reduce) {
+  html.queueing-desktop-ipad body[data-page="queueing"] #cloudRecordsModal.modal,
+  html.queueing-desktop-ipad body[data-page="queueing"] #leftPlayersModal.modal,
+  html.queueing-desktop-ipad body[data-page="queueing"] #cloudRecordsModal.modal > .modal-box.cloud-records-modal-box,
+  html.queueing-desktop-ipad body[data-page="queueing"] #leftPlayersModal.modal > .modal-box.left-players-modal-box,
+  html.queueing-desktop-ipad body[data-page="queueing"] #cloudRecordsModal #cloudPlayerEditForm.cloud-player-edit-box {
+    transition: none !important;
+    opacity: 1 !important;
+    translate: none !important;
+    will-change: auto !important;
+  }
+}
