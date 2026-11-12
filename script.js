@@ -1251,18 +1251,21 @@ function setEndSessionAttendeePanelOpen(shouldOpen){
 
   const opening=Boolean(shouldOpen);
   const search=$('endSessionAttendeeSearch');
+  const canFade=IS_QUEUEING_DESKTOP_OR_IPAD&&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches&&
+    !modal.classList.contains('hidden');
+
   if(endSessionAttendeeCloseTimer!==null){
     clearTimeout(endSessionAttendeeCloseTimer);
     endSessionAttendeeCloseTimer=null;
   }
-  const animateClose=IS_QUEUEING_DESKTOP_OR_IPAD&&
-    !window.matchMedia('(prefers-reduced-motion: reduce)').matches&&
-    !modal.classList.contains('hidden');
+
   endSessionAttendeePanelOpen=opening;
   if(opening)modal.classList.add('has-attendee-panel');
-  else if(!animateClose)modal.classList.remove('has-attendee-panel');
-  panel.classList.toggle('is-open',opening);
-  panel.dataset.animationState=opening?'open':(animateClose?'closing':'closed');
+  const animateOpen=opening&&IS_QUEUEING_DESKTOP_OR_IPAD&&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  panel.classList.toggle('is-open',opening&&!animateOpen);
+  panel.dataset.animationState=opening?(animateOpen?'opening':'open'):(canFade?'closing':'closed');
   panel.setAttribute('aria-hidden',String(!opening));
   panel.inert=!opening;
 
@@ -1274,6 +1277,8 @@ function setEndSessionAttendeePanelOpen(shouldOpen){
     positionEndSessionAttendeePanel();
     requestAnimationFrame(()=>{
       if(endSessionAttendeePanelOpen&&!modal.classList.contains('hidden')){
+        panel.classList.add('is-open');
+        panel.dataset.animationState='open';
         positionEndSessionAttendeePanel();
       }
     });
@@ -1283,13 +1288,15 @@ function setEndSessionAttendeePanelOpen(shouldOpen){
       cancelAnimationFrame(endSessionAttendeePositionFrame);
       endSessionAttendeePositionFrame=null;
     }
-    if(animateClose){
+    if(canFade){
       endSessionAttendeeCloseTimer=window.setTimeout(()=>{
         if(!endSessionAttendeePanelOpen&&panel.dataset.animationState==='closing'){
           panel.dataset.animationState='closed';
         }
         endSessionAttendeeCloseTimer=null;
-      },330);
+      },290);
+    }else{
+      modal.classList.remove('has-attendee-panel');
     }
   }
 }
@@ -1301,8 +1308,12 @@ function openEndSessionConfirmation(){
     clearTimeout(endSessionModalCloseTimer);
     endSessionModalCloseTimer=null;
   }
+  if(endSessionAttendeeCloseTimer!==null){
+    clearTimeout(endSessionAttendeeCloseTimer);
+    endSessionAttendeeCloseTimer=null;
+  }
   modal.classList.remove('hidden','is-closing','is-open');
-  // Establish the closed visual state before activating the opening fade.
+  // Reset the hidden state before the next frame so reopening always fades in.
   void modal.offsetWidth;
   const checkins=Number(state.sessionMetrics?.cloudCheckins)||0;
   const matches=Array.isArray(state.logs)?state.logs.length:0;
@@ -1332,8 +1343,8 @@ function openEndSessionConfirmation(){
 
 function closeEndSessionConfirmation(){
   const modal=$('endSessionModal');
-  setEndSessionAttendeePanelOpen(false);
   if(!modal)return;
+  setEndSessionAttendeePanelOpen(false);
   if(IS_QUEUEING_DESKTOP_OR_IPAD&&
      !window.matchMedia('(prefers-reduced-motion: reduce)').matches&&
      !modal.classList.contains('hidden')){
@@ -1346,7 +1357,7 @@ function closeEndSessionConfirmation(){
         modal.classList.remove('is-closing','has-attendee-panel');
       }
       endSessionModalCloseTimer=null;
-    },350);
+    },320);
   }else{
     modal.classList.remove('is-open','is-closing','has-attendee-panel');
     modal.classList.add('hidden');

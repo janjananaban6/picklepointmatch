@@ -22174,15 +22174,22 @@ html body #queueMainArea .queue-dupr-badge {
 }
 
 
-/* END SESSION MODAL — soft fade for iPad and desktop only.
-   Keep the dialog and attendee roster layout unchanged; animate opacity only
-   (with a very small lift on the dialog) and hide it after the close finishes. */
+/* END SESSION MODAL — iPad/Desktop alignment + soft fade correction.
+   Keep the modal and attendee roster as one vertically centered group.
+   Opacity/transform transitions are scoped to this dialog only. */
 html.queueing-desktop-ipad body[data-page="queueing"] #endSessionModal.modal:not(.hidden) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
   opacity: 0 !important;
   visibility: visible !important;
   pointer-events: none !important;
-  transition: opacity .30s cubic-bezier(.22, 1, .36, 1), visibility 0s linear 0s !important;
-  will-change: opacity;
+  transition: opacity .28s ease, visibility 0s linear 0s !important;
+  isolation: isolate !important;
 }
 html.queueing-desktop-ipad body[data-page="queueing"] #endSessionModal.modal.is-open:not(.hidden) {
   opacity: 1 !important;
@@ -22195,10 +22202,20 @@ html.queueing-desktop-ipad body[data-page="queueing"] #endSessionModal.modal.is-
   pointer-events: none !important;
 }
 html.queueing-desktop-ipad body[data-page="queueing"] #endSessionModal > .end-session-modal-box {
+  align-self: center !important;
+  flex: 0 0 auto !important;
+  margin: auto 0 !important;
+  max-height: calc(100dvh - 32px) !important;
   opacity: 0 !important;
-  transform: translate3d(0, 8px, 0) scale(.99) !important;
-  transition: opacity .28s ease, transform .34s cubic-bezier(.22, 1, .36, 1) !important;
-  will-change: opacity, transform;
+  transform: translate3d(0, 7px, 0) scale(.99) !important;
+  animation: none !important;
+  transition:
+    width .34s cubic-bezier(.22, 1, .36, 1),
+    max-width .34s cubic-bezier(.22, 1, .36, 1),
+    translate .34s cubic-bezier(.22, 1, .36, 1),
+    opacity .26s ease,
+    transform .30s cubic-bezier(.22, 1, .36, 1) !important;
+  will-change: opacity, transform, translate;
 }
 html.queueing-desktop-ipad body[data-page="queueing"] #endSessionModal.is-open > .end-session-modal-box {
   opacity: 1 !important;
@@ -22206,20 +22223,22 @@ html.queueing-desktop-ipad body[data-page="queueing"] #endSessionModal.is-open >
 }
 html.queueing-desktop-ipad body[data-page="queueing"] #endSessionModal.is-closing > .end-session-modal-box {
   opacity: 0 !important;
-  transform: translate3d(0, 5px, 0) scale(.995) !important;
+  transform: translate3d(0, 4px, 0) scale(.995) !important;
 }
 html.queueing-desktop-ipad body[data-page="queueing"] #endSessionModal .end-session-attendee-panel {
   opacity: 0 !important;
   visibility: hidden !important;
-  transform: translate3d(5px, 0, 0) !important;
-  transition: opacity .25s ease, transform .30s cubic-bezier(.22, 1, .36, 1), visibility 0s linear .30s !important;
+  transform: translate3d(9px, 0, 0) !important;
+  transition:
+    opacity .24s ease,
+    transform .28s cubic-bezier(.22, 1, .36, 1),
+    visibility 0s linear .28s !important;
   will-change: opacity, transform;
 }
 html.queueing-desktop-ipad body[data-page="queueing"] #endSessionModal .end-session-attendee-panel.is-open {
   opacity: 1 !important;
   visibility: visible !important;
   transform: translate3d(0, 0, 0) !important;
-  pointer-events: auto !important;
   transition-delay: 0s !important;
 }
 html.queueing-desktop-ipad body[data-page="queueing"] #endSessionModal .end-session-attendee-panel[data-animation-state="closing"] {
@@ -22227,9 +22246,12 @@ html.queueing-desktop-ipad body[data-page="queueing"] #endSessionModal .end-sess
   max-height: none !important;
   opacity: 0 !important;
   visibility: visible !important;
-  transform: translate3d(3px, 0, 0) !important;
+  transform: translate3d(5px, 0, 0) !important;
   pointer-events: none !important;
-  transition: opacity .25s ease, transform .30s cubic-bezier(.22, 1, .36, 1), visibility 0s linear .32s !important;
+  transition:
+    opacity .24s ease,
+    transform .28s cubic-bezier(.22, 1, .36, 1),
+    visibility 0s linear .28s !important;
 }
 html.queueing-desktop-ipad body[data-page="queueing"] #endSessionModal .end-session-attendee-panel[data-animation-state="closed"] {
   opacity: 0 !important;
