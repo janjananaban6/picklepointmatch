@@ -64,7 +64,7 @@ let liveViewPendingKeepalive=false;
 try{if('BroadcastChannel' in window)liveViewBroadcastChannel=new BroadcastChannel(`pickle-point-match-live-view${ORGANIZER_STORAGE_SUFFIX?`-${ORGANIZER_STORAGE_SUFFIX}`:''}`);}catch(e){}
 const LEGACY_STORAGE_KEYS=ORGANIZER_STORAGE_SUFFIX?[]:['pickleq_v10_state','pickleq_v9_state','pickleq_v8_state','pickleq_v7_state','pickleq_v6_state'];
 const CLOUD_RECORDS_KEY='pickleq_registered_cloud_records_v1';
-let cloudRecords={players:[],logs:[],sessions:[]};let cloudRecordsHydratedFromServer=false;let cloudRecordCheckInStateById=new Map();let cloudRecordCheckInAnimationAtById=new Map();let pendingCloudDeleteId=null;let editingCloudPlayerId=null;let editingQueueDuprPlayerId=null;let editingCourtDuprKey=null;let editingCourtDuprDraft='';let cloudPlayerEditPanelOpen=false;let cloudPlayerEditPanelAnimationTimer=null;let cloudPlayerEditPanelPositionFrame=null;let cloudPlayerEditResizeObserver=null;let cloudPlayerEditSaveInFlight=false;
+let cloudRecords={players:[],logs:[],sessions:[]};let cloudRecordsHydratedFromServer=false;let cloudRecordCheckInStateById=new Map();let cloudRecordCheckInAnimationAtById=new Map();let pendingCloudDeleteId=null;let editingCloudPlayerId=null;let queueDuprModalPlayerId=null;let queueDuprModalSaving=false;let queueDuprModalCloseTimer=null;let queueDuprModalReturnFocus=null;let cloudPlayerEditPanelOpen=false;let cloudPlayerEditPanelAnimationTimer=null;let cloudPlayerEditPanelPositionFrame=null;let cloudPlayerEditResizeObserver=null;let cloudPlayerEditSaveInFlight=false;
 const sharedClientId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():`pp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let sharedSyncReady=false,sharedSyncAvailable=false,sharedSyncInitializing=false,sharedSyncRetryTimer=null;
 let sharedAppRevision=0,sharedCloudRevision=0,appSyncInFlight=false,appSyncPending=null,cloudSyncInFlight=false,cloudSyncPending=null,applyingRemoteAppState=false,sharedEvents=null,sharedSyncStartedAt=0;
@@ -1059,6 +1059,8 @@ let endSessionAttendeePeople=[];
 let endSessionAttendeePanelOpen=false;
 let endSessionAttendeeResizeObserver=null;
 let endSessionAttendeePositionFrame=null;
+let endSessionAttendeeCloseTimer=null;
+let endSessionModalCloseTimer=null;
 function renderEndSessionAttendees(checkins, matches){
   loadCloudRecords();
   const avatarStack=$('endSessionAttendeeAvatars');
@@ -1249,10 +1251,18 @@ function setEndSessionAttendeePanelOpen(shouldOpen){
 
   const opening=Boolean(shouldOpen);
   const search=$('endSessionAttendeeSearch');
+  if(endSessionAttendeeCloseTimer!==null){
+    clearTimeout(endSessionAttendeeCloseTimer);
+    endSessionAttendeeCloseTimer=null;
+  }
+  const animateClose=IS_QUEUEING_DESKTOP_OR_IPAD&&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches&&
+    !modal.classList.contains('hidden');
   endSessionAttendeePanelOpen=opening;
-  modal.classList.toggle('has-attendee-panel',opening);
+  if(opening)modal.classList.add('has-attendee-panel');
+  else if(!animateClose)modal.classList.remove('has-attendee-panel');
   panel.classList.toggle('is-open',opening);
-  panel.dataset.animationState=opening?'open':'closed';
+  panel.dataset.animationState=opening?'open':(animateClose?'closing':'closed');
   panel.setAttribute('aria-hidden',String(!opening));
   panel.inert=!opening;
 
@@ -1273,12 +1283,27 @@ function setEndSessionAttendeePanelOpen(shouldOpen){
       cancelAnimationFrame(endSessionAttendeePositionFrame);
       endSessionAttendeePositionFrame=null;
     }
+    if(animateClose){
+      endSessionAttendeeCloseTimer=window.setTimeout(()=>{
+        if(!endSessionAttendeePanelOpen&&panel.dataset.animationState==='closing'){
+          panel.dataset.animationState='closed';
+        }
+        endSessionAttendeeCloseTimer=null;
+      },330);
+    }
   }
 }
 
 function openEndSessionConfirmation(){
   const modal=$('endSessionModal');
   if(!modal)return;
+  if(endSessionModalCloseTimer!==null){
+    clearTimeout(endSessionModalCloseTimer);
+    endSessionModalCloseTimer=null;
+  }
+  modal.classList.remove('hidden','is-closing','is-open');
+  // Establish the closed visual state before activating the opening fade.
+  void modal.offsetWidth;
   const checkins=Number(state.sessionMetrics?.cloudCheckins)||0;
   const matches=Array.isArray(state.logs)?state.logs.length:0;
   const eventNameInput=$('endSessionCsvEventNameInput');
@@ -1291,16 +1316,41 @@ function openEndSessionConfirmation(){
     dateInput.value=duprCsvDate(latestLog?.endedAt||latestLog?.startedAt||new Date());
   }
   renderEndSessionAttendees(checkins,matches);
-  modal.classList.remove('hidden');
   // Show the separate attendee panel at the same time as the End Session dialog.
   setEndSessionAttendeePanelOpen(true);
+  if(IS_QUEUEING_DESKTOP_OR_IPAD&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    requestAnimationFrame(()=>{
+      if(!modal.classList.contains('hidden')&&!modal.classList.contains('is-closing')){
+        modal.classList.add('is-open');
+      }
+    });
+  }else{
+    modal.classList.add('is-open');
+  }
   syncDuprCsvDownloadButtons();
 }
 
 function closeEndSessionConfirmation(){
-  setEndSessionAttendeePanelOpen(false);
   const modal=$('endSessionModal');
-  if(modal)modal.classList.add('hidden');
+  setEndSessionAttendeePanelOpen(false);
+  if(!modal)return;
+  if(IS_QUEUEING_DESKTOP_OR_IPAD&&
+     !window.matchMedia('(prefers-reduced-motion: reduce)').matches&&
+     !modal.classList.contains('hidden')){
+    modal.classList.remove('is-open');
+    modal.classList.add('is-closing');
+    if(endSessionModalCloseTimer!==null)clearTimeout(endSessionModalCloseTimer);
+    endSessionModalCloseTimer=window.setTimeout(()=>{
+      if(modal.classList.contains('is-closing')){
+        modal.classList.add('hidden');
+        modal.classList.remove('is-closing','has-attendee-panel');
+      }
+      endSessionModalCloseTimer=null;
+    },350);
+  }else{
+    modal.classList.remove('is-open','is-closing','has-attendee-panel');
+    modal.classList.add('hidden');
+  }
 }
 
 let endSessionSaveInProgress=false;
@@ -2242,39 +2292,7 @@ function renderCourtTitle(c){
   return `<div class="court-title"><span class="court-logo" aria-hidden="true">🏟️</span><b class="court-title-text">${esc(courtDisplayName(c))}</b><button type="button" class="court-title-edit" title="Edit court title" aria-label="Edit ${esc(courtDisplayName(c))}" onclick="event.stopPropagation();editCourtTitle(${c.id},this)">✎</button></div>`;
 }
 
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-function sanitizeDuprIdInput(input){
-  if(!input)return;
-  const before=String(input.value||'');
-  const selectionStart=Number.isInteger(input.selectionStart)?input.selectionStart:before.length;
-  // DUPR IDs accept exactly six ASCII letters/numbers. Normalize while typing,
-  // including pasted values, and never allow the inline editor to exceed six.
-  const normalized=before.replace(/[^a-z0-9]/gi,'').toUpperCase().slice(0,6);
-  if(normalized===before)return;
-  const caret=before.slice(0,selectionStart).replace(/[^a-z0-9]/gi,'').slice(0,6).length;
-  input.value=normalized;
-  try{input.setSelectionRange(caret,caret);}catch(e){}
-}
-// Keep the compact Court DUPR editor width in step with its 8px displayed text.
-function courtDuprInputWidth(value){
-  const length=String(value??'').length;
- return Math.min(120, Math.max(0, Math.ceil(length * 5.2 + 5)));
-}
-function resizeCourtDuprIdInput(input){
-  if(!input)return;
-  const tabletQueueEditor = !!(document.body?.dataset?.page === 'queueing' &&
-    window.matchMedia?.('(min-width: 600px) and (max-width: 1400px) and (pointer: coarse)').matches);
-  // On iPad, style.css keeps the field at a fixed width; don't rewrite inline
-  // width on every keystroke, which can cause subtle Safari repaint movement.
-  if(tabletQueueEditor)return;
-  input.style.width=`${courtDuprInputWidth(input.value)}px`;
-}
-function focusDuprIdAtEnd(input){
-  if(!input)return;
-  input.focus();
-  const caret=String(input.value||'').length;
-  try{input.setSelectionRange(caret,caret);}catch(e){}
-}
+const esc=s=>String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[c]));
 const player=id=>state.players.find(p=>p.id===id);
 const court=id=>state.courts.find(c=>c.id===id);
 function isSinglesCourt(c=null){return String(c?.type||state.eventRules?.type||'Doubles')==='Singles';}
@@ -2422,6 +2440,9 @@ function waitingAfterCheckin(ts){
   if(m<60)return `${m}m waiting`;
   const h=Math.floor(m/60);
   return `${h}h ${m%60}m waiting`;
+}
+function waitingAfterCheckinCompact(ts){
+  return waitingAfterCheckin(ts).replace(/\bwaiting\b/g,'wait');
 }
 function slotWaitingToneClass(ts){
   if(!ts)return 'slot-waiting-normal';
@@ -4049,9 +4070,6 @@ function renderLockInPartnerChoices(playerId){
   const options=candidates.map(candidate=>`<button type="button" class="queue-lock-partner-option" title="Lock in ${esc(displayPlayerName(candidate))}" aria-label="Lock in ${esc(displayPlayerName(candidate))}" onclick="event.stopPropagation();toggleLockInPartner(${playerId},${candidate.id})"><span class="queue-lock-partner-option-ident"><span class="queue-lock-partner-option-name">${highlightSearchMatch(displayPlayerName(candidate),searchValue)}</span><span class="queue-lock-partner-option-meta"><span class="queue-lock-partner-gender ${candidate.gender==='Female'?'female':'male'}" aria-label="${candidate.gender==='Female'?'Female':'Male'}">${genderSvgIcon(candidate.gender)}</span><span class="queue-lock-partner-category ${candidate.category?'skill-'+String(candidate.category).toLowerCase():''}">${esc(candidate.category||'—')}</span></span></span><span class="queue-lock-partner-option-state" aria-hidden="true">${queueLockSvgMarkup(false, `partner-option-${playerId}-${candidate.id}`)}</span></button>`).join('');
   return `<div class="queue-lock-partner"><div class="queue-lock-partner-heading">Lock in partner</div><span class="queue-lock-partner-divider" aria-hidden="true"></span><div class="queue-lock-partner-search-wrap"><svg class="queue-lock-partner-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg><input class="queue-lock-partner-search" data-player-id="${Number(playerId)}" type="search" placeholder="Search players..." aria-label="Search lock in partner players" value="${esc(searchValue)}" oninput="lockPartnerSearchValues[${Number(playerId)}]=this.value;filterLockInPartnerOptions(${Number(playerId)})" onclick="event.stopPropagation()"></div><div class="queue-lock-partner-list ${candidates.length>=5?'has-scroll':''}">${options||'<small class="queue-lock-partner-empty">No other players in the Queue List.</small>'}</div></div>`;
 }
-function courtDuprInputId(surface,id){
-  return `courtDuprIdInput-${surface}-${Number(id)}`;
-}
 function getCourtDuprDetails(target){
   if(!target)return {duprId:''};
   const normalizedName=String(target.name||'').trim().toLowerCase();
@@ -4060,64 +4078,159 @@ function getCourtDuprDetails(target){
   return {duprId:rawId==='NR'?'':rawId};
 }
 function renderCourtDuprBadge(target,surface){
-  // Render badge slots consistently; syncQueueDuprLabelsToggle controls visibility
-  // without forcing a full court rerender when the header toggle is clicked.
+  // Live court is display-only; editable Queue/Ready court badges open the shared modal.
   if(!target)return '';
   const id=Number(target.id);
-  const key=`${surface}:${id}`;
-  const details=getCourtDuprDetails(target);
-  const duprId=details.duprId;
-  // Live court is a display-only surface. Edits remain available from the ready court/queue UI.
+  const duprId=getCourtDuprDetails(target).duprId;
   if(surface==='match'){
     return `<span class="court-dupr-badge court-dupr-badge-static ${duprId?'':'is-unrated'}" aria-label="DUPR ID">DUPR: ${esc(duprId||'NR')}</span>`;
   }
-  if(editingCourtDuprKey===key){
-    const idInputId=courtDuprInputId(surface,id);
-    const draftValue=String(editingCourtDuprDraft??duprId);
-    return `<span class="court-dupr-inline-edit" role="group" aria-label="Edit DUPR ID" data-player-id="${id}" data-surface="${surface}"><span class="court-dupr-badge court-dupr-edit-fields ${draftValue?'':'is-unrated'}"><span class="court-dupr-prefix">DUPR:</span><input class="court-dupr-id-input" id="${idInputId}" type="text" maxlength="6" inputmode="text" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false" value="${esc(draftValue)}" aria-label="DUPR ID" style="width:${courtDuprInputWidth(draftValue)}px" oninput="sanitizeDuprIdInput(this);resizeCourtDuprIdInput(this);updateCourtDuprDraft(this.value)" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();saveQueueDuprDetails(${id})}else if(event.key==='Escape'){event.preventDefault();cancelEditCourtDuprDetails()}" /></span><span class="court-dupr-editor-actions"><button type="button" class="court-dupr-save-btn" onclick="event.stopPropagation();saveQueueDuprDetails(${id})">Save</button><button type="button" class="court-dupr-cancel-btn" onclick="event.stopPropagation();cancelEditCourtDuprDetails()">Cancel</button></span></span>`;
+  return `<button type="button" class="court-dupr-badge ${duprId?'':'is-unrated'}" onclick="event.stopPropagation();openQueueDuprModal(${id})" aria-label="Edit DUPR ID" title="Click to edit DUPR ID">DUPR: ${esc(duprId||'NR')}</button>`;
+}
+function queueDuprModalSlots(){
+  return Array.from(document.querySelectorAll('#queueDuprEditModal .queue-dupr-modal-slot'));
+}
+function queueDuprModalValue(){
+  return queueDuprModalSlots().map(slot=>String(slot.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,1)).join('');
+}
+function syncQueueDuprModalSlots(value){
+  const normalized=String(value||'').replace(/\s+/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+  queueDuprModalSlots().forEach((slot,index)=>{slot.value=normalized[index]||'';});
+  $('queueDuprModalRow')?.classList.toggle('is-empty',!normalized);
+}
+function queueDuprModalSlotInput(input,index){
+  if(!input)return;
+  input.value=String(input.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(-1);
+  $('queueDuprModalRow')?.classList.toggle('is-empty',!queueDuprModalValue());
+  if(input.value)queueDuprModalSlots()[index+1]?.focus();
+}
+function queueDuprModalSlotPaste(event,index){
+  const pasted=String(event.clipboardData?.getData('text')||'').replace(/\s+/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!pasted)return;
+  event.preventDefault();
+  const slots=queueDuprModalSlots();
+  const chars=slots.map(slot=>slot.value||'');
+  pasted.slice(0,Math.max(0,slots.length-index)).split('').forEach((char,offset)=>{chars[index+offset]=char;});
+  slots.forEach((slot,slotIndex)=>{slot.value=chars[slotIndex]||'';});
+  $('queueDuprModalRow')?.classList.toggle('is-empty',!queueDuprModalValue());
+  const nextIndex=Math.min(slots.length-1,index+pasted.length);
+  slots[nextIndex]?.focus();
+  slots[nextIndex]?.select();
+}
+function queueDuprModalSlotKeydown(event,index){
+  const slots=queueDuprModalSlots();
+  if(event.key==='Enter'){event.preventDefault();saveQueueDuprModal();}
+  else if(event.key==='Backspace'&&!event.currentTarget.value&&slots[index-1]){
+    event.preventDefault();
+    slots[index-1].focus();
+    slots[index-1].value='';
+    $('queueDuprModalRow')?.classList.toggle('is-empty',!queueDuprModalValue());
+  }else if(event.key==='ArrowLeft'&&slots[index-1]){event.preventDefault();slots[index-1].focus();}
+  else if(event.key==='ArrowRight'&&slots[index+1]){event.preventDefault();slots[index+1].focus();}
+}
+function renderQueueDuprModalProfile(target){
+  const node=$('queueDuprModalProfile');
+  if(!node||!target)return;
+  const genderValue=String(target.gender||'').trim().toLowerCase();
+  const gender=['female','f','woman','women'].includes(genderValue)?'Female':'Male';
+  const categoryCode=cloudCategoryCode(target.category);
+  const categoryLabel=categoryCode?cloudCategoryLabel(categoryCode):(String(target.category||'').trim()||'No category');
+  const nickname=String(target.nickname||'').trim();
+  const duprId=getCourtDuprDetails(target).duprId;
+  const copyIdControl=duprId
+    ? `<button type="button" class="queue-dupr-modal-copy-id" onclick="copyQueueDuprModalId(event)" aria-label="Copy DUPR ID ${esc(duprId)}" title="Copy DUPR ID: ${esc(duprId)}"><span>ID: ${esc(duprId)}</span><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="8" y="8" width="12" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h3"></path></svg></button>`
+    : `<span class="queue-dupr-modal-copy-id is-empty" aria-label="No DUPR ID"><span>ID: NR</span></span>`;
+  const recordBadge=renderCourtRecordBadge(target,getRankingStats());
+  node.innerHTML=`<div class="queue-dupr-modal-profile"><div class="queue-dupr-modal-avatar">${playerAvatarMarkup(target,'queue-dupr-modal-avatar-image')}</div><div class="queue-dupr-modal-player-copy"><div class="queue-dupr-modal-name-line"><strong>${esc(String(target.name||'Player'))}</strong>${nickname?`<span class="queue-dupr-modal-nickname">(${esc(nickname)})</span>`:''}<span class="queue-dupr-modal-gender ${gender==='Female'?'female':'male'}" aria-label="${gender}" title="${gender}">${genderSvgIcon(gender)}</span>${copyIdControl}</div><div class="queue-dupr-modal-meta-line"><span class="queue-dupr-modal-category ${categoryCode?`skill-${categoryCode.toLowerCase()}`:'is-empty'}">${esc(categoryLabel)}</span>${recordBadge}</div></div></div>`;
+}
+async function copyQueueDuprModalId(event){
+  event?.preventDefault();
+  event?.stopPropagation();
+  const target=player(Number(queueDuprModalPlayerId));
+  const duprId=getCourtDuprDetails(target).duprId;
+  if(!duprId){toast('No DUPR ID to copy.');return;}
+  try{
+    if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(duprId);
+    }else{
+      const temporary=document.createElement('textarea');
+      temporary.value=duprId;
+      temporary.setAttribute('readonly','');
+      temporary.style.position='fixed';
+      temporary.style.opacity='0';
+      temporary.style.pointerEvents='none';
+      document.body.appendChild(temporary);
+      temporary.select();
+      const copied=document.execCommand('copy');
+      temporary.remove();
+      if(!copied)throw new Error('Clipboard copy command was rejected.');
+    }
+    toast(`DUPR ID: ${duprId} Copied!`);
+  }catch(error){
+    toast('Unable to copy DUPR ID.');
+    console.warn('Queue DUPR ID copy failed:',error);
   }
-  return `<button type="button" class="court-dupr-badge ${duprId?'':'is-unrated'}" onclick="event.stopPropagation();editCourtDuprDetails(${id},'${surface}')" aria-label="Edit DUPR ID" title="Click to edit DUPR ID">DUPR: ${esc(duprId||'NR')}</button>`;
 }
-function updateCourtDuprDraft(value){
-  editingCourtDuprDraft=String(value??'');
-}
-function editCourtDuprDetails(id,surface){
-  if(surface==='match')return;
-  const target=player(Number(id));
-  if(!target)return;
-  // Keep one editor open and preserve typed text if another render happens mid-edit.
-  if(editingQueueDuprPlayerId!==null){
-    editingQueueDuprPlayerId=null;
-    renderQueue();
+function queueDuprModalKeydown(event){
+  if(event.key==='Escape'){
+    event.preventDefault();
+    closeQueueDuprModal();
   }
-  editingCourtDuprKey=`${surface}:${Number(id)}`;
-  editingCourtDuprDraft=getCourtDuprDetails(target).duprId;
-  renderCourts();
-  requestAnimationFrame(()=>focusDuprIdAtEnd($(courtDuprInputId(surface,id))));
 }
-function cancelEditCourtDuprDetails(){
-  editingCourtDuprKey=null;
-  editingCourtDuprDraft='';
-  renderCourts();
-}
-function saveQueueDuprDetails(id){
-  return saveDuprDetails(id,null);
-}
-function saveDuprDetails(id,surface=null){
+function openQueueDuprModal(id){
   const normalizedId=Number(id);
-  let activeCourtSurface=surface;
-  if(!activeCourtSurface&&editingCourtDuprKey){
-    const match=String(editingCourtDuprKey).match(/^([^:]+):(\d+)$/);
-    if(match&&Number(match[2])===normalizedId)activeCourtSurface=match[1];
-  }
-  const duprInput=activeCourtSurface?$(courtDuprInputId(activeCourtSurface,normalizedId)):$('queueDuprIdInput');
-  if(!duprInput)return;
-  const duprId=String(duprInput.value||'').toUpperCase();
-  // Keep an empty value available for clearing an ID; any entered ID must be
-  // exactly six alphanumeric characters before it can be saved.
-  if(duprId&&!/^[A-Z0-9]{6}$/.test(duprId)){toast('DUPR ID must be exactly 6 letters or numbers.');duprInput.focus();return;}
   const target=player(normalizedId);
-  if(!target)return;
+  const modal=$('queueDuprEditModal');
+  if(!target||!modal||queueDuprModalSaving)return;
+  loadCloudRecords();
+  if(queueDuprModalCloseTimer){clearTimeout(queueDuprModalCloseTimer);queueDuprModalCloseTimer=null;}
+  queueDuprModalPlayerId=normalizedId;
+  queueDuprModalReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  renderQueueDuprModalProfile(target);
+  syncQueueDuprModalSlots(getCourtDuprDetails(target).duprId);
+  modal.classList.remove('hidden','is-closing');
+  modal.setAttribute('aria-hidden','false');
+  modal.inert=false;
+  document.body.classList.add('queue-dupr-modal-open');
+  document.removeEventListener('keydown',queueDuprModalKeydown);
+  document.addEventListener('keydown',queueDuprModalKeydown);
+  requestAnimationFrame(()=>{
+    if(queueDuprModalPlayerId!==normalizedId)return;
+    modal.classList.add('is-open');
+    const slots=queueDuprModalSlots();
+    const lastSlot=slots[slots.length-1];
+    lastSlot?.focus();
+    lastSlot?.select();
+  });
+}
+function closeQueueDuprModal(force=false){
+  if(queueDuprModalSaving&&!force)return;
+  const modal=$('queueDuprEditModal');
+  if(!modal)return;
+  queueDuprModalPlayerId=null;
+  queueDuprModalSaving=false;
+  modal.classList.remove('is-open');
+  modal.classList.add('is-closing');
+  modal.setAttribute('aria-hidden','true');
+  modal.inert=true;
+  document.body.classList.remove('queue-dupr-modal-open');
+  document.removeEventListener('keydown',queueDuprModalKeydown);
+  if(queueDuprModalCloseTimer)clearTimeout(queueDuprModalCloseTimer);
+  const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const tabletOrDesktop=window.matchMedia?.('(min-width: 768px)').matches;
+  const closeDuration=reducedMotion?0:(tabletOrDesktop?380:300);
+  queueDuprModalCloseTimer=window.setTimeout(()=>{
+    modal.classList.add('hidden');
+    modal.classList.remove('is-closing');
+    queueDuprModalCloseTimer=null;
+    const returnFocus=queueDuprModalReturnFocus;
+    queueDuprModalReturnFocus=null;
+    if(returnFocus?.isConnected) returnFocus.focus({preventScroll:true});
+  },closeDuration);
+}
+function persistQueueDuprId(id,duprId){
+  const target=player(Number(id));
+  if(!target)return false;
   const normalizedName=String(target.name||'').trim().toLowerCase();
   [...state.players,...state.left].filter(item=>String(item.name||'').trim().toLowerCase()===normalizedName).forEach(item=>{
     item.duprId=duprId;item.duprID='';item.dupr_id='';item.dupr='';
@@ -4125,37 +4238,69 @@ function saveDuprDetails(id,surface=null){
   loadCloudRecords();
   let record=cloudRecords.players.find(item=>String(item.name||'').trim().toLowerCase()===normalizedName);
   if(!record){
-    record={cloudId:Date.now()+Math.floor(Math.random()*100000),registeredAt:new Date().toISOString(),name:target.name,nickname:target.nickname||'',gender:target.gender||'',category:target.category||'',matches:0,wins:0,losses:0};
+    record={cloudId:Date.now()+Math.floor(Math.random()*100000),registeredAt:new Date().toISOString(),name:target.name,nickname:target.nickname||'',gender:target.gender||'',category:target.category||'',avatarId:getPlayerAvatarId(target),matches:0,wins:0,losses:0};
     cloudRecords.players.push(record);
   }
   record.duprId=duprId;record.duprID='';record.dupr_id='';record.dupr='';
-  if(activeCourtSurface){editingCourtDuprKey=null;editingCourtDuprDraft='';}
-  else editingQueueDuprPlayerId=null;
   saveCloudRecords();
   saveState();
   render();
   if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
-  toast('DUPR ID saved.');
+  return true;
+}
+async function saveQueueDuprModal(){
+  if(queueDuprModalSaving)return;
+  const id=Number(queueDuprModalPlayerId);
+  if(!id)return;
+  const duprId=queueDuprModalValue();
+  if(duprId&&!/^[A-Z0-9]{6}$/.test(duprId)){
+    toast('DUPR ID must be exactly 6 letters or numbers.');
+    const firstEmpty=queueDuprModalSlots().find(slot=>!slot.value);
+    (firstEmpty||queueDuprModalSlots()[0])?.focus();
+    return;
+  }
+  const target=player(id);
+  if(!target){toast('This player could not be found.');closeQueueDuprModal(true);return;}
+  const modal=$('queueDuprEditModal');
+  const saveButton=modal?.querySelector('.cloud-player-edit-save');
+  const saveLabel=saveButton?.querySelector('.cloud-player-edit-save-label');
+  const cancelButton=modal?.querySelector('.cloud-player-edit-cancel');
+  queueDuprModalSaving=true;
+  if(saveButton){saveButton.classList.add('is-loading');saveButton.disabled=true;saveButton.setAttribute('aria-busy','true');if(saveLabel)saveLabel.textContent='Saving…';}
+  if(cancelButton)cancelButton.disabled=true;
+  try{
+    // Keep the spinner visible long enough to read as a deliberate save action.
+    await new Promise(resolve=>window.setTimeout(resolve,420));
+    const saved=persistQueueDuprId(id,duprId);
+    if(!saved)throw new Error('Player record is no longer available.');
+    if(saveButton){saveButton.classList.remove('is-loading');saveButton.disabled=false;saveButton.removeAttribute('aria-busy');if(saveLabel)saveLabel.textContent='Save';}
+    if(cancelButton)cancelButton.disabled=false;
+    closeQueueDuprModal(true);
+    toast('DUPR ID saved.');
+  }catch(error){
+    queueDuprModalSaving=false;
+    if(saveButton){saveButton.classList.remove('is-loading');saveButton.disabled=false;saveButton.removeAttribute('aria-busy');if(saveLabel)saveLabel.textContent='Save';}
+    if(cancelButton)cancelButton.disabled=false;
+    toast('Unable to save DUPR ID. Please try again.');
+    console.error('Queue DUPR save failed:',error);
+  }
 }
 
-// Queue List DUPR badge: open an inline editor and focus the ID field.
-// Keep the queue and court editors mutually exclusive so Save targets the right surface.
-function editQueueDuprDetails(id){
-  const normalizedId=Number(id);
-  if(!Number.isFinite(normalizedId)||!player(normalizedId)||state.duprLabelsEnabled===false)return;
-  if(editingCourtDuprKey!==null){
-    editingCourtDuprKey=null;
-    editingCourtDuprDraft='';
-    renderCourts();
-  }
-  editingQueueDuprPlayerId=normalizedId;
-  renderQueue();
-  requestAnimationFrame(()=>focusDuprIdAtEnd($('queueDuprIdInput')));
+function queueRecordIconSvgMarkup(){
+  return '<svg class="queue-record-icon lucide lucide-swatch-book preview-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 17a4 4 0 0 1-8 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2Z"/><path d="M16.7 13H19a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H7"/><path d="M 7 17h.01"/><path d="m11 8 2.3-2.3a2.4 2.4 0 0 1 3.404.004L18.6 7.6a2.4 2.4 0 0 1 .026 3.434L9.9 19.8"/></svg>';
 }
-function cancelEditQueueDuprDetails(){
-  if(editingQueueDuprPlayerId===null)return;
-  editingQueueDuprPlayerId=null;
-  renderQueue();
+function renderCourtRecordBadge(target,rankingStats){
+  if(!target)return '';
+  const stats=rankingStats?.get(target.id)||{matches:0,wins:0,losses:0};
+  const matches=Math.max(0,Number(stats.matches)||0);
+  const wins=Math.max(0,Number(stats.wins)||0);
+  const losses=Math.max(0,Number(stats.losses)||0);
+  const matchLabel=`${matches} match${matches===1?'':'es'}`;
+  // Touch-first iPads use the shorter singular label; desktop keeps the full word.
+  const compactMatchLabel=`${matches} match`;
+  const resultLabel=`(${wins}W-${losses}L)`;
+  const label=`${matchLabel} ${resultLabel}`;
+  return `<span class="queue-record-badge" title="${esc(label)}" aria-label="${esc(label)}">${queueRecordIconSvgMarkup()}<span class="queue-record-count"><span class="queue-record-count-full">${esc(matchLabel)}</span><span class="queue-record-count-compact">${esc(compactMatchLabel)}</span></span><span class="queue-record-winloss">${esc(resultLabel)}</span></span>`;
 }
 
 // Queueing-page DOM stability helpers. Keep keyed rows/cards mounted across state
@@ -4302,11 +4447,12 @@ function renderQueue(){
     const genderValue=String(p.gender??'').trim().toLowerCase();
     const gender=['female','f','woman','women'].includes(genderValue)?'Female':'Male';
     const st=rankingStats.get(p.id)||{matches:0,wins:0,losses:0};
+    const queueRecordLabel=`${st.matches} match${st.matches===1?'':'es'} (${st.wins}W-${st.losses}L)`;
+    const queueRecordBadgeMarkup=`<span class="queue-record-badge" title="${esc(queueRecordLabel)}" aria-label="${esc(queueRecordLabel)}">${queueRecordIconSvgMarkup()}${esc(queueRecordLabel)}</span>`;
     const matchingCloudDupr=cloudRecords.players.find(cp=>String(cp.name||'').trim().toLowerCase()===String(p.name||'').trim().toLowerCase());
     const rawQueueDuprId=String(p.duprId||p.duprID||p.dupr_id||p.dupr||matchingCloudDupr?.duprId||matchingCloudDupr?.duprID||matchingCloudDupr?.dupr_id||matchingCloudDupr?.dupr||'').replace(/\s+/g,'').toUpperCase();
     const queueDuprId=rawQueueDuprId==='NR'?'':rawQueueDuprId;
-    const queueDuprEditing=Number(editingQueueDuprPlayerId)===Number(id);
-    const queueDuprBadge=queueDuprEditing?`<span class="queue-dupr-inline-edit" role="group" aria-label="Edit DUPR ID"><span class="queue-dupr-badge queue-dupr-edit-fields ${queueDuprId?'':'is-unrated'}"><span class="queue-dupr-prefix">DUPR:</span><input id="queueDuprIdInput" type="text" maxlength="6" inputmode="text" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false" value="${esc(queueDuprId)}" aria-label="DUPR ID" style="width:65px !important" oninput="sanitizeDuprIdInput(this)" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveQueueDuprDetails(${id})}else if(event.key==='Escape'){cancelEditQueueDuprDetails()}" /></span><span class="queue-dupr-editor-actions"><button type="button" class="queue-dupr-save-btn" onclick="event.stopPropagation();saveQueueDuprDetails(${id})">Save</button><button type="button" class="queue-dupr-cancel-btn" onclick="event.stopPropagation();cancelEditQueueDuprDetails()">Cancel</button></span></span>`:`<button type="button" class="queue-dupr-badge ${queueDuprId?'':'is-unrated'}" onclick="event.stopPropagation();editQueueDuprDetails(${id})" aria-label="Edit DUPR ID" title="Click to edit DUPR ID">DUPR: ${esc(queueDuprId||'NR')}</button>`;
+    const queueDuprBadge=`<button type="button" class="queue-dupr-badge ${queueDuprId?'':'is-unrated'}" onclick="event.stopPropagation();openQueueDuprModal(${id})" aria-label="Edit DUPR ID" title="Click to edit DUPR ID">DUPR: ${esc(queueDuprId||'NR')}</button>`;
     const lockedPartnerId=getLockedPartnerId(id);
     const lockedPartner=lockedPartnerId?player(lockedPartnerId):null;
     const queueAvatarMarkup=playerAvatarMarkup(p,'queue-profile-avatar');
@@ -4328,7 +4474,7 @@ function renderQueue(){
           <span class="queue-cat-stack">
             <span class="queue-cat-wrap"><button type="button" data-player-id="${id}" class="category-trigger ${p.category?'skill-'+p.category.toLowerCase():''}" title="Skill category" onclick="event.stopPropagation();toggleCategoryMenu(${id})">${p.category||'CAT'}</button></span>
           </span>
-          <span class="queue-record-badge">${st.matches} match${st.matches===1?'':'es'} (${st.wins}W-${st.losses}L)</span>
+          ${queueRecordBadgeMarkup}
         </div>
         <div class="queue-dupr-line">${queueDuprBadge}</div>
         <div class="queue-time-line">
@@ -4460,7 +4606,7 @@ function normalizePairName(value){
   return String(value||'').trim().toLowerCase().replace(/\s+/g,' ');
 }
 
-function readySlot(p,courtId,slotIndex,showWaitingBadge=false){
+function readySlot(p,courtId,slotIndex,showWaitingBadge=false,rankingStats=null){
   if(!p){
     return `<div class="team-player tap-slot empty-slot" onclick="autoMatchEmptySlot(${courtId},${slotIndex})">Tap a player below</div>`;
   }
@@ -4478,7 +4624,13 @@ function readySlot(p,courtId,slotIndex,showWaitingBadge=false){
   // MIX TEAMS keeps the lock-in relationship saved, but hides the icon when they
   // land on opposite teams; it returns automatically when they are paired again.
   const lockedOnCourt=lockedPartnerId!=null && teammateId!=null && Number(teammateId)===Number(lockedPartnerId);
-  return `<div class="team-player tap-slot filled-slot ${paired?'paired-before-player':''}" onclick="selectCourt(${courtId})"><span class="slot-player-name"><span class="slot-gender ${genderClass}">${playerAvatarMarkup(p,'profile-avatar-image')}</span><span class="slot-player-identity"><span class="slot-player-primary-line"><span class="slot-player-text">${esc(displayPlayerName(p))}</span><span class="slot-gender-icon ${genderClass}" aria-label="${p.gender}">${genderSvgIcon(p.gender)}</span><span class="slot-category ${p.category?'skill-'+String(p.category).toLowerCase():''}">${esc(category)}</span></span>${showWaitingBadge?`<span class="slot-waiting-line">${renderCourtDuprBadge(p,'ready')}${slotWaitingClockMarkup(p.waitingSince||p.queuedAt)}<span class="slot-waiting-time ${slotWaitingToneClass(p.waitingSince||p.queuedAt)}" data-player-id="${Number(p.id)}" aria-label="${esc(waitingAfterCheckin(p.waitingSince||p.queuedAt))}">${esc(waitingAfterCheckin(p.waitingSince||p.queuedAt))}</span></span>`:renderCourtDuprBadge(p,'ready')}</span></span>${lockedOnCourt?'<span class="slot-lock-icon" title="Locked-in partner" aria-label="Locked-in partner">'+queueLockSvgMarkup(true, `court-slot-${courtId}-${slotIndex}`)+'</span>':''}<button class="slot-remove" title="Remove player from court" onclick="event.stopPropagation();removePlayerFromCourt(${p.id},${courtId})">×</button></div>`;
+  const courtDuprMarkup=renderCourtDuprBadge(p,'ready');
+  const courtRecordMarkup=renderCourtRecordBadge(p,rankingStats);
+  // Keep the Ready-court player identity on its own first line. DUPR and match
+  // records live together on a dedicated second line; the waiting-court row
+  // retains its existing DUPR + record + elapsed-wait arrangement.
+  const readyCourtRecordLine=showWaitingBadge?'':`<span class="slot-court-record-line">${courtDuprMarkup}${courtRecordMarkup}</span>`;
+  return `<div class="team-player tap-slot filled-slot ${paired?'paired-before-player':''}" onclick="selectCourt(${courtId})"><span class="slot-player-name"><span class="slot-gender ${genderClass}">${playerAvatarMarkup(p,'profile-avatar-image')}</span><span class="slot-player-identity"><span class="slot-player-primary-line"><span class="slot-player-text">${esc(displayPlayerName(p))}</span><span class="slot-gender-icon ${genderClass}" aria-label="${p.gender}">${genderSvgIcon(p.gender)}</span><span class="slot-category ${p.category?'skill-'+String(p.category).toLowerCase():''}">${esc(category)}</span></span>${showWaitingBadge?`<span class="slot-waiting-line">${courtDuprMarkup}${courtRecordMarkup}${slotWaitingClockMarkup(p.waitingSince||p.queuedAt)}<span class="slot-waiting-time ${slotWaitingToneClass(p.waitingSince||p.queuedAt)}" data-player-id="${Number(p.id)}" aria-label="${esc(waitingAfterCheckin(p.waitingSince||p.queuedAt))}" title="${esc(waitingAfterCheckin(p.waitingSince||p.queuedAt))}"><span class="slot-waiting-time-full">${esc(waitingAfterCheckin(p.waitingSince||p.queuedAt))}</span><span class="slot-waiting-time-compact">${esc(waitingAfterCheckinCompact(p.waitingSince||p.queuedAt))}</span></span></span>`:readyCourtRecordLine}</span></span>${lockedOnCourt?'<span class="slot-lock-icon" title="Locked-in partner" aria-label="Locked-in partner">'+queueLockSvgMarkup(true, `court-slot-${courtId}-${slotIndex}`)+'</span>':''}<button class="slot-remove" title="Remove player from court" onclick="event.stopPropagation();removePlayerFromCourt(${p.id},${courtId})">×</button></div>`;
 }
 
 function pickerCandidatePairedBefore(courtId, candidateId){
@@ -4529,6 +4681,9 @@ function renderCourts(){
   loadCloudRecords();
   const realCourts=state.courts.filter(c=>!c.waitingOnly);
   const waitingCourts=state.courts.filter(c=>c.waitingOnly).sort((a,b)=>(Number(a.waitingOrder)||9999)-(Number(b.waitingOrder)||9999));
+  // Reuse the same per-player match totals shown in the main Queue List for
+  // both Ready court slots and Waiting court slots; calculate once per render.
+  const courtRankingStats=(realCourts.length||waitingCourts.length)?getRankingStats():null;
   $('courtCount').textContent=`(${realCourts.length})`;
   const realCourtsHtml=realCourts.map(c=>{
     const slots=[0,1,2,3].map(i=>player(c.players[i]));
@@ -4584,16 +4739,16 @@ function renderCourts(){
         <div class="ready-match-team ready-team-one ${!singlesMode && !!team1[0] && !!team1[1] && werePairedBefore(team1[0].id,team1[1].id)?'has-paired-before':''}">
           <div class="ready-team-heading">${singlesMode?'PLAYER 1':'TEAM 1'}${!singlesMode && !!team1[0] && !!team1[1] && werePairedBefore(team1[0].id,team1[1].id)?' <span class="paired-before-label">(Paired Before)</span>':''}</div>
           <div class="ready-team-players">
-            ${readySlot(team1[0],c.id,0)}
-            ${singlesMode?'':readySlot(team1[1],c.id,1)}
+            ${readySlot(team1[0],c.id,0,false,courtRankingStats)}
+            ${singlesMode?'':readySlot(team1[1],c.id,1,false,courtRankingStats)}
           </div>
         </div>
         <div class="ready-match-vs">VS</div>
         <div class="ready-match-team ready-team-two ${!singlesMode && !!team2[0] && !!team2[1] && werePairedBefore(team2[0].id,team2[1].id)?'has-paired-before':''}">
           <div class="ready-team-heading">${singlesMode?'PLAYER 2':'TEAM 2'}${!singlesMode && !!team2[0] && !!team2[1] && werePairedBefore(team2[0].id,team2[1].id)?' <span class="paired-before-label">(Paired Before)</span>':''}</div>
           <div class="ready-team-players">
-            ${readySlot(team2[0],c.id,singlesMode?1:2)}
-            ${singlesMode?'':readySlot(team2[1],c.id,3)}
+            ${readySlot(team2[0],c.id,singlesMode?1:2,false,courtRankingStats)}
+            ${singlesMode?'':readySlot(team2[1],c.id,3,false,courtRankingStats)}
           </div>
         </div>
       </div>
@@ -4619,9 +4774,9 @@ function renderCourts(){
       ${state.pendingRemoveCourt===c.id ? `<div class="court-delete-confirm-row"><span class="court-delete-message">Remove this court?</span><button class="court-confirm-yes" onclick="event.stopPropagation();requestRemoveCourt(${c.id})">Yes, Remove</button><button class="court-confirm-no" onclick="event.stopPropagation();cancelRemoveCourt(${c.id})">No</button></div>` : ''}
       <div class="ready-meta"><div class="ready-meta-left"><span class="ready-selected">${ps.length}/${playerLimit} <b>players selected</b></span></div><span class="ready-meta-hint">Moves to the next available court automatically</span></div>
       <div class="ready-match-sheet">
-        <div class="ready-match-team ready-team-one ${!singlesMode && !!team1[0] && !!team1[1] && werePairedBefore(team1[0].id,team1[1].id)?'has-paired-before':''}"><div class="ready-team-heading">${singlesMode?'PLAYER 1':'TEAM 1'}${!singlesMode && !!team1[0] && !!team1[1] && werePairedBefore(team1[0].id,team1[1].id)?' <span class="paired-before-label">(Paired Before)</span>':''}</div><div class="ready-team-players">${readySlot(team1[0],c.id,0,true)}${singlesMode?'':readySlot(team1[1],c.id,1,true)}</div></div>
+        <div class="ready-match-team ready-team-one ${!singlesMode && !!team1[0] && !!team1[1] && werePairedBefore(team1[0].id,team1[1].id)?'has-paired-before':''}"><div class="ready-team-heading">${singlesMode?'PLAYER 1':'TEAM 1'}${!singlesMode && !!team1[0] && !!team1[1] && werePairedBefore(team1[0].id,team1[1].id)?' <span class="paired-before-label">(Paired Before)</span>':''}</div><div class="ready-team-players">${readySlot(team1[0],c.id,0,true,courtRankingStats)}${singlesMode?'':readySlot(team1[1],c.id,1,true,courtRankingStats)}</div></div>
         <div class="ready-match-vs">VS</div>
-        <div class="ready-match-team ready-team-two ${!singlesMode && !!team2[0] && !!team2[1] && werePairedBefore(team2[0].id,team2[1].id)?'has-paired-before':''}"><div class="ready-team-heading">${singlesMode?'PLAYER 2':'TEAM 2'}${!singlesMode && !!team2[0] && !!team2[1] && werePairedBefore(team2[0].id,team2[1].id)?' <span class="paired-before-label">(Paired Before)</span>':''}</div><div class="ready-team-players">${readySlot(team2[0],c.id,singlesMode?1:2,true)}${singlesMode?'':readySlot(team2[1],c.id,3,true)}</div></div>
+        <div class="ready-match-team ready-team-two ${!singlesMode && !!team2[0] && !!team2[1] && werePairedBefore(team2[0].id,team2[1].id)?'has-paired-before':''}"><div class="ready-team-heading">${singlesMode?'PLAYER 2':'TEAM 2'}${!singlesMode && !!team2[0] && !!team2[1] && werePairedBefore(team2[0].id,team2[1].id)?' <span class="paired-before-label">(Paired Before)</span>':''}</div><div class="ready-team-players">${readySlot(team2[0],c.id,singlesMode?1:2,true,courtRankingStats)}${singlesMode?'':readySlot(team2[1],c.id,3,true,courtRankingStats)}</div></div>
       </div>
       ${selected && ps.length<playerLimit ? `<div class="court-picker"><div class="picker-title"><div class="picker-search-wrap"><span class="picker-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></span><input id="courtPickerSearch" class="picker-search" type="search" placeholder="Search player..." autocomplete="off" oninput="filterCourtPicker()"></div><div class="picker-filter-row category-filters"><button type="button" class="picker-filter ${courtPickerFilters.category==='ALL'?'active':''}" data-filter-type="category" data-filter-value="ALL" onclick="setCourtPickerFilter('category','ALL',this)">All (${state.queue.length})</button>${['BEG','NOV','INT','ADV','EXP'].map(cat=>{const n=state.queue.filter(pid=>player(pid)?.category===cat).length;return `<button type="button" class="picker-filter skill-${cat.toLowerCase()} ${courtPickerFilters.category===cat?'active':''}" data-filter-type="category" data-filter-value="${cat}" onclick="setCourtPickerFilter('category','${cat}',this)">${cat} (${n})</button>`}).join('')}</div><div class="picker-filter-row gender-filters"><button type="button" class="picker-filter ${courtPickerFilters.gender==='ALL'?'active':''}" data-filter-type="gender" data-filter-value="ALL" onclick="setCourtPickerFilter('gender','ALL',this)">All (${state.queue.length})</button><button type="button" class="picker-filter gender-male ${courtPickerFilters.gender==='Male'?'active':''}" data-filter-type="gender" data-filter-value="Male" onclick="setCourtPickerFilter('gender','Male',this)">${genderSvgIcon('Male')} M (${state.queue.filter(pid=>player(pid)?.gender==='Male').length})</button><button type="button" class="picker-filter gender-female ${courtPickerFilters.gender==='Female'?'active':''}" data-filter-type="gender" data-filter-value="Female" onclick="setCourtPickerFilter('gender','Female',this)">${genderSvgIcon('Female')} F (${state.queue.filter(pid=>player(pid)?.gender==='Female').length})</button></div><div class="picker-filter-row wait-filters"><button type="button" class="picker-filter ${courtPickerFilters.wait===0?'active':''}" data-filter-type="wait" data-filter-value="0" onclick="setCourtPickerFilter('wait',0,this)">${QUEUEING_CLOCK_ICON_MARKUP}All (${state.queue.length})</button><button type="button" class="picker-filter ${courtPickerFilters.wait===5?'active':''}" data-filter-type="wait" data-filter-value="5" onclick="setCourtPickerFilter('wait',5,this)">${QUEUEING_CLOCK_ICON_MARKUP}5m+</button><button type="button" class="picker-filter ${courtPickerFilters.wait===10?'active':''}" data-filter-type="wait" data-filter-value="10" onclick="setCourtPickerFilter('wait',10,this)">${QUEUEING_CLOCK_ICON_MARKUP}10m+</button><button type="button" class="picker-filter ${courtPickerFilters.wait===15?'active':''}" data-filter-type="wait" data-filter-value="15" onclick="setCourtPickerFilter('wait',15,this)">${QUEUEING_CLOCK_ICON_MARKUP}15m+</button></div></div><div class="picker-player-list">${state.queue.slice().sort((a,b)=>{const pa=player(a),pb=player(b);return (Number(pa?.waitingSince||pa?.queuedAt||Date.now())-Number(pb?.waitingSince||pb?.queuedAt||Date.now()))||(Number(a)-Number(b));}).map(pid=>{const qp=player(pid);if(!qp)return '';const wait=Math.max(0,Math.floor((Date.now()-(qp.waitingSince||qp.queuedAt||Date.now()))/60000));return `<button class="picker-player ${pickerCandidatePairedBefore(c.id,qp.id)?'paired-before-player':''}" data-player-name="${esc(`${displayPlayerName(qp)} ${qp.nickname||''}`).toLowerCase()}" data-category="${esc(qp.category||'')}" data-gender="${esc(qp.gender||'')}" data-queued-at="${Number(qp.waitingSince||qp.queuedAt||Date.now())}" data-wait="${wait}" onclick="choosePlayerForCourt(${pid},${c.id})"><span class="picker-info"><span class="picker-meta"><b>${highlightSearchMatch(displayPlayerName(qp), $('courtPickerSearch')?.value||'')}</b><span class="picker-gender ${qp.gender==='Female'?'female':'male'}">${genderSvgIcon(qp.gender)}</span><span class="picker-category ${qp.category?'skill-'+qp.category.toLowerCase():''}">${esc(qp.category||'CAT')}</span>${getLockedPartnerId(qp.id)!=null?`<span class="partner-inline-badge" title="Locked-in partner"><span class="partner-inline-lock" aria-hidden="true">${queueLockSvgMarkup(true, `court-picker-waiting-${c.id}-${qp.id}`)}</span><span class="partner-inline-name">${esc(String(player(getLockedPartnerId(qp.id))?.name||'').trim().split(/\s+/)[0]||displayPlayerName(player(getLockedPartnerId(qp.id))))}</span></span>`:''}${pickerCandidatePairedBefore(c.id,qp.id)?'<span class="paired-before-label picker-paired-before">(Paired Before)</span>':''}</span></span><span class="picker-wait ${wait>=15?'wait-red':wait>=10?'wait-yellow':''}">${QUEUEING_CLOCK_ICON_MARKUP}${formatWaitingDuration(wait)}</span></button>`}).join('')||'<div class="picker-empty">No players waiting in Queue.</div>'}</div></div>` : ''}
       <div class="ready-actions ready-actions-v2">${selected && ps.length<playerLimit?`<button class="ready-cancel active picker-cancel" onclick="cancelCourtPicker(${c.id})">CANCEL</button><button class="auto-match-ready" onclick="autoMatchVariety(${c.id})">AUTO-MATCH VARIETY</button><button class="start" disabled>WAITING FOR COURT</button>`:`<button class="ready-cancel ${ps.length===playerLimit?'active':''}" onclick="${ps.length===playerLimit?`cancelReadyMatch(${c.id})`:`autoMatchVariety(${c.id})`}">${ps.length===playerLimit?'CANCEL MATCH':'AUTO-MATCH VARIETY'}</button><button class="mix-live" onclick="mixCourt(${c.id})" ${ps.length!==playerLimit?'disabled':''}><img class="mix-live-icon" src="${PPM_QUEUE_MIX_LIVE_ICON}" alt="" aria-hidden="true">${singlesMode?'SWAP SIDES':'MIX TEAMS'}</button><button class="start" disabled>${ps.length===playerLimit?'WAITING FOR COURT':'WAITING COURT'}</button>`}</div>
@@ -5954,8 +6109,13 @@ setInterval(()=>{
         const p=player(Number(el.dataset.playerId));
         if(p){
           const waitingText=waitingAfterCheckin(p.waitingSince||p.queuedAt);
-          el.textContent=waitingText;
-          if(el.classList.contains('slot-waiting-time')){
+          const isSlotWaitingTime=el.classList.contains('slot-waiting-time');
+          if(isSlotWaitingTime){
+            const fullLabel=el.querySelector('.slot-waiting-time-full');
+            const compactLabel=el.querySelector('.slot-waiting-time-compact');
+            if(fullLabel)fullLabel.textContent=waitingText;
+            if(compactLabel)compactLabel.textContent=waitingText.replace(/\bwaiting\b/g,'wait');
+            el.setAttribute('title',waitingText);
             el.setAttribute('aria-label',waitingText);
             const waitingTone=slotWaitingToneClass(p.waitingSince||p.queuedAt);
             el.classList.remove('slot-waiting-normal','slot-waiting-amber','slot-waiting-red');
@@ -5965,6 +6125,9 @@ setInterval(()=>{
               waitingClock.classList.remove('slot-waiting-normal','slot-waiting-amber','slot-waiting-red');
               waitingClock.classList.add(waitingTone);
             }
+          }else{
+            // Queue-list rows still use their original single text node.
+            el.textContent=waitingText;
           }
         }
       });

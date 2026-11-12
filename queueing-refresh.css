@@ -1,3 +1,12 @@
+/* ==========================================================================
+   QUEUEING-REFRESH.CSS — MODULE MAP
+   Queue header, event stats, and startup stability
+   Search fields, filters, and popup controls
+   Shared modal geometry and tablet alignment
+   Waiting-court player rows and timing
+   Ready-court record badges and player details
+   Page-scoped overrides only; shared base styles remain in style.css.
+   ========================================================================== */
 /* Queueing-only refresh stability.
    Keep the title row and organizer badge geometry independent of content/loading state. */
 html body[data-page="queueing"] header.topbar .event-info {
@@ -111,14 +120,6 @@ html body[data-page="queueing"] #queueList > .queue-modern-item {
     padding-left: 7px !important;
     padding-right: 7px !important;
     font-size: 9px !important;
-  }
-  html body[data-page="queueing"] header.topbar #eventOrganizerStat .organizer-event-icon {
-    flex-basis: 11px !important;
-    width: 11px !important;
-    height: 11px !important;
-    min-width: 11px !important;
-    padding: 0 !important;
-    border-radius: 3px !important;
   }
 }
 @media (max-width: 380px) {
@@ -337,6 +338,7 @@ html.queueing-desktop-ipad body[data-page="queueing"] #courtsList > .waiting-cou
   scroll-margin-block: 0 !important;
 }
 
+/* MODULE: LEADERBOARD FILTERS & SEARCH */
 /* Queueing leaderboard filter toggle — closed by default; Queueing page only. */
 html body[data-page="queueing"] #rankingView .leaderboard-filter-toggle {
   display: inline-flex !important;
@@ -709,10 +711,6 @@ html body[data-page="queueing"] .court-picker .gender-filters .picker-filter.act
 
 
 /* 2026-11-03 — Remove the divider between each popup header and its search row. */
-html body[data-page="queueing"] #cloudRecordsModal .cloud-records-head,
-html body[data-page="queueing"] #leftPlayersModal .left-players-head {
-  border-bottom: 0 !important;
-}
 
 
 /* FINAL QUEUEING MODAL ALIGNMENT — Registered Player Cloud and Left Players.
@@ -753,7 +751,6 @@ html body[data-page="queueing"] #cloudRecordsModal .cloud-search-summary,
 html body[data-page="queueing"] #leftPlayersModal .left-players-search-summary {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) !important;
-  align-items: center !important;
   gap: 0 !important;
   margin: 0 0 6px !important;
   padding: 0 !important;
@@ -942,6 +939,7 @@ html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip:acti
   html body[data-page="queueing"] #leftPlayersModal .popup-gender-filter-chip { padding: 0 8px !important; font-size: 8px !important; }
 }
 
+/* MODULE: MODAL GEOMETRY & TABLET ALIGNMENT */
 /* SHARED DESKTOP + IPAD MODAL GEOMETRY — SINGLE SOURCE OF TRUTH
    Desktop and iPad landscape retain the previously verified 10px dialog gaps.
    iPad portrait uses the measured, live topbar height in the rule below. */
@@ -1079,6 +1077,7 @@ html body[data-page="queueing"] #rankingView .leaderboard-heading[hidden] {
 }
 
 
+/* MODULE: WAITING COURT PLAYER ROWS & TIMER */
 /* WAITING COURTS — stable two-line player details.
    Line 1 is always the player identity. Line 2 shows DUPR (when enabled) followed
    immediately by elapsed waiting time. When DUPR is hidden, only the waiting time
@@ -1102,25 +1101,16 @@ html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .co
   right: auto !important;
   bottom: 0 !important;
   z-index: 3 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  flex-flow: row nowrap !important;
-  gap: 4px !important;
   width: max-content !important;
-  min-width: 0 !important;
   max-width: none !important;
   height: 16px !important;
   min-height: 16px !important;
   max-height: 16px !important;
   margin: 0 !important;
   padding: 0 !important;
-  overflow: visible !important;
   white-space: nowrap !important;
-  box-sizing: border-box !important;
 }
-html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .court-dupr-badge,
-html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .court-dupr-inline-edit {
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .court-dupr-badge {
   position: static !important;
   left: auto !important;
   right: auto !important;
@@ -1185,4 +1175,648 @@ html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .co
 }
 html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .queueing-clock-icon.slot-waiting-red {
   color: #dc2626 !important;
+}
+
+
+/* WAITING COURT PLAYER RECORDS (2026-11-12).
+   Keep the inline order as DUPR ID, completed match record, then elapsed wait.
+   The full labels remain available through title/aria-label when a tablet slot
+   is too narrow to show every character. */
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-flow: row nowrap !important;
+  gap: 4px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  /* Keep the badge row visible; record and timer labels clip within their own
+     flex items on narrower tablet layouts. */
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .queue-record-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 2px !important;
+  flex: 0 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #15945f !important;
+  font-family: inherit !important;
+  font-size: 6.8px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  pointer-events: none !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .queue-record-badge > .queue-record-count {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line .queue-record-count-full,
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line .slot-waiting-time-full {
+  display: inline !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line .queue-record-count-compact,
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line .slot-waiting-time-compact {
+  display: none !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .queue-record-badge > .queue-record-winloss {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .slot-waiting-time {
+  flex: 0 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+@media (max-width: 1024px) {
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line {
+    gap: 3px !important;
+  }
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .queue-record-badge {
+    font-size: 6.2px !important;
+  }
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .slot-waiting-time {
+    font-size: 6.2px !important;
+  }
+}
+/* Desktop has room for the complete wording; do not truncate either label. */
+@media (hover: hover) and (pointer: fine) {
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .queue-record-badge {
+    flex: 0 0 auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .queue-record-badge > .queue-record-count {
+    flex: 0 0 auto !important;
+    overflow: visible !important;
+  }
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line > .slot-waiting-time {
+    flex: 0 0 auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+}
+/* Touch-first iPads use the compact words; desktop keeps the complete labels. */
+@media (hover: none) and (pointer: coarse) {
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line .queue-record-count-full,
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line .slot-waiting-time-full {
+    display: none !important;
+  }
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line .queue-record-count-compact,
+  html body[data-page="queueing"] #courtsList .court-card.waiting-court-card > .court-box.ready-box.waiting-box .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-waiting-line .slot-waiting-time-compact {
+    display: inline !important;
+  }
+}
+
+
+/* MODULE: READY COURT RECORD BADGES & PLAYER DETAILS */
+/* QUEUEING RECORD BADGE ICON + READY COURT SECOND ROW (2026-11-12).
+   All Queueing match-record badges share the swatch-book icon. Ready courts
+   keep identity on line one and DUPR + match record on line two. */
+html body[data-page="queueing"] .queue-record-badge {
+  gap: 3px !important;
+}
+html body[data-page="queueing"] .queue-record-badge > .queue-record-icon {
+  display: inline-block !important;
+  flex: 0 0 9px !important;
+  width: 9px !important;
+  min-width: 9px !important;
+  height: 9px !important;
+  min-height: 9px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+  vertical-align: middle !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+
+
+/* READY COURT RECORDS — RESTORE THE TWO-LINE PLAYER LAYOUT (2026-11-12 v2).
+   Line 1: name/nickname, gender and category.
+   Line 2: editable DUPR badge (when enabled) followed by the match record.
+   Waiting-court rows keep their existing separate waiting-time line. */
+html body[data-page="queueing"] #courtsList .court-card.court-ready-card > .court-box.ready-box:not(.waiting-box) .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-identity {
+  position: relative !important;
+  display: block !important;
+  align-self: stretch !important;
+  flex: 1 1 auto !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  gap: 0 !important;
+  overflow: visible !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.court-ready-card > .court-box.ready-box:not(.waiting-box) .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-primary-line {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  display: flex !important;
+  flex-flow: row nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  transform: translateY(-50%) !important;
+  gap: 4px !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+  z-index: 2 !important;
+}
+/* Match the stable Waiting Court behavior: identity stays in the same place
+   when the DUPR badge is hidden, while only the second-row badge disappears. */
+html body[data-page="queueing"] #courtsList .court-card.court-ready-card > .court-box.ready-box:not(.waiting-box) .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-primary-line {
+  top: 18% !important;
+  transition: none !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.court-ready-card > .court-box.ready-box:not(.waiting-box) .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-court-record-line {
+  position: absolute !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: 0 !important;
+  top: auto !important;
+  z-index: 3 !important;
+  display: flex !important;
+  flex-flow: row nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 4px !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+/* Keep the DUPR badge's original 16px dimensions in the new second-row flex track. */
+html body[data-page="queueing"] #courtsList .court-card.court-ready-card > .court-box.ready-box:not(.waiting-box) .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-court-record-line > .court-dupr-badge {
+  position: static !important;
+  inset: auto !important;
+  align-self: center !important;
+  flex: 0 0 auto !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  z-index: auto !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.court-ready-card > .court-box.ready-box:not(.waiting-box) .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-court-record-line > .queue-record-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex: 0 0 auto !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  margin: 0 !important;
+  padding: 0 1px !important;
+  overflow: visible !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #15945f !important;
+  font-family: inherit !important;
+  font-size: 7px !important;
+  font-weight: 800 !important;
+  line-height: 16px !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  pointer-events: none !important;
+}
+html body[data-page="queueing"] #courtsList .court-card.court-ready-card > .court-box.ready-box:not(.waiting-box) .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-court-record-line .queue-record-count {
+  display: inline-flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+}
+/* Make the swatch-book artwork occupy a centered flex cell instead of sitting
+   on the SVG text baseline; applies to every record badge on Queueing. */
+html body[data-page="queueing"] .queue-record-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+}
+html body[data-page="queueing"] .queue-record-badge > svg.queue-record-icon {
+  display: block !important;
+  flex: 0 0 9px !important;
+  align-self: center !important;
+  width: 9px !important;
+  min-width: 9px !important;
+  max-width: 9px !important;
+  height: 9px !important;
+  min-height: 9px !important;
+  max-height: 9px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+  transform: none !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+@media (max-width: 600px) {
+  html body[data-page="queueing"] #courtsList .court-card.court-ready-card > .court-box.ready-box:not(.waiting-box) .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-player-primary-line {
+    top: 23% !important;
+    gap: 3px !important;
+  }
+  html body[data-page="queueing"] #courtsList .court-card.court-ready-card > .court-box.ready-box:not(.waiting-box) .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-court-record-line {
+    height: 16px !important;
+    min-height: 16px !important;
+    max-height: 16px !important;
+    gap: 3px !important;
+  }
+}
+@media (hover: none) and (pointer: coarse) {
+  html body[data-page="queueing"] #courtsList .court-card.court-ready-card > .court-box.ready-box:not(.waiting-box) .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-court-record-line .queue-record-count-full {
+    display: none !important;
+  }
+  html body[data-page="queueing"] #courtsList .court-card.court-ready-card > .court-box.ready-box:not(.waiting-box) .ready-match-sheet .ready-team-players > .team-player.tap-slot.filled-slot .slot-court-record-line .queue-record-count-compact {
+    display: inline !important;
+  }
+}
+
+/* QUEUE RECORD BADGE LABEL VISIBILITY FIX (2026-11-12).
+   The badge contains a full desktop label and a compact touch/iPad label.
+   Show exactly one at a time to prevent output such as "0 matches0 match".
+   The 0 count itself is intentional when the player has no completed matches. */
+html body[data-page="queueing"] .queue-record-badge .queue-record-count-full {
+  display: inline !important;
+}
+html body[data-page="queueing"] .queue-record-badge .queue-record-count-compact {
+  display: none !important;
+}
+@media (hover: none) and (pointer: coarse) {
+  html body[data-page="queueing"] .queue-record-badge .queue-record-count-full {
+    display: none !important;
+  }
+  html body[data-page="queueing"] .queue-record-badge .queue-record-count-compact {
+    display: inline !important;
+  }
+}
+
+/* Queueing page pill radius only — retain all existing DUPR badge dimensions. */
+html body[data-page="queueing"] .court-dupr-badge,
+html body[data-page="queueing"] #queueMainArea .queue-dupr-badge {
+  border-radius: 999px !important;
+}
+
+
+/* MODULE: QUEUE DUPR EDIT MODAL — PLAYER PROFILE + SIX-CHARACTER ID
+   Profile line: avatar, full name/nickname and gender.
+   Details line: full category label and the player's match-record badge.
+   ID line: DUPR mark followed by six equal character cells.
+   All selectors stay scoped to this modal so queue/court components are unchanged. */
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-box {
+  width: min(350px, calc(100vw - 24px)) !important;
+  max-width: 350px !important;
+  padding: 14px !important;
+  border-radius: 14px !important;
+  overflow-x: hidden !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-profile {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 0 15px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-avatar {
+  flex: 0 0 46px !important;
+  width: 46px !important;
+  height: 46px !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-player-copy {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-name-line {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 3px 5px !important;
+  min-width: 0 !important;
+  line-height: 1.25 !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-name-line strong {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+  overflow-wrap: anywhere !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-nickname {
+  max-width: 100% !important;
+  font-size: 10px !important;
+  line-height: 1.25 !important;
+  overflow-wrap: anywhere !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-gender,
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-gender svg {
+  flex: 0 0 15px !important;
+  width: 15px !important;
+  height: 15px !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-copy-id {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  min-width: 0 !important;
+  margin: 0 0 0 auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #3978a8 !important;
+  font-family: inherit !important;
+  font-size: 8px !important;
+  font-weight: 750 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-copy-id svg {
+  display: block !important;
+  flex: 0 0 11px !important;
+  width: 11px !important;
+  height: 11px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.8 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-copy-id:hover {
+  color: #155f93 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-copy-id:focus-visible {
+  outline: 1px dashed #7da9c8 !important;
+  outline-offset: 2px !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-copy-id.is-empty {
+  color: #9aa6b1 !important;
+  cursor: default !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-meta-line {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+  margin-top: 6px !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-category {
+  display: inline-flex !important;
+  flex: 0 1 auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  min-height: 15px !important;
+  padding: 3px 7px !important;
+  border-radius: 999px !important;
+  font-size: 8px !important;
+  line-height: 1.2 !important;
+  font-weight: 850 !important;
+  letter-spacing: .15px !important;
+  white-space: nowrap !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-meta-line > .queue-record-badge {
+  display: inline-flex !important;
+  flex: 0 1 auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  margin: 0 !important;
+  padding: 0 7px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  color: #168354 !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-meta-line > .queue-record-badge > .queue-record-icon {
+  display: block !important;
+  flex: 0 0 10px !important;
+  width: 10px !important;
+  min-width: 10px !important;
+  height: 10px !important;
+  min-height: 10px !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-meta-line .queue-record-count {
+  display: inline-flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-meta-line .queue-record-count-full {
+  display: inline !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-meta-line .queue-record-count-compact {
+  display: none !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-field {
+  gap: 5px !important;
+  margin: 0 !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal #queueDuprModalLabel {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .cloud-edit-dupr-logo {
+  flex: 0 0 48px !important;
+  width: 48px !important;
+  max-width: 48px !important;
+  height: 24px !important;
+  border-radius: 5px !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-slots {
+  display: grid !important;
+  flex: 1 1 auto !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  align-items: center !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-slot {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border: 1px solid #b9dce5 !important;
+  border-radius: 7px !important;
+  background: #fff !important;
+  color: #233b50 !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-slot:focus {
+  border-color: #36a9b8 !important;
+  box-shadow: 0 0 0 3px rgba(54,169,184,.15) !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  margin: 15px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-actions button {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  min-height: 32px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+}
+@media (max-width: 420px) {
+  html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-box {
+    width: calc(100vw - 20px) !important;
+    padding: 13px !important;
+  }
+  html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-profile {
+    gap: 9px !important;
+    margin-bottom: 13px !important;
+  }
+  html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-avatar {
+    flex-basis: 41px !important;
+    width: 41px !important;
+    height: 41px !important;
+  }
+  html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-row {
+    gap: 6px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  html body[data-page="queueing"] #queueDuprEditModal .cloud-edit-dupr-logo {
+    flex-basis: 43px !important;
+    width: 43px !important;
+    max-width: 43px !important;
+    height: 22px !important;
+  }
+  html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-slots {
+    gap: 3px !important;
+  }
+  html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-slot {
+    height: 31px !important;
+    min-height: 31px !important;
+    font-size: 12px !important;
+  }
+}
+
+
+/* 2026-11-12: Queue DUPR modal focus treatment and tablet/desktop slide motion.
+   Keep the bright editor card as the focal point; dim the page without blurring it. */
+html body[data-page="queueing"] #queueDuprEditModal {
+  background: rgba(9, 16, 29, .68) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* iPad and desktop: the editor drops into place and slides upward on close. */
+@media (min-width: 768px) {
+  html body[data-page="queueing"] #queueDuprEditModal .queue-dupr-modal-box {
+    transform: translate3d(0, -28px, 0) scale(.995) !important;
+    transition: opacity .22s ease,
+                transform .40s cubic-bezier(.16, 1, .3, 1) !important;
+  }
+  html body[data-page="queueing"] #queueDuprEditModal.is-open .queue-dupr-modal-box {
+    opacity: 1 !important;
+    transform: translate3d(0, 0, 0) scale(1) !important;
+  }
+  html body[data-page="queueing"] #queueDuprEditModal.is-closing .queue-dupr-modal-box {
+    opacity: 0 !important;
+    transform: translate3d(0, -28px, 0) scale(.995) !important;
+    transition: opacity .20s ease,
+                transform .34s cubic-bezier(.4, 0, .2, 1) !important;
+  }
 }
