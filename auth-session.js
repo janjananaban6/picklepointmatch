@@ -1,4 +1,9 @@
 (() => {
+  // Do not request or redirect organizer sessions for the phone-only Queueing
+  // restriction notice. This guard is scoped to queueing.html and phone browsers.
+  if (document.body?.dataset?.page === 'queueing' &&
+      window.__PPM_QUEUEING_MOBILE_BLOCKED === true) return;
+
   function addLogoutButton() {
     if (document.getElementById('ppOrganizerLogout')) return;
     const isSessionPage = document.body?.dataset?.page === 'start';

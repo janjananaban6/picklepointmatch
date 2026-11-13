@@ -3,11 +3,395 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <style id="ppm-tab-auth-curtain">html{visibility:hidden}</style>
-  <script src="/tab-auth.js?v=cookie-session-auth-20261110-1"></script>
+  <script id="queueing-mobile-access-guard-20261113">
+    // Queueing is an organizer workspace for desktop and iPad only. Detect phones
+    // before the page paints so the unsupported responsive workspace never flashes.
+    (function () {
+      var ua = navigator.userAgent || '';
+      var touchPoints = Number(navigator.maxTouchPoints) || 0;
+      var isIPad = /iPad/i.test(ua) || (/Macintosh/i.test(ua) && touchPoints > 1 &&
+        Math.max(Number(screen.width) || 0, Number(screen.height) || 0) >= 700);
+      var isPhone = !!(navigator.userAgentData && navigator.userAgentData.mobile === true) ||
+        /iPhone|iPod|Android.*Mobile|Windows Phone|IEMobile|BlackBerry|webOS/i.test(ua) ||
+        (/Macintosh/i.test(ua) && touchPoints > 1 &&
+          Math.max(Number(screen.width) || 0, Number(screen.height) || 0) < 700);
+      window.__PPM_QUEUEING_MOBILE_BLOCKED = isPhone && !isIPad;
+      if (window.__PPM_QUEUEING_MOBILE_BLOCKED) {
+        document.documentElement.classList.add('queueing-mobile-disabled');
+      }
+    })();
+  </script>
+  <style id="queueing-mobile-disabled-notice-20261113-3">
+    html.queueing-mobile-disabled,
+    html.queueing-mobile-disabled body[data-page="queueing"] {
+      width: 100% !important;
+      min-width: 0 !important;
+      min-height: 100% !important;
+      margin: 0 !important;
+      overflow: hidden !important;
+      background: radial-gradient(ellipse at 50% 0%, rgba(13, 59, 38, .42) 0%, rgba(13, 59, 38, 0) 48%), #0f172a !important;
+    }
+    html.queueing-mobile-disabled body[data-page="queueing"] > :not(#queueingMobileDisabledNotice) {
+      display: none !important;
+    }
+    html body[data-page="queueing"] #queueingMobileDisabledNotice {
+      display: none;
+    }
+    html.queueing-mobile-disabled body[data-page="queueing"] #queueingMobileDisabledNotice {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 2147483647 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-sizing: border-box !important;
+      width: 100% !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      min-height: 100vh !important;
+      min-height: 100dvh !important;
+      margin: 0 !important;
+      padding: max(8px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left)) !important;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+      overscroll-behavior: contain !important;
+      background: radial-gradient(ellipse at 50% 0%, rgba(13, 59, 38, .42) 0%, rgba(13, 59, 38, 0) 48%), #0f172a !important;
+      color: #eefafa !important;
+      font-family: "DM Sans", Arial, sans-serif !important;
+      text-align: center !important;
+      -webkit-font-smoothing: antialiased !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-screen {
+      position: relative !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-sizing: border-box !important;
+      width: min(100%, 480px) !important;
+      height: 100% !important;
+      min-height: 100% !important;
+      margin: auto !important;
+      padding: 0 !important;
+      background: transparent !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+    /* Match session.html: keep the Live Queue brand slot at the very top. */
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice > .queueing-mobile-disabled-screen > .live-queue-start-brand-slot {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      display: flex !important;
+      box-sizing: border-box !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      min-height: 50px !important;
+      flex: 0 0 auto !important;
+      align-items: center !important;
+      justify-content: center !important;
+      align-self: stretch !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      overflow: visible !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .login-brand.live-queue-start-brand {
+      position: absolute !important;
+      top: 50% !important;
+      left: 50% !important;
+      display: flex !important;
+      width: max-content !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 10px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      color: #eefafa !important;
+      font-family: 'DM Sans', Arial, sans-serif !important;
+      white-space: nowrap !important;
+      transform: translate(-50%, -50%) !important;
+      text-align: left !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .brand-mark {
+      display: block !important;
+      width: 39px !important;
+      height: 39px !important;
+      min-width: 39px !important;
+      min-height: 39px !important;
+      flex: 0 0 39px !important;
+      object-fit: contain !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .brand-words {
+      display: flex !important;
+      min-width: 0 !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      gap: 1px !important;
+      align-self: center !important;
+      color: #eefafa !important;
+      font-family: 'DM Sans', Arial, sans-serif !important;
+      white-space: nowrap !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .brand-words > b {
+      display: block !important;
+      margin: 0 !important;
+      color: #eefafa !important;
+      font-size: 14px !important;
+      font-weight: 950 !important;
+      letter-spacing: .7px !important;
+      line-height: 1.2 !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .brand-words > b > strong {
+      color: #27d3c5 !important;
+      font-weight: 900 !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .brand-words > small {
+      display: block !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      color: #95c4c7 !important;
+      font-family: 'DM Sans', Arial, sans-serif !important;
+      font-size: 8px !important;
+      font-weight: 900 !important;
+      letter-spacing: 4px !important;
+      line-height: 1.2 !important;
+      white-space: nowrap !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-content {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      width: 100% !important;
+      max-width: 420px !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      text-align: center !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      isolation: auto !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-icon {
+      position: relative !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: auto !important;
+      height: auto !important;
+      max-width: 112px !important;
+      max-height: 112px !important;
+      flex: 0 0 auto !important;
+      margin: 10px auto 18px !important;
+      overflow: visible !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-icon[hidden],
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-icon img[hidden] {
+      display: none !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-icon img {
+      display: block !important;
+      width: auto !important;
+      height: auto !important;
+      max-width: 112px !important;
+      max-height: 112px !important;
+      object-fit: contain !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-eyebrow {
+      max-width: 100% !important;
+      margin: 0 0 10px !important;
+      color: #c4b5fd !important;
+      font-family: 'DM Sans', Arial, sans-serif !important;
+      font-size: 10px !important;
+      font-weight: 900 !important;
+      letter-spacing: .16em !important;
+      line-height: 1.5 !important;
+      text-transform: uppercase !important;
+      overflow-wrap: anywhere !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice h1 {
+      max-width: 100% !important;
+      margin: 0 0 13px !important;
+      color: #eefafa !important;
+      font-family: 'DM Sans', Arial, sans-serif !important;
+      font-size: clamp(25px, 7vw, 32px) !important;
+      font-weight: 900 !important;
+      letter-spacing: -.035em !important;
+      line-height: 1.12 !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice h1 span {
+      color: #99ff00 !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-premium-note {
+      max-width: 360px !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      border: 0 !important;
+      border-left: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      color: #b7c8d3 !important;
+      font-family: "DM Sans", Arial, sans-serif !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      line-height: 1.75 !important;
+      text-align: center !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-device-label {
+      display: block !important;
+      margin: 23px 0 0 !important;
+      color: #95c4c7 !important;
+      font-family: 'DM Sans', Arial, sans-serif !important;
+      font-size: 9px !important;
+      font-weight: 900 !important;
+      letter-spacing: .2em !important;
+      line-height: 1.4 !important;
+      text-transform: uppercase !important;
+    }
+    /* Match the session page's ppOrganizerLogout text-button treatment,
+       anchored at the bottom of the mobile restriction screen. */
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice #ppOrganizerLogout {
+      position: absolute !important;
+      z-index: 2 !important;
+      left: 50% !important;
+      bottom: max(12px, env(safe-area-inset-bottom)) !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 4px !important;
+      min-height: 0 !important;
+      margin: 0 !important;
+      padding: 6px 8px !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      color: #82969a !important;
+      box-shadow: none !important;
+      font: 750 9px/1.5 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+      letter-spacing: .2px !important;
+      cursor: pointer !important;
+      white-space: nowrap !important;
+      transform: translateX(-50%) !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice #ppOrganizerLogout:hover {
+      background: transparent !important;
+      color: #82969a !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice #ppOrganizerLogout .pp-back-icon {
+      color: inherit !important;
+      font: inherit !important;
+    }
+    html.queueing-mobile-disabled #queueingMobileDisabledNotice #ppOrganizerLogout:focus-visible {
+      outline: 2px solid rgba(39, 211, 197, .75) !important;
+      outline-offset: 4px !important;
+    }
+    @media (max-width: 520px) {
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice > .queueing-mobile-disabled-screen > .live-queue-start-brand-slot {
+        top: 0 !important;
+        min-height: 46px !important;
+        margin: 0 !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .login-brand.live-queue-start-brand {
+        gap: 8px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .brand-mark {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        flex-basis: 32px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .brand-words > b {
+        font-size: 11px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .brand-words > small {
+        font-size: 7px !important;
+        letter-spacing: 3px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-icon,
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-icon img {
+        max-width: 96px !important;
+        max-height: 96px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-icon {
+        margin-top: 8px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-content {
+        max-width: 380px !important;
+      }
+    }
+    @media (max-width: 360px) {
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .login-brand.live-queue-start-brand {
+        gap: 6px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .brand-words > b {
+        font-size: 10px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .brand-words > small {
+        font-size: 7px !important;
+        letter-spacing: 2.5px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .brand-mark {
+        width: 30px !important;
+        height: 30px !important;
+        min-width: 30px !important;
+        min-height: 30px !important;
+        flex-basis: 30px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice h1 {
+        font-size: 25px !important;
+      }
+    }
+    @media (max-width: 300px) {
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice > .queueing-mobile-disabled-screen > .live-queue-start-brand-slot {
+        top: 0 !important;
+        min-height: 44px !important;
+        margin: 0 !important;
+      }
+    }
+    @media (orientation: landscape) and (max-height: 520px) {
+      html.queueing-mobile-disabled body[data-page="queueing"] #queueingMobileDisabledNotice {
+        align-items: flex-start !important;
+        padding-top: max(12px, env(safe-area-inset-top)) !important;
+        padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-icon,
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-icon img {
+        max-width: 72px !important;
+        max-height: 72px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-icon {
+        margin: 3px auto 9px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice h1 {
+        font-size: 24px !important;
+      }
+      html.queueing-mobile-disabled #queueingMobileDisabledNotice .queueing-mobile-disabled-device-label {
+        margin-top: 12px !important;
+      }
+    }
+  </style>
+  <style id="ppm-tab-auth-curtain">html:not(.queueing-mobile-disabled){visibility:hidden}</style>
+  <script src="/tab-auth.js?v=queueing-mobile-guard-20261113-1"></script>
   <script>
-    // Queueing supports touch devices and small screens. Keep startup stabilization
-    // scoped to this page without blocking Android or phone-sized displays.
+    // Queueing is restricted to desktop and iPad. Keep startup stabilization
+    // scoped to this page; the mobile access guard above handles phone browsers.
     (function () {
       // Keep state-dependent queueing elements from painting their temporary
       // pre-hydration state. Geometry is preserved until local/shared state is ready.
@@ -46,10 +430,10 @@
   <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
   <title>Pickle Point Match — Queueing</title>
 <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <link rel="stylesheet" href="style.css?v=stability-cleanup-20261030-1&queue-dupr-modal-profile-meta=20261112-1&history-scrollbar-edge=20261106-3-full-card-width&cloud-edit-slide-motion=20261030-2-transform-ease&previous=queue-header-glass-20261023-3&dupr-csv-export=20261028-3&mzoom=20261024-1&organizer-stats=20261024-1&qr-logo-assignment=20261024-2&organizer-share-glass=20261024-1&event-rules-amber-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&lock-partner-gender-minimal-20261026-1&court-player-inline-meta-20261026-1&court-dupr-editor-touch-size-20261026-1&court-dupr-save-parity-20261029-1&court-dupr-badge-minimal-20261029-1&court-dupr-open-minimal-20261029-1&court-dupr-input-text-20261029-4-real7&dupr-label-toggle-20261026-1&end-session-modal-details=20261028-2&end-session-compact=20261028-1&end-session-attendee-side-by-side=20261104-2-no-slide&registered-player-edit=20261028-1&cloud-records-compact=20261028-2&left-player-dupr-id=20261029-1&left-player-dupr-color=20261029-1&registered-cloud-dupr-inline-edit=20261029-2&cloud-dupr-stable-anchor=20261029-2&cloud-dupr-no-shift-final=20261029-1&cloud-edit-side-panel=20261029-1-smooth-slide&cloud-player-edit-form=20261029-2-category-buttons&cloud-edit-dupr-empty-state=20261029-1&cloud-edit-live-preview=20261029-1&cloud-edit-live-follow-responsive=20261029-2&cloud-edit-radio-row=20261029-1-no-divider&cloud-edit-loading-animation=20261029-1&cloud-records-scrollbar-hidden=20261029-2&cloud-edit-gender-compact=20261029-1&cloud-edit-dupr-logo-ratio=20261029-1&cloud-edit-gender-label-tight=20261029-1&cloud-record-actions-20261029=2-original-close-nojump&cloud-disabled-actions-hover-only=20261029-1&cloud-edit-width=20261029-2&cloud-edit-dupr-logo-height=20261029-1&cloud-category-height-static-dupr=20261029-1&ipad-dupr-badges=20261029-5-stable-anchor&dupr-toggle-court-glitch-fix=20261029-6-primary-line-gap&dupr-same-size-team-player-slots=20261030-2&queue-dupr-slide-motion=20261030-3-court-parity&dupr-edit-amber-dashed-border=20261030-1&dupr-edit-amber-fill-text=20261030-1&queue-lock-icons=20261031-2&queue-lock-icons=20261031-1&queue-dupr-input-desktop-align=20261103-1&left-players-scrollbar-hidden=20261103-2&queueing-expand-arrows=20261103-1&court-settings-gear=20261103-2&podium-medal-loop=20261103-2&partner-inline-badge-size=20261103-1&podium-ipad-list-fill=20261104-1&ipad-portrait-workspace-position=20261104-1&podium-desktop-list-fill=20261104-1&history-search-parity=20261104-2-clean&leaderboard-player-lock-icon=20261104-1&popup-gender-filters=20261104-1&leaderboard-lock-partner-name=20261104-1&registration-queue-sync-hardening=20261104-3&court-settings-name-input-typography-cleanup=20261106-1&history-matchup-search=20261107-2&qr-transparent-organizer-logo-20261109-2&court-ready-border-blue-amber=20261109-1&history-divider-cleanup=20261110-1">
+  <link rel="stylesheet" href="style.css?v=queueing-cleanup-20261113-1">
   <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261022-1&mzoom=20261024-1&history-search-parity=20261104-2-clean">
   <link rel="stylesheet" href="network-skeleton.css?v=network-skeleton-20261024-1">
-  <link rel="stylesheet" href="queueing-refresh.css?v=queueing-refresh-stability-20261026-7&queue-dupr-modal-dark-slide=20261112-1&ipad-portrait-live-topbar-gap=20261104-2&ipad-portrait-modal-edge-gap=20261104-1&header-search-divider-removed=20261103-1&cloud-left-header-alignment=20261103-2&category-filter-before-search=20261104-1&queueing-startup-stability=20261029-1&court-dupr-editor-touch-size-20261026-1&queue-dupr-event-rule-text-btn=20261026-3&queue-dupr-compact-all-devices=20261026-2&queue-dupr-event-stats-placement=20261026-1&organizer-stat-text-only=20261029-1&queue-keyed-scroll-stability=20261103-1&leaderboard-filter-toggle=20261103-3-fullwidth-search-25h&queueing-searchbar-focus-only=20261103-2&leaderboard-medal-image=20261103-1&cloud-left-category-filter=20261103-2-filter-before-search&cloud-left-podium-geometry=20261104-2-shared-fixed-height&history-search-parity=20261104-2-clean&history-search-gap=20261104-1&history-matchup-search=20261107-2&leaderboard-player-lock-icon=20261104-1&popup-gender-filters=20261104-1&leaderboard-lock-partner-name=20261104-1&all-search-pill-radius=20261106-3-id-specific&cloud-left-filter-inside-search=20261106-1&history-matchup-search=20261107-2&waiting-slot-info-line=20261110-3-no-separator&waiting-slot-time-color=20261110-1&waiting-court-record-badge=20261112-1&tablet-results-match-podium-geometry=20261110-1&queue-record-ipad-short-labels=20261112-2&ready-court-inline-record-icon=20261112-1&ready-court-two-line-record=20261112-2-icon-center&dupr-ready-slot-stable-16px=20261112-3&queue-record-badge-count-visibility=20261112-4&queue-dupr-modal-profile-meta=20261112-1&queue-dupr-modal-copy-id=20261112-2">
+  <link rel="stylesheet" href="queueing-refresh.css?v=queueing-cleanup-20261113-1">
   <script src="network-skeleton.js?v=network-skeleton-20261026-3"></script>
   <style>
     html.queueing-settings-shortcut body[data-page="queueing"] { overflow: hidden !important; }
@@ -405,7 +789,7 @@ html body[data-page="queueing"] #historyView #historySearchInput {
   -webkit-appearance: none !important;
   background: transparent !important;
   color: #344454 !important;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
   font-size: 12px !important;
   font-style: normal !important;
   font-weight: 400 !important;
@@ -445,7 +829,7 @@ html body[data-page="queueing"] #historyView #historySearchInput::placeholder,
 html body[data-page="queueing"] #historyView #historySearchInput::-webkit-input-placeholder {
   color: #98a3ad !important;
   opacity: 1 !important;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
   font-size: 12px !important;
   font-style: normal !important;
   font-weight: 400 !important;
@@ -564,7 +948,7 @@ html body[data-page="queueing"] #historyView .history-matchup-search-wrap input 
   outline: 0 !important;
   background: transparent !important;
   color: #344454 !important;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
   font-size: 12px !important;
   font-weight: 500 !important;
   line-height: 1.2 !important;
@@ -1160,7 +1544,7 @@ html body[data-page="queueing"] #rankingView .leaderboard-search-icon {
   height: 12px !important;
 }
 html body[data-page="queueing"] #rankingView #leaderboardSearchInput {
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
   font-size: 10px !important;
   font-style: normal !important;
   font-weight: 400 !important;
@@ -1171,7 +1555,7 @@ html body[data-page="queueing"] #rankingView #leaderboardSearchInput::placeholde
 html body[data-page="queueing"] #rankingView #leaderboardSearchInput::-webkit-input-placeholder {
   color: #98a3ad !important;
   opacity: 1 !important;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
   font-size: 10px !important;
   font-style: normal !important;
   font-weight: 400 !important;
@@ -1263,8 +1647,89 @@ html body[data-page="queueing"] #rankingView #leaderboardSearchInput::-webkit-in
     box-sizing:border-box !important;
   }
 </style>
+<style id="queueing-font-family-parity-20261113">
+/* Match Live View typography while preserving all existing font sizes,
+   weights, spacing, colors, SVG artwork, and layout. */
+html body[data-page="queueing"] {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  --pp-search-font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+</style>
+<style id="queueing-leaderboard-matches-filter-20261113">
+html body[data-page="queueing"] #rankingView .leaderboard-match-filters .matches-all.active,
+html body[data-page="queueing"] #rankingView .leaderboard-match-filters .match-range.active {
+  border-color: #203746 !important;
+  background: #203746 !important;
+  color: #fff !important;
+}
+html body[data-page="queueing"] #rankingView .leaderboard-filter-controls[hidden] {
+  display: none !important;
+}
+</style>
 </head>
 <body data-page="queueing">
+<div id="queueingMobileDisabledNotice" role="status" aria-live="polite" aria-labelledby="queueingMobileDisabledTitle">
+  <div class="queueing-mobile-disabled-screen">
+    <div class="live-queue-start-brand-slot">
+      <div class="login-brand live-queue-start-brand" role="img" aria-label="Pickle Point Match">
+        <img class="brand-mark" src="pickleball-p-emblem.png" alt="" aria-hidden="true">
+        <span class="brand-words"><b>PICKLE <strong>POINT</strong></b><small>M A T C H</small></span>
+      </div>
+    </div>
+    <main class="queueing-mobile-disabled-content">
+      <div class="queueing-mobile-disabled-icon" id="queueingMobileDisabledIcon" role="img" aria-label="Organizer logo" hidden>
+        <img id="queueingMobileDisabledOrganizerLogo" alt="" hidden>
+      </div>
+      <p class="queueing-mobile-disabled-eyebrow" id="queueingMobileDisabledEyebrow">Pickle Point Match</p>
+      <h1 id="queueingMobileDisabledTitle">Mobile access is <span>disabled</span></h1>
+      <p class="queueing-mobile-disabled-premium-note">Queueing is built for the full organizer experience. Open Pickle Point Match on a desktop computer or iPad to manage players, courts, and live matches.</p>
+      <p class="queueing-mobile-disabled-device-label">DESKTOP &amp; IPAD ONLY</p>
+    </main>
+    <button type="button" id="ppOrganizerLogout" aria-label="Back to session">
+      <span class="pp-back-icon" aria-hidden="true">↩</span>
+      <span>Back to session</span>
+    </button>
+  </div>
+  <script id="queueing-mobile-disabled-organizer-identity-20261113-2">
+    (function () {
+      if (window.__PPM_QUEUEING_MOBILE_BLOCKED !== true) return;
+      var backButton = document.getElementById('ppOrganizerLogout');
+      if (backButton) {
+        backButton.addEventListener('click', function () {
+          window.location.assign('session.html');
+        });
+      }
+      var eyebrow = document.getElementById('queueingMobileDisabledEyebrow');
+      var icon = document.getElementById('queueingMobileDisabledIcon');
+      var logo = document.getElementById('queueingMobileDisabledOrganizerLogo');
+      fetch('/api/auth-status', {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'same-origin',
+        headers: {'X-PPM-Auth-Role': 'organizer'}
+      }).then(function (response) {
+        return response.ok ? response.json() : null;
+      }).then(function (status) {
+        if (!status || status.authenticated !== true || status.role !== 'organizer') return;
+        var clubName = String(status.displayName || status.username || 'Organizer').trim() || 'Organizer';
+        if (eyebrow) eyebrow.textContent = clubName;
+        if (icon) icon.setAttribute('aria-label', clubName + ' organizer logo');
+        var organizerLogo = typeof status.organizerLogo === 'string' ? status.organizerLogo.trim() : '';
+        if (logo && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/i.test(organizerLogo)) {
+          logo.onload = function () {
+            logo.hidden = false;
+            if (icon) icon.hidden = false;
+          };
+          logo.onerror = function () {
+            logo.hidden = true;
+            if (icon) icon.hidden = true;
+          };
+          logo.src = organizerLogo;
+        }
+      }).catch(function () {});
+    })();
+  </script>
+</div>
 <header class="topbar">
   <button type="button" class="topbar-back-btn" id="topbarBackToStartBtn" aria-label="Back to Live Queue start screen" title="Back to Live Queue start screen">く</button>
   <div class="topbar-logo" role="img" aria-label="Pickleball"><img class="topbar-logo-img" src="pickleball-p-emblem.png" alt="" aria-hidden="true"></div>
@@ -1432,6 +1897,13 @@ html body[data-page="queueing"] #rankingView #leaderboardSearchInput::-webkit-in
           <button type="button" class="leaderboard-filter-chip category-int" data-leaderboard-category="INT" aria-pressed="false">INT</button>
           <button type="button" class="leaderboard-filter-chip category-adv" data-leaderboard-category="ADV" aria-pressed="false">ADV</button>
           <button type="button" class="leaderboard-filter-chip category-exp" data-leaderboard-category="EXP" aria-pressed="false">EXP</button>
+        </div>
+        <div class="leaderboard-filter-row leaderboard-match-filters" role="group" aria-label="Filter by matches">
+          <button type="button" class="leaderboard-filter-chip matches-all active" data-leaderboard-matches="ALL" aria-pressed="true">ALL</button>
+          <button type="button" class="leaderboard-filter-chip match-range" data-leaderboard-matches="1-3" aria-pressed="false">1-3 Match</button>
+          <button type="button" class="leaderboard-filter-chip match-range" data-leaderboard-matches="1-6" aria-pressed="false">1-6 Match</button>
+          <button type="button" class="leaderboard-filter-chip match-range" data-leaderboard-matches="1-9" aria-pressed="false">1-9 Match</button>
+          <button type="button" class="leaderboard-filter-chip match-range" data-leaderboard-matches="9+" aria-pressed="false">9+ Match</button>
         </div>
         <div class="leaderboard-filter-row leaderboard-player-filters" role="group" aria-label="Filter by player type">
           <button type="button" class="leaderboard-filter-chip player-everyone active" data-leaderboard-scope="EVERYONE" aria-pressed="true">Everyone</button>
@@ -1836,8 +2308,8 @@ Maria Santos,Female"></textarea>
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="auth-session.js?v=organizer-role-cookie-session-20261110-1"></script>
-<script src="queueing-app-loader.js?v=leaderboard-filter-rank-preserve-20261103-1&queue-dupr-modal-dark-slide=20261112-1&dupr-modal-minimal-20261112-2&registered-search-results-stability=20261106-1&left-search-summary-removed=20261103-1&queueing-icons-inline-20261103-3&queueing-role-tab-auth-isolation-20261102-1&stable-keyed-queue-render=20261103-1&queue-dupr-six-char=20261103-1&queue-lock-icons=20261031-1&organizer-stat-text-only=20261029-1&queueing-startup-stability=20261029-1&cloud-category-full-labels=20261029-2-live-edit-follow&attendee-panel-no-auto-open=20261028-1&session-lifecycle-qr-guards=20261028-2&dupr-csv-export=20261028-3&dupr-location-archive=20261031-1&organizer-logo-cache-20261026-1&event-rules-enabled-20261026-1&left-section-empty-20261026-1&court-dupr-label-20261026-1&dupr-label-toggle-20261026-1&queue-dupr-toggle-header=20261026-2&queue-dupr-text-only=20261026-1&organizer-scoped-dupr-registration=20261028-1&end-session-attendee-side-by-side=20261104-2-no-slide&left-player-dupr-id=20261029-1&registered-cloud-dupr-inline-edit=20261029-2&cloud-dupr-stable-anchor=20261029-2&cloud-dupr-no-shift-final=20261029-1&queue-self-rating-removed=20261029-1&dupr-id-no-spaces=20261029-1&cloud-edit-side-panel=20261029-1-smooth-slide&cloud-player-edit-form=20261029-2-category-buttons&cloud-edit-live-preview=20261029-1&cloud-edit-gender-two-options=20261029-1&cloud-edit-dupr-empty-state=20261029-1&cloud-edit-live-follow-responsive=20261029-2-no-autofocus-fit-content&cloud-edit-width=20261029-1&cloud-edit-loading-animation=20261029-1&cloud-record-actions=20261029-1&court-dupr-input-text=20261029-1&queue-lock-icons=20261031-2&stable-keyed-queue-render=20261103-1&popup-filter-auto-close=20261104-1&end-session-attendee-side-by-side=20261104-2-no-slide&popup-gender-filters=20261104-1&cloud-registration-checked-in=20261104-1&registration-queue-sync-hardening=20261104-3&queue-registered-search-switch=20261106-2-cloud-refresh-sync&history-matchup-search=20261107-2&live-ranking-lockin-badge=20261107-1&ranking-lockin-publish=20261107-2&qr-transparent-organizer-logo=20261109-2&queueing-code-cleanup=20261109-1&waiting-slot-info-line=20261110-3-no-separator&waiting-slot-clock-icon=20261111-1&queue-dupr-modal-profile-meta=20261112-1&queue-dupr-modal-copy-id=20261112-2&queueing-performance-mobile-access=20261112-1" defer></script>
+<script src="auth-session.js?v=queueing-mobile-guard-20261113-1"></script>
+<script src="queueing-app-loader.js?v=queueing-mobile-disabled-20261113-2" defer></script>
 
 
 
@@ -2016,6 +2488,27 @@ html body[data-page="queueing"] [role="button"] {
 html body[data-page="queueing"] .queue-modern-item,
 html body[data-page="queueing"] .court-card {
   will-change: auto !important;
+}
+</style>
+
+<style id="queueing-live-font-stack-final-20261113">
+/* Queueing page only: mirror the font stack declared on live-view.css body. */
+html body[data-page="queueing"] {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  --pp-search-font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+}
+html body[data-page="queueing"] :not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c) {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+}
+html body[data-page="queueing"] :not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c)::before,
+html body[data-page="queueing"] :not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c)::after {
+  font-family: inherit !important;
+}
+html body[data-page="queueing"] input:not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c)::placeholder,
+html body[data-page="queueing"] textarea:not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c)::placeholder,
+html body[data-page="queueing"] input:not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c)::-webkit-input-placeholder,
+html body[data-page="queueing"] textarea:not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c)::-webkit-input-placeholder {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
 }
 </style>
 </body>

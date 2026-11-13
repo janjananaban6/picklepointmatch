@@ -7354,3 +7354,26 @@ html body.live-view-page .mobile-header-icon-button .matches-notification-badge[
 html[data-theme="light"] body.live-view-page .mobile-header-icon-button .matches-notification-badge {
   border-color: #fff; background: #d7192d; color: #fff;
 }
+
+/* Live rankings: eligibility note is amber label text only. */
+html body .section-card .live-ranking-filter-controls .live-ranking-scope-note {
+  display: block;
+  margin: 1px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #edbd55;
+  font-size: 10px;
+  font-weight: 300;
+  line-height: 1.4;
+}
+html body .section-card .live-ranking-filter-controls .live-ranking-scope-note[hidden] {
+  display: none !important;
+}
+html[data-theme="light"] body .section-card .live-ranking-filter-controls .live-ranking-scope-note {
+  border: 0;
+  background: transparent;
+  color: #986300;
+}
+

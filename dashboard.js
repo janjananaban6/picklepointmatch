@@ -965,12 +965,179 @@
         <h3>${escapeHtml(session.sessionName||'Open Play')}</h3><p>${escapeHtml(subtitle)}</p>
       </div>
       <div class="session-manage-actions">
+        <button type="button" class="session-manage-btn tally-session-btn" data-session-action="tally" data-session-id="${escapeAttr(session.id)}" ${disabled} aria-label="View ranking for ${escapeAttr(session.sessionName||'session')}" title="View completed session ranking"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0V4Z"></path><path d="M8 6H5v2a3 3 0 0 0 3 3M16 6h3v2a3 3 0 0 1-3 3M12 13v4M8 21h8M10 17h4"></path></svg><span>Tally</span></button>
         <button type="button" class="session-manage-btn edit-session-btn" data-session-action="edit" data-session-id="${escapeAttr(session.id)}" ${disabled} aria-label="Edit ${escapeAttr(session.sessionName||'session')}" title="Edit session"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg><span>Edit</span></button>
         <button type="button" class="session-manage-btn delete-session-btn" data-session-action="delete" data-session-id="${escapeAttr(session.id)}" ${disabled||isDeletePending?'disabled':''} aria-label="Delete ${escapeAttr(session.sessionName||'session')}" title="Delete session"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg><span>Delete</span></button>
       </div>
       ${deleteWarningMarkup}
       ${session.isLive?'<div class="session-manage-note">End this live session before editing or deleting it.</div>':''}
     </article>`;
+  }
+
+  function sessionDurationSeconds(value) {
+    const raw=String(value||'').trim();
+    const match=raw.match(/^(\d+):(\d{1,2})$/);
+    if(match)return (Number(match[1])||0)*60+(Number(match[2])||0);
+    const minutes=raw.match(/(\d+)\s*m/i);
+    return minutes?(Number(minutes[1])||0)*60:0;
+  }
+
+  function buildSessionRanking(session) {
+    const logs=sessionLogs(session);
+    const playersByKey=new Map();
+    const addPlayer=(person,fallbackName='')=>{
+      if(!person||typeof person!=='object')person={name:fallbackName};
+      const name=String(person.name||person.displayName||fallbackName||'').trim();
+      if(!name)return;
+      const id=person.id??person.playerId??null;
+      let key=id!==null&&id!==undefined&&String(id).trim()!==''?`id:${String(id)}`:`name:${normalizeName(name)}`;
+      if(id===null||id===undefined||String(id).trim()===''){
+        const sameName=Array.from(playersByKey.values()).filter(existing=>normalizeName(existing.name)===normalizeName(name));
+        if(sameName.length===1)key=sameName[0]._key;
+        else if(sameName.length>1)return;
+      }
+      if(!playersByKey.has(key))playersByKey.set(key,{id:id===null?null:String(id),name,nickname:String(person.nickname||''),gender:String(person.gender||''),category:String(person.category||''),_key:key});
+      else {
+        const existing=playersByKey.get(key);
+        if(!existing.nickname&&person.nickname)existing.nickname=String(person.nickname);
+        if(!existing.category&&person.category)existing.category=String(person.category);
+        if(!existing.gender&&person.gender)existing.gender=String(person.gender);
+      }
+    };
+
+    (Array.isArray(session?.participants)?session.participants:[]).forEach(person=>addPlayer(person));
+    logs.forEach(log=>{
+      (Array.isArray(log?.team1Players)?log.team1Players:[]).forEach(person=>addPlayer(person));
+      (Array.isArray(log?.team2Players)?log.team2Players:[]).forEach(person=>addPlayer(person));
+      const team1Ids=Array.isArray(log?.team1Ids)?log.team1Ids:[];
+      const team2Ids=Array.isArray(log?.team2Ids)?log.team2Ids:[];
+      const team1Names=Array.isArray(log?.team1Names)?log.team1Names:[];
+      const team2Names=Array.isArray(log?.team2Names)?log.team2Names:[];
+      team1Ids.forEach((id,index)=>addPlayer({id,name:team1Names[index]||''}));
+      team2Ids.forEach((id,index)=>addPlayer({id,name:team2Names[index]||''}));
+      team1Names.forEach(name=>addPlayer({name}));
+      team2Names.forEach(name=>addPlayer({name}));
+    });
+
+    const players=Array.from(playersByKey.values());
+    const statsByKey=new Map(players.map(player=>[player._key,{matches:0,wins:0,losses:0,totalSeconds:0,winRate:0}]));
+    const normalizedName=value=>normalizeName(value);
+    const splitTeamNames=value=>String(value||'').split(/\s*&\s*/).map(normalizedName).filter(Boolean);
+    logs.forEach(log=>{
+      if(!log||typeof log!=='object')return;
+      const team1Players=Array.isArray(log.team1Players)?log.team1Players:[];
+      const team2Players=Array.isArray(log.team2Players)?log.team2Players:[];
+      const rawTeam1Ids=Array.isArray(log.team1Ids)&&log.team1Ids.length?log.team1Ids:team1Players.map(person=>person?.id);
+      const rawTeam2Ids=Array.isArray(log.team2Ids)&&log.team2Ids.length?log.team2Ids:team2Players.map(person=>person?.id);
+      const team1Ids=rawTeam1Ids.filter(id=>id!==null&&id!==undefined&&String(id)!=='').map(String);
+      const team2Ids=rawTeam2Ids.filter(id=>id!==null&&id!==undefined&&String(id)!=='').map(String);
+      const rawTeam1Names=Array.isArray(log.team1Names)&&log.team1Names.length?log.team1Names:team1Players.map(person=>person?.name);
+      const rawTeam2Names=Array.isArray(log.team2Names)&&log.team2Names.length?log.team2Names:team2Players.map(person=>person?.name);
+      const team1Names=rawTeam1Names.map(normalizedName).filter(Boolean);
+      const team2Names=rawTeam2Names.map(normalizedName).filter(Boolean);
+      const winnerNames=new Set(splitTeamNames(log.winner));
+      const loserNames=new Set(splitTeamNames(log.loser));
+      const team1IdSet=new Set(team1Ids);
+      const team2IdSet=new Set(team2Ids);
+      const hasReliableTeamIds=team1Ids.length>0&&team2Ids.length>0;
+      const hasTeamNames=team1Names.length>0&&team2Names.length>0;
+      const scoreMatch=String(log.score??'').trim().match(/^(\d+)\s*-\s*(\d+)$/);
+      const score1=scoreMatch?Number(scoreMatch[1]):NaN;
+      const score2=scoreMatch?Number(scoreMatch[2]):NaN;
+      const scoreWinner=scoreMatch&&Number.isFinite(score1)&&Number.isFinite(score2)&&score1!==score2?(score1>score2?1:2):null;
+      const savedWinnerTeam=Number(log.winnerTeam);
+      const winningSide=scoreWinner||(savedWinnerTeam===1||savedWinnerTeam===2?savedWinnerTeam:null);
+      const durationSeconds=sessionDurationSeconds(log.duration);
+
+      players.forEach(player=>{
+        const playerName=normalizedName(player.name);
+        const isWinner=winnerNames.has(playerName);
+        const isLoser=loserNames.has(playerName);
+        let side=0;
+        if(hasReliableTeamIds){
+          if(player.id!==null&&team1IdSet.has(String(player.id)))side=1;
+          else if(player.id!==null&&team2IdSet.has(String(player.id)))side=2;
+        }else if(hasTeamNames){
+          const inTeam1=team1Names.includes(playerName);
+          const inTeam2=team2Names.includes(playerName);
+          if(inTeam1!==inTeam2)side=inTeam1?1:2;
+        }
+
+        let result='';
+        if(side){
+          if(winningSide)result=side===winningSide?'win':'loss';
+          else if(isWinner!==isLoser)result=isWinner?'win':'loss';
+        }else if(!hasReliableTeamIds&&!hasTeamNames&&isWinner!==isLoser){
+          result=isWinner?'win':'loss';
+        }
+        if(!result)return;
+        const stats=statsByKey.get(player._key);
+        if(!stats)return;
+        stats.matches++;
+        stats.totalSeconds+=durationSeconds;
+        if(result==='win')stats.wins++;
+        else stats.losses++;
+      });
+    });
+
+    players.forEach(player=>{
+      const stats=statsByKey.get(player._key);
+      stats.winRate=stats.matches?Math.round((stats.wins/stats.matches)*100):0;
+    });
+    return players
+      .filter(player=>(statsByKey.get(player._key)?.matches||0)>0)
+      .sort((a,b)=>{
+        const sa=statsByKey.get(a._key)||{wins:0,losses:0,matches:0};
+        const sb=statsByKey.get(b._key)||{wins:0,losses:0,matches:0};
+        const rateA=sa.matches?sa.wins/sa.matches:0;
+        const rateB=sb.matches?sb.wins/sb.matches:0;
+        return (Number(sb.wins)||0)-(Number(sa.wins)||0)
+          ||rateB-rateA
+          ||(Number(sa.losses)||0)-(Number(sb.losses)||0)
+          ||(Number(sb.matches)||0)-(Number(sa.matches)||0)
+          ||String(a.name||'').localeCompare(String(b.name||''));
+      })
+      .map((player,index)=>({...player,rank:index+1,...statsByKey.get(player._key)}));
+  }
+
+  function sessionTallyMarkup(session) {
+    const ranking=buildSessionRanking(session);
+    if(!ranking.length)return '<div class="session-tally-empty"><span aria-hidden="true">🏆</span><strong>No ranking available yet</strong><p>This session has no completed match results to tally.</p></div>';
+    const medals=['🥇','🥈','🥉'];
+    return ranking.map(player=>{
+      const displayName=player.nickname?`${player.name} (${player.nickname})`:player.name;
+      const rankLabel=player.rank<=3?medals[player.rank-1]:`#${player.rank}`;
+      const category=player.category?`<span class="session-tally-category">${escapeHtml(player.category)}</span>`:'';
+      const hours=Math.floor(Math.max(0,player.totalSeconds)/3600);
+      const minutes=Math.floor((Math.max(0,player.totalSeconds)%3600)/60);
+      const playTime=hours?`${hours}h${minutes?` ${minutes}m`:''}`:`${minutes}m`;
+      return `<article class="session-tally-row${player.rank<=3?` rank-${player.rank}`:''}">
+        <div class="session-tally-position">${rankLabel}</div>
+        <div class="session-tally-player">
+          <div class="session-tally-name-line"><strong>${escapeHtml(displayName)}</strong>${category}</div>
+          <div class="session-tally-progress"><span style="width:${player.winRate}%"></span></div>
+          <div class="session-tally-meta">${playTime} play time</div>
+        </div>
+        <div class="session-tally-result"><strong>${player.winRate}%</strong><span>${player.wins}W - ${player.losses}L</span><small>${player.matches} match${player.matches===1?'':'es'}</small></div>
+      </article>`;
+    }).join('');
+  }
+
+  function openSessionTally(sessionId) {
+    const session=archivedSessions().find(item=>String(item.id)===String(sessionId));
+    if(!session){showToast('Only completed sessions have a tally.');return;}
+    const modal=$('sessionTallyModal');
+    if(!modal)return;
+    $('sessionTallyTitle').textContent=session.sessionName||'Open Play';
+    $('sessionTallySubtitle').textContent=`COMPLETED RANKING · ${sessionLogs(session).length} MATCH${sessionLogs(session).length===1?'':'ES'}`;
+    $('sessionTallyRanking').innerHTML=sessionTallyMarkup(session);
+    showDashboardModal('sessionTallyModal');
+    $('closeSessionTallyModal')?.focus();
+  }
+
+  function closeSessionTally() {
+    if(!$('sessionTallyModal'))return;
+    hideDashboardModal('sessionTallyModal');
   }
 
   function renderSessions() {
@@ -1230,7 +1397,7 @@
   }
 
   function syncModalBodyLock() {
-    const open=['sessionEditModal','settingsModal','duprExportModal'].some(id=>$(id)&&!$(id).hidden);
+    const open=['sessionEditModal','settingsModal','duprExportModal','sessionTallyModal'].some(id=>$(id)&&!$(id).hidden);
     document.body.classList.toggle('modal-open',open);
   }
 
@@ -2171,6 +2338,7 @@
     const id=button.dataset.sessionId;
     if(button.dataset.sessionAction==='cancel-delete'){closeDeleteSession();return;}
     if(button.dataset.sessionAction==='confirm-delete'){confirmDeleteSession(button);return;}
+    if(button.dataset.sessionAction==='tally')openSessionTally(id);
     if(button.dataset.sessionAction==='edit')openEditSession(id);
     if(button.dataset.sessionAction==='delete')openDeleteSession(id);
   });
@@ -2338,6 +2506,7 @@
 
   $('sessionEditForm').addEventListener('submit',saveSessionEdit);
   $('cancelSessionEditButton').addEventListener('click',closeEditSession);
+  $('closeSessionTallyModal').addEventListener('click',closeSessionTally);
   // Close dashboard/settings dialogs only when the backdrop itself is clicked.
   // Clicks inside the dialog content must never dismiss the modal.
   document.querySelectorAll('.dashboard-modal-backdrop, .settings-modal-backdrop').forEach(backdrop=>{
@@ -2346,6 +2515,7 @@
       if(backdrop.id==='sessionEditModal')closeEditSession();
       else if(backdrop.id==='settingsModal')closeSettings();
       else if(backdrop.id==='duprExportModal')closeDuprExportModal();
+      else if(backdrop.id==='sessionTallyModal')closeSessionTally();
     });
   });
   document.addEventListener('keydown',event=>{
@@ -2359,6 +2529,7 @@
       if(state.editingMatch)closeEditMatch();
       if(!$('settingsModal').hidden)closeSettings();
       if(!$('duprExportModal').hidden)closeDuprExportModal();
+      if(!$('sessionTallyModal').hidden)closeSessionTally();
     }
   });
   $('logoutButton').addEventListener('click',async()=>{

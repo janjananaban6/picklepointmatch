@@ -3,6 +3,9 @@
 
   const rawPath = String(window.location.pathname || '/').toLowerCase().replace(/\/+$/, '') || '/';
   const path = rawPath.replace(/\.html$/i, '');
+  // The phone-only Queueing notice is public and does not require organizer auth.
+  // Skip the auth curtain on that restricted view; all other routes keep normal auth.
+  if (path === '/queueing' && window.__PPM_QUEUEING_MOBILE_BLOCKED === true) return;
   const role = path === '/panel'
     ? 'panel'
     : (['/dashboard', '/queueing'].includes(path) ? 'organizer' : '');

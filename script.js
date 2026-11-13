@@ -1,7 +1,6 @@
 // Keep queue rendering behavior scoped to queueing.html.
 const IS_QUEUEING_PAGE=document.body?.dataset.page==='queueing';
 // Keyed updates preserve DOM nodes, input focus, scroll, and touch targets on every device.
-const IS_QUEUEING_STABLE_RENDER=IS_QUEUEING_PAGE;
 const QUEUEING_CLOCK_ICON_MARKUP=IS_QUEUEING_PAGE?'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="queueing-clock-icon lucide lucide-rotate-ccw-clock preview-icon" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>':String.fromCodePoint(0x23F1,0xFE0E);
 const queueingUserAgent=navigator.userAgent||'';
 const queueingIsIPad=/iPad/i.test(queueingUserAgent)||(/Macintosh/i.test(queueingUserAgent)&&Number(navigator.maxTouchPoints)>1);
@@ -40,6 +39,7 @@ const state={
 };
 
 let leaderboardCategoryFilter='ALL';
+let leaderboardMatchesFilter='ALL';
 let leaderboardScopeFilter='EVERYONE';
 let cloudRecordsCategoryFilter='ALL';
 let leftPlayersCategoryFilter='ALL';
@@ -66,7 +66,7 @@ let liveViewPendingKeepalive=false;
 try{if('BroadcastChannel' in window)liveViewBroadcastChannel=new BroadcastChannel(`pickle-point-match-live-view${ORGANIZER_STORAGE_SUFFIX?`-${ORGANIZER_STORAGE_SUFFIX}`:''}`);}catch(e){}
 const LEGACY_STORAGE_KEYS=ORGANIZER_STORAGE_SUFFIX?[]:['pickleq_v10_state','pickleq_v9_state','pickleq_v8_state','pickleq_v7_state','pickleq_v6_state'];
 const CLOUD_RECORDS_KEY='pickleq_registered_cloud_records_v1';
-let cloudRecords={players:[],logs:[],sessions:[]};let cloudRecordsHydratedFromServer=false;let cloudRecordCheckInStateById=new Map();let cloudRecordCheckInAnimationAtById=new Map();let pendingCloudDeleteId=null;let editingCloudPlayerId=null;let queueDuprModalPlayerId=null;let queueDuprModalSaving=false;let queueDuprModalCloseTimer=null;let queueDuprModalReturnFocus=null;let cloudPlayerEditPanelOpen=false;let cloudPlayerEditPanelAnimationTimer=null;let cloudPlayerEditPanelPositionFrame=null;let cloudPlayerEditResizeObserver=null;let cloudPlayerEditSaveInFlight=false;
+let cloudRecords={players:[],logs:[],sessions:[]};let cloudRecordsHydratedFromServer=false;let cloudRecordsHydratedFromLocal=false;let cloudRecordCheckInStateById=new Map();let cloudRecordCheckInAnimationAtById=new Map();let pendingCloudDeleteId=null;let editingCloudPlayerId=null;let queueDuprModalPlayerId=null;let queueDuprModalSaving=false;let queueDuprModalCloseTimer=null;let queueDuprModalReturnFocus=null;let cloudPlayerEditPanelOpen=false;let cloudPlayerEditPanelAnimationTimer=null;let cloudPlayerEditPanelPositionFrame=null;let cloudPlayerEditResizeObserver=null;let cloudPlayerEditSaveInFlight=false;
 const sharedClientId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():`pp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let sharedSyncReady=false,sharedSyncAvailable=false,sharedSyncInitializing=false,sharedSyncRetryTimer=null;
 let sharedAppRevision=0,sharedCloudRevision=0,appSyncInFlight=false,appSyncPending=null,cloudSyncInFlight=false,cloudSyncPending=null,applyingRemoteAppState=false,sharedEvents=null,sharedSyncStartedAt=0;
@@ -122,9 +122,9 @@ function playerAvatarMarkup(p,imageClass='profile-avatar-image'){
   const avatarId=getPlayerAvatarId(p);
   return avatarId?`<img class="${imageClass}" src="registration-${avatarId}.png" alt="" aria-hidden="true" loading="lazy" draggable="false">`:initial(p?.name);
 }
-function loadCloudRecords(){if(cloudRecordsHydratedFromServer)return;try{const d=JSON.parse(localStorage.getItem(CLOUD_RECORDS_KEY)||'null');if(d)cloudRecords={players:Array.isArray(d.players)?d.players.map(removeOpgFields):[],logs:Array.isArray(d.logs)?d.logs:[],sessions:Array.isArray(d.sessions)?d.sessions:[]};}catch(e){}}
+function loadCloudRecords(){if(cloudRecordsHydratedFromServer||cloudRecordsHydratedFromLocal)return;cloudRecordsHydratedFromLocal=true;try{const d=JSON.parse(localStorage.getItem(CLOUD_RECORDS_KEY)||'null');if(d)cloudRecords={players:Array.isArray(d.players)?d.players.map(removeOpgFields):[],logs:Array.isArray(d.logs)?d.logs:[],sessions:Array.isArray(d.sessions)?d.sessions:[]};}catch(e){}}
 function queueCloudRecordsSync(){if(applyingRemoteAppState)return;cloudSyncPending=cloneSharedData(cloudRecords);flushCloudRecordsSync();}
-function saveCloudRecords(){cloudRecords.players=(Array.isArray(cloudRecords.players)?cloudRecords.players:[]).map(removeOpgFields);const savedAt=Date.now();try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));localStorage.setItem(CLOUD_RECORDS_SAVED_AT_KEY,String(savedAt));if(isHttpApp())localStorage.setItem(CLOUD_RECORDS_PENDING_SYNC_KEY,String(savedAt));else localStorage.removeItem(CLOUD_RECORDS_PENDING_SYNC_KEY);}catch(e){}queueCloudRecordsSync();}
+function saveCloudRecords(){cloudRecordsHydratedFromLocal=true;cloudRecords.players=(Array.isArray(cloudRecords.players)?cloudRecords.players:[]).map(removeOpgFields);const savedAt=Date.now();try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));localStorage.setItem(CLOUD_RECORDS_SAVED_AT_KEY,String(savedAt));if(isHttpApp())localStorage.setItem(CLOUD_RECORDS_PENDING_SYNC_KEY,String(savedAt));else localStorage.removeItem(CLOUD_RECORDS_PENDING_SYNC_KEY);}catch(e){}queueCloudRecordsSync();}
 function flushCloudRecordsSync(){
   if(!sharedSyncAvailable||!sharedSyncReady||cloudSyncInFlight||!cloudSyncPending||!isHttpApp())return;
   const records=cloudSyncPending;cloudSyncPending=null;cloudSyncInFlight=true;
@@ -174,6 +174,7 @@ async function waitForAppStateSync(timeoutMs=12000){
 function applySharedCloudRecords(payload,force=false){
   if(!payload||!payload.records)return;
   cloudRecordsHydratedFromServer=true;
+  cloudRecordsHydratedFromLocal=true;
   const revision=Number(payload.revision)||0;
   if(!force&&revision<=sharedCloudRevision)return;
   sharedCloudRevision=Math.max(sharedCloudRevision,revision);
@@ -366,8 +367,11 @@ function revealRegisteredQueueItem(){
   // Registration must be visible even when the organizer had a queue search
   // active or was scrolled somewhere else in the list.
   const search=$('registeredPlayerSearch');
-  if(search&&search.value){search.value='';}
-  if(typeof renderQueue==='function')renderQueue();
+  const hadActiveSearch=!!(search&&search.value);
+  if(hadActiveSearch){
+    search.value='';
+    if(typeof renderQueue==='function')renderQueue();
+  }
   const queueList=$('queueList');
   if(queueList)requestAnimationFrame(()=>{queueList.scrollTop=queueList.scrollHeight;});
 }
@@ -2699,7 +2703,8 @@ function saveCourt(){
     target:state.eventRules.target,
     winBy:state.eventRules.winBy,
     scores:[0,0],
-    waitingOnly:true
+    allowedSkills:[],
+    waitingOnly:false
   });
   closeCourt(); saveState(); render(); toast(`Court ${name} added.`);
 }
@@ -4431,16 +4436,20 @@ function reconcileQueueingChildren(container,markup){
   const existingByKey=new Map();
   [...container.children].forEach(child=>{
     const key=child.getAttribute('data-queue-key');
-    if(key&&!existingByKey.has(key))existingByKey.set(key,child);
+    if(!key)return;
+    const matches=existingByKey.get(key)||[];
+    matches.push(child);
+    existingByKey.set(key,matches);
   });
   let cursor=container.firstElementChild;
   desiredChildren.forEach(desired=>{
     const key=desired.getAttribute('data-queue-key');
-    const existing=key?existingByKey.get(key):null;
+    const matches=key?existingByKey.get(key):null;
+    const existing=matches?.shift()||null;
     const node=existing?patchQueueingNode(existing,desired):desired;
     if(node!==cursor)container.insertBefore(node,cursor);
     cursor=node.nextElementSibling;
-    if(key)existingByKey.delete(key);
+    if(key&&matches&&!matches.length)existingByKey.delete(key);
   });
   while(cursor){
     const next=cursor.nextElementSibling;
@@ -4453,12 +4462,12 @@ function renderQueue(){
   const queueCountBadge=$('queueCountBadge');
   // Paddle Stack count = everyone currently active: players waiting in Queue
   // plus players currently playing on courts. A player is counted only once.
-  const queueCountValues=IS_QUEUEING_STABLE_RENDER
-    ? state.queue.map(Number).filter(id=>Number.isSafeInteger(id)&&id>0)
+  const queueIds=IS_QUEUEING_PAGE
+    ? [...new Set(state.queue.map(Number).filter(id=>Number.isSafeInteger(id)&&id>0))]
     : state.queue;
   const courtCountValues=state.courts.flatMap(c=>Array.isArray(c.players)?c.players:[]);
-  const queuedIds=new Set(queueCountValues);
-  const playingIds=new Set(IS_QUEUEING_STABLE_RENDER
+  const queuedIds=new Set(queueIds);
+  const playingIds=new Set(IS_QUEUEING_PAGE
     ? courtCountValues.map(Number).filter(id=>Number.isSafeInteger(id)&&id>0)
     : courtCountValues
   );
@@ -4469,11 +4478,8 @@ function renderQueue(){
   const q=$('queueList');
   loadCloudRecords();
   const search=isRegisteredCloudSearchMode()?'':String($('registeredPlayerSearch')?.value||'').trim().toLowerCase();
-  // Normalize and de-duplicate queue IDs for rendering. Old synced snapshots can
-  // contain a numeric ID more than once or as both a number and a string.
-  const queueIds=IS_QUEUEING_STABLE_RENDER
-    ? [...new Set(state.queue.map(Number).filter(id=>Number.isSafeInteger(id)&&id>0))]
-    : state.queue;
+  // The same normalized IDs drive the count and rows so stale synced duplicates
+  // cannot create extra items or move an existing row between refreshes.
   const ids=queueIds.filter(id=>{const p=player(id);const hay=`${p?.name||''} ${p?.nickname||''}`.toLowerCase();return p&&(!search||hay.includes(search));});
   const rankingStats=getRankingStats();
   // Preserve expanded player/lock-in details while the 1-second waiting timer refreshes the queue.
@@ -4531,7 +4537,7 @@ function renderQueue(){
       </details>
     </div>`;
   }).join('');
-  if(IS_QUEUEING_STABLE_RENDER)reconcileQueueingChildren(q,queueMarkup);
+  if(IS_QUEUEING_PAGE)reconcileQueueingChildren(q,queueMarkup);
   else q.innerHTML=queueMarkup;
 
   // Portal the selector to <body>, then position it against the actual trigger.
@@ -4824,7 +4830,7 @@ function renderCourts(){
     : '';
   const courtsMarkup=`${realCourtsHtml}${waitingSectionHtml}`;
   const courtsList=$('courtsList');
-  if(IS_QUEUEING_STABLE_RENDER)reconcileQueueingChildren(courtsList,courtsMarkup);
+  if(IS_QUEUEING_PAGE)reconcileQueueingChildren(courtsList,courtsMarkup);
   else courtsList.innerHTML=courtsMarkup;
 
   realCourts.filter(c=>c.playing).forEach(c=>updateSubmitState(c.id));
@@ -5131,6 +5137,35 @@ function renderExpandedPodium(){
     : '<div class="expanded-podium-empty">🏆<b>No podium results yet</b><span>Complete a match to start the ranking.</span></div>';
 }
 
+function leaderboardMatchCountPassesFilter(matchCount, selectedFilter){
+  const matches=Math.max(0,Math.floor(Number(matchCount)||0));
+  if(selectedFilter==='ALL')return true;
+  if(selectedFilter==='1-3')return matches>=1&&matches<=3;
+  if(selectedFilter==='1-6')return matches>=1&&matches<=6;
+  if(selectedFilter==='1-9')return matches>=1&&matches<=9;
+  if(selectedFilter==='9+')return matches>=9;
+  return true;
+}
+
+function leaderboardPlayerMatchesActiveFilters(playerRecord, stats, searchQuery){
+  const category=String(playerRecord.category||'').trim().toUpperCase();
+  if(leaderboardCategoryFilter!=='ALL'&&category!==leaderboardCategoryFilter)return false;
+
+  const matches=Number(stats.get(playerRecord.id)?.matches)||0;
+  if(!leaderboardMatchCountPassesFilter(matches,leaderboardMatchesFilter))return false;
+
+  const isLockedIn=!!getLockedPartnerId(playerRecord.id);
+  if(leaderboardScopeFilter==='SOLO'&&isLockedIn)return false;
+  if(leaderboardScopeFilter==='LOCK_IN'&&!isLockedIn)return false;
+
+  if(searchQuery){
+    const searchable=[displayPlayerName(playerRecord),playerRecord.name,playerRecord.nickname]
+      .filter(Boolean).join(' ').toLocaleLowerCase();
+    if(!searchable.includes(searchQuery))return false;
+  }
+  return true;
+}
+
 function renderResults(){
   const stats=getRankingStats();
   // Rank all known players, including those temporarily moved to Left Players.
@@ -5154,27 +5189,23 @@ function renderResults(){
   }
 
   const leaderboardQuery=String($('leaderboardSearchInput')?.value||'').trim().toLocaleLowerCase();
-  // Keep each player's position from the complete leaderboard. Filters should
-  // hide rows, not recalculate everyone else's rank inside the smaller result set.
-  const leaderboardRankById=new Map(r.map((p,index)=>[String(p.id),index+1]));
-  const visibleLeaderboardPlayers=r.filter(p=>{
-    const category=String(p.category||'').trim().toUpperCase();
-    if(leaderboardCategoryFilter!=='ALL'&&category!==leaderboardCategoryFilter)return false;
+  // Rank the selected player type independently: Everyone, Solo, and Lock-in
+  // each have a complete ranking (1, 2, 3, 4, 5, 6, 7, 8, 9, and onward).
+  const leaderboardScopePlayers=r.filter(p=>{
     const isLockedIn=!!getLockedPartnerId(p.id);
-    if(leaderboardScopeFilter==='SOLO'&&isLockedIn)return false;
-    if(leaderboardScopeFilter==='LOCK_IN'&&!isLockedIn)return false;
-    if(leaderboardQuery){
-      const searchable=[displayPlayerName(p),p.name,p.nickname].filter(Boolean).join(' ').toLocaleLowerCase();
-      if(!searchable.includes(leaderboardQuery))return false;
-    }
+    if(leaderboardScopeFilter==='SOLO')return !isLockedIn;
+    if(leaderboardScopeFilter==='LOCK_IN')return isLockedIn;
     return true;
   });
+  const leaderboardRankById=new Map(leaderboardScopePlayers.map((p,index)=>[String(p.id),index+1]));
+  // Apply the other active filters together without limiting the ranking positions.
+  const visibleLeaderboardPlayers=leaderboardScopePlayers
+    .filter(p=>leaderboardPlayerMatchesActiveFilters(p,stats,leaderboardQuery));
 
-  const leaderboardFilterActive=!!(leaderboardQuery||leaderboardCategoryFilter!=='ALL'||leaderboardScopeFilter!=='EVERYONE');
+  const leaderboardFilterActive=!!(leaderboardQuery||leaderboardCategoryFilter!=='ALL'||leaderboardMatchesFilter!=='ALL'||leaderboardScopeFilter!=='EVERYONE');
   const leaderboardEmptyMarkup=leaderboardFilterActive
     ? '<div class="leaderboard-filter-empty" role="status">No players match these filters.</div>'
     : '<div class="ranking-empty" aria-label="Leaderboard will appear after the first game"></div>';
-
   $('rankingTable').innerHTML=visibleLeaderboardPlayers.map((p,i)=>{
     const st=stats.get(p.id)||{winRate:0,wins:0,losses:0,matches:0,totalSeconds:0};
     const rank=leaderboardRankById.get(String(p.id))||i+1;
@@ -5791,7 +5822,7 @@ function render(){
   const queueingScrollState=IS_QUEUEING_PAGE?{
     // Queue and court panels retain their items and scroll anchors through keyed updates.
     // Only the ranking/history tables still need scroll restoration after their contents refresh.
-    containers:Array.from(document.querySelectorAll(IS_QUEUEING_STABLE_RENDER
+    containers:Array.from(document.querySelectorAll(IS_QUEUEING_PAGE
       ? '#rankingTable,#historyTable'
       : '#queueList,#courtsList,#rankingTable,#historyTable'
     )).map(el=>({id:el.id,top:el.scrollTop,left:el.scrollLeft}))
@@ -6082,11 +6113,20 @@ leaderboardFilterToggle?.addEventListener('click',()=>{
 });
 leaderboardFilterControls?.addEventListener('click',e=>{
   const categoryButton=e.target.closest('[data-leaderboard-category]');
+  const matchesButton=e.target.closest('[data-leaderboard-matches]');
   const scopeButton=e.target.closest('[data-leaderboard-scope]');
   if(categoryButton){
     leaderboardCategoryFilter=categoryButton.dataset.leaderboardCategory||'ALL';
     leaderboardFilterControls.querySelectorAll('[data-leaderboard-category]').forEach(button=>{
       const active=button===categoryButton;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
+    renderResults();
+  }else if(matchesButton){
+    leaderboardMatchesFilter=matchesButton.dataset.leaderboardMatches||'ALL';
+    leaderboardFilterControls.querySelectorAll('[data-leaderboard-matches]').forEach(button=>{
+      const active=button===matchesButton;
       button.classList.toggle('active',active);
       button.setAttribute('aria-pressed',String(active));
     });

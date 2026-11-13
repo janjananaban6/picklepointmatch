@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="dashboard.css?v=dashboard-dupr-export-dropdown-20261103-1">
-  <script src="dashboard.js?v=dashboard-dupr-export-dropdown-20261103-1" defer></script>
+  <link rel="stylesheet" href="dashboard.css?v=dashboard-session-tally-20261113-1">
+  <script src="dashboard.js?v=dashboard-session-tally-20261113-1" defer></script>
 </head>
 <body class="organizer-dashboard-page">
   <header class="dashboard-topbar">
@@ -158,6 +158,19 @@
   </main>
 
   <div class="dashboard-toast" id="dashboardToast" role="status" aria-live="polite"></div>
+
+  <div class="dashboard-modal-backdrop session-tally-backdrop" id="sessionTallyModal" hidden>
+    <section class="session-tally-dialog" role="dialog" aria-modal="true" aria-labelledby="sessionTallyTitle" aria-describedby="sessionTallySubtitle">
+      <header class="session-tally-header">
+        <div class="session-tally-heading-copy">
+          <span class="session-tally-heading-icon" aria-hidden="true">🏆</span>
+          <div><h2 id="sessionTallyTitle">Completed Session Ranking</h2><p id="sessionTallySubtitle">COMPLETED RANKING</p></div>
+        </div>
+        <button type="button" id="closeSessionTallyModal" class="session-tally-close" aria-label="Close ranking" title="Close">×</button>
+      </header>
+      <div class="session-tally-ranking" id="sessionTallyRanking" aria-live="polite"></div>
+    </section>
+  </div>
 
   <div class="dashboard-modal-backdrop dupr-export-backdrop" id="duprExportModal" hidden>
     <section class="dupr-export-modal" role="dialog" aria-modal="true" aria-labelledby="duprExportTitle">

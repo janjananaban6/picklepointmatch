@@ -446,15 +446,21 @@
     }
 
     const searchTerm = String($(searchInputId)?.value || '').trim().toLocaleLowerCase();
-    const filteredRanking = ranking
-      .map((player, index) => ({ player, index, rank: Number(player.position) || index + 1 }))
+    // Give each player-type scope its own complete ranking (1, 2, 3, 4, ...).
+    // Apply category and name-search filters after assigning positions so those
+    // secondary filters do not renumber or truncate the selected player group.
+    const scopedRanking = ranking.filter(player => {
+      const isLockedIn = player.lockedIn === true ||
+        Boolean(String(player.lockedPartnerName || player.lockedPartnerFullName || '').trim());
+      if (liveRankingScopeFilter === 'SOLO' && isLockedIn) return false;
+      if (liveRankingScopeFilter === 'LOCK_IN' && !isLockedIn) return false;
+      return true;
+    });
+    const filteredRanking = scopedRanking
+      .map((player, index) => ({ player, rank: index + 1 }))
       .filter(({ player }) => {
         const category = String(player.category || '').trim().toUpperCase();
         if (liveRankingCategoryFilter !== 'ALL' && category !== liveRankingCategoryFilter) return false;
-        const isLockedIn = player.lockedIn === true ||
-          Boolean(String(player.lockedPartnerName || player.lockedPartnerFullName || '').trim());
-        if (liveRankingScopeFilter === 'SOLO' && isLockedIn) return false;
-        if (liveRankingScopeFilter === 'LOCK_IN' && !isLockedIn) return false;
         if (!searchTerm) return true;
         const name = String(player.name || 'Player');
         const nickname = String(player.nickname || '').trim();
@@ -1813,6 +1819,18 @@
 
   const pageRankingFilterToggle = $('pageRankingFilterToggle');
   const pageRankingFilterControls = $('pageRankingFilterControls');
+  const liveRankingScopeNote = $('liveRankingScopeNote');
+  const updateLiveRankingScopeNote = () => {
+    if (!liveRankingScopeNote) return;
+    const note = liveRankingScopeFilter === 'LOCK_IN'
+      ? 'Locked-Partner makes it into the Top Ranking, they will not be eligible for the award.'
+      : liveRankingScopeFilter === 'SOLO'
+        ? 'Solo-Player will be eligible for the award.'
+        : '';
+    liveRankingScopeNote.textContent = note;
+    liveRankingScopeNote.hidden = !note;
+  };
+  updateLiveRankingScopeNote();
   pageRankingFilterToggle?.addEventListener('click', () => {
     if (!pageRankingFilterControls) return;
     const isOpening = pageRankingFilterControls.hidden;
@@ -1840,6 +1858,7 @@
         button.classList.toggle('active', active);
         button.setAttribute('aria-pressed', String(active));
       });
+      updateLiveRankingScopeNote();
       renderLiveRanking('pageRankingList', 'pageRankingSearch', true);
     }
   });

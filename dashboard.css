@@ -207,11 +207,53 @@ button,input,select{font:inherit}
 .session-manage-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .session-manage-btn>span{font-size:10px;line-height:1}
 .edit-session-btn:hover:not(:disabled){border-color:rgba(39,212,193,.42);background:rgba(39,212,193,.1);color:#a4f1e8}
+.tally-session-btn{border-color:rgba(39,212,193,.18);color:#78d9cc}
+.tally-session-btn:hover:not(:disabled){border-color:rgba(39,212,193,.48);background:rgba(39,212,193,.12);color:#b5fff4}
 .delete-session-btn{border-color:rgba(222,137,144,.16);color:#d9959c}
 .delete-session-btn:hover:not(:disabled){border-color:rgba(222,137,144,.42);background:rgba(222,137,144,.1);color:#ffb5ba}
 .session-manage-btn:disabled{opacity:.3;cursor:not-allowed}
 .session-manage-note{width:100%;margin-top:9px;padding-top:8px;border-top:1px solid rgba(133,184,195,.1);color:#b99e6c;font-size:9px;line-height:1.4}
 .session-manage-card:has(.session-manage-note){flex-wrap:wrap}
+
+#sessionTallyModal.session-tally-backdrop{z-index:190;padding:18px;background:rgba(3,10,20,.76);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.session-tally-dialog{width:min(760px,96vw);max-height:min(88dvh,860px);min-height:180px;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(148,163,184,.16);border-radius:16px;background:#f7f9fb;color:#1d2937;box-shadow:0 24px 70px rgba(0,0,0,.5);animation:dashboard-modal-in .18s ease-out}
+.session-tally-header{min-height:68px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;border-bottom:1px solid #e4e9ee;background:#fff;flex:0 0 auto}
+.session-tally-heading-copy{min-width:0;display:flex;align-items:center;gap:11px}
+.session-tally-heading-icon{width:36px;height:36px;display:grid;place-items:center;flex:0 0 36px;border:1px solid #d8ece8;border-radius:10px;background:#eef9f6;font-size:18px}
+.session-tally-heading-copy h2{margin:0;overflow:hidden;color:#1c2d3c;font-family:Manrope,"DM Sans",sans-serif;font-size:16px;font-weight:850;letter-spacing:-.025em;text-overflow:ellipsis;white-space:nowrap}
+.session-tally-heading-copy p{margin:4px 0 0;color:#718091;font-size:9px;font-weight:850;letter-spacing:.08em}
+.session-tally-close{width:32px;height:32px;display:grid;place-items:center;flex:0 0 32px;padding:0;border:0;border-radius:8px;background:#edf2f6;color:#5e7180;font-size:24px;font-weight:400;line-height:1;cursor:pointer}
+.session-tally-close:hover{background:#e2eaf0;color:#172b3d}
+.session-tally-ranking{min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:12px;background:#f5f7f9;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.session-tally-row{min-width:0;display:grid;grid-template-columns:34px minmax(0,1fr) 76px;align-items:center;gap:9px;padding:10px 11px;border:1px solid #e1e8ef;border-radius:12px;background:#fff;box-shadow:0 2px 7px rgba(28,47,66,.035)}
+.session-tally-position{color:#8996a4;text-align:center;font-size:12px;font-weight:900;line-height:1.1}
+.session-tally-row.rank-1 .session-tally-position,.session-tally-row.rank-2 .session-tally-position,.session-tally-row.rank-3 .session-tally-position{font-size:20px}
+.session-tally-player{min-width:0}
+.session-tally-name-line{min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.session-tally-name-line strong{min-width:0;overflow-wrap:anywhere;color:#263747;font-size:12px;font-weight:850;line-height:1.25}
+.session-tally-category{display:inline-flex;align-items:center;min-height:16px;padding:1px 5px;border:1px solid #e1e8ef;border-radius:5px;background:#f1f5f8;color:#66798b;font-size:8px;font-weight:850;line-height:1.2}
+.session-tally-progress{height:4px;overflow:hidden;margin-top:7px;border-radius:99px;background:#e8edf2}
+.session-tally-progress span{height:100%;display:block;border-radius:inherit;background:linear-gradient(90deg,#13b9aa,#3ecdbc)}
+.session-tally-meta{margin-top:4px;color:#91a0ad;font-size:8px;font-weight:650}
+.session-tally-result{min-width:0;display:flex;flex-direction:column;align-items:flex-end;text-align:right;line-height:1.15}
+.session-tally-result strong{color:#263747;font-size:14px;font-weight:900;letter-spacing:-.3px}
+.session-tally-result span{margin-top:4px;color:#687687;font-size:8px;white-space:nowrap}
+.session-tally-result small{margin-top:3px;color:#9ba5ae;font-size:8px;white-space:nowrap}
+.session-tally-empty{min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;color:#718091}
+.session-tally-empty>span{margin-bottom:8px;font-size:28px}
+.session-tally-empty strong{color:#263747;font-size:13px;font-weight:850}
+.session-tally-empty p{margin:5px 0 0;font-size:10px;line-height:1.5}
+@media(max-width:560px){
+  .session-tally-backdrop{padding:10px}
+  .session-tally-dialog{width:100%;max-height:calc(100dvh - 20px);border-radius:13px}
+  .session-tally-header{min-height:60px;padding:10px 12px}
+  .session-tally-heading-copy h2{font-size:14px}
+  .session-tally-ranking{padding:9px;gap:7px}
+  .session-tally-row{grid-template-columns:28px minmax(0,1fr) 65px;gap:6px;padding:9px 7px}
+  .session-tally-name-line strong{font-size:10px}
+  .session-tally-result strong{font-size:12px}
+  .session-tally-result span,.session-tally-result small{font-size:7px}
+}
 .dashboard-modal-backdrop{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:18px;background:rgba(1,12,20,.72);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
 .dashboard-modal-backdrop[hidden]{display:none}
 .dashboard-modal{width:min(100%,440px);padding:23px;border:1px solid rgba(112,190,194,.24);border-radius:18px;background:linear-gradient(150deg,#17495b,#10384a);box-shadow:0 25px 80px rgba(0,0,0,.42);animation:dashboard-modal-in .18s ease-out}
@@ -2227,7 +2269,7 @@ body.organizer-dashboard-page{
   .match-score-center strong{font-size:15px}
   .match-sync-row{align-items:center}
   .session-manage-card{align-items:stretch;flex-direction:column;gap:9px;padding:12px}
-  .session-manage-actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .session-manage-actions{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
   .session-manage-btn{min-width:0;width:100%}
   .dashboard-modal-backdrop{padding:10px}
   .settings-modal-backdrop{padding:9px}
@@ -2332,7 +2374,7 @@ body.organizer-dashboard-page{
     min-width:0;
     flex:0 0 auto;
     display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-columns:repeat(3,minmax(0,1fr));
     gap:8px;
     margin:0;
   }
