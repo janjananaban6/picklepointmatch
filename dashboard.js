@@ -1100,27 +1100,81 @@
       .map((player,index)=>({...player,rank:index+1,...statsByKey.get(player._key)}));
   }
 
+  function sessionTallyGenderMarkup(player) {
+    const gender=String(player?.gender||'').trim().toLowerCase();
+    if(['female','f','woman','women'].includes(gender)){
+      return '<span class="session-tally-gender is-female" title="Female" aria-label="Female"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="4.8" r="3.55" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.4v5.9M5.25 11.35h5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>';
+    }
+    if(['male','m','man','men'].includes(gender)){
+      return '<span class="session-tally-gender is-male" title="Male" aria-label="Male"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.35" cy="10.65" r="3.45" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.8 8.2 14.1 1.9M9.35 1.9h4.75v4.75" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+    }
+    return '';
+  }
+
+  function sessionTallyCategoryMarkup(player) {
+    const category=categoryCode(player?.category);
+    return category?`<span class="session-tally-category skill-${category.toLowerCase()}">${escapeHtml(category)}</span>`:'';
+  }
+
+  function sessionTallyDisplayName(player) {
+    return player.nickname?`${player.name} (${player.nickname})`:player.name;
+  }
+
+  function sessionTallyPlayTime(player) {
+    const total=Math.max(0,Number(player.totalSeconds)||0);
+    const hours=Math.floor(total/3600);
+    const minutes=Math.floor((total%3600)/60);
+    return hours?`${hours}h${minutes?` ${minutes}m`:''}`:`${minutes}m`;
+  }
+
+  function sessionTallyPodiumSlot(player,rank) {
+    if(!player)return `<div class="session-tally-podium-slot place-${rank} is-empty" aria-hidden="true"></div>`;
+    const medal=['','🥇','🥈','🥉'][rank];
+    const displayName=sessionTallyDisplayName(player);
+    const gender=sessionTallyGenderMarkup(player);
+    const category=sessionTallyCategoryMarkup(player);
+    return `<div class="session-tally-podium-slot place-${rank}">
+      <div class="session-tally-podium-medal" aria-hidden="true">${medal}</div>
+      <div class="session-tally-podium-player">
+        <div class="session-tally-podium-name-line"><strong>${escapeHtml(displayName)}</strong>${gender}${category}</div>
+        <span class="session-tally-podium-rate">${player.winRate}% win rate</span>
+      </div>
+      <div class="session-tally-podium-block"><strong>${rank}</strong><span>${player.wins}W - ${player.losses}L</span></div>
+    </div>`;
+  }
+
+  function sessionTallyRankingRow(player) {
+    const displayName=sessionTallyDisplayName(player);
+    const gender=sessionTallyGenderMarkup(player);
+    const category=sessionTallyCategoryMarkup(player);
+    const progress=Math.max(0,Math.min(100,Number(player.winRate)||0));
+    return `<article class="session-tally-row">
+      <div class="session-tally-position">#${player.rank}</div>
+      <div class="session-tally-player">
+        <div class="session-tally-name-line"><strong>${escapeHtml(displayName)}</strong>${gender}${category}</div>
+        <div class="session-tally-progress"><span style="width:${progress}%"></span></div>
+        <div class="session-tally-meta"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2a5.8 5.8 0 1 1-4.1 1.7M2.2 2.6v3.1h3.1M8 4.6v3.7l2.4 1.4" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${sessionTallyPlayTime(player)}</span></div>
+      </div>
+      <div class="session-tally-result"><strong>${player.winRate}%</strong><span>${player.wins}W - ${player.losses}L</span><small>${player.matches} match${player.matches===1?'':'es'}</small></div>
+    </article>`;
+  }
+
   function sessionTallyMarkup(session) {
     const ranking=buildSessionRanking(session);
     if(!ranking.length)return '<div class="session-tally-empty"><span aria-hidden="true">🏆</span><strong>No ranking available yet</strong><p>This session has no completed match results to tally.</p></div>';
-    const medals=['🥇','🥈','🥉'];
-    return ranking.map(player=>{
-      const displayName=player.nickname?`${player.name} (${player.nickname})`:player.name;
-      const rankLabel=player.rank<=3?medals[player.rank-1]:`#${player.rank}`;
-      const category=player.category?`<span class="session-tally-category">${escapeHtml(player.category)}</span>`:'';
-      const hours=Math.floor(Math.max(0,player.totalSeconds)/3600);
-      const minutes=Math.floor((Math.max(0,player.totalSeconds)%3600)/60);
-      const playTime=hours?`${hours}h${minutes?` ${minutes}m`:''}`:`${minutes}m`;
-      return `<article class="session-tally-row${player.rank<=3?` rank-${player.rank}`:''}">
-        <div class="session-tally-position">${rankLabel}</div>
-        <div class="session-tally-player">
-          <div class="session-tally-name-line"><strong>${escapeHtml(displayName)}</strong>${category}</div>
-          <div class="session-tally-progress"><span style="width:${player.winRate}%"></span></div>
-          <div class="session-tally-meta">${playTime} play time</div>
-        </div>
-        <div class="session-tally-result"><strong>${player.winRate}%</strong><span>${player.wins}W - ${player.losses}L</span><small>${player.matches} match${player.matches===1?'':'es'}</small></div>
-      </article>`;
-    }).join('');
+    const remaining=ranking.slice(3);
+    const playerCount=remaining.length;
+    return `<section class="session-tally-podium" aria-label="Top three players">
+      <div class="session-tally-podium-stage">
+        ${sessionTallyPodiumSlot(ranking[1],2)}
+        ${sessionTallyPodiumSlot(ranking[0],1)}
+        ${sessionTallyPodiumSlot(ranking[2],3)}
+      </div>
+    </section>
+    <section class="session-tally-list" aria-label="Other player rankings">
+      <div class="session-tally-list-heading"><span>PLAYER RANKING</span><small>${playerCount} player${playerCount===1?'':'s'}</small></div>
+      ${remaining.length?remaining.map(sessionTallyRankingRow).join(''):'<div class="session-tally-no-more">Top players are shown on the podium.</div>'}
+    </section>`;
   }
 
   function openSessionTally(sessionId) {
@@ -1128,8 +1182,9 @@
     if(!session){showToast('Only completed sessions have a tally.');return;}
     const modal=$('sessionTallyModal');
     if(!modal)return;
-    $('sessionTallyTitle').textContent=session.sessionName||'Open Play';
-    $('sessionTallySubtitle').textContent=`COMPLETED RANKING · ${sessionLogs(session).length} MATCH${sessionLogs(session).length===1?'':'ES'}`;
+    $('sessionTallyTitle').textContent=`${session.sessionName||'Open Play'} Podium`;
+    $('sessionTallyEyebrow').textContent=`COMPLETED RANKING · ${sessionLogs(session).length} MATCH${sessionLogs(session).length===1?'':'ES'}`;
+    $('sessionTallySubtitle').textContent='Top players ranked by win rate, wins, and match performance.';
     $('sessionTallyRanking').innerHTML=sessionTallyMarkup(session);
     showDashboardModal('sessionTallyModal');
     $('closeSessionTallyModal')?.focus();

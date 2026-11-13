@@ -215,45 +215,97 @@ button,input,select{font:inherit}
 .session-manage-note{width:100%;margin-top:9px;padding-top:8px;border-top:1px solid rgba(133,184,195,.1);color:#b99e6c;font-size:9px;line-height:1.4}
 .session-manage-card:has(.session-manage-note){flex-wrap:wrap}
 
-#sessionTallyModal.session-tally-backdrop{z-index:190;padding:18px;background:rgba(3,10,20,.76);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
-.session-tally-dialog{width:min(760px,96vw);max-height:min(88dvh,860px);min-height:180px;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(148,163,184,.16);border-radius:16px;background:#f7f9fb;color:#1d2937;box-shadow:0 24px 70px rgba(0,0,0,.5);animation:dashboard-modal-in .18s ease-out}
-.session-tally-header{min-height:68px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;border-bottom:1px solid #e4e9ee;background:#fff;flex:0 0 auto}
-.session-tally-heading-copy{min-width:0;display:flex;align-items:center;gap:11px}
-.session-tally-heading-icon{width:36px;height:36px;display:grid;place-items:center;flex:0 0 36px;border:1px solid #d8ece8;border-radius:10px;background:#eef9f6;font-size:18px}
-.session-tally-heading-copy h2{margin:0;overflow:hidden;color:#1c2d3c;font-family:Manrope,"DM Sans",sans-serif;font-size:16px;font-weight:850;letter-spacing:-.025em;text-overflow:ellipsis;white-space:nowrap}
-.session-tally-heading-copy p{margin:4px 0 0;color:#718091;font-size:9px;font-weight:850;letter-spacing:.08em}
-.session-tally-close{width:32px;height:32px;display:grid;place-items:center;flex:0 0 32px;padding:0;border:0;border-radius:8px;background:#edf2f6;color:#5e7180;font-size:24px;font-weight:400;line-height:1;cursor:pointer}
-.session-tally-close:hover{background:#e2eaf0;color:#172b3d}
-.session-tally-ranking{min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:12px;background:#f5f7f9;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
-.session-tally-row{min-width:0;display:grid;grid-template-columns:34px minmax(0,1fr) 76px;align-items:center;gap:9px;padding:10px 11px;border:1px solid #e1e8ef;border-radius:12px;background:#fff;box-shadow:0 2px 7px rgba(28,47,66,.035)}
-.session-tally-position{color:#8996a4;text-align:center;font-size:12px;font-weight:900;line-height:1.1}
-.session-tally-row.rank-1 .session-tally-position,.session-tally-row.rank-2 .session-tally-position,.session-tally-row.rank-3 .session-tally-position{font-size:20px}
+#sessionTallyModal.session-tally-backdrop{z-index:190;padding:12px;background:rgba(3,10,20,.76);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.session-tally-dialog{width:min(440px,calc(100vw - 28px));height:auto;max-height:calc(100dvh - 32px);min-height:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(148,163,184,.16);border-radius:18px;background:#fff;color:#1d2937;box-shadow:0 24px 70px rgba(0,0,0,.5);animation:dashboard-modal-in .18s ease-out}
+.session-tally-header{min-height:92px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 18px 13px;border-bottom:1px solid #edf1f4;background:#fff;flex:0 0 auto}
+.session-tally-heading-copy{min-width:0;display:flex;align-items:flex-start;gap:11px}
+.session-tally-heading-icon{width:30px;height:30px;display:grid;place-items:center;flex:0 0 30px;margin-top:13px;border:0;border-radius:0;background:transparent;font-size:20px}
+.session-tally-heading-text{min-width:0}
+.session-tally-eyebrow{display:block;margin:0 0 4px;color:#159f99;font-size:9px;font-weight:900;letter-spacing:.14em;line-height:1.2}
+.session-tally-heading-copy h2{margin:0;overflow:hidden;color:#1b3d45;font-family:Manrope,"DM Sans",sans-serif;font-size:19px;font-weight:850;letter-spacing:-.035em;line-height:1.18;text-overflow:ellipsis;white-space:nowrap}
+.session-tally-heading-copy p{margin:4px 0 0;color:#748895;font-size:11px;font-weight:550;line-height:1.35}
+.session-tally-close{width:30px;height:30px;display:grid;place-items:center;flex:0 0 30px;margin-top:1px;padding:0;border:0;border-radius:8px;background:transparent;color:#91a0ad;font-size:24px;font-weight:400;line-height:1;cursor:pointer}
+.session-tally-close:hover{background:#f1f5f7;color:#243b46}
+.session-tally-ranking{min-height:0;max-height:min(570px,calc(100dvh - 132px));flex:0 1 auto;overflow:auto;display:block;padding:10px 10px 16px;background:#fff;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.session-tally-podium{overflow:hidden;border:1px solid #dbe8ec;border-radius:18px;background:linear-gradient(145deg,#fff 0%,#f4fbfa 100%)}
+.session-tally-podium-stage{height:242px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:9px;padding:12px 10px 0}
+.session-tally-podium-slot{min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center}
+.session-tally-podium-slot.is-empty{visibility:hidden}
+.session-tally-podium-medal{height:28px;display:grid;place-items:center;margin-bottom:5px;font-size:22px;line-height:1}
+.session-tally-podium-player{width:100%;min-width:0;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 2px 7px}
+.session-tally-podium-name-line{width:100%;min-width:0;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:3px}
+.session-tally-podium-name-line strong{max-width:100%;overflow-wrap:anywhere;color:#23414a;font-size:10px;font-weight:850;line-height:1.2}
+.session-tally-podium-rate{margin-top:4px;color:#81949a;font-size:8px;font-weight:600;line-height:1.2}
+.session-tally-gender{width:13px;height:13px;display:inline-flex;flex:0 0 13px;align-items:center;justify-content:center;vertical-align:middle}
+.session-tally-gender svg{display:block;width:13px;height:13px;fill:none;stroke:currentColor}
+.session-tally-gender.is-female{color:#e34c88}
+.session-tally-gender.is-male{color:#3283d8}
+.session-tally-category{display:inline-flex;align-items:center;justify-content:center;min-height:16px;padding:1px 5px;border:1px solid #e1e8ef;border-radius:6px;background:#f1f5f8;color:#66798b;font-size:8px;font-weight:900;line-height:1.2;white-space:nowrap}
+.session-tally-category.skill-beg{background:#e8f3ff;border-color:#bce0fd;color:#2b6cb0}
+.session-tally-category.skill-nov{background:#e0f8f3;border-color:#a2f0df;color:#227a68}
+.session-tally-category.skill-int{background:#fff6d6;border-color:#fce38a;color:#9a6700}
+.session-tally-category.skill-adv{background:#fff0e1;border-color:#f6c9a4;color:#c05621}
+.session-tally-category.skill-exp{background:#ffecef;border-color:#f2c8cd;color:#c43d4b}
+.session-tally-podium-block{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid transparent;border-bottom:0;border-radius:16px 16px 0 0}
+.session-tally-podium-block strong{color:#1d3d45;font-size:32px;font-weight:900;letter-spacing:-.045em;line-height:1}
+.session-tally-podium-block span{margin-top:8px;color:#6c8189;font-size:9px;font-weight:850;line-height:1.2}
+.session-tally-podium-slot.place-1 .session-tally-podium-block{height:124px;border-color:#efc335;background:linear-gradient(180deg,#ffe88d 0%,#ffd64b 100%)}
+.session-tally-podium-slot.place-1 .session-tally-podium-block strong{color:#fff;text-shadow:0 1px 2px rgba(146,104,0,.12)}
+.session-tally-podium-slot.place-1 .session-tally-podium-block span{color:#fff}
+.session-tally-podium-slot.place-2 .session-tally-podium-block{height:96px;border-color:#d5e0e6;background:linear-gradient(180deg,#eff4f7 0%,#d5e0e6 100%)}
+.session-tally-podium-slot.place-3 .session-tally-podium-block{height:78px;border-color:#efb77c;background:linear-gradient(180deg,#ffe0bf 0%,#f5bd83 100%)}
+.session-tally-list{margin-top:20px}
+.session-tally-list-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px 9px;color:#159f99;font-size:9px;font-weight:900;letter-spacing:.13em;line-height:1.2}
+.session-tally-list-heading small{color:#169c96;font-size:9px;font-weight:850;letter-spacing:.04em;white-space:nowrap}
+.session-tally-row{min-width:0;display:grid;grid-template-columns:36px minmax(0,1fr) 64px;align-items:center;gap:8px;margin-bottom:7px;padding:10px 10px;border:1px solid #dce8ec;border-radius:13px;background:#fff;box-shadow:0 2px 7px rgba(28,47,66,.025)}
+.session-tally-position{color:#718892;text-align:center;font-size:12px;font-weight:900;line-height:1.1}
 .session-tally-player{min-width:0}
-.session-tally-name-line{min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
-.session-tally-name-line strong{min-width:0;overflow-wrap:anywhere;color:#263747;font-size:12px;font-weight:850;line-height:1.25}
-.session-tally-category{display:inline-flex;align-items:center;min-height:16px;padding:1px 5px;border:1px solid #e1e8ef;border-radius:5px;background:#f1f5f8;color:#66798b;font-size:8px;font-weight:850;line-height:1.2}
-.session-tally-progress{height:4px;overflow:hidden;margin-top:7px;border-radius:99px;background:#e8edf2}
-.session-tally-progress span{height:100%;display:block;border-radius:inherit;background:linear-gradient(90deg,#13b9aa,#3ecdbc)}
-.session-tally-meta{margin-top:4px;color:#91a0ad;font-size:8px;font-weight:650}
+.session-tally-name-line{min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.session-tally-name-line strong{min-width:0;overflow-wrap:anywhere;color:#263f48;font-size:11px;font-weight:850;line-height:1.25}
+.session-tally-progress{height:5px;overflow:hidden;margin-top:8px;border-radius:99px;background:#e6eff0}
+.session-tally-progress span{height:100%;display:block;border-radius:inherit;background:linear-gradient(90deg,#17b6a8,#62d6c2)}
+.session-tally-meta{display:flex;align-items:center;gap:3px;margin-top:4px;color:#8a9ca3;font-size:8px;font-weight:650;line-height:1.2}
+.session-tally-meta svg{width:11px;height:11px;flex:0 0 11px}
 .session-tally-result{min-width:0;display:flex;flex-direction:column;align-items:flex-end;text-align:right;line-height:1.15}
-.session-tally-result strong{color:#263747;font-size:14px;font-weight:900;letter-spacing:-.3px}
-.session-tally-result span{margin-top:4px;color:#687687;font-size:8px;white-space:nowrap}
-.session-tally-result small{margin-top:3px;color:#9ba5ae;font-size:8px;white-space:nowrap}
-.session-tally-empty{min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;color:#718091}
+.session-tally-result strong{color:#2b424b;font-size:15px;font-weight:900;letter-spacing:-.3px}
+.session-tally-result span{margin-top:4px;color:#748891;font-size:8px;white-space:nowrap}
+.session-tally-result small{margin-top:3px;color:#9aa8ae;font-size:8px;white-space:nowrap}
+.session-tally-no-more{padding:11px 12px;border:1px dashed #dce8ec;border-radius:11px;color:#8a9ba2;font-size:10px;text-align:center}
+.session-tally-empty{min-height:240px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;color:#718091}
 .session-tally-empty>span{margin-bottom:8px;font-size:28px}
 .session-tally-empty strong{color:#263747;font-size:13px;font-weight:850}
 .session-tally-empty p{margin:5px 0 0;font-size:10px;line-height:1.5}
 @media(max-width:560px){
-  .session-tally-backdrop{padding:10px}
-  .session-tally-dialog{width:100%;max-height:calc(100dvh - 20px);border-radius:13px}
-  .session-tally-header{min-height:60px;padding:10px 12px}
-  .session-tally-heading-copy h2{font-size:14px}
-  .session-tally-ranking{padding:9px;gap:7px}
-  .session-tally-row{grid-template-columns:28px minmax(0,1fr) 65px;gap:6px;padding:9px 7px}
+  #sessionTallyModal.session-tally-backdrop{padding:10px}
+  .session-tally-dialog{width:min(440px,calc(100vw - 20px));height:auto;max-height:calc(100dvh - 20px);min-height:0;border-radius:15px}
+  .session-tally-ranking{max-height:calc(100dvh - 116px);flex:0 1 auto}
+  .session-tally-header{min-height:86px;padding:14px 12px 11px;gap:8px}
+  .session-tally-heading-copy{gap:8px}
+  .session-tally-heading-icon{width:25px;height:25px;flex-basis:25px;margin-top:13px;font-size:17px}
+  .session-tally-heading-copy h2{font-size:16px}
+  .session-tally-heading-copy p{font-size:9px}
+  .session-tally-ranking{padding:9px 8px 14px}
+  .session-tally-podium-stage{height:236px;gap:5px;padding:11px 7px 0}
+  .session-tally-podium-name-line strong{font-size:9px}
+  .session-tally-podium-rate{font-size:7px}
+  .session-tally-podium-block strong{font-size:28px}
+  .session-tally-podium-slot.place-1 .session-tally-podium-block{height:116px}
+  .session-tally-podium-slot.place-2 .session-tally-podium-block{height:91px}
+  .session-tally-podium-slot.place-3 .session-tally-podium-block{height:74px}
+  .session-tally-list{margin-top:17px}
+  .session-tally-row{grid-template-columns:30px minmax(0,1fr) 57px;gap:6px;padding:9px 7px}
   .session-tally-name-line strong{font-size:10px}
-  .session-tally-result strong{font-size:12px}
+  .session-tally-result strong{font-size:13px}
   .session-tally-result span,.session-tally-result small{font-size:7px}
 }
+@media(max-width:360px){
+  .session-tally-podium-stage{gap:3px;padding-right:5px;padding-left:5px}
+  .session-tally-podium-name-line strong{font-size:8px}
+  .session-tally-podium-block strong{font-size:25px}
+  .session-tally-category{min-height:14px;padding:1px 4px;font-size:7px}
+  .session-tally-gender,.session-tally-gender svg{width:11px;height:11px;flex-basis:11px}
+}
+
 .dashboard-modal-backdrop{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:18px;background:rgba(1,12,20,.72);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
 .dashboard-modal-backdrop[hidden]{display:none}
 .dashboard-modal{width:min(100%,440px);padding:23px;border:1px solid rgba(112,190,194,.24);border-radius:18px;background:linear-gradient(150deg,#17495b,#10384a);box-shadow:0 25px 80px rgba(0,0,0,.42);animation:dashboard-modal-in .18s ease-out}

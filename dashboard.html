@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="dashboard.css?v=dashboard-session-tally-20261113-1">
-  <script src="dashboard.js?v=dashboard-session-tally-20261113-1" defer></script>
+  <link rel="stylesheet" href="dashboard.css?v=dashboard-session-tally-compact-20261113-3">
+  <script src="dashboard.js?v=dashboard-session-tally-podium-20261113-2" defer></script>
 </head>
 <body class="organizer-dashboard-page">
   <header class="dashboard-topbar">
@@ -164,7 +164,11 @@
       <header class="session-tally-header">
         <div class="session-tally-heading-copy">
           <span class="session-tally-heading-icon" aria-hidden="true">🏆</span>
-          <div><h2 id="sessionTallyTitle">Completed Session Ranking</h2><p id="sessionTallySubtitle">COMPLETED RANKING</p></div>
+          <div class="session-tally-heading-text">
+            <span class="session-tally-eyebrow" id="sessionTallyEyebrow">COMPLETED SESSION RANKING</span>
+            <h2 id="sessionTallyTitle">Open Play Podium</h2>
+            <p id="sessionTallySubtitle">Top players ranked by win rate, wins, and match performance.</p>
+          </div>
         </div>
         <button type="button" id="closeSessionTallyModal" class="session-tally-close" aria-label="Close ranking" title="Close">×</button>
       </header>
