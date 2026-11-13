@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="dashboard.css?v=dashboard-session-tally-compact-20261113-3">
-  <script src="dashboard.js?v=dashboard-session-tally-podium-20261113-2" defer></script>
+  <link rel="stylesheet" href="dashboard.css?v=dashboard-session-tally-modal-parity-20261113-6">
+  <script src="dashboard.js?v=dashboard-session-tally-modal-polish-20261113-4" defer></script>
 </head>
 <body class="organizer-dashboard-page">
   <header class="dashboard-topbar">
@@ -163,14 +163,12 @@
     <section class="session-tally-dialog" role="dialog" aria-modal="true" aria-labelledby="sessionTallyTitle" aria-describedby="sessionTallySubtitle">
       <header class="session-tally-header">
         <div class="session-tally-heading-copy">
-          <span class="session-tally-heading-icon" aria-hidden="true">🏆</span>
           <div class="session-tally-heading-text">
-            <span class="session-tally-eyebrow" id="sessionTallyEyebrow">COMPLETED SESSION RANKING</span>
-            <h2 id="sessionTallyTitle">Open Play Podium</h2>
+            <h2><span class="session-tally-heading-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="queueing-supplied-icon queueing-trophy-icon lucide lucide-trophy preview-icon"><path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2"/><path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2"/><path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3"/><path d="M4 22h16"/><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"/></svg></span><span id="sessionTallyTitle">Open Play Podium</span></h2>
             <p id="sessionTallySubtitle">Top players ranked by win rate, wins, and match performance.</p>
           </div>
         </div>
-        <button type="button" id="closeSessionTallyModal" class="session-tally-close" aria-label="Close ranking" title="Close">×</button>
+        <button type="button" id="closeSessionTallyModal" class="session-tally-close" aria-label="Close ranking" title="Close"><svg xmlns="http://www.w3.org/2000/svg" class="queue-close-x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.5 4.5 19.5 19.5M19.5 4.5 4.5 19.5"/></svg></button>
       </header>
       <div class="session-tally-ranking" id="sessionTallyRanking" aria-live="polite"></div>
     </section>

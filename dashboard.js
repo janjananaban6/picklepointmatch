@@ -1152,8 +1152,10 @@
       <div class="session-tally-position">#${player.rank}</div>
       <div class="session-tally-player">
         <div class="session-tally-name-line"><strong>${escapeHtml(displayName)}</strong>${gender}${category}</div>
-        <div class="session-tally-progress"><span style="width:${progress}%"></span></div>
-        <div class="session-tally-meta"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2a5.8 5.8 0 1 1-4.1 1.7M2.2 2.6v3.1h3.1M8 4.6v3.7l2.4 1.4" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${sessionTallyPlayTime(player)}</span></div>
+        <div class="session-tally-secondary">
+          <div class="session-tally-progress"><span style="width:${progress}%"></span></div>
+          <div class="session-tally-meta"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2a5.8 5.8 0 1 1-4.1 1.7M2.2 2.6v3.1h3.1M8 4.6v3.7l2.4 1.4" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${sessionTallyPlayTime(player)}</span></div>
+        </div>
       </div>
       <div class="session-tally-result"><strong>${player.winRate}%</strong><span>${player.wins}W - ${player.losses}L</span><small>${player.matches} match${player.matches===1?'':'es'}</small></div>
     </article>`;
@@ -1164,16 +1166,14 @@
     if(!ranking.length)return '<div class="session-tally-empty"><span aria-hidden="true">🏆</span><strong>No ranking available yet</strong><p>This session has no completed match results to tally.</p></div>';
     const remaining=ranking.slice(3);
     const playerCount=remaining.length;
-    return `<section class="session-tally-podium" aria-label="Top three players">
-      <div class="session-tally-podium-stage">
-        ${sessionTallyPodiumSlot(ranking[1],2)}
-        ${sessionTallyPodiumSlot(ranking[0],1)}
-        ${sessionTallyPodiumSlot(ranking[2],3)}
-      </div>
+    return `<section class="session-tally-podium session-tally-podium-stage" aria-label="Top three players">
+      ${sessionTallyPodiumSlot(ranking[1],2)}
+      ${sessionTallyPodiumSlot(ranking[0],1)}
+      ${sessionTallyPodiumSlot(ranking[2],3)}
     </section>
     <section class="session-tally-list" aria-label="Other player rankings">
       <div class="session-tally-list-heading"><span>PLAYER RANKING</span><small>${playerCount} player${playerCount===1?'':'s'}</small></div>
-      ${remaining.length?remaining.map(sessionTallyRankingRow).join(''):'<div class="session-tally-no-more">Top players are shown on the podium.</div>'}
+      <div class="session-tally-rows">${remaining.length?remaining.map(sessionTallyRankingRow).join(''):'<div class="session-tally-no-more">Top players are shown on the podium.</div>'}</div>
     </section>`;
   }
 
@@ -1183,7 +1183,6 @@
     const modal=$('sessionTallyModal');
     if(!modal)return;
     $('sessionTallyTitle').textContent=`${session.sessionName||'Open Play'} Podium`;
-    $('sessionTallyEyebrow').textContent=`COMPLETED RANKING · ${sessionLogs(session).length} MATCH${sessionLogs(session).length===1?'':'ES'}`;
     $('sessionTallySubtitle').textContent='Top players ranked by win rate, wins, and match performance.';
     $('sessionTallyRanking').innerHTML=sessionTallyMarkup(session);
     showDashboardModal('sessionTallyModal');
@@ -1455,6 +1454,23 @@
     const open=['sessionEditModal','settingsModal','duprExportModal','sessionTallyModal'].some(id=>$(id)&&!$(id).hidden);
     document.body.classList.toggle('modal-open',open);
   }
+
+  // Keep the Tally dialog's top offset aligned with the real responsive dashboard header.
+  function observeDashboardTopbarHeight() {
+    const topbar=document.querySelector('.dashboard-topbar');
+    if(!topbar)return;
+    const update=()=>{
+      const height=Math.ceil(topbar.getBoundingClientRect().height);
+      if(height>0)document.documentElement.style.setProperty('--dashboard-topbar-height',`${height}px`);
+    };
+    update();
+    if(typeof ResizeObserver==='function'){
+      const observer=new ResizeObserver(update);
+      observer.observe(topbar);
+    }
+    window.addEventListener('resize',update,{passive:true});
+  }
+  observeDashboardTopbarHeight();
 
   function showDashboardModal(id) {
     $(id).hidden=false;

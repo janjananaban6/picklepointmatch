@@ -430,6 +430,9 @@
   <meta name="google-site-verification" content="2IiGRTU8Xb9C1dyWI4G-3sKZfvlwUyOgPZmv36MPWUE">
   <title>Pickle Point Match — Queueing</title>
 <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css?v=queueing-cleanup-20261113-1">
   <link rel="stylesheet" href="searchbar-device-fix.css?v=searchbar-device-fix-20261022-1&mzoom=20261024-1&history-search-parity=20261104-2-clean">
   <link rel="stylesheet" href="network-skeleton.css?v=network-skeleton-20261024-1">
@@ -2491,14 +2494,37 @@ html body[data-page="queueing"] .court-card {
 }
 </style>
 
-<style id="queueing-live-font-stack-final-20261113">
-/* Queueing page only: mirror the font stack declared on live-view.css body. */
+<style id="queueing-dashboard-font-stack-parity-20261113">
+/* Queueing typography mirrors dashboard.html: DM Sans for body/UI text, Manrope for headings. */
 html body[data-page="queueing"] {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
-  --pp-search-font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  font-family: "DM Sans", Manrope, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  --pp-search-font: "DM Sans", Manrope, system-ui, -apple-system, "Segoe UI", sans-serif !important;
 }
 html body[data-page="queueing"] :not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c) {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  font-family: "DM Sans", Manrope, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+}
+/* Dashboard uses Manrope for prominent headings; mirror that hierarchy in Queueing. */
+html body[data-page="queueing"] h1:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] h2:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] h3:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] h4:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] h5:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] h6:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .event-title:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .queue-header-title:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .panel-title:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .left-title:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .left-title-main:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .ranking-heading:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .leaderboard-heading:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .history-heading-row:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .settings-section-title:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .cloud-records-title:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .cloud-player-edit-heading:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .live-view-qr-heading:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .end-session-attendees-title:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c),
+html body[data-page="queueing"] .end-session-attendee-panel-heading:not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c) {
+  font-family: Manrope, "DM Sans", sans-serif !important;
 }
 html body[data-page="queueing"] :not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c)::before,
 html body[data-page="queueing"] :not(svg):not(svg *):not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c)::after {
@@ -2508,7 +2534,7 @@ html body[data-page="queueing"] input:not(#ppm-font-never-match-a#ppm-font-never
 html body[data-page="queueing"] textarea:not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c)::placeholder,
 html body[data-page="queueing"] input:not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c)::-webkit-input-placeholder,
 html body[data-page="queueing"] textarea:not(#ppm-font-never-match-a#ppm-font-never-match-b#ppm-font-never-match-c)::-webkit-input-placeholder {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  font-family: "DM Sans", Manrope, system-ui, -apple-system, "Segoe UI", sans-serif !important;
 }
 </style>
 </body>

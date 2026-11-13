@@ -2678,3 +2678,697 @@ body.organizer-dashboard-page{
   .dupr-score-type-shell.is-open{z-index:200}
   .dupr-score-type-options,.session-select-options{z-index:220}
 }
+
+
+/* SESSION TALLY — mirror the Queueing expanded podium modal.
+   The podium remains fixed; only the player ranking list can scroll. */
+#sessionTallyModal.session-tally-backdrop{
+  display:flex!important;
+  z-index:49!important;
+  box-sizing:border-box!important;
+  padding:calc(var(--dashboard-topbar-height,62px) + 23px) 10px 10px!important;
+  align-items:stretch!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  background:rgba(9,16,31,.72)!important;
+  -webkit-backdrop-filter:blur(7px)!important;
+  backdrop-filter:blur(7px)!important;
+}
+#sessionTallyModal[hidden]{display:none!important}
+#sessionTallyModal .session-tally-dialog{
+  position:relative!important;
+  isolation:isolate!important;
+  display:flex!important;
+  flex-direction:column!important;
+  width:min(500px,calc(100vw - 20px))!important;
+  min-width:0!important;
+  max-width:500px!important;
+  height:calc(96dvh - 78px)!important;
+  min-height:0!important;
+  max-height:calc(96dvh - 78px)!important;
+  margin:0 auto!important;
+  padding:14px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  border:1px solid #fff!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  color:#183b40!important;
+  box-shadow:0 24px 70px rgba(0,30,36,.22),inset 0 1px 0 rgba(255,255,255,.95)!important;
+  animation:dashboard-modal-in .18s ease-out;
+}
+/* No green top strip or tinted header panel. */
+#sessionTallyModal .session-tally-dialog::before{content:none!important;display:none!important}
+#sessionTallyModal .session-tally-header{
+  position:relative!important;
+  display:flex!important;
+  flex:0 0 auto!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:15px!important;
+  margin:0!important;
+  padding:0 0 10px!important;
+  border:0!important;
+  border-bottom:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+#sessionTallyModal .session-tally-heading-copy{
+  display:block!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  gap:0!important;
+}
+#sessionTallyModal .session-tally-heading-text{display:block!important;min-width:0!important}
+#sessionTallyModal .session-tally-heading-copy h2{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  max-width:100%!important;
+  margin:0 0 4px!important;
+  overflow:visible!important;
+  color:#123c42!important;
+  font-family:Manrope,"DM Sans",sans-serif!important;
+  font-size:19px!important;
+  font-weight:800!important;
+  letter-spacing:-.2px!important;
+  line-height:1.2!important;
+  white-space:normal!important;
+}
+#sessionTallyModal .session-tally-heading-icon{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:24px!important;
+  height:24px!important;
+  flex:0 0 24px!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#087d79!important;
+  font-size:0!important;
+  line-height:1!important;
+}
+#sessionTallyModal .session-tally-heading-icon svg{
+  display:block!important;
+  width:24px!important;
+  height:24px!important;
+  fill:none!important;
+  stroke:currentColor!important;
+  stroke-width:2!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+}
+#sessionTallyModal .session-tally-heading-copy p{
+  margin:4px 0 0!important;
+  color:#60777b!important;
+  font-size:11px!important;
+  font-weight:500!important;
+  line-height:1.5!important;
+}
+#sessionTallyModal .session-tally-close{
+  display:grid!important;
+  flex:0 0 30px!important;
+  align-items:center!important;
+  justify-items:center!important;
+  width:30px!important;
+  height:30px!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid #d93025!important;
+  border-radius:7px!important;
+  outline:0!important;
+  background:#fff!important;
+  color:#d93025!important;
+  font-size:0!important;
+  line-height:1!important;
+  cursor:pointer!important;
+  box-shadow:none!important;
+  transition:background-color .16s ease,border-color .16s ease,color .16s ease!important;
+}
+#sessionTallyModal .session-tally-close svg{
+  display:block!important;
+  width:13px!important;
+  height:13px!important;
+  flex:0 0 13px!important;
+  fill:none!important;
+  stroke:currentColor!important;
+  stroke-width:2.8!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+}
+#sessionTallyModal .session-tally-close:hover,
+#sessionTallyModal .session-tally-close:focus-visible{
+  border-color:#b42318!important;
+  outline:2px solid rgba(217,48,37,.14)!important;
+  outline-offset:2px!important;
+  background:#fff5f5!important;
+  color:#b42318!important;
+}
+/* This shell is intentionally not scrollable. */
+#sessionTallyModal .session-tally-ranking{
+  display:flex!important;
+  flex:1 1 0%!important;
+  flex-direction:column!important;
+  min-height:0!important;
+  max-height:none!important;
+  padding:10px 2px 0!important;
+  margin:0!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  -webkit-overflow-scrolling:auto!important;
+  scrollbar-width:none!important;
+  -ms-overflow-style:none!important;
+}
+#sessionTallyModal .session-tally-ranking::-webkit-scrollbar{
+  display:none!important;
+  width:0!important;
+  height:0!important;
+}
+/* Fixed podium: dimensions and arrangement follow .expanded-podium-stage. */
+#sessionTallyModal .session-tally-podium{
+  position:relative!important;
+  display:grid!important;
+  flex:0 0 auto!important;
+  grid-template-columns:1fr 1.15fr 1fr!important;
+  align-items:end!important;
+  gap:8px!important;
+  min-width:0!important;
+  min-height:190px!important;
+  height:auto!important;
+  margin:0 0 14px!important;
+  padding:18px 12px 0!important;
+  overflow:hidden!important;
+  border:1px solid #d9e7e9!important;
+  border-radius:17px!important;
+  background:radial-gradient(circle at 50% 0%,rgba(39,211,197,.13),transparent 38%),linear-gradient(180deg,#fff 0%,#f2f9f9 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95)!important;
+  scrollbar-width:none!important;
+  -ms-overflow-style:none!important;
+}
+#sessionTallyModal .session-tally-podium::-webkit-scrollbar,
+#sessionTallyModal .session-tally-podium-stage::-webkit-scrollbar{
+  display:none!important;
+  width:0!important;
+  height:0!important;
+}
+#sessionTallyModal .session-tally-podium-slot{
+  min-width:0!important;
+  height:auto!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  text-align:center!important;
+  animation:podiumRise .55s cubic-bezier(.2,.8,.2,1) both;
+}
+#sessionTallyModal .session-tally-podium-slot.place-1{animation-delay:.08s!important}
+#sessionTallyModal .session-tally-podium-slot.place-2{animation-delay:0s!important}
+#sessionTallyModal .session-tally-podium-slot.place-3{animation-delay:.16s!important}
+#sessionTallyModal .session-tally-podium-slot.is-empty{visibility:hidden!important}
+#sessionTallyModal .session-tally-podium-medal{
+  display:block!important;
+  height:auto!important;
+  margin:0 0 5px!important;
+  font-size:25px!important;
+  line-height:1.15!important;
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.12))!important;
+  animation:podiumFloat 2.5s ease-in-out infinite!important;
+}
+#sessionTallyModal .session-tally-podium-slot.place-2 .session-tally-podium-medal{animation-delay:.2s!important}
+#sessionTallyModal .session-tally-podium-slot.place-3 .session-tally-podium-medal{animation-delay:.4s!important}
+#sessionTallyModal .session-tally-podium-player{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  padding:0 4px 7px!important;
+  gap:4px!important;
+}
+#sessionTallyModal .session-tally-podium-name-line{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex-wrap:wrap!important;
+  gap:3px!important;
+  width:100%!important;
+  min-width:0!important;
+}
+#sessionTallyModal .session-tally-podium-name-line strong{
+  max-width:100%!important;
+  overflow:hidden!important;
+  color:#183b40!important;
+  font-size:10px!important;
+  font-weight:850!important;
+  line-height:1.2!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#sessionTallyModal .session-tally-podium-rate{
+  margin:0!important;
+  color:#60777b!important;
+  font-size:8px!important;
+  font-weight:500!important;
+  line-height:1.2!important;
+}
+#sessionTallyModal .session-tally-podium-block{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  min-height:76px!important;
+  border:1px solid #d6e6e8!important;
+  border-bottom:0!important;
+  border-radius:12px 12px 0 0!important;
+  background:linear-gradient(180deg,#f3f6f9,#e5ebf0)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9)!important;
+}
+#sessionTallyModal .session-tally-podium-block strong{
+  color:#183b40!important;
+  font-size:30px!important;
+  font-weight:1000!important;
+  letter-spacing:-.045em!important;
+  line-height:1!important;
+}
+#sessionTallyModal .session-tally-podium-block span{
+  margin-top:5px!important;
+  color:#60777b!important;
+  font-size:8px!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+}
+#sessionTallyModal .session-tally-podium-slot.place-1 .session-tally-podium-block{
+  min-height:108px!important;
+  border-color:#efc03a!important;
+  background:linear-gradient(180deg,#ffe789,#ffc928)!important;
+  color:#fff!important;
+  box-shadow:0 -7px 22px rgba(244,190,37,.18)!important;
+}
+#sessionTallyModal .session-tally-podium-slot.place-1 .session-tally-podium-block strong,
+#sessionTallyModal .session-tally-podium-slot.place-1 .session-tally-podium-block span{
+  color:#fff!important;
+}
+#sessionTallyModal .session-tally-podium-slot.place-2 .session-tally-podium-block{
+  min-height:86px!important;
+  background:linear-gradient(180deg,#edf2f6,#cfd8e0)!important;
+}
+#sessionTallyModal .session-tally-podium-slot.place-3 .session-tally-podium-block{
+  min-height:68px!important;
+  border-color:#e7b57e!important;
+  background:linear-gradient(180deg,#ffe2c0,#f4b878)!important;
+}
+/* Ranking heading remains fixed; only .session-tally-rows owns scrolling. */
+#sessionTallyModal .session-tally-list{
+  display:flex!important;
+  flex:1 1 auto!important;
+  flex-direction:column!important;
+  min-height:0!important;
+  margin:0!important;
+  overflow:hidden!important;
+}
+#sessionTallyModal .session-tally-list-heading{
+  display:flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  margin:0 2px 8px!important;
+  color:#087d79!important;
+  font-size:8px!important;
+  font-weight:900!important;
+  letter-spacing:1px!important;
+  line-height:1.2!important;
+}
+#sessionTallyModal .session-tally-list-heading small{
+  color:#60777b!important;
+  font-size:8px!important;
+  font-weight:800!important;
+  letter-spacing:.04em!important;
+  white-space:nowrap!important;
+}
+#sessionTallyModal .session-tally-rows{
+  display:flex!important;
+  flex:0 1 auto!important;
+  flex-direction:column!important;
+  gap:7px!important;
+  min-height:0!important;
+  max-height:310px!important;
+  padding:0 0 0 0!important;
+  margin:0!important;
+  overflow-x:hidden!important;
+  overflow-y:visible!important;
+  overscroll-behavior:contain!important;
+  scrollbar-width:none!important;
+  -ms-overflow-style:none!important;
+  scroll-behavior:smooth!important;
+}
+#sessionTallyModal .session-tally-rows:has(.session-tally-row:nth-child(6)){
+  overflow-y:auto!important;
+  padding-right:4px!important;
+  scrollbar-width:thin!important;
+  scrollbar-color:#27bdb1 #edf6f6!important;
+}
+#sessionTallyModal .session-tally-rows::-webkit-scrollbar{display:none!important;width:0!important}
+#sessionTallyModal .session-tally-rows:has(.session-tally-row:nth-child(6))::-webkit-scrollbar{
+  display:block!important;
+  width:7px!important;
+}
+#sessionTallyModal .session-tally-rows:has(.session-tally-row:nth-child(6))::-webkit-scrollbar-track{
+  border-radius:10px!important;
+  background:#edf6f6!important;
+}
+#sessionTallyModal .session-tally-rows:has(.session-tally-row:nth-child(6))::-webkit-scrollbar-thumb{
+  min-height:28px!important;
+  border:1px solid #cfe8e6!important;
+  border-radius:10px!important;
+  background:#27bdb1!important;
+}
+#sessionTallyModal .session-tally-rows:has(.session-tally-row:nth-child(6))::-webkit-scrollbar-thumb:hover{background:#087d79!important}
+#sessionTallyModal .session-tally-row{
+  display:grid!important;
+  flex:0 0 auto!important;
+  grid-template-columns:30px minmax(0,1fr) 68px!important;
+  align-items:center!important;
+  gap:7px!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:9px 8px!important;
+  border:1px solid #d6e6e8!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  color:#24484d!important;
+  box-shadow:none!important;
+  opacity:1!important;
+  animation:expandedRowIn .36s ease both!important;
+}
+#sessionTallyModal .session-tally-row:nth-child(1){animation-delay:.12s!important}
+#sessionTallyModal .session-tally-row:nth-child(2){animation-delay:.16s!important}
+#sessionTallyModal .session-tally-row:nth-child(3){animation-delay:.20s!important}
+#sessionTallyModal .session-tally-row:nth-child(n+4){animation-delay:.24s!important}
+#sessionTallyModal .session-tally-position{
+  color:#648085!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  line-height:1.1!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+}
+#sessionTallyModal .session-tally-player{display:block!important;min-width:0!important}
+#sessionTallyModal .session-tally-name-line{
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  gap:5px!important;
+  min-width:0!important;
+}
+#sessionTallyModal .session-tally-name-line strong{
+  display:block!important;
+  flex:0 1 auto!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  color:#183b40!important;
+  font-size:10px!important;
+  font-weight:850!important;
+  line-height:1.2!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#sessionTallyModal .session-tally-secondary{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  width:min(100%,260px)!important;
+  min-width:0!important;
+  margin-top:5px!important;
+}
+#sessionTallyModal .session-tally-progress{
+  position:relative!important;
+  display:block!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  height:5px!important;
+  margin:0!important;
+  overflow:hidden!important;
+  border-radius:99px!important;
+  background:#e6f0f0!important;
+}
+#sessionTallyModal .session-tally-progress span{
+  display:block!important;
+  height:100%!important;
+  border-radius:inherit!important;
+  background:#27bdb1!important;
+}
+#sessionTallyModal .session-tally-meta{
+  display:flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  gap:3px!important;
+  margin:0!important;
+  color:#60777b!important;
+  font-size:7px!important;
+  font-weight:650!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+}
+#sessionTallyModal .session-tally-meta svg{width:11px!important;height:11px!important;flex:0 0 11px!important}
+#sessionTallyModal .session-tally-result{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-end!important;
+  min-width:0!important;
+  line-height:1.15!important;
+  text-align:right!important;
+}
+#sessionTallyModal .session-tally-result strong{color:#183b40!important;font-size:11px!important;font-weight:900!important}
+#sessionTallyModal .session-tally-result span{margin-top:3px!important;color:#60777b!important;font-size:7px!important;white-space:nowrap!important}
+#sessionTallyModal .session-tally-result small{margin-top:2px!important;color:#8793a0!important;font-size:7px!important;white-space:nowrap!important}
+#sessionTallyModal .session-tally-no-more{
+  padding:11px 12px!important;
+  border:1px dashed #d6e6e8!important;
+  border-radius:10px!important;
+  color:#60777b!important;
+  font-size:10px!important;
+  text-align:center!important;
+}
+#sessionTallyModal .session-tally-empty{
+  display:flex!important;
+  flex:1 1 auto!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:190px!important;
+  padding:24px!important;
+  color:#60777b!important;
+  text-align:center!important;
+}
+#sessionTallyModal .session-tally-empty>span{margin-bottom:8px!important;font-size:28px!important}
+#sessionTallyModal .session-tally-empty strong{color:#123c42!important;font-size:13px!important;font-weight:850!important}
+#sessionTallyModal .session-tally-empty p{margin:5px 0 0!important;font-size:10px!important;line-height:1.5!important}
+
+/* iPad portrait — keep the same topbar-safe expanded modal proportions. */
+@media screen and (min-width:768px) and (max-width:1100px) and (orientation:portrait){
+  #sessionTallyModal.session-tally-backdrop{
+    padding:calc(var(--dashboard-topbar-height,62px) + 33px) 10px 10px!important;
+  }
+  #sessionTallyModal .session-tally-dialog{
+    flex:0 0 auto!important;
+    width:min(530px,calc(95vw - 20px))!important;
+    max-width:530px!important;
+    height:calc(95dvh - var(--dashboard-topbar-height,62px) - 20px)!important;
+    max-height:calc(95dvh - var(--dashboard-topbar-height,62px) - 20px)!important;
+  }
+}
+
+/* Mobile: fixed podium and a bounded list-only scroll area. */
+@media screen and (max-width:760px){
+  #sessionTallyModal.session-tally-backdrop{
+    padding:calc(env(safe-area-inset-top,0px) + var(--dashboard-topbar-height,56px) + 26px) 12px 12px!important;
+    align-items:flex-start!important;
+  }
+  #sessionTallyModal .session-tally-dialog{
+    flex:0 1 auto!important;
+    width:min(560px,calc(100vw - 24px))!important;
+    max-width:560px!important;
+    height:calc(100dvh - var(--dashboard-topbar-height,56px) - 48px - env(safe-area-inset-top,0px))!important;
+    max-height:calc(100dvh - var(--dashboard-topbar-height,56px) - 48px - env(safe-area-inset-top,0px))!important;
+    padding:11px!important;
+    border-radius:14px!important;
+  }
+  #sessionTallyModal .session-tally-header{gap:8px!important;padding:0 0 9px!important}
+  #sessionTallyModal .session-tally-heading-copy h2{font-size:17px!important}
+  #sessionTallyModal .session-tally-heading-copy p{font-size:10px!important}
+  #sessionTallyModal .session-tally-podium{min-height:155px!important;gap:5px!important;padding:12px 6px 0!important;margin-bottom:11px!important}
+  #sessionTallyModal .session-tally-podium-medal{font-size:22px!important}
+  #sessionTallyModal .session-tally-podium-name-line strong{font-size:9px!important}
+  #sessionTallyModal .session-tally-podium-rate{font-size:7px!important}
+  #sessionTallyModal .session-tally-podium-block{min-height:58px!important}
+  #sessionTallyModal .session-tally-podium-slot.place-1 .session-tally-podium-block{min-height:82px!important}
+  #sessionTallyModal .session-tally-podium-slot.place-2 .session-tally-podium-block{min-height:68px!important}
+  #sessionTallyModal .session-tally-podium-slot.place-3 .session-tally-podium-block{min-height:52px!important}
+  #sessionTallyModal .session-tally-podium-block strong{font-size:24px!important}
+  #sessionTallyModal .session-tally-list-heading{margin-bottom:7px!important}
+  #sessionTallyModal .session-tally-rows{max-height:310px!important}
+  #sessionTallyModal .session-tally-row{grid-template-columns:30px minmax(0,1fr) 62px!important;gap:6px!important;padding:8px 7px!important}
+  #sessionTallyModal .session-tally-name-line strong{font-size:9px!important}
+  #sessionTallyModal .session-tally-result strong{font-size:10px!important}
+  #sessionTallyModal .session-tally-result span,
+  #sessionTallyModal .session-tally-result small{font-size:6px!important}
+}
+@media screen and (max-width:380px){
+  #sessionTallyModal.session-tally-backdrop{padding-right:8px!important;padding-left:8px!important}
+  #sessionTallyModal .session-tally-dialog{width:calc(100vw - 16px)!important}
+  #sessionTallyModal .session-tally-podium{gap:3px!important;padding-right:5px!important;padding-left:5px!important}
+  #sessionTallyModal .session-tally-podium-name-line strong{font-size:8px!important}
+  #sessionTallyModal .session-tally-podium-block strong{font-size:22px!important}
+  #sessionTallyModal .session-tally-category{min-height:14px!important;padding:1px 4px!important;font-size:7px!important}
+  #sessionTallyModal .session-tally-gender,
+  #sessionTallyModal .session-tally-gender svg{width:11px!important;height:11px!important;flex-basis:11px!important}
+  #sessionTallyModal .session-tally-heading-copy h2{font-size:16px!important}
+  #sessionTallyModal .session-tally-heading-copy p{font-size:9px!important}
+}
+@media screen and (orientation:landscape) and (max-height:520px){
+  #sessionTallyModal.session-tally-backdrop{
+    padding-top:calc(env(safe-area-inset-top,0px) + var(--dashboard-topbar-height,52px) + 8px)!important;
+    padding-bottom:8px!important;
+  }
+  #sessionTallyModal .session-tally-dialog{
+    height:calc(100dvh - var(--dashboard-topbar-height,52px) - 16px - env(safe-area-inset-top,0px))!important;
+    max-height:calc(100dvh - var(--dashboard-topbar-height,52px) - 16px - env(safe-area-inset-top,0px))!important;
+    padding:9px!important;
+  }
+  #sessionTallyModal .session-tally-podium{min-height:130px!important;padding-top:8px!important;margin-bottom:8px!important}
+}
+
+/* On taller screens, use the available body height for the ranking list only. */
+@media screen and (min-width:601px) and (min-height:650px){
+  #sessionTallyModal .session-tally-rows:has(.session-tally-row:nth-child(6)){
+    flex:1 1 0%!important;
+    min-height:0!important;
+    max-height:none!important;
+  }
+}
+
+/* FINAL SESSION TALLY PARITY — match #podiumExpandModal's dialog geometry and inner layout. */
+#sessionTallyModal.session-tally-backdrop{
+  padding:85px 10px 10px!important;
+  align-items:stretch!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+}
+#sessionTallyModal .session-tally-dialog{
+  flex:0 1 auto!important;
+  width:min(500px,calc(100vw - 20px))!important;
+  min-width:0!important;
+  max-width:500px!important;
+  height:calc(96dvh - 78px)!important;
+  min-height:0!important;
+  max-height:calc(96dvh - 78px)!important;
+  margin:0 auto!important;
+  padding:16px 5px 0!important;
+  box-sizing:border-box!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  border:1px solid #fff!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  color:#183b40!important;
+  box-shadow:0 24px 70px rgba(0,30,36,.22),inset 0 1px 0 rgba(255,255,255,.95)!important;
+}
+#sessionTallyModal .session-tally-header{
+  min-height:57.5px!important;
+  height:auto!important;
+  padding:0 11px!important;
+  margin:0!important;
+  border:0!important;
+  border-bottom:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+#sessionTallyModal .session-tally-heading-copy{
+  display:block!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+}
+#sessionTallyModal .session-tally-ranking{
+  display:flex!important;
+  flex:1 1 0%!important;
+  flex-direction:column!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:10px 2px 0 1px!important;
+  overflow:hidden!important;
+}
+#sessionTallyModal .session-tally-podium{
+  box-sizing:border-box!important;
+  flex:0 0 auto!important;
+  grid-template-columns:1fr 1.15fr 1fr!important;
+  gap:8px!important;
+  min-height:190px!important;
+  height:auto!important;
+  margin:0 0 18px!important;
+  padding:18px 12px 0!important;
+  overflow:hidden!important;
+}
+#sessionTallyModal .session-tally-podium-slot{height:auto!important;min-height:0!important}
+#sessionTallyModal .session-tally-podium-medal{margin:0!important}
+#sessionTallyModal .session-tally-podium-block{height:auto!important}
+#sessionTallyModal .session-tally-podium-slot.place-1 .session-tally-podium-block{height:auto!important;min-height:108px!important}
+#sessionTallyModal .session-tally-podium-slot.place-2 .session-tally-podium-block{height:auto!important;min-height:86px!important}
+#sessionTallyModal .session-tally-podium-slot.place-3 .session-tally-podium-block{height:auto!important;min-height:68px!important}
+#sessionTallyModal .session-tally-list{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;min-height:0!important;margin:0!important;overflow:hidden!important}
+#sessionTallyModal .session-tally-list-heading{flex:0 0 auto!important;margin:0 2px 8px!important}
+#sessionTallyModal .session-tally-rows{display:flex!important;flex:0 1 auto!important;flex-direction:column!important;gap:7px!important;min-height:0!important;max-height:310px!important;margin:0!important;padding:0!important;overflow-x:hidden!important;overflow-y:visible!important}
+#sessionTallyModal .session-tally-rows:has(.session-tally-row:nth-child(6)){overflow-y:auto!important;padding-right:4px!important}
+#sessionTallyModal .session-tally-row{flex:0 0 auto!important;grid-template-columns:30px minmax(0,1fr) 68px!important;gap:7px!important;margin:0!important;padding:9px 8px!important;border-radius:10px!important;box-shadow:none!important}
+@media screen and (min-width:768px) and (max-width:1100px) and (orientation:portrait){
+  #sessionTallyModal.session-tally-backdrop{padding-top:calc(var(--queueing-topbar-height,76px) + 33px)!important;padding-right:10px!important;padding-bottom:10px!important;padding-left:10px!important}
+  #sessionTallyModal .session-tally-dialog{flex:0 0 auto!important;width:min(530px,calc(95vw - 20px))!important;max-width:530px!important;height:calc(95dvh - var(--queueing-topbar-height,76px) - 20px)!important;max-height:calc(95dvh - var(--queueing-topbar-height,76px) - 20px)!important;margin:0 auto!important}
+}
+@media screen and (max-width:760px){
+  #sessionTallyModal.session-tally-backdrop{
+    padding:12px!important;
+    padding-top:calc(env(safe-area-inset-top,0px) + 88px)!important;
+    align-items:flex-start!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+  }
+  #sessionTallyModal .session-tally-dialog{
+    flex:0 1 auto!important;
+    width:100%!important;
+    max-width:560px!important;
+    height:auto!important;
+    min-height:min(601.75px,calc(100dvh - 108px - env(safe-area-inset-top,0px)))!important;
+    max-height:calc(100dvh - 108px - env(safe-area-inset-top,0px))!important;
+    margin:0 auto!important;
+    padding:16px 5px 0!important;
+    border-radius:14px!important;
+  }
+  #sessionTallyModal .session-tally-header{min-height:71px!important;padding:0 11px!important}
+  #sessionTallyModal .session-tally-ranking{flex:1 1 auto!important;min-height:0!important;padding:9px 2px 0 1px!important}
+  #sessionTallyModal .session-tally-podium{min-height:157.75px!important;height:auto!important;gap:5px!important;margin-bottom:18px!important;padding:12px 6px 0!important}
+  #sessionTallyModal .session-tally-podium-block{height:auto!important;min-height:58px!important}
+  #sessionTallyModal .session-tally-podium-slot.place-1 .session-tally-podium-block{height:auto!important;min-height:82px!important}
+  #sessionTallyModal .session-tally-podium-slot.place-2 .session-tally-podium-block{height:auto!important;min-height:68px!important}
+  #sessionTallyModal .session-tally-podium-slot.place-3 .session-tally-podium-block{height:auto!important;min-height:52px!important}
+  #sessionTallyModal .session-tally-rows{flex:0 1 auto!important;max-height:310px!important}
+  #sessionTallyModal .session-tally-row{grid-template-columns:30px minmax(0,1fr) 62px!important;gap:6px!important;padding:8px 7px!important}
+}
+@media screen and (max-width:380px){
+  #sessionTallyModal.session-tally-backdrop{padding-right:12px!important;padding-left:12px!important}
+  #sessionTallyModal .session-tally-dialog{width:100%!important}
+}
+@media screen and (min-width:761px) and (orientation:landscape) and (max-height:520px){
+  #sessionTallyModal.session-tally-backdrop{padding:85px 10px 10px!important;align-items:stretch!important}
+  #sessionTallyModal .session-tally-dialog{height:calc(96dvh - 78px)!important;max-height:calc(96dvh - 78px)!important;padding:16px 5px 0!important;border-radius:16px!important}
+}
