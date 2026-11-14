@@ -10,16 +10,13 @@
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
   <style id="ppm-tab-auth-curtain">html{visibility:hidden}</style>
   <script src="tab-auth.js?v=cookie-session-auth-20261110-1"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="dashboard.css?v=dashboard-session-tally-modal-parity-20261113-6">
-  <script src="dashboard.js?v=dashboard-session-tally-modal-polish-20261113-4" defer></script>
+  <link rel="stylesheet" href="dashboard.css?v=dashboard-match-suggestions-20261114-1">
+  <script src="dashboard.js?v=dashboard-match-actions-cleanup-20261114-2" defer></script>
 </head>
 <body class="organizer-dashboard-page">
   <header class="dashboard-topbar">
     <div class="dashboard-topbar-inner">
-      <a class="dashboard-brand" id="dashboardBrandLink" href="/dashboard" title="Go to dashboard home" aria-label="Organizer dashboard home">
+      <div class="dashboard-brand">
         <span class="dashboard-brand-logo-wrap"><img id="organizerLogo" src="pickleball-p-emblem.png" alt="Organizer logo" decoding="async" draggable="false"></span>
         <span class="dashboard-brand-copy">
           <strong id="organizerClubName">Organizer Dashboard</strong>
@@ -28,7 +25,7 @@
             <span class="dashboard-brand-dupr-badge" id="organizerDuprBadge" hidden></span>
           </span>
         </span>
-      </a>
+      </div>
       <nav class="dashboard-actions" aria-label="Organizer actions">
         <a class="dashboard-action create-action" href="/session" target="_blank" rel="noopener" aria-label="Create session" title="Create session">
           <svg class="dashboard-action-icon-svg create-action-icon" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M511,207 L508,203 L388,133 L384,146 L384,164 L390,184 L387,186 L185,218 L183,215 L183,167 L187,160 L397,126 L401,122 L402,117 L399,112 L247,25 L41,58 L32,65 L28,73 L27,131 L30,138 L33,141 L56,156 L56,224 L58,229 L62,234 L103,260 L3,325 L0,329 L1,336 L4,339 L11,341 L260,385 L264,389 L267,397 L267,464 L264,470 L259,470 L13,425 L6,425 L2,427 L0,435 L4,440 L246,484 L268,486 L447,359 L453,352 L455,346 L456,316 L504,309 L510,305 L511,299 L509,295 L506,293 L497,293 L304,325 L247,333 L244,328 L244,269 L246,263 L253,258 L500,219 L507,217 L510,214 Z"/></svg>
@@ -49,109 +46,111 @@
   </header>
 
   <main class="dashboard-main">
+    <!-- Session selector and primary dashboard views -->
     <div class="dashboard-records-layout">
       <section class="records-card records-toolbar-card" aria-label="Session selection">
         <div class="records-toolbar">
-        <div class="session-picker-wrap">
-          <label for="sessionSelect">SELECT OPEN PLAY SESSION</label>
-          <div class="session-select-shell" id="sessionSelectShell">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M7.5 3v4M16.5 3v4M3.5 10h17"/></svg>
-            <input id="sessionSelectSearch" type="text" role="combobox" aria-label="Select session" aria-autocomplete="list" aria-controls="sessionSelectOptions" aria-expanded="false" autocomplete="off" spellcheck="false" placeholder="Search sessions…">
-            <button class="session-select-clear" id="sessionSelectClear" type="button" aria-label="Clear session search" hidden>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
-            </button>
-            <button class="session-select-toggle" id="sessionSelectToggle" type="button" aria-label="Show sessions" aria-expanded="false">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.5 9 5.5 5.5L17.5 9"/></svg>
-            </button>
-            <select id="sessionSelect" class="session-native-select" aria-hidden="true" tabindex="-1">
-              <option value="">Loading sessions…</option>
-            </select>
-            <div class="session-select-options" id="sessionSelectOptions" role="listbox" aria-label="Available sessions" hidden></div>
+          <div class="session-picker-wrap">
+            <label for="sessionSelect">SELECT OPEN PLAY SESSION</label>
+            <div class="session-select-shell" id="sessionSelectShell">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M7.5 3v4M16.5 3v4M3.5 10h17"/></svg>
+              <input id="sessionSelectSearch" type="text" role="combobox" aria-label="Select session" aria-autocomplete="list" aria-controls="sessionSelectOptions" aria-expanded="false" autocomplete="off" spellcheck="false" placeholder="Search sessions…">
+              <button class="session-select-clear" id="sessionSelectClear" type="button" aria-label="Clear session search" hidden>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+              </button>
+              <button class="session-select-toggle" id="sessionSelectToggle" type="button" aria-label="Show sessions" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.5 9 5.5 5.5L17.5 9"/></svg>
+              </button>
+              <select id="sessionSelect" class="session-native-select" aria-hidden="true" tabindex="-1">
+                <option value="">Loading sessions…</option>
+              </select>
+              <div class="session-select-options" id="sessionSelectOptions" role="listbox" aria-label="Available sessions" hidden></div>
+            </div>
+            <p id="selectedSessionMeta" class="selected-session-meta" aria-live="polite"></p>
           </div>
-          <p id="selectedSessionMeta" class="selected-session-meta" aria-live="polite"></p>
-        </div>
         </div>
       </section>
 
+      <!-- Attendance, match history, and session-management tabs -->
       <nav class="records-card dashboard-tabs-card" aria-label="Dashboard sections">
         <div class="dashboard-tabs" role="tablist" aria-label="Dashboard records">
-        <button class="dashboard-tab is-active" id="attendanceTab" type="button" role="tab" aria-selected="true" aria-controls="attendanceView" data-tab="attendance">
-          <svg class="tab-icon-svg" viewBox="0 0 512 512" fill="currentColor" fill-rule="evenodd" aria-hidden="true" focusable="false"><path d="M468,358 L465,351 L456,343 L453,342 L439,343 L435,345 L384,396 L354,367 L345,363 L337,363 L328,367 L321,377 L320,386 L323,395 L372,444 L379,447 L387,447 L395,444 L465,374 L468,367 Z M372,292 L367,286 L354,277 L332,266 L309,259 L299,258 L298,257 L290,257 L289,256 L180,256 L148,262 L132,268 L118,275 L100,287 L78,308 L63,329 L52,352 L46,372 L44,382 L44,389 L43,390 L43,453 L45,458 L49,463 L58,468 L291,468 L296,466 L302,461 L305,456 L306,442 L302,434 L296,429 L291,427 L86,427 L84,425 L84,399 L85,398 L86,384 L92,364 L103,344 L110,335 L121,324 L141,310 L160,302 L179,298 L290,298 L305,301 L317,305 L331,312 L346,322 L359,323 L367,319 L373,311 L374,297 Z M231,84 L249,86 L259,90 L268,96 L276,104 L281,111 L284,117 L288,132 L288,145 L286,154 L277,171 L263,184 L253,189 L241,192 L222,191 L213,188 L200,180 L189,168 L183,156 L180,141 L181,128 L184,118 L188,110 L194,102 L203,94 L214,88 Z M222,43 L199,49 L183,57 L171,66 L158,80 L149,94 L142,112 L139,126 L139,150 L143,168 L151,186 L160,199 L173,212 L186,221 L198,227 L210,231 L220,233 L229,233 L230,234 L248,233 L265,229 L284,220 L301,207 L312,194 L321,179 L328,158 L329,144 L330,143 L329,124 L323,102 L317,90 L308,77 L295,64 L282,55 L264,47 L246,43 Z" fill-rule="evenodd"/></svg> Attendance
-        </button>
-        <button class="dashboard-tab" id="matchesTab" type="button" role="tab" aria-selected="false" aria-controls="matchesView" data-tab="matches">
-          <svg class="tab-icon-svg" viewBox="0 0 512 512" fill="currentColor" fill-rule="evenodd" aria-hidden="true" focusable="false"><path d="M366,415 L373,415 L378,417 L384,423 L386,428 L386,435 L384,440 L379,445 L373,448 L366,448 L361,446 L355,440 L353,435 L354,425 L361,417 Z M426,372 L431,372 L438,375 L442,379 L445,385 L445,392 L443,397 L437,403 L433,405 L424,405 L420,403 L414,397 L412,392 L412,385 L415,379 L419,375 Z M308,372 L313,372 L320,375 L325,380 L327,385 L327,393 L325,397 L319,403 L315,405 L307,405 L302,403 L296,397 L294,392 L294,386 L297,379 L301,375 Z M366,353 L373,353 L378,355 L384,361 L386,366 L386,373 L384,378 L378,384 L373,386 L366,386 L361,384 L355,378 L353,373 L354,363 L360,356 Z M221,326 L214,320 L205,320 L189,323 L182,323 L173,327 L170,333 L170,337 L172,342 L175,345 L181,347 L212,343 L217,341 L220,338 L222,333 Z M402,303 L409,303 L416,306 L419,309 L422,315 L422,324 L420,328 L414,334 L409,336 L403,336 L398,334 L393,330 L390,325 L389,319 L391,312 L396,306 Z M329,303 L337,303 L343,306 L347,310 L350,318 L349,325 L346,330 L341,334 L336,336 L330,336 L325,334 L319,328 L317,324 L318,312 L325,305 Z M186,258 L184,262 L184,268 L189,275 L215,291 L224,291 L229,287 L231,282 L231,278 L227,271 L200,254 L191,254 Z M244,213 L238,218 L237,227 L247,251 L252,256 L255,257 L263,256 L268,251 L269,243 L258,217 L255,214 L248,212 Z M316,131 L332,147 L312,167 L296,151 Z M351,96 L367,112 L348,130 L333,114 Z M385,56 L407,79 L397,83 L383,95 L368,79 L378,69 L382,62 L383,57 Z M181,29 L173,28 L164,33 L147,49 L137,63 L130,77 L126,90 L125,101 L124,102 L124,114 L125,117 L130,122 L138,123 L141,122 L146,117 L148,97 L155,78 L163,66 L176,53 L186,45 L187,37 L186,34 Z M91,40 L77,54 L68,65 L57,82 L48,100 L41,119 L37,134 L34,150 L34,157 L33,158 L33,168 L32,169 L33,214 L34,215 L34,223 L35,224 L35,230 L39,251 L35,256 L29,271 L29,276 L28,277 L29,295 L31,302 L42,322 L66,356 L80,372 L107,397 L133,416 L151,427 L164,433 L173,435 L186,435 L196,433 L207,428 L213,424 L256,381 L262,407 L266,417 L275,433 L288,449 L306,464 L322,473 L346,481 L359,482 L360,483 L379,483 L380,482 L393,481 L410,476 L425,469 L440,459 L453,447 L462,436 L473,417 L481,393 L482,380 L483,379 L483,360 L482,359 L481,346 L476,329 L464,306 L451,290 L441,281 L430,273 L417,266 L404,261 L387,257 L361,256 L335,261 L320,267 L306,275 L298,281 L281,298 L275,306 L264,327 L259,342 L259,345 L197,407 L185,412 L171,411 L159,405 L132,387 L110,369 L94,353 L73,327 L54,297 L51,288 L51,278 L56,266 L170,152 L177,148 L185,146 L209,149 L225,153 L231,153 L259,159 L270,160 L275,162 L302,190 L309,231 L312,239 L318,243 L324,243 L328,241 L331,238 L333,231 L332,230 L332,225 L331,224 L331,219 L329,213 L325,187 L409,103 L427,96 L432,91 L435,84 L435,77 L432,70 L393,31 L386,28 L376,29 L372,31 L367,36 L360,54 L276,138 L231,130 L219,119 L213,107 L212,96 L215,84 L220,75 L220,68 L218,64 L212,60 L203,61 L196,70 L190,88 L189,103 L190,104 L191,114 L194,122 L193,123 L184,123 L183,124 L173,125 L165,128 L155,134 L110,179 L108,176 L107,171 L107,149 L110,138 L109,129 L105,125 L100,123 L94,124 L89,128 L87,132 L84,147 L84,173 L85,174 L86,184 L91,198 L59,229 L58,228 L57,214 L56,213 L56,202 L55,201 L55,170 L56,169 L56,160 L57,159 L58,147 L63,126 L72,103 L85,81 L92,72 L108,56 L117,50 L122,45 L123,37 L122,34 L117,29 L109,28 L106,29 Z" fill-rule="evenodd"/></svg> Matches
-        </button>
-        <button class="dashboard-tab" id="sessionsTab" type="button" role="tab" aria-selected="false" aria-controls="sessionsView" data-tab="sessions">
-          <svg class="tab-icon-svg" viewBox="0 0 512 512" fill="currentColor" fill-rule="evenodd" aria-hidden="true" focusable="false"><path d="M247,396 L247,481 L246,482 L55,482 L54,481 L54,401 L55,400 L78,399 L79,398 L86,398 L87,397 L104,395 L143,385 L163,378 L177,375 L185,375 L186,374 L200,374 L201,375 L208,375 L218,377 L230,386 Z M326,326 L321,328 L317,332 L315,336 L315,345 L317,349 L323,354 L332,355 L337,353 L343,346 L344,339 L342,333 L337,328 L333,326 Z M406,294 L398,297 L394,301 L392,305 L392,312 L394,317 L398,321 L402,323 L411,323 L419,317 L421,312 L421,306 L419,301 L415,297 Z M262,296 L255,294 L250,295 L242,301 L240,306 L240,312 L242,317 L246,321 L250,323 L259,323 L267,317 L269,313 L269,305 L267,301 Z M432,219 L424,225 L422,230 L422,236 L424,241 L431,247 L437,248 L445,245 L449,241 L451,236 L451,230 L449,225 L445,221 L441,219 Z M217,219 L213,221 L208,228 L207,231 L208,238 L210,242 L217,247 L221,248 L227,247 L232,244 L235,240 L236,229 L234,225 L229,220 Z M323,186 L317,191 L314,198 L314,233 L317,241 L351,275 L358,278 L365,277 L370,274 L373,270 L374,259 L372,255 L343,226 L343,195 L341,191 L338,188 L332,185 Z M402,143 L394,149 L392,154 L392,161 L394,165 L399,170 L405,172 L412,171 L420,163 L421,160 L420,151 L415,145 L411,143 Z M250,143 L246,145 L241,151 L240,154 L241,163 L249,171 L253,172 L260,171 L267,165 L269,161 L268,151 L263,145 L259,143 Z M55,118 L186,118 L187,119 L173,139 L160,165 L151,194 L149,211 L148,212 L148,223 L147,224 L148,254 L149,255 L151,272 L155,287 L162,306 L170,322 L185,344 L183,346 L175,346 L159,349 L132,358 L96,367 L77,369 L76,370 L64,370 L63,371 L57,371 L56,370 L56,365 L61,351 L69,338 L87,321 L105,312 L110,306 L111,298 L106,289 L88,280 L73,267 L63,253 L57,239 L54,224 L54,119 Z M327,111 L320,114 L317,117 L315,121 L315,130 L321,138 L325,140 L333,140 L340,136 L343,131 L344,124 L341,117 L335,112 Z M320,80 L338,80 L339,81 L355,82 L369,85 L384,90 L413,105 L431,119 L444,132 L455,146 L470,173 L479,201 L480,211 L481,212 L481,221 L482,222 L481,254 L476,277 L471,291 L462,309 L445,333 L429,349 L405,366 L387,375 L376,379 L356,384 L341,385 L340,386 L318,386 L317,385 L302,384 L274,376 L253,366 L242,359 L227,347 L206,324 L195,307 L189,295 L182,276 L179,264 L178,253 L177,252 L177,242 L176,241 L177,214 L178,213 L179,202 L185,181 L198,154 L216,130 L225,121 L241,108 L267,93 L286,86 L298,83 L309,82 L310,81 L319,81 Z M309,30 L310,29 L348,29 L349,30 L349,51 L348,52 L340,52 L339,51 L310,52 L309,51 Z M400,3 L394,0 L264,0 L257,4 L253,12 L253,17 L257,25 L265,29 L279,29 L280,30 L280,57 L278,59 L275,59 L261,64 L242,73 L218,89 L13,89 L7,91 L2,96 L0,101 L0,107 L2,112 L10,118 L24,118 L25,119 L25,225 L30,250 L34,260 L43,276 L50,285 L66,300 L51,314 L44,323 L35,338 L28,357 L26,367 L26,374 L25,375 L25,481 L24,482 L11,482 L3,487 L0,493 L0,500 L4,507 L11,511 L290,511 L297,507 L301,499 L301,494 L297,486 L290,482 L277,482 L276,481 L276,408 L277,407 L289,411 L306,413 L307,414 L316,414 L317,415 L351,414 L352,413 L369,411 L384,407 L387,405 L400,401 L420,391 L437,380 L447,372 L468,351 L476,341 L493,313 L503,288 L507,273 L509,256 L510,255 L510,246 L511,245 L511,221 L510,220 L510,210 L509,209 L507,193 L499,167 L487,142 L478,128 L467,114 L448,95 L428,80 L402,66 L381,59 L378,57 L378,30 L379,29 L394,29 L400,26 L404,21 L405,11 Z" fill-rule="evenodd"/></svg> Sessions
-        </button>
+          <button class="dashboard-tab is-active" id="attendanceTab" type="button" role="tab" aria-selected="true" aria-controls="attendanceView" data-tab="attendance">
+            <svg class="tab-icon-svg" viewBox="0 0 512 512" fill="currentColor" fill-rule="evenodd" aria-hidden="true" focusable="false"><path d="M468,358 L465,351 L456,343 L453,342 L439,343 L435,345 L384,396 L354,367 L345,363 L337,363 L328,367 L321,377 L320,386 L323,395 L372,444 L379,447 L387,447 L395,444 L465,374 L468,367 Z M372,292 L367,286 L354,277 L332,266 L309,259 L299,258 L298,257 L290,257 L289,256 L180,256 L148,262 L132,268 L118,275 L100,287 L78,308 L63,329 L52,352 L46,372 L44,382 L44,389 L43,390 L43,453 L45,458 L49,463 L58,468 L291,468 L296,466 L302,461 L305,456 L306,442 L302,434 L296,429 L291,427 L86,427 L84,425 L84,399 L85,398 L86,384 L92,364 L103,344 L110,335 L121,324 L141,310 L160,302 L179,298 L290,298 L305,301 L317,305 L331,312 L346,322 L359,323 L367,319 L373,311 L374,297 Z M231,84 L249,86 L259,90 L268,96 L276,104 L281,111 L284,117 L288,132 L288,145 L286,154 L277,171 L263,184 L253,189 L241,192 L222,191 L213,188 L200,180 L189,168 L183,156 L180,141 L181,128 L184,118 L188,110 L194,102 L203,94 L214,88 Z M222,43 L199,49 L183,57 L171,66 L158,80 L149,94 L142,112 L139,126 L139,150 L143,168 L151,186 L160,199 L173,212 L186,221 L198,227 L210,231 L220,233 L229,233 L230,234 L248,233 L265,229 L284,220 L301,207 L312,194 L321,179 L328,158 L329,144 L330,143 L329,124 L323,102 L317,90 L308,77 L295,64 L282,55 L264,47 L246,43 Z" fill-rule="evenodd"/></svg> Attendance
+          </button>
+          <button class="dashboard-tab" id="matchesTab" type="button" role="tab" aria-selected="false" aria-controls="matchesView" data-tab="matches">
+            <svg class="tab-icon-svg" viewBox="0 0 512 512" fill="currentColor" fill-rule="evenodd" aria-hidden="true" focusable="false"><path d="M366,415 L373,415 L378,417 L384,423 L386,428 L386,435 L384,440 L379,445 L373,448 L366,448 L361,446 L355,440 L353,435 L354,425 L361,417 Z M426,372 L431,372 L438,375 L442,379 L445,385 L445,392 L443,397 L437,403 L433,405 L424,405 L420,403 L414,397 L412,392 L412,385 L415,379 L419,375 Z M308,372 L313,372 L320,375 L325,380 L327,385 L327,393 L325,397 L319,403 L315,405 L307,405 L302,403 L296,397 L294,392 L294,386 L297,379 L301,375 Z M366,353 L373,353 L378,355 L384,361 L386,366 L386,373 L384,378 L378,384 L373,386 L366,386 L361,384 L355,378 L353,373 L354,363 L360,356 Z M221,326 L214,320 L205,320 L189,323 L182,323 L173,327 L170,333 L170,337 L172,342 L175,345 L181,347 L212,343 L217,341 L220,338 L222,333 Z M402,303 L409,303 L416,306 L419,309 L422,315 L422,324 L420,328 L414,334 L409,336 L403,336 L398,334 L393,330 L390,325 L389,319 L391,312 L396,306 Z M329,303 L337,303 L343,306 L347,310 L350,318 L349,325 L346,330 L341,334 L336,336 L330,336 L325,334 L319,328 L317,324 L318,312 L325,305 Z M186,258 L184,262 L184,268 L189,275 L215,291 L224,291 L229,287 L231,282 L231,278 L227,271 L200,254 L191,254 Z M244,213 L238,218 L237,227 L247,251 L252,256 L255,257 L263,256 L268,251 L269,243 L258,217 L255,214 L248,212 Z M316,131 L332,147 L312,167 L296,151 Z M351,96 L367,112 L348,130 L333,114 Z M385,56 L407,79 L397,83 L383,95 L368,79 L378,69 L382,62 L383,57 Z M181,29 L173,28 L164,33 L147,49 L137,63 L130,77 L126,90 L125,101 L124,102 L124,114 L125,117 L130,122 L138,123 L141,122 L146,117 L148,97 L155,78 L163,66 L176,53 L186,45 L187,37 L186,34 Z M91,40 L77,54 L68,65 L57,82 L48,100 L41,119 L37,134 L34,150 L34,157 L33,158 L33,168 L32,169 L33,214 L34,215 L34,223 L35,224 L35,230 L39,251 L35,256 L29,271 L29,276 L28,277 L29,295 L31,302 L42,322 L66,356 L80,372 L107,397 L133,416 L151,427 L164,433 L173,435 L186,435 L196,433 L207,428 L213,424 L256,381 L262,407 L266,417 L275,433 L288,449 L306,464 L322,473 L346,481 L359,482 L360,483 L379,483 L380,482 L393,481 L410,476 L425,469 L440,459 L453,447 L462,436 L473,417 L481,393 L482,380 L483,379 L483,360 L482,359 L481,346 L476,329 L464,306 L451,290 L441,281 L430,273 L417,266 L404,261 L387,257 L361,256 L335,261 L320,267 L306,275 L298,281 L281,298 L275,306 L264,327 L259,342 L259,345 L197,407 L185,412 L171,411 L159,405 L132,387 L110,369 L94,353 L73,327 L54,297 L51,288 L51,278 L56,266 L170,152 L177,148 L185,146 L209,149 L225,153 L231,153 L259,159 L270,160 L275,162 L302,190 L309,231 L312,239 L318,243 L324,243 L328,241 L331,238 L333,231 L332,230 L332,225 L331,224 L331,219 L329,213 L325,187 L409,103 L427,96 L432,91 L435,84 L435,77 L432,70 L393,31 L386,28 L376,29 L372,31 L367,36 L360,54 L276,138 L231,130 L219,119 L213,107 L212,96 L215,84 L220,75 L220,68 L218,64 L212,60 L203,61 L196,70 L190,88 L189,103 L190,104 L191,114 L194,122 L193,123 L184,123 L183,124 L173,125 L165,128 L155,134 L110,179 L108,176 L107,171 L107,149 L110,138 L109,129 L105,125 L100,123 L94,124 L89,128 L87,132 L84,147 L84,173 L85,174 L86,184 L91,198 L59,229 L58,228 L57,214 L56,213 L56,202 L55,201 L55,170 L56,169 L56,160 L57,159 L58,147 L63,126 L72,103 L85,81 L92,72 L108,56 L117,50 L122,45 L123,37 L122,34 L117,29 L109,28 L106,29 Z" fill-rule="evenodd"/></svg> Matches
+          </button>
+          <button class="dashboard-tab" id="sessionsTab" type="button" role="tab" aria-selected="false" aria-controls="sessionsView" data-tab="sessions">
+            <svg class="tab-icon-svg" viewBox="0 0 512 512" fill="currentColor" fill-rule="evenodd" aria-hidden="true" focusable="false"><path d="M247,396 L247,481 L246,482 L55,482 L54,481 L54,401 L55,400 L78,399 L79,398 L86,398 L87,397 L104,395 L143,385 L163,378 L177,375 L185,375 L186,374 L200,374 L201,375 L208,375 L218,377 L230,386 Z M326,326 L321,328 L317,332 L315,336 L315,345 L317,349 L323,354 L332,355 L337,353 L343,346 L344,339 L342,333 L337,328 L333,326 Z M406,294 L398,297 L394,301 L392,305 L392,312 L394,317 L398,321 L402,323 L411,323 L419,317 L421,312 L421,306 L419,301 L415,297 Z M262,296 L255,294 L250,295 L242,301 L240,306 L240,312 L242,317 L246,321 L250,323 L259,323 L267,317 L269,313 L269,305 L267,301 Z M432,219 L424,225 L422,230 L422,236 L424,241 L431,247 L437,248 L445,245 L449,241 L451,236 L451,230 L449,225 L445,221 L441,219 Z M217,219 L213,221 L208,228 L207,231 L208,238 L210,242 L217,247 L221,248 L227,247 L232,244 L235,240 L236,229 L234,225 L229,220 Z M323,186 L317,191 L314,198 L314,233 L317,241 L351,275 L358,278 L365,277 L370,274 L373,270 L374,259 L372,255 L343,226 L343,195 L341,191 L338,188 L332,185 Z M402,143 L394,149 L392,154 L392,161 L394,165 L399,170 L405,172 L412,171 L420,163 L421,160 L420,151 L415,145 L411,143 Z M250,143 L246,145 L241,151 L240,154 L241,163 L249,171 L253,172 L260,171 L267,165 L269,161 L268,151 L263,145 L259,143 Z M55,118 L186,118 L187,119 L173,139 L160,165 L151,194 L149,211 L148,212 L148,223 L147,224 L148,254 L149,255 L151,272 L155,287 L162,306 L170,322 L185,344 L183,346 L175,346 L159,349 L132,358 L96,367 L77,369 L76,370 L64,370 L63,371 L57,371 L56,370 L56,365 L61,351 L69,338 L87,321 L105,312 L110,306 L111,298 L106,289 L88,280 L73,267 L63,253 L57,239 L54,224 L54,119 Z M327,111 L320,114 L317,117 L315,121 L315,130 L321,138 L325,140 L333,140 L340,136 L343,131 L344,124 L341,117 L335,112 Z M320,80 L338,80 L339,81 L355,82 L369,85 L384,90 L413,105 L431,119 L444,132 L455,146 L470,173 L479,201 L480,211 L481,212 L481,221 L482,222 L481,254 L476,277 L471,291 L462,309 L445,333 L429,349 L405,366 L387,375 L376,379 L356,384 L341,385 L340,386 L318,386 L317,385 L302,384 L274,376 L253,366 L242,359 L227,347 L206,324 L195,307 L189,295 L182,276 L179,264 L178,253 L177,252 L177,242 L176,241 L177,214 L178,213 L179,202 L185,181 L198,154 L216,130 L225,121 L241,108 L267,93 L286,86 L298,83 L309,82 L310,81 L319,81 Z M309,30 L310,29 L348,29 L349,30 L349,51 L348,52 L340,52 L339,51 L310,52 L309,51 Z M400,3 L394,0 L264,0 L257,4 L253,12 L253,17 L257,25 L265,29 L279,29 L280,30 L280,57 L278,59 L275,59 L261,64 L242,73 L218,89 L13,89 L7,91 L2,96 L0,101 L0,107 L2,112 L10,118 L24,118 L25,119 L25,225 L30,250 L34,260 L43,276 L50,285 L66,300 L51,314 L44,323 L35,338 L28,357 L26,367 L26,374 L25,375 L25,481 L24,482 L11,482 L3,487 L0,493 L0,500 L4,507 L11,511 L290,511 L297,507 L301,499 L301,494 L297,486 L290,482 L277,482 L276,481 L276,408 L277,407 L289,411 L306,413 L307,414 L316,414 L317,415 L351,414 L352,413 L369,411 L384,407 L387,405 L400,401 L420,391 L437,380 L447,372 L468,351 L476,341 L493,313 L503,288 L507,273 L509,256 L510,255 L510,246 L511,245 L511,221 L510,220 L510,210 L509,209 L507,193 L499,167 L487,142 L478,128 L467,114 L448,95 L428,80 L402,66 L381,59 L378,57 L378,30 L379,29 L394,29 L400,26 L404,21 L405,11 Z" fill-rule="evenodd"/></svg> Sessions
+          </button>
         </div>
       </nav>
 
       <section class="records-card records-content-card" aria-label="Organizer session records">
-      <section class="records-view" id="attendanceView" role="tabpanel" aria-labelledby="attendanceTab">
-        <div class="view-heading">
-          <div class="view-heading-copy">
-            <div class="view-heading-title-line"><h2>Participants</h2><span class="queueCountBadge count-total-attendance" id="attendanceTotal">(0)</span></div>
-            <p id="attendanceSubtitle"></p>
+        <section class="records-view" id="attendanceView" role="tabpanel" aria-labelledby="attendanceTab">
+          <div class="view-heading">
+            <div class="view-heading-copy">
+              <div class="view-heading-title-line"><h2>Participants</h2><span class="queueCountBadge count-total-attendance" id="attendanceTotal">(0)</span></div>
+              <p id="attendanceSubtitle"></p>
+            </div>
           </div>
-        </div>
-        <label class="records-search-wrap" for="attendanceSearch">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
-          <input id="attendanceSearch" type="search" placeholder="Search participant name…" autocomplete="off">
-        </label>
-        <div class="participant-list" id="participantList" aria-live="polite">
-          <div class="dashboard-loading"><span class="loading-spinner"></span> Loading attendance…</div>
-        </div>
-      </section>
-
-      <section class="records-view" id="matchesView" role="tabpanel" aria-labelledby="matchesTab" hidden>
-        <div class="view-heading">
-          <div class="view-heading-copy">
-            <div class="view-heading-title-line"><h2>Match History</h2><span class="queueCountBadge count-total-attendance" id="matchesTotal">(0)</span></div>
-            <p id="matchesSubtitle"></p>
-          </div>
-        </div>
-        <div class="match-filter-toolbar" id="matchFilterToolbar" aria-label="Match date filters">
-          <div class="match-date-field"><label for="matchesFromDate">From</label><input id="matchesFromDate" type="datetime-local" step="1"></div>
-          <div class="match-date-field"><label for="matchesToDate">To</label><input id="matchesToDate" type="datetime-local" step="1"></div>
-          <div class="match-range-buttons" role="group" aria-label="Quick date range">
-            <button class="match-range-button" type="button" data-match-range="today" aria-pressed="false">Today</button>
-            <button class="match-range-button" type="button" data-match-range="7" aria-pressed="false">7 Days</button>
-            <button class="match-range-button" type="button" data-match-range="30" aria-pressed="false">30 Days</button>
-            <button class="match-range-button" type="button" data-match-range="all" aria-pressed="false">All Time</button>
-          </div>
-        </div>
-        <div class="matches-search-actions-row">
-          <label class="records-search-wrap matches-search-wrap" for="matchesSearch">
+          <label class="records-search-wrap" for="attendanceSearch">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
-            <input id="matchesSearch" type="search" placeholder="Search player name…" autocomplete="off">
+            <input id="attendanceSearch" type="search" placeholder="Search participant name…" autocomplete="off">
           </label>
-          <div class="match-filter-actions" aria-label="Match actions">
-            <button class="match-refresh-button" id="refreshMatchesButton" type="button"><span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.7-2L20 12M4 12l2.7 5a7 7 0 0 0 11.7-2"/></svg></span> Refresh</button>
-            <button class="match-export-button" id="exportMatchesButton" type="button" disabled><svg class="match-export-icon" viewBox="42 42 428 428" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M 467 162 L 460 153 L 355 69 L 345 64 L 331 66 L 324 72 L 320 81 L 319 126 L 269 128 L 233 137 L 202 153 L 180 173 L 167 192 L 153 226 L 149 248 L 151 286 L 161 296 L 179 296 L 186 291 L 196 274 L 209 260 L 237 243 L 268 234 L 315 231 L 320 233 L 320 281 L 323 288 L 335 297 L 350 296 L 465 182 L 468 175 Z M 75 72 L 58 93 L 50 109 L 43 136 L 43 375 L 50 402 L 72 436 L 95 454 L 109 461 L 136 468 L 375 468 L 402 461 L 436 439 L 454 416 L 461 402 L 468 375 L 468 293 L 460 281 L 450 277 L 435 281 L 427 293 L 427 366 L 422 387 L 413 402 L 402 413 L 382 424 L 366 427 L 145 427 L 116 418 L 97 401 L 87 382 L 84 366 L 84 145 L 93 116 L 110 97 L 137 85 L 261 84 L 274 74 L 276 58 L 271 49 L 261 43 L 136 43 L 109 50 Z"/></svg><span class="match-export-label">Export DUPR CSV</span><span class="match-export-count">(<strong id="duprExportCount">0</strong>)</span></button>
+          <div class="participant-list" id="participantList" aria-live="polite">
+            <div class="dashboard-loading"><span class="loading-spinner"></span> Loading attendance…</div>
           </div>
-        </div>
-        <div class="matches-summary-card" aria-live="polite"><strong id="matchesPlayedCount">0</strong><span>Matches Played</span></div>
-        <div class="match-list" id="matchList" aria-live="polite">
-          <div class="dashboard-loading"><span class="loading-spinner"></span> Loading match history…</div>
-        </div>
-      </section>
+        </section>
 
-      <section class="records-view" id="sessionsView" role="tabpanel" aria-labelledby="sessionsTab" hidden>
-        <div class="view-heading">
-          <div class="view-heading-copy">
-            <div class="view-heading-title-line"><h2>Manage Sessions</h2><span class="queueCountBadge count-total-attendance" id="sessionsTotal">(0)</span></div>
-            <p>Edit session details or remove a session and its saved match records.</p>
+        <section class="records-view" id="matchesView" role="tabpanel" aria-labelledby="matchesTab" hidden>
+          <div class="view-heading">
+            <div class="view-heading-copy">
+              <div class="view-heading-title-line"><h2>Match History</h2><span class="queueCountBadge count-total-attendance" id="matchesTotal">(0)</span></div>
+              <p id="matchesSubtitle"></p>
+            </div>
           </div>
-        </div>
-        <label class="records-search-wrap" for="sessionsSearch">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
-          <input id="sessionsSearch" type="search" placeholder="Search session name…" autocomplete="off">
-        </label>
-        <div class="session-management-list" id="sessionManagementList" aria-live="polite">
-          <div class="dashboard-loading"><span class="loading-spinner"></span> Loading sessions…</div>
-        </div>
-      </section>
+          <div class="match-filter-toolbar" id="matchFilterToolbar" aria-label="Match date filters">
+            <div class="match-date-field"><label for="matchesFromDate">From</label><input id="matchesFromDate" type="datetime-local" step="1"></div>
+            <div class="match-date-field"><label for="matchesToDate">To</label><input id="matchesToDate" type="datetime-local" step="1"></div>
+            <div class="match-range-buttons" role="group" aria-label="Quick date range">
+              <button class="match-range-button" type="button" data-match-range="today" aria-pressed="false">Today</button>
+              <button class="match-range-button" type="button" data-match-range="7" aria-pressed="false">7 Days</button>
+              <button class="match-range-button" type="button" data-match-range="30" aria-pressed="false">30 Days</button>
+              <button class="match-range-button" type="button" data-match-range="all" aria-pressed="false">All Time</button>
+            </div>
+          </div>
+          <div class="matches-search-actions-row">
+            <div class="records-search-wrap matches-search-wrap" role="search" aria-label="Search match history">
+              <button class="match-refresh-button match-refresh-icon-button" id="refreshMatchesButton" type="button" title="Refresh matches" aria-label="Refresh matches"><span class="button-icon" aria-hidden="true"><svg class="registered-update-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8.5 8.5 0 0 0-14.9-5.5L3 8"></path><path d="M3 4v4h4"></path><path d="M4 13a8.5 8.5 0 0 0 14.9 5.5L21 16"></path><path d="M21 20v-4h-4"></path></svg></span></button>
+              <svg class="records-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+              <input id="matchesSearch" type="search" placeholder="Search player name…" autocomplete="off" aria-label="Search player name">
+            </div>
+            <div class="match-filter-actions" aria-label="Match actions">
+              <button class="match-export-button" id="exportMatchesButton" type="button" disabled><svg class="match-export-icon" viewBox="42 42 428 428" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M 467 162 L 460 153 L 355 69 L 345 64 L 331 66 L 324 72 L 320 81 L 319 126 L 269 128 L 233 137 L 202 153 L 180 173 L 167 192 L 153 226 L 149 248 L 151 286 L 161 296 L 179 296 L 186 291 L 196 274 L 209 260 L 237 243 L 268 234 L 315 231 L 320 233 L 320 281 L 323 288 L 335 297 L 350 296 L 465 182 L 468 175 Z M 75 72 L 58 93 L 50 109 L 43 136 L 43 375 L 50 402 L 72 436 L 95 454 L 109 461 L 136 468 L 375 468 L 402 461 L 436 439 L 454 416 L 461 402 L 468 375 L 468 293 L 460 281 L 450 277 L 435 281 L 427 293 L 427 366 L 422 387 L 413 402 L 402 413 L 382 424 L 366 427 L 145 427 L 116 418 L 97 401 L 87 382 L 84 366 L 84 145 L 93 116 L 110 97 L 137 85 L 261 84 L 274 74 L 276 58 L 271 49 L 261 43 L 136 43 L 109 50 Z"/></svg><span class="match-export-label">Export DUPR CSV</span><span class="match-export-count">(<strong id="duprExportCount">0</strong>)</span></button>
+            </div>
+          </div>
+          <div class="matches-summary-card" aria-live="polite"><strong id="matchesPlayedCount">0</strong><span>Matches Played</span></div>
+          <div class="match-list" id="matchList" aria-live="polite">
+            <div class="dashboard-loading"><span class="loading-spinner"></span> Loading match history…</div>
+          </div>
+        </section>
+
+        <section class="records-view" id="sessionsView" role="tabpanel" aria-labelledby="sessionsTab" hidden>
+          <div class="view-heading">
+            <div class="view-heading-copy">
+              <div class="view-heading-title-line"><h2>Manage Sessions</h2><span class="queueCountBadge count-total-attendance" id="sessionsTotal">(0)</span></div>
+              <p>Edit session details or remove a session and its saved match records.</p>
+            </div>
+          </div>
+          <label class="records-search-wrap" for="sessionsSearch">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+            <input id="sessionsSearch" type="search" placeholder="Search session name…" autocomplete="off">
+          </label>
+          <div class="session-management-list" id="sessionManagementList" aria-live="polite">
+            <div class="dashboard-loading"><span class="loading-spinner"></span> Loading sessions…</div>
+          </div>
+        </section>
       </section>
     </div>
     <footer class="dashboard-footer"><span>🏓 PICKLE POINT MATCH</span><span>Organizer Dashboard</span></footer>
@@ -159,6 +158,7 @@
 
   <div class="dashboard-toast" id="dashboardToast" role="status" aria-live="polite"></div>
 
+  <!-- Session ranking modal -->
   <div class="dashboard-modal-backdrop session-tally-backdrop" id="sessionTallyModal" hidden>
     <section class="session-tally-dialog" role="dialog" aria-modal="true" aria-labelledby="sessionTallyTitle" aria-describedby="sessionTallySubtitle">
       <header class="session-tally-header">
@@ -174,6 +174,7 @@
     </section>
   </div>
 
+  <!-- DUPR export modal -->
   <div class="dashboard-modal-backdrop dupr-export-backdrop" id="duprExportModal" hidden>
     <section class="dupr-export-modal" role="dialog" aria-modal="true" aria-labelledby="duprExportTitle">
       <header class="dupr-export-header">
@@ -230,6 +231,7 @@
     </section>
   </div>
 
+  <!-- Session edit modal -->
   <div class="dashboard-modal-backdrop settings-modal-backdrop" id="sessionEditModal" hidden>
     <section class="dashboard-modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="sessionEditTitle">
       <form id="sessionEditForm" class="settings-organizer-form" autocomplete="off">
@@ -291,6 +293,7 @@
   <datalist id="attendanceCloudPlayerSuggestions"></datalist>
 
 
+  <!-- Organizer settings modal -->
   <div class="dashboard-modal-backdrop settings-modal-backdrop" id="settingsModal" hidden>
     <section class="dashboard-modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
       <form id="settingsForm" class="settings-organizer-form" autocomplete="off">

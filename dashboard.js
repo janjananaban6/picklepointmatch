@@ -1,6 +1,7 @@
 (() => {
   'use strict';
 
+  // ===== Shared state and utility helpers =====
   const $ = id => document.getElementById(id);
   let sessionDropdownOpen=false;
   let duprScoreTypeDropdownOpen=false;
@@ -98,6 +99,7 @@
   const validDate = value => { const date = value ? new Date(value) : null; return date && Number.isFinite(date.getTime()) ? date : null; };
   const formatDate = value => { const date=validDate(value); return date ? new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',year:'numeric'}).format(date) : 'Date not available'; };
   const formatDateTime = value => { const date=validDate(value); return date ? new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}).format(date) : 'Date not available'; };
+  // ===== Session data model and session picker =====
   function sessionCreatedAt(session) {
     const saved=validDate(session?.createdAt);
     if(saved)return saved;
@@ -256,14 +258,6 @@
       const badgeHidden=!duprId;
       if(duprBadge.hidden!==badgeHidden)duprBadge.hidden=badgeHidden;
       if(duprBadge.title!==badgeTitle)duprBadge.title=badgeTitle;
-    }
-
-    const brandLink=$('dashboardBrandLink');
-    if(brandLink){
-      const ariaLabel=`${name} organizer dashboard home${username?`, username ${username}`:''}${duprId?`, DUPR ID ${duprId}`:''}`;
-      const linkTitle=`${name}${username?` · @${username}`:''}${duprId?` · DUPR ${duprId}`:''}`;
-      if(brandLink.getAttribute('aria-label')!==ariaLabel)brandLink.setAttribute('aria-label',ariaLabel);
-      if(brandLink.title!==linkTitle)brandLink.title=linkTitle;
     }
 
     const organizerLogoSrc=organizer.logo&&/^data:image\/(?:png|jpeg|webp);base64,/i.test(organizer.logo)?organizer.logo:'pickleball-p-emblem.png';
@@ -434,6 +428,7 @@
     else updateSessionPickerClearButton();
   }
 
+  // ===== Dashboard view rendering: attendance, matches and sessions =====
   function renderTabs() {
     ['attendance','matches','sessions'].forEach(tab=>{
       const active=state.tab===tab;
@@ -572,6 +567,7 @@
     }
   }
 
+  // ===== Match history, scorecards and date filtering =====
   function teamPeople(log,side) {
     const direct=Array.isArray(log?.[`${side}Players`])?log[`${side}Players`]:[];
     if(direct.length)return direct.map(person=>fullName(person)||'Player');
@@ -698,7 +694,7 @@
     </div>`;
   }
 
-  function matchEditorMarkup(log,team1,team2,meta,isDupr,matchNumber,sessionId,cardHeadMarkup,deleteWarningMarkup,syncRowMarkup,renderKey,editFormId) {
+  function matchEditorMarkup(log,team1,team2,matchNumber,sessionId,cardHeadMarkup,deleteWarningMarkup,syncRowMarkup,renderKey,editFormId) {
     const parts=String(log?.score||'').trim().match(/^(\d+)\s*-\s*(\d+)$/);
     const leftScore=parts?parts[1]:'';
     const rightScore=parts?parts[2]:'';
@@ -728,12 +724,6 @@
     return `<div class="cloud-delete-warning dashboard-attendance-delete-warning match-inline-delete-warning" role="alert"><span>Delete this recorded match? The session and its participants will remain unchanged.</span><button type="button" data-match-action="confirm-delete" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}">Confirm</button><button type="button" class="attendance-cancel-confirm" data-match-action="cancel-delete" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}">Cancel</button></div>`;
   }
 
-  function mountedMatchCard(sessionId,matchId) {
-    return Array.from($('matchList').querySelectorAll('.match-record-card')).find(card=>
-      String(card.dataset.matchSessionId||'')===String(sessionId)&&String(card.dataset.matchId||'')===String(matchId)
-    )||null;
-  }
-
   function matchMarkup(log,index,session,renderKey='') {
     const team1=matchTeamPlayers(log,'team1'),team2=matchTeamPlayers(log,'team2');
     const team1Won=isWinningTeam(log,'team1'),team2Won=isWinningTeam(log,'team2');
@@ -749,6 +739,10 @@
     const hasRecordedScore=hasRecordedMatchScore(log);
     const isEditingThisMatch=state.editingMatch?.sessionId===sessionId&&state.editingMatch?.matchId===matchNumber;
     const isDeletePending=String(state.pendingDeleteMatch?.sessionId||'')===sessionId&&String(state.pendingDeleteMatch?.matchId||'')===matchNumber;
+    // Editing and deleting are mutually exclusive across Match History.
+    // Keep the opposite action visible but disabled while either action is active.
+    const blockEditAction=!!state.pendingDeleteMatch||!!state.editingMatch;
+    const blockDeleteAction=!!state.pendingDeleteMatch||!!state.editingMatch;
     const deleteWarningMarkup=isDeletePending?matchDeleteWarningMarkup(matchNumber,sessionId):'';
     const scoreCenter=matchScoreCenterMarkup(log,team1Won,team2Won);
     const editFormId=`match-edit-form-${`${sessionId}-${matchNumber}`.replace(/[^a-zA-Z0-9_-]/g,'-')}`;
@@ -756,17 +750,17 @@
     const editHeaderActions=isEditingThisMatch?`
         <button class="match-edit-header-button match-edit-save" type="submit" form="${escapeAttr(editFormId)}">Save</button>
         <button class="match-edit-header-button match-edit-cancel" type="button" data-match-action="cancel-edit" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}">Cancel</button>`:
-      canEditRecordedScore?`<button class="match-icon-action" type="button" data-match-action="edit" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}" aria-label="Edit match" title="Edit recorded match"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg></button>`:'';
+      canEditRecordedScore?`<button class="match-icon-action" type="button" data-match-action="edit" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}" ${blockEditAction?'disabled':''} aria-label="Edit match" title="${blockEditAction?'Finish or cancel the active match action first':'Edit recorded match'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg></button>`:'';
     const cardHeadMarkup=`<div class="match-card-head">
       <div class="match-record-meta">${meta}</div>
       <div class="match-card-actions ${isEditingThisMatch?'is-editing-actions':''}">
         ${editHeaderActions}
-        <button class="match-icon-action is-delete" type="button" data-match-action="delete" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}" ${idAvailable&&!isDeletePending?'':'disabled'} aria-label="Delete match" title="Delete match"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg></button>
+        <button class="match-icon-action is-delete" type="button" data-match-action="delete" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}" ${idAvailable&&!blockDeleteAction?'':'disabled'} aria-label="Delete match" title="${blockDeleteAction?'Finish or cancel the active match action first':'Delete match'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg></button>
       </div>
     </div>`;
     const syncRowMarkup=hasRecordedScore?`<div class="match-sync-row"><span class="match-sync-status" data-match-kind="${isDupr?'dupr':'non-dupr'}">${isDupr?'DUPR MATCH':'NON-DUPR MATCH'}</span><button class="match-sync-button" type="button" data-match-action="export" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}" ${exportable&&!state.editingMatch?'':'disabled'} title="${state.editingMatch?'Finish or cancel the open match edit before exporting':exportable?'Download a CSV ready for manual DUPR import':'DUPR export requires a DUPR match, a valid score, and DUPR IDs for every player'}">Export DUPR CSV</button></div>`:'';
     if(isEditingThisMatch) {
-      return matchEditorMarkup(log,team1,team2,meta,isDupr,matchNumber,sessionId,cardHeadMarkup,deleteWarningMarkup,syncRowMarkup,renderKey,editFormId);
+      return matchEditorMarkup(log,team1,team2,matchNumber,sessionId,cardHeadMarkup,deleteWarningMarkup,syncRowMarkup,renderKey,editFormId);
     }
     const teamMarkup=(players,won)=>`<div class="match-team ${won?'is-winner':'is-loser'}"><span class="match-outcome-mark">${won?'W':'L'}</span><span class="match-team-players">${players.map(player=>matchPlayerMarkup(player,hasRecordedScore)).join('')||'<span class="match-player-line"><span class="match-player-name">Player details unavailable</span></span>'}</span></div>`;
     return `<article class="match-card match-record-card" data-match-id="${escapeAttr(matchNumber)}" data-match-session-id="${escapeAttr(sessionId)}">
@@ -950,6 +944,7 @@
     renderMatches();
   }
 
+  // ===== Session management and player rankings =====
   function sessionManageMarkup(session) {
     const matchCount=sessionLogs(session).length;
     const participantCount=Number(session.playerCount)||session.participants?.length||0;
@@ -1165,16 +1160,99 @@
     const ranking=buildSessionRanking(session);
     if(!ranking.length)return '<div class="session-tally-empty"><span aria-hidden="true">🏆</span><strong>No ranking available yet</strong><p>This session has no completed match results to tally.</p></div>';
     const remaining=ranking.slice(3);
-    const playerCount=remaining.length;
+    // The leaderboard count includes every ranked player, including the top-three podium.
+    const playerCount=ranking.length;
+    // Category totals also use the full ranking so the chips match the leaderboard total.
+    const categoryCounts=ranking.reduce((counts,player)=>{
+      const category=categoryCode(player?.category);
+      counts.ALL++;
+      if(category&&Object.prototype.hasOwnProperty.call(counts,category))counts[category]++;
+      return counts;
+    },{ALL:0,BEG:0,NOV:0,INT:0,ADV:0,EXP:0});
     return `<section class="session-tally-podium session-tally-podium-stage" aria-label="Top three players">
       ${sessionTallyPodiumSlot(ranking[1],2)}
       ${sessionTallyPodiumSlot(ranking[0],1)}
       ${sessionTallyPodiumSlot(ranking[2],3)}
     </section>
     <section class="session-tally-list" aria-label="Other player rankings">
-      <div class="session-tally-list-heading"><span>PLAYER RANKING</span><small>${playerCount} player${playerCount===1?'':'s'}</small></div>
-      <div class="session-tally-rows">${remaining.length?remaining.map(sessionTallyRankingRow).join(''):'<div class="session-tally-no-more">Top players are shown on the podium.</div>'}</div>
+      <div class="session-tally-list-heading"><span>LEADERBOARD</span><small>(${playerCount})</small></div>
+      <div class="live-tab-search live-matches-searchbar session-tally-searchbar" role="search">
+        <svg class="live-tab-search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+        <input id="sessionTallySearch" type="search" placeholder="Search player name..." aria-label="Search leaderboard player name" autocomplete="off" spellcheck="false">
+        <button id="sessionTallyFilterToggle" class="live-ranking-filter-toggle live-matches-filter-toggle session-tally-filter-toggle" type="button" aria-expanded="false" aria-controls="sessionTallyFilterControls" aria-label="Open leaderboard filters" title="Filter leaderboard by category">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5H2"/><path d="M6 12h12"/><path d="M9 19h6"/><path d="M16 5h6"/><path d="M19 8V2"/></svg>
+        </button>
+      </div>
+      <div id="sessionTallyFilterControls" class="live-ranking-filter-controls session-tally-filter-controls" aria-label="Filter leaderboard by skill category" hidden>
+        <div class="leaderboard-filter-row leaderboard-category-filters" role="group" aria-label="Skill categories">
+          <button type="button" class="leaderboard-filter-chip category-all active" data-session-tally-category="ALL" aria-pressed="true">ALL (${categoryCounts.ALL})</button>
+          <button type="button" class="leaderboard-filter-chip category-beg" data-session-tally-category="BEG" aria-pressed="false">BEG (${categoryCounts.BEG})</button>
+          <button type="button" class="leaderboard-filter-chip category-nov" data-session-tally-category="NOV" aria-pressed="false">NOV (${categoryCounts.NOV})</button>
+          <button type="button" class="leaderboard-filter-chip category-int" data-session-tally-category="INT" aria-pressed="false">INT (${categoryCounts.INT})</button>
+          <button type="button" class="leaderboard-filter-chip category-adv" data-session-tally-category="ADV" aria-pressed="false">ADV (${categoryCounts.ADV})</button>
+          <button type="button" class="leaderboard-filter-chip category-exp" data-session-tally-category="EXP" aria-pressed="false">EXP (${categoryCounts.EXP})</button>
+        </div>
+      </div>
+      <div class="session-tally-rows">${remaining.length?remaining.map(sessionTallyRankingRow).join(''):'<div class="session-tally-no-more">Top players are shown on the podium.</div>'}<div class="session-tally-filter-empty" hidden><strong>No players found</strong><span>Try another name or category.</span></div></div>
     </section>`;
+  }
+
+  function bindSessionTallySearch() {
+    const root=$('sessionTallyRanking');
+    const search=root?.querySelector('#sessionTallySearch');
+    const rowsHost=root?.querySelector('.session-tally-rows');
+    const filterToggle=root?.querySelector('#sessionTallyFilterToggle');
+    const filterControls=root?.querySelector('#sessionTallyFilterControls');
+    const emptyState=root?.querySelector('.session-tally-filter-empty');
+    if(!root||!search||!rowsHost||!filterToggle||!filterControls)return;
+
+    let selectedCategory='ALL';
+    const applyFilters=()=>{
+      const term=String(search.value||'').trim().toLocaleLowerCase();
+      const rows=Array.from(rowsHost.querySelectorAll('.session-tally-row'));
+      let visibleCount=0;
+      rows.forEach(row=>{
+        const name=String(row.querySelector('.session-tally-name-line strong')?.textContent||'').toLocaleLowerCase();
+        const category=String(row.querySelector('.session-tally-category')?.textContent||'').trim().toUpperCase();
+        const matchesName=!term||name.includes(term);
+        const matchesCategory=selectedCategory==='ALL'||category===selectedCategory;
+        const visible=matchesName&&matchesCategory;
+        row.classList.toggle('is-filtered-out',!visible);
+        if(visible)visibleCount++;
+      });
+      if(emptyState)emptyState.hidden=rows.length===0||visibleCount>0;
+    };
+
+    search.addEventListener('input',applyFilters);
+    filterToggle.addEventListener('click',()=>{
+      const opening=filterControls.hidden;
+      filterControls.hidden=!opening;
+      filterToggle.classList.toggle('is-open',opening);
+      filterToggle.setAttribute('aria-expanded',String(opening));
+      filterToggle.setAttribute('aria-label',opening?'Close leaderboard filters':'Open leaderboard filters');
+      filterToggle.title=opening?'Close leaderboard filters':'Filter leaderboard by category';
+    });
+    filterControls.addEventListener('click',event=>{
+      const button=event.target.closest('[data-session-tally-category]');
+      if(!button)return;
+      selectedCategory=button.dataset.sessionTallyCategory||'ALL';
+      filterControls.querySelectorAll('[data-session-tally-category]').forEach(chip=>{
+        const active=chip===button;
+        chip.classList.toggle('active',active);
+        chip.setAttribute('aria-pressed',String(active));
+      });
+      applyFilters();
+    });
+    root.addEventListener('keydown',event=>{
+      if(event.key!=='Escape'||filterControls.hidden)return;
+      event.preventDefault();
+      filterControls.hidden=true;
+      filterToggle.classList.remove('is-open');
+      filterToggle.setAttribute('aria-expanded','false');
+      filterToggle.setAttribute('aria-label','Open leaderboard filters');
+      filterToggle.title='Filter leaderboard by category';
+      filterToggle.focus();
+    });
   }
 
   function openSessionTally(sessionId) {
@@ -1185,6 +1263,7 @@
     $('sessionTallyTitle').textContent=`${session.sessionName||'Open Play'} Podium`;
     $('sessionTallySubtitle').textContent='Top players ranked by win rate, wins, and match performance.';
     $('sessionTallyRanking').innerHTML=sessionTallyMarkup(session);
+    bindSessionTallySearch();
     showDashboardModal('sessionTallyModal');
     $('closeSessionTallyModal')?.focus();
   }
@@ -1204,6 +1283,7 @@
     setMarkupWithoutJump(list,sessions.length?emptyMarkup('No sessions found','Try another session name or clear your search.','⌕'):emptyMarkup('No sessions to manage','Create your first session to see it listed here.','◷'));
   }
 
+  // ===== Dashboard loading and live-state synchronization =====
   function render() {
     renderTabs();
     renderSessionSelect();
@@ -1293,10 +1373,9 @@
         window.setTimeout(()=>loadDashboardData({silent:true}),700);
       }
     });
-    stream.addEventListener('error',()=>{
-    });
   }
 
+  // ===== Session editor calendar and date/time controls =====
   let sessionEditCalendarCursor=new Date();
   let sessionEditSelectedDate='';
 
@@ -1450,6 +1529,7 @@
     finally{if(button){button.disabled=false;button.textContent='Confirm';}}
   }
 
+  // ===== Modal behavior and attendance/match record actions =====
   function syncModalBodyLock() {
     const open=['sessionEditModal','settingsModal','duprExportModal','sessionTallyModal'].some(id=>$(id)&&!$(id).hidden);
     document.body.classList.toggle('modal-open',open);
@@ -1552,6 +1632,8 @@
   }
 
   function openEditMatch(matchId,sessionId) {
+    if(state.pendingDeleteMatch){showToast('Close the delete confirmation before editing a match.');return;}
+    if(state.editingMatch){showToast('Finish or cancel the current match edit first.');return;}
     const found=findMatch(sessionId,matchId);
     if(!found?.session||!found?.log){showToast('This match is no longer available.');return;}
     if(!hasRecordedMatchScore(found.log)){showToast('Only matches with a recorded score can be edited.');return;}
@@ -1638,6 +1720,9 @@
     const wrapper=input?.closest('.match-player-autocomplete');
     const suggestionList=wrapper?.querySelector('.match-player-suggestions');
     if(!input||!suggestionList)return;
+    // Keep the autocomplete menus mutually exclusive: opening this one
+    // always closes every other player's suggestion list first.
+    closeMatchPlayerSuggestions(input);
     const query=normalizeName(input.value);
     const players=(Array.isArray(state.records.players)?state.records.players:[])
       .filter(player=>String(player?.cloudId||'').trim()&&cloudPlayerName(player))
@@ -1676,28 +1761,21 @@
   }
 
   function openDeleteMatch(matchId,sessionId) {
+    if(state.editingMatch){showToast('Finish or cancel the current match edit before deleting.');return;}
+    if(state.pendingDeleteMatch){return;}
     const found=findMatch(sessionId,matchId);
     const session=found?.session,log=found?.log;
     if(!session||!log){showToast('This match is no longer available.');return;}
     state.pendingDeleteMatch={sessionId:String(session.id),matchId:String(matchId)};
-    const card=mountedMatchCard(session.id,matchId);
-    if(card){
-      const head=card.querySelector('.match-card-head');
-      if(head&&!card.querySelector('.match-inline-delete-warning'))head.insertAdjacentHTML('afterend',matchDeleteWarningMarkup(matchId,session.id));
-      const deleteButton=card.querySelector('[data-match-action="delete"]');
-      if(deleteButton)deleteButton.disabled=true;
-    }else renderMatches();
+    // Re-render so every edit/delete action is disabled while confirmation is open.
+    renderMatches();
   }
 
   function closeDeleteMatch() {
-    const target=state.pendingDeleteMatch;
+    if(!state.pendingDeleteMatch)return;
     state.pendingDeleteMatch=null;
-    const card=target?mountedMatchCard(target.sessionId,target.matchId):null;
-    if(card){
-      card.querySelector('.match-inline-delete-warning')?.remove();
-      const deleteButton=card.querySelector('[data-match-action="delete"]');
-      if(deleteButton)deleteButton.disabled=false;
-    }else renderMatches();
+    // Re-enable both action types together after the confirmation is closed.
+    renderMatches();
   }
 
   async function confirmDeleteMatch(button) {
@@ -1710,6 +1788,7 @@
     finally { if(button){button.disabled=false;button.textContent='Confirm';} }
   }
 
+  // ===== DUPR export, CSV generation and submission tracking =====
   const DUPR_EXPORT_COLUMNS=['matchType','event','date','playerA1','playerA1DuprId','playerA1ExternalId','playerA2','playerA2DuprId','playerA2ExternalId','playerB1','playerB1DuprId','playerB1ExternalId','playerB2','playerB2DuprId','playerB2ExternalId','teamAGame1','teamBGame1','teamAGame2','teamBGame2','teamAGame3','teamBGame3','teamAGame4','teamBGame4','teamAGame5','teamBGame5','scoreType','location'];
   function csvCell(value) { const text=String(value??'');return /[",\r\n]/.test(text)?`"${text.replace(/"/g,'""')}"`:text; }
 
@@ -2027,6 +2106,7 @@
     showToast(`${pending.length} match${pending.length===1?'':'es'} marked as submitted in this browser.`);
   }
 
+  // ===== Organizer profile, logo, password and DUPR settings =====
   function settingsDuprValue() {
     // Build the value from the six visible character inputs at the moment Save
     // is pressed. Never rely on a possibly stale hidden input value.
@@ -2219,6 +2299,7 @@
     finally { button.disabled=false;button.textContent='Save settings'; }
   }
 
+  // ===== DOM event handlers and dashboard startup =====
   $('attendanceTab').addEventListener('click',()=>setTab('attendance'));
   $('matchesTab').addEventListener('click',()=>setTab('matches'));
   $('sessionsTab').addEventListener('click',()=>setTab('sessions'));
