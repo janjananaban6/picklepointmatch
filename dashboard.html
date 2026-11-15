@@ -3,47 +3,856 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#0b1924">
   <meta name="robots" content="noindex, nofollow">
   <meta name="description" content="Organizer attendance and completed match records for Pickle Point Match.">
   <title>Organizer Dashboard — Pickle Point Match</title>
   <link rel="icon" type="image/png" href="pickleball-p-emblem.png">
-  <style id="ppm-tab-auth-curtain">html{visibility:hidden}</style>
-  <script src="tab-auth.js?v=cookie-session-auth-20261110-1"></script>
-  <link rel="stylesheet" href="dashboard.css?v=dashboard-match-suggestions-20261114-1">
-  <script src="dashboard.js?v=dashboard-match-actions-cleanup-20261114-2" defer></script>
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('ppm-dashboard-theme')==='light'?'light':'dark';}catch(_){document.documentElement.dataset.theme='dark';}</script>
+  <link rel="stylesheet" href="dashboard.css?v=dashboard-mobile-bottom-dock-20261116-7">
+  <style id="ppm-dashboard-sidebar-shell">
+/* Pickle Point Match dashboard shell — desktop sidebar, tablet sidebar, mobile dock. */
+:root {
+  --shell-sidebar-width: 264px;
+  --shell-ink: #eaf4f7;
+  --shell-muted: #8ba5b1;
+  --shell-muted-soft: #6f8997;
+  --shell-border: rgba(135, 179, 193, .17);
+  --shell-panel: #0a202b;
+  --shell-panel-soft: #102d3b;
+  --shell-accent: #2ed0c2;
+  --shell-accent-strong: #15a99f;
+  --shell-sidebar-shadow: 14px 0 48px rgba(0, 10, 18, .18);
+}
+
+html { background: #0b1924; }
+body.organizer-dashboard-page {
+  min-width: 320px;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at 70% 0%, rgba(17, 75, 72, .18), transparent 48%), #0b1924;
+  color: var(--shell-ink);
+  transition: background-color .22s ease, color .22s ease;
+}
+
+/* Desktop / tablet navigation rail */
+.dashboard-sidebar {
+  position: fixed;
+  z-index: 80;
+  inset: 0 auto 0 0;
+  width: var(--shell-sidebar-width);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 22px 15px 15px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-right: 1px solid var(--shell-border);
+  background: linear-gradient(180deg, #0a202b 0%, #091b25 100%);
+  box-shadow: var(--shell-sidebar-shadow);
+  color: var(--shell-ink);
+  scrollbar-width: none;
+}
+.dashboard-sidebar::-webkit-scrollbar { display: none; }
+.sidebar-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 1px 2px 23px;
+}
+/* Keep the desktop shell exactly as before; these controls become a grouped mobile topbar. */
+.mobile-topbar-actions { display: contents; }
+.mobile-organizer-avatar, .mobile-settings-button { display: none; }
+.sidebar-brand {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: inherit;
+  text-decoration: none;
+}
+.sidebar-brand-logo {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.sidebar-brand-logo img { width: 100%; height: 100%; object-fit: contain; padding: 0; }
+.sidebar-brand-name-mobile { display: none; }
+.sidebar-brand-name-desktop, .sidebar-brand-name-mobile {
+  max-width: 155px;
+  overflow: hidden;
+  color: #f3fbfd;
+  font-family: Manrope, "DM Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 850;
+  letter-spacing: -.035em;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.theme-toggle {
+  width: 43px;
+  height: 26px;
+  flex: 0 0 43px;
+  padding: 2px;
+  border: 1px solid rgba(139, 169, 181, .24);
+  border-radius: 999px;
+  background: #142f3b;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.theme-toggle:hover { border-color: rgba(46, 208, 194, .55); box-shadow: 0 0 0 3px rgba(46, 208, 194, .08); }
+.theme-toggle-track { width: 100%; height: 100%; display: block; position: relative; }
+.theme-toggle-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f7fbfc;
+  color: #d58e25;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+  transition: transform .22s cubic-bezier(.2, .8, .2, 1), background .2s ease, color .2s ease;
+}
+.theme-icon { position: absolute; width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.theme-icon-moon { display: block; }
+.theme-icon-sun { display: none; }
+html[data-theme="light"] .theme-toggle { background: #dfe8ee; border-color: #d3dfe7; }
+html[data-theme="light"] .theme-toggle-thumb { transform: translateX(17px); background: #fff; color: #d79521; }
+html[data-theme="light"] .theme-icon-moon { display: none; }
+html[data-theme="light"] .theme-icon-sun { display: block; }
+
+.sidebar-search-wrap {
+  height: 43px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 1px 27px;
+  padding: 0 12px;
+  border: 1px solid rgba(134, 177, 190, .13);
+  border-radius: 12px;
+  background: rgba(24, 55, 69, .72);
+  color: #8ca6b2;
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.sidebar-search-wrap:focus-within { border-color: rgba(46, 208, 194, .48); background: rgba(24, 62, 75, .9); box-shadow: 0 0 0 3px rgba(46, 208, 194, .07); }
+.sidebar-search-wrap > svg { width: 17px; height: 17px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.sidebar-search-wrap input { width: 100%; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: #edf8fa; font-size: 12px; font-weight: 600; }
+.sidebar-search-wrap input::placeholder { color: #7995a1; }
+
+.sidebar-navigation { display: flex; flex-direction: column; gap: 25px; }
+.sidebar-nav-group { display: flex; flex-direction: column; gap: 8px; }
+.sidebar-section-label {
+  padding: 0 9px;
+  color: #718d9b;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .13em;
+  line-height: 1.2;
+}
+.dashboard-tabs { display: flex; flex-direction: column; align-items: stretch; gap: 5px; padding: 0; border: 0; background: transparent; }
+.dashboard-tab,
+.sidebar-nav-link {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--shell-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.1;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color .18s ease, background .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.dashboard-tab:hover,
+.sidebar-nav-link:hover { color: #e8fbfb; background: rgba(53, 124, 132, .13); }
+.dashboard-tab:focus-visible,
+.sidebar-nav-link:focus-visible,
+.theme-toggle:focus-visible,
+.sidebar-logout-button:focus-visible { outline: 2px solid var(--shell-accent); outline-offset: 3px; }
+.dashboard-tab .tab-icon-svg,
+.dashboard-tab .sidebar-utility-icon,
+.sidebar-nav-link > svg:first-child {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: .92;
+}
+.dashboard-tab.is-active {
+  border-color: rgba(92, 137, 255, .14);
+  background: linear-gradient(105deg, rgba(83, 108, 242, .22), rgba(78, 112, 220, .08));
+  color: #aab6ff;
+  box-shadow: inset 3px 0 0 #777dff, 0 7px 20px rgba(0, 0, 0, .08);
+}
+.dashboard-tab.is-active:hover { background: linear-gradient(105deg, rgba(83, 108, 242, .27), rgba(78, 112, 220, .1)); }
+.sidebar-nav-link.create-action {
+  min-height: 46px;
+  max-width: none;
+  margin-top: 3px;
+  padding: 0 13px;
+  border: 1px solid rgba(36, 208, 192, .17);
+  border-radius: 11px;
+  background: linear-gradient(105deg, rgba(20, 165, 153, .2), rgba(20, 165, 153, .09));
+  color: #62dfd0;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 800;
+}
+.sidebar-nav-link.create-action:hover { border-color: rgba(46, 208, 194, .42); background: linear-gradient(105deg, rgba(20, 165, 153, .27), rgba(20, 165, 153, .13)); color: #a5fff3; transform: translateY(-1px); }
+.sidebar-nav-link.create-action > svg:first-child { width: 18px; height: 18px; flex-basis: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.sidebar-link-arrow { width: 14px; height: 14px; margin-left: auto; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; opacity: .6; }
+.sidebar-settings-link .sidebar-utility-icon { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sidebar-system-group { margin-top: 1px; }
+.sidebar-navigation [hidden] { display: none !important; }
+.sidebar-nav-group.is-search-empty { display: none; }
+
+.sidebar-profile-card {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding: 11px 9px;
+  border: 1px solid rgba(130, 177, 191, .17);
+  border-radius: 14px;
+  background: rgba(22, 52, 65, .62);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .09);
+}
+.sidebar-profile-logo {
+  width: 39px;
+  height: 39px;
+  flex: 0 0 39px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.sidebar-profile-logo img { width: 100%; height: 100%; object-fit: contain; padding: 0; }
+.sidebar-profile-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.sidebar-profile-copy > strong { max-width: 100%; overflow: hidden; color: #eff8fa; font-size: 11px; font-weight: 850; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-profile-copy .dashboard-brand-username { max-width: 100%; overflow: hidden; color: #8ba4b0; font-size: 9px; font-weight: 650; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-profile-copy .dashboard-brand-dupr-badge { max-width: 100%; min-height: 16px; margin-top: 1px; padding: 1px 6px; border: 1px solid rgba(39, 173, 220, .22); border-radius: 5px; background: rgba(23, 125, 159, .14); color: #75d2ef; font-size: 8px; font-weight: 850; line-height: 1.2; }
+.sidebar-profile-copy .dashboard-brand-dupr-badge[hidden] { display: none !important; }
+.sidebar-logout-button {
+  width: 31px;
+  height: 31px;
+  flex: 0 0 31px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(141, 169, 181, .2);
+  border-radius: 9px;
+  background: rgba(118, 147, 163, .08);
+  color: #9cb3bf;
+  cursor: pointer;
+  transition: color .18s ease, background .18s ease, border-color .18s ease, transform .18s ease;
+}
+.sidebar-logout-button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sidebar-logout-button:hover { border-color: rgba(234, 117, 130, .35); background: rgba(234, 117, 130, .1); color: #f2a1a8; transform: translateY(-1px); }
+
+/* Workspace canvas */
+.dashboard-main {
+  width: auto !important;
+  max-width: none !important;
+  margin: 0 0 0 var(--shell-sidebar-width) !important;
+  padding: 28px clamp(20px, 3.2vw, 48px) 28px !important;
+}
+.dashboard-records-layout { width: min(100%, 1240px); margin: 0 auto; gap: 14px; }
+.records-card { border-radius: 17px; }
+.dashboard-footer { width: min(100%, 1240px); margin: 0 auto; }
+
+/* Accessible reduced-motion behavior */
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-sidebar *, .dashboard-sidebar *::before, .dashboard-sidebar *::after,
+  .dashboard-main, .theme-toggle-thumb { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+/* Phone navigation: the same five actions become a floating bottom dock. */
+@media (max-width: 760px) {
+  .dashboard-sidebar {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    display: block;
+    padding: 10px 14px 8px;
+    overflow: visible;
+    border: 0;
+    border-bottom: 1px solid var(--shell-border);
+    background: rgba(10, 32, 43, .96);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, .08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .sidebar-brand-row { min-height: 42px; padding: 0; gap: 8px; }
+  .sidebar-brand { flex: 1 1 auto; min-width: 0; gap: 8px; }
+  .sidebar-brand-logo { width: 34px; height: 34px; flex-basis: 34px; border-radius: 10px; }
+  .sidebar-brand-name-desktop, .sidebar-brand-name-mobile { max-width: clamp(104px, 38vw, 250px); font-size: 13px; }
+  .mobile-topbar-actions { flex: 0 0 auto; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .mobile-organizer-avatar { width: 32px; height: 32px; flex: 0 0 32px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(133, 166, 186, .28); border-radius: 50%; background: rgba(112, 130, 248, .13); }
+  .mobile-organizer-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .theme-toggle { width: 42px; height: 25px; flex-basis: 42px; }
+  .mobile-settings-button { width: 35px; height: 35px; flex: 0 0 35px; display: inline-flex; align-items: center; justify-content: center; gap: 0; padding: 0; border: 1px solid rgba(139, 169, 181, .22); border-radius: 10px; background: rgba(117, 145, 160, .09); color: #9bb2bf; cursor: pointer; }
+  .mobile-settings-button .sidebar-utility-icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .mobile-settings-button span { display: none; }
+  .mobile-settings-button:focus-visible { outline: 2px solid var(--shell-accent); outline-offset: 3px; }
+  .mobile-settings-button:active { background: rgba(46, 208, 194, .14); color: #4fe0d0; }
+  .sidebar-search-wrap, .sidebar-profile-card { display: none; }
+  .sidebar-navigation {
+    position: fixed;
+    z-index: 1000;
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(9px, env(safe-area-inset-bottom));
+    height: 72px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 3px;
+    padding: 7px 8px;
+    border: 1px solid rgba(139, 166, 181, .2);
+    border-radius: 19px;
+    background: rgba(247, 250, 252, .97);
+    box-shadow: 0 12px 34px rgba(0, 0, 0, .2), 0 2px 7px rgba(0, 0, 0, .07);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .sidebar-nav-group, .sidebar-nav-group.sidebar-system-group { display: contents; }
+  .sidebar-section-label { display: none; }
+  .dashboard-tabs { display: contents; }
+  .sidebar-system-group { display: none !important; }
+  #attendanceTab { order: 1; }
+  #matchesTab { order: 2; }
+  #sessionsTab { order: 3; }
+  .sidebar-nav-link.create-action { order: 4; }
+  .dashboard-tab,
+  .sidebar-nav-link,
+  .sidebar-nav-link.create-action {
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin: 0;
+    padding: 4px 1px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    box-shadow: none;
+    color: #6d7b86;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1.05;
+    text-align: center;
+    white-space: nowrap;
+    transform: none;
+  }
+  .dashboard-tab:hover, .sidebar-nav-link:hover { background: rgba(91, 110, 246, .07); color: #4956c9; }
+  .dashboard-tab.is-active {
+    border-color: transparent;
+    background: linear-gradient(180deg, rgba(100, 111, 247, .15), rgba(100, 111, 247, .05));
+    color: #5e63e8;
+    box-shadow: none;
+  }
+  .dashboard-tab .tab-icon-svg,
+  .dashboard-tab .sidebar-utility-icon,
+  .sidebar-nav-link.create-action > svg:first-child {
+    width: 19px;
+    height: 19px;
+    flex: 0 0 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .sidebar-nav-link.create-action > svg:first-child { fill: none; stroke: currentColor; stroke-width: 2; }
+  .sidebar-link-arrow { display: none; }
+  .dashboard-main {
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 16px 12px calc(100px + env(safe-area-inset-bottom)) !important;
+  }
+  .dashboard-records-layout { width: 100%; gap: 11px; }
+  .records-view { padding: 15px 13px 17px; }
+  .dashboard-footer { display: none; }
+  .dashboard-toast { bottom: calc(88px + env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 380px) {
+  .sidebar-navigation { left: 8px; right: 8px; height: 68px; padding: 6px; gap: 1px; }
+  .dashboard-tab, .sidebar-nav-link, .sidebar-nav-link.create-action { font-size: 8px; }
+  .dashboard-tab .tab-icon-svg, .dashboard-tab .sidebar-utility-icon, .sidebar-nav-link.create-action > svg:first-child { width: 18px; height: 18px; flex-basis: 18px; }
+  .dashboard-main { padding-inline: 9px !important; }
+}
+
+/* Shared light theme — views, menus, forms, and dialogs switch together. */
+html[data-theme="light"] {
+  color-scheme: light;
+  --shell-ink: #243343;
+  --shell-muted: #647486;
+  --shell-muted-soft: #8291a0;
+  --shell-border: rgba(91, 112, 137, .16);
+  --shell-panel: #ffffff;
+  --shell-panel-soft: #f3f6fa;
+  --shell-sidebar-shadow: 10px 0 34px rgba(35, 57, 78, .06);
+  background: #f3f6fa;
+}
+html[data-theme="light"] body.organizer-dashboard-page {
+  color: #243343;
+  background: #f3f6fa;
+}
+html[data-theme="light"] .dashboard-sidebar {
+  border-right-color: #e4eaf0;
+  background: #ffffff;
+  box-shadow: var(--shell-sidebar-shadow);
+  color: #263545;
+}
+html[data-theme="light"] .sidebar-brand-name-desktop, html[data-theme="light"] .sidebar-brand-name-mobile { color: #263545; }
+html[data-theme="light"] .sidebar-brand-logo { border: 0; background: transparent; box-shadow: none; }
+html[data-theme="light"] .sidebar-search-wrap { border-color: #e5ebf1; background: #f1f4f8; color: #7c8c9b; }
+html[data-theme="light"] .sidebar-search-wrap:focus-within { border-color: rgba(26, 171, 158, .55); background: #fff; box-shadow: 0 0 0 3px rgba(26, 171, 158, .08); }
+html[data-theme="light"] .sidebar-search-wrap input { color: #253445; }
+html[data-theme="light"] .sidebar-search-wrap input::placeholder { color: #91a0ae; }
+html[data-theme="light"] .sidebar-section-label { color: #8895a3; }
+html[data-theme="light"] .dashboard-tab,
+html[data-theme="light"] .sidebar-nav-link { color: #596a7b; }
+html[data-theme="light"] .dashboard-tab:hover,
+html[data-theme="light"] .sidebar-nav-link:hover { color: #4b58d0; background: #f2f3ff; }
+html[data-theme="light"] .dashboard-tab.is-active { border-color: #e7e9ff; background: #f0f0ff; color: #535be0; box-shadow: inset 3px 0 0 #686cf2; }
+html[data-theme="light"] .sidebar-nav-link.create-action { border-color: #ccefe9; background: #effbf8; color: #0a958a; }
+html[data-theme="light"] .sidebar-nav-link.create-action:hover { background: #e4f8f4; color: #087e75; }
+html[data-theme="light"] .sidebar-profile-card { border-color: #e5ebf1; background: #fff; box-shadow: 0 7px 20px rgba(36, 54, 74, .045); }
+html[data-theme="light"] .sidebar-profile-logo { border: 0; background: transparent; box-shadow: none; }
+html[data-theme="light"] .sidebar-profile-copy > strong { color: #283647; }
+html[data-theme="light"] .sidebar-profile-copy .dashboard-brand-username { color: #788797; }
+html[data-theme="light"] .sidebar-profile-copy .dashboard-brand-dupr-badge { border-color: #cdeaf3; background: #effaff; color: #1683a6; }
+html[data-theme="light"] .sidebar-logout-button { border-color: #e0e7ed; background: #f6f8fa; color: #687b8d; }
+html[data-theme="light"] .sidebar-logout-button:hover { border-color: #f2cbd0; background: #fff3f4; color: #ca626d; }
+html[data-theme="light"] .dashboard-main { color: #243343; }
+html[data-theme="light"] .records-card {
+  border-color: #e4eaf0;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(38, 56, 76, .045);
+}
+html[data-theme="light"] .records-toolbar { border-bottom-color: #edf1f5; }
+html[data-theme="light"] .session-picker-wrap > label { color: #748395; }
+html[data-theme="light"] .session-select-shell { border-color: #dce5ec; background: #f8fafc; }
+html[data-theme="light"] .session-select-shell:focus-within { border-color: #46b9ad; box-shadow: 0 0 0 3px rgba(46, 184, 172, .1); }
+html[data-theme="light"] .session-select-shell > svg { stroke: #159f94; }
+html[data-theme="light"] .session-select-shell select { color: #263747; }
+html[data-theme="light"] .session-select-shell option { background: #fff; color: #263747; }
+html[data-theme="light"] .selected-session-meta { color: #8291a0; }
+html[data-theme="light"] .view-heading h2 { color: #263646; }
+html[data-theme="light"] .view-heading p { color: #78899a; }
+html[data-theme="light"] .records-search-wrap { border-color: #e0e7ed; background: #f8fafc; color: #7a8b99; }
+html[data-theme="light"] .records-search-wrap:focus-within { border-color: #67bfb6; box-shadow: 0 0 0 3px rgba(46, 184, 172, .08); }
+html[data-theme="light"] .records-search-wrap input { color: #263646; }
+html[data-theme="light"] .records-search-wrap input::placeholder { color: #95a2af; }
+html[data-theme="light"] .participant-row,
+html[data-theme="light"] .match-card,
+html[data-theme="light"] .session-manage-card { border-color: #e6ebf0; background: #fbfcfd; }
+html[data-theme="light"] .participant-row:hover,
+html[data-theme="light"] .session-manage-card:hover { border-color: #c8e9e4; background: #f6fbfa; }
+html[data-theme="light"] .participant-name,
+html[data-theme="light"] .match-player-name,
+html[data-theme="light"] .session-manage-copy h3 { color: #2a3949; }
+html[data-theme="light"] .participant-copy > span:not(.participant-name),
+html[data-theme="light"] .session-manage-copy p,
+html[data-theme="light"] .session-manage-date { color: #7c8b98; }
+html[data-theme="light"] .match-team { border-color: #e9edf1; background: #f7f9fb; }
+html[data-theme="light"] .match-team.is-winner { border-color: #caeade; background: #f0faf5; }
+html[data-theme="light"] .matches-summary-card { border-color: #e2e9ee; background: #f7fafc; }
+html[data-theme="light"] .matches-summary-card strong { color: #263646; }
+html[data-theme="light"] .matches-summary-card span { color: #119b90; }
+html[data-theme="light"] .match-date-field label { color: #6e7f8e; }
+html[data-theme="light"] .match-date-field input,
+html[data-theme="light"] .participant-inline-input,
+html[data-theme="light"] .dashboard-modal-input,
+html[data-theme="light"] .settings-organizer-form input:not([type="file"]),
+html[data-theme="light"] .dupr-export-field input,
+html[data-theme="light"] .dupr-export-field select { border-color: #dce5eb; background: #fff; color: #273848; }
+html[data-theme="light"] .participant-action,
+html[data-theme="light"] .session-manage-btn,
+html[data-theme="light"] .match-range-button { border-color: #dfe7ed; background: #f7f9fb; color: #617486; }
+html[data-theme="light"] .participant-action:hover:not(:disabled),
+html[data-theme="light"] .session-manage-btn:hover:not(:disabled),
+html[data-theme="light"] .match-range-button:hover { border-color: #b8dfd9; background: #effaf8; color: #168c82; }
+html[data-theme="light"] .empty-state { border-color: #dce5eb; background: #fafcfd; color: #607284; }
+html[data-theme="light"] .empty-state h3,
+html[data-theme="light"] .empty-state strong { color: #344557; }
+html[data-theme="light"] .dashboard-loading { color: #788a98; }
+html[data-theme="light"] .dashboard-footer { color: #8a98a5; }
+html[data-theme="light"] .dashboard-toast { border-color: #c8e8e2; background: #fff; color: #22685f; box-shadow: 0 12px 35px rgba(24, 55, 78, .14); }
+
+/* Dialogs and overlays also follow the selected theme. */
+html[data-theme="light"] .dashboard-modal,
+html[data-theme="light"] .settings-modal,
+html[data-theme="light"] #sessionEditModal .settings-modal {
+  border-color: #e1e8ee;
+  background: #ffffff;
+  color: #263646;
+  box-shadow: 0 22px 70px rgba(37, 55, 76, .2);
+}
+html[data-theme="light"] .dashboard-modal h2,
+html[data-theme="light"] .settings-modal h2,
+html[data-theme="light"] .settings-modal h3 { color: #263646; }
+html[data-theme="light"] .dashboard-modal p,
+html[data-theme="light"] .settings-modal p,
+html[data-theme="light"] .settings-field-help { color: #738392; }
+html[data-theme="light"] .settings-field-label,
+html[data-theme="light"] .settings-subheading p { color: #788896; }
+html[data-theme="light"] .settings-password-section,
+html[data-theme="light"] .settings-logo-editor,
+html[data-theme="light"] .settings-modal-heading { border-color: #e8edf1; }
+html[data-theme="light"] .settings-upload-button,
+html[data-theme="light"] .settings-remove-logo { border-color: #dce5eb; background: #f7f9fb; color: #506477; }
+html[data-theme="light"] .settings-logo-preview { border-color: #dce5eb; background: #f6f8fa; }
+html[data-theme="light"] .settings-form-message { color: #647787; }
+html[data-theme="light"] .dashboard-modal-backdrop,
+html[data-theme="light"] .settings-modal-backdrop { background: rgba(27, 42, 57, .36); }
+html[data-theme="light"] .session-tally-dialog { border-color: #e5ebf0; background: #fff; color: #263646; box-shadow: 0 24px 70px rgba(37, 55, 76, .22); }
+html[data-theme="light"] .session-tally-dialog h2,
+html[data-theme="light"] .session-tally-dialog strong { color: #273849; }
+html[data-theme="light"] .dupr-export-modal { border-color: #e1e8ee; background: #fff; color: #283848; box-shadow: 0 24px 70px rgba(37, 55, 76, .22); }
+html[data-theme="light"] .dupr-export-header,
+html[data-theme="light"] .dupr-export-footer,
+html[data-theme="light"] .dupr-export-filters,
+html[data-theme="light"] .dupr-export-fields { border-color: #e6ebf0; background: #fff; }
+html[data-theme="light"] .dupr-export-modal h2,
+html[data-theme="light"] .dupr-export-modal strong,
+html[data-theme="light"] .dupr-export-modal th { color: #2b3d4e; }
+html[data-theme="light"] .dupr-export-modal p,
+html[data-theme="light"] .dupr-export-modal td { color: #637587; }
+html[data-theme="light"] .dupr-export-table th,
+html[data-theme="light"] .dupr-export-table td { border-color: #e8edf1; }
+html[data-theme="light"] .dupr-export-table tr:nth-child(even) { background: #f8fafc; }
+html[data-theme="light"] .dupr-export-filter { border-color: #e1e8ee; background: #f7f9fb; color: #647688; }
+html[data-theme="light"] .dupr-export-filter.is-active { border-color: #bfe8df; background: #effaf7; color: #0b9589; }
+html[data-theme="light"] .session-select-options,
+html[data-theme="light"] .session-select-option,
+html[data-theme="light"] .dupr-score-type-trigger { border-color: #dfe7ed; background: #fff; color: #33485a; }
+html[data-theme="light"] .session-select-option:hover { background: #f3f8fa; }
+html[data-theme="light"] .dupr-missing-notice { border-color: #f1dcae; background: #fffaf0; color: #765d29; }
+
+@media (max-width: 760px) {
+  html[data-theme="light"] .dashboard-sidebar { border-bottom-color: #e5ebf1; background: rgba(255, 255, 255, .97); box-shadow: 0 4px 18px rgba(40, 58, 78, .05); }
+  html[data-theme="light"] .sidebar-navigation { border-color: #e3e9ef; background: rgba(255, 255, 255, .97); box-shadow: 0 12px 34px rgba(40, 58, 78, .13), 0 2px 7px rgba(40, 58, 78, .05); }
+  html[data-theme="light"] .mobile-organizer-avatar { border-color: #e1e7ef; background: #f2f4fb; }
+  html[data-theme="light"] .mobile-settings-button { border-color: #e0e7ed; background: #f6f8fa; color: #687b8d; }
+  html[data-theme="light"] .mobile-settings-button:active { background: #e9f8f5; color: #138e83; }
+}
+
+/* The podium modal previously reserved space for the removed sticky topbar. */
+:root { --dashboard-topbar-height: 0px; }
+#sessionTallyModal.session-tally-backdrop {
+  z-index: 1200 !important;
+  padding: 22px 12px 12px !important;
+  align-items: stretch !important;
+}
+#sessionTallyModal .session-tally-dialog {
+  height: calc(100dvh - 34px) !important;
+  max-height: calc(100dvh - 34px) !important;
+}
+@media (min-width: 768px) and (max-width: 1100px) and (orientation: portrait) {
+  #sessionTallyModal.session-tally-backdrop { padding: 30px 12px 12px !important; }
+  #sessionTallyModal .session-tally-dialog { height: calc(100dvh - 48px) !important; max-height: calc(100dvh - 48px) !important; }
+}
+@media (max-width: 760px) {
+  :root { --dashboard-topbar-height: 56px; }
+  #sessionTallyModal.session-tally-backdrop {
+    padding: calc(env(safe-area-inset-top, 0px) + 66px) 12px 12px !important;
+    align-items: flex-start !important;
+  }
+  #sessionTallyModal .session-tally-dialog {
+    height: auto !important;
+    min-height: min(560px, calc(100dvh - 90px - env(safe-area-inset-top, 0px))) !important;
+    max-height: calc(100dvh - 90px - env(safe-area-inset-top, 0px)) !important;
+  }
+}
+@media (min-width: 761px) and (orientation: landscape) and (max-height: 520px) {
+  #sessionTallyModal.session-tally-backdrop { padding: 22px 10px 10px !important; }
+  #sessionTallyModal .session-tally-dialog { height: calc(100dvh - 34px) !important; max-height: calc(100dvh - 34px) !important; }
+}
+@media (max-width: 760px) {
+  body.organizer-dashboard-page .dashboard-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 110;
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+  .sidebar-navigation { z-index: 80; }
+}
+@media (max-width: 380px) {
+  .mobile-topbar-actions { gap: 5px; }
+  .sidebar-brand-name-desktop, .sidebar-brand-name-mobile { max-width: clamp(94px, 34vw, 150px); font-size: 12px; }
+  .mobile-organizer-avatar { width: 30px; height: 30px; flex-basis: 30px; }
+  .mobile-settings-button { width: 33px; height: 33px; flex-basis: 33px; }
+}
+
+/* Keep the phone dock fixed to the viewport, not the sticky/blurred topbar.
+   A backdrop-filter on an ancestor creates a containing block for fixed children. */
+@media (max-width: 760px) {
+  body.organizer-dashboard-page .dashboard-sidebar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+    transform: none !important;
+    perspective: none !important;
+    contain: none !important;
+  }
+  body.organizer-dashboard-page .sidebar-navigation {
+    position: fixed !important;
+    top: auto !important;
+    bottom: max(9px, env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* The previous dashboard used a sticky topbar. This sidebar layout has none,
+   so clear the legacy height reservation at desktop, tablet, and phone widths. */
+body.organizer-dashboard-page { padding-top: 0 !important; }
+body.organizer-dashboard-page .dashboard-topbar { display: none !important; }
+@media (max-width: 1024px), (hover: none) and (pointer: coarse) {
+  body.organizer-dashboard-page { padding-top: 0 !important; }
+}
+@media (max-width: 760px) {
+  body.organizer-dashboard-page { padding-top: 0 !important; }
+}
+  
+
+/* Mobile-only navigation/header refinements. Desktop sidebar styling is unchanged. */
+.sidebar-tab-label-mobile { display: none; }
+@media (max-width: 760px) {
+  /* Mobile header: organizer logo, organizer name, theme toggle, and settings only. */
+  .sidebar-brand { gap: 8px; }
+  .sidebar-brand-name-desktop { display: none !important; }
+  .sidebar-brand-name-mobile { display: inline; }
+  .sidebar-brand-logo { display: none !important; }
+  .sidebar-brand > .mobile-organizer-avatar {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    place-items: center;
+    overflow: hidden;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .sidebar-brand > .mobile-organizer-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .mobile-topbar-actions { gap: 8px; }
+
+  /* Restore the floating dock outline; individual navigation items stay transparent. */
+  .sidebar-navigation {
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(9px, env(safe-area-inset-bottom));
+    height: 66px;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    align-items: stretch;
+    gap: 4px;
+    padding: 6px 8px;
+    border: 1px solid rgba(139, 166, 181, .3) !important;
+    border-radius: 20px;
+    background: transparent !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .22), 0 0 0 1px rgba(255, 255, 255, .025);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .sidebar-navigation > .sidebar-nav-group,
+  .sidebar-navigation .dashboard-tabs {
+    display: contents !important;
+  }
+  .sidebar-navigation .sidebar-system-group { display: none !important; }
+  /* Explicit grid cells guarantee Attendance → Matches → Session → Create Session. */
+  .sidebar-navigation #attendanceTab { grid-column: 1 !important; grid-row: 1 !important; }
+  .sidebar-navigation #matchesTab { grid-column: 2 !important; grid-row: 1 !important; }
+  .sidebar-navigation #sessionsTab { grid-column: 3 !important; grid-row: 1 !important; }
+  .sidebar-navigation .sidebar-nav-link.create-action {
+    grid-column: 4 / 5 !important;
+    grid-row: 1 / 2 !important;
+  }
+  .sidebar-tab-label-mobile { display: inline; }
+  .sidebar-tab-label-desktop { display: none; }
+
+  .sidebar-navigation .dashboard-tab,
+  .sidebar-navigation .sidebar-nav-link,
+  .sidebar-navigation .sidebar-nav-link.create-action {
+    border: 0 !important;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #8799a5;
+    transition: color .15s ease;
+  }
+  .sidebar-navigation .dashboard-tab:hover,
+  .sidebar-navigation .sidebar-nav-link:hover,
+  .sidebar-navigation .sidebar-nav-link.create-action:hover {
+    border: 0 !important;
+    background: transparent !important;
+    color: var(--shell-accent);
+  }
+  .sidebar-navigation .dashboard-tab.is-active,
+  .sidebar-navigation .sidebar-nav-link.create-action:active {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #35d2c3;
+  }
+  .sidebar-navigation .dashboard-tab.is-active .tab-icon-svg,
+  .sidebar-navigation .dashboard-tab.is-active .sidebar-utility-icon {
+    color: inherit;
+  }
+
+  /* Open settings without waiting for the settings API request or a heavy blur. */
+  .settings-modal-backdrop {
+    padding: 8px !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .settings-modal-backdrop > .settings-modal {
+    max-height: calc(100dvh - 16px);
+    animation: dashboard-modal-in .12s ease-out both;
+  }
+  html[data-theme="light"] .sidebar-navigation {
+    border-color: rgba(62, 83, 102, .24) !important;
+    box-shadow: 0 10px 28px rgba(32, 48, 64, .14), 0 0 0 1px rgba(255, 255, 255, .28);
+  }
+  html[data-theme="light"] .sidebar-navigation .dashboard-tab,
+  html[data-theme="light"] .sidebar-navigation .sidebar-nav-link,
+  html[data-theme="light"] .sidebar-navigation .sidebar-nav-link.create-action {
+    color: #778795;
+  }
+  html[data-theme="light"] .sidebar-navigation .dashboard-tab:hover,
+  html[data-theme="light"] .sidebar-navigation .sidebar-nav-link:hover,
+  html[data-theme="light"] .sidebar-navigation .sidebar-nav-link.create-action:hover,
+  html[data-theme="light"] .sidebar-navigation .dashboard-tab.is-active {
+    color: #119b90;
+  }
+}
+@media (max-width: 380px) {
+  .sidebar-brand > .mobile-organizer-avatar { width: 32px; height: 32px; flex-basis: 32px; }
+  .mobile-topbar-actions { gap: 6px; }
+  .sidebar-navigation { height: 60px; padding-inline: 2px; }
+}
+
+  </style>
+  <script src="dashboard.js?v=dashboard-mobile-bottom-dock-20261116-7" defer></script>
 </head>
 <body class="organizer-dashboard-page">
-  <header class="dashboard-topbar">
-    <div class="dashboard-topbar-inner">
-      <div class="dashboard-brand">
-        <span class="dashboard-brand-logo-wrap"><img id="organizerLogo" src="pickleball-p-emblem.png" alt="Organizer logo" decoding="async" draggable="false"></span>
-        <span class="dashboard-brand-copy">
-          <strong id="organizerClubName">Organizer Dashboard</strong>
-          <span class="dashboard-brand-meta">
-            <span class="dashboard-brand-username" id="organizerUsername"></span>
-            <span class="dashboard-brand-dupr-badge" id="organizerDuprBadge" hidden></span>
-          </span>
+  <aside class="dashboard-sidebar" aria-label="Organizer navigation">
+    <div class="sidebar-brand-row">
+      <a class="sidebar-brand" href="/dashboard" aria-label="Pickle Point Match dashboard">
+        <span class="sidebar-brand-logo"><img src="pickleball-p-emblem.png" alt="" decoding="async" draggable="false"></span>
+        <span class="mobile-organizer-avatar" title="Organizer logo">
+          <img id="mobileOrganizerLogo" src="pickleball-p-emblem.png" alt="Organizer logo" decoding="async" draggable="false">
         </span>
+        <span class="sidebar-brand-name-desktop">Pickle Point Match</span>
+        <span id="organizerClubName" class="sidebar-brand-name-mobile">Organizer</span>
+      </a>
+      <div class="mobile-topbar-actions" aria-label="Quick settings">
+        <button class="theme-toggle" id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Switch to light mode" title="Switch to light mode">
+          <span class="theme-toggle-track"><span class="theme-toggle-thumb">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon theme-icon-moon lucide lucide-moon preview-icon" aria-hidden="true"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon theme-icon-sun lucide lucide-sun preview-icon" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+          </span></span>
+        </button>
+        <button class="mobile-settings-button" id="mobileOpenSettingsButton" type="button" aria-label="Settings" title="Settings">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-utility-icon lucide lucide-settings preview-icon" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Settings</span>
+        </button>
       </div>
-      <nav class="dashboard-actions" aria-label="Organizer actions">
-        <a class="dashboard-action create-action" href="/session" target="_blank" rel="noopener" aria-label="Create session" title="Create session">
-          <svg class="dashboard-action-icon-svg create-action-icon" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M511,207 L508,203 L388,133 L384,146 L384,164 L390,184 L387,186 L185,218 L183,215 L183,167 L187,160 L397,126 L401,122 L402,117 L399,112 L247,25 L41,58 L32,65 L28,73 L27,131 L30,138 L33,141 L56,156 L56,224 L58,229 L62,234 L103,260 L3,325 L0,329 L1,336 L4,339 L11,341 L260,385 L264,389 L267,397 L267,464 L264,470 L259,470 L13,425 L6,425 L2,427 L0,435 L4,440 L246,484 L268,486 L447,359 L453,352 L455,346 L456,316 L504,309 L510,305 L511,299 L509,295 L506,293 L497,293 L304,325 L247,333 L244,328 L244,269 L246,263 L253,258 L500,219 L507,217 L510,214 Z"/></svg>
-          <span>Create Session</span>
-        </a>
-        <div class="dashboard-action-group" role="group" aria-label="Dashboard actions">
-          <button class="dashboard-action settings-action" id="openSettingsButton" type="button" aria-label="Settings">
-            <svg class="dashboard-action-icon-svg settings-action-icon" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M147,171 L137,176 L131,183 L128,191 L128,207 L123,213 L114,217 L107,217 L94,205 L84,201 L75,201 L64,206 L36,234 L31,244 L31,257 L34,264 L46,277 L47,283 L43,293 L38,298 L16,300 L9,304 L3,311 L0,319 L0,363 L2,369 L7,376 L14,381 L20,383 L36,383 L42,387 L47,402 L46,405 L36,415 L31,424 L31,438 L37,449 L62,474 L70,479 L81,481 L93,477 L106,465 L112,464 L124,469 L127,472 L128,491 L130,497 L135,504 L142,509 L148,511 L192,511 L203,506 L209,499 L212,492 L213,473 L218,468 L228,464 L232,464 L243,474 L251,479 L259,481 L268,480 L276,476 L305,447 L310,436 L310,427 L306,417 L295,406 L293,400 L298,388 L302,384 L320,383 L331,378 L337,371 L340,364 L340,318 L336,309 L330,303 L321,299 L302,298 L298,294 L294,285 L294,278 L308,261 L310,255 L309,242 L306,236 L275,205 L265,201 L256,201 L244,207 L234,217 L229,218 L217,213 L213,209 L212,190 L208,181 L202,175 L193,171 Z M151,187 L192,188 L196,193 L196,209 L200,219 L208,227 L222,233 L238,233 L244,230 L257,218 L261,217 L266,219 L292,245 L294,250 L291,257 L281,267 L277,277 L277,285 L283,301 L292,311 L298,314 L318,315 L324,321 L323,362 L316,367 L301,367 L290,372 L284,379 L278,393 L277,404 L279,411 L282,416 L292,426 L294,431 L291,438 L264,464 L256,463 L243,451 L235,448 L221,449 L208,455 L202,460 L197,469 L196,488 L191,494 L188,495 L149,494 L144,487 L144,471 L140,462 L131,454 L116,448 L105,448 L99,450 L83,464 L75,463 L47,434 L47,428 L59,415 L63,406 L63,395 L57,380 L49,371 L39,367 L21,366 L16,359 L17,320 L23,315 L38,315 L45,313 L54,306 L62,290 L62,272 L57,264 L47,253 L47,247 L73,220 L79,217 L85,219 L98,231 L107,234 L118,233 L132,227 L139,221 L143,214 L144,195 L145,192 Z M158,265 L143,269 L129,276 L122,281 L108,296 L99,312 L94,330 L94,351 L96,361 L103,378 L113,392 L124,402 L133,408 L150,415 L160,417 L180,417 L199,412 L209,407 L230,391 L239,376 L244,362 L247,342 L246,329 L242,314 L237,303 L231,294 L217,280 L206,273 L194,268 L171,264 Z M162,281 L184,282 L193,285 L208,294 L222,310 L226,318 L230,333 L230,349 L228,358 L219,376 L210,386 L202,392 L192,397 L176,401 L164,401 L154,399 L138,392 L130,386 L119,373 L113,361 L110,348 L110,333 L112,324 L117,312 L124,302 L141,288 Z M211,144 L201,154 L202,162 L205,165 L209,166 L214,164 L232,149 L248,141 L276,135 L296,136 L309,139 L326,146 L341,156 L355,170 L365,185 L370,196 L376,224 L375,244 L370,263 L362,279 L347,297 L345,302 L347,308 L350,310 L357,310 L367,300 L381,278 L390,251 L392,231 L390,209 L383,186 L375,171 L361,153 L346,140 L325,128 L302,121 L283,119 L260,121 L240,127 L229,132 Z M136,49 L97,89 L93,99 L93,108 L99,120 L131,151 L137,151 L142,146 L142,141 L139,136 L110,107 L109,103 L111,98 L150,59 L153,58 L160,60 L182,82 L193,87 L206,86 L234,74 L242,67 L246,59 L247,22 L250,18 L254,16 L308,16 L312,18 L316,25 L317,61 L321,68 L332,76 L360,87 L369,87 L379,83 L402,60 L410,58 L452,99 L453,105 L451,109 L428,132 L424,142 L424,151 L435,179 L443,190 L453,195 L486,195 L493,199 L495,203 L495,257 L493,261 L489,264 L452,265 L444,269 L437,277 L425,305 L424,318 L429,329 L451,351 L453,358 L452,361 L413,400 L408,402 L404,401 L371,369 L365,369 L360,373 L361,382 L395,415 L403,418 L412,418 L422,414 L462,375 L469,362 L469,351 L465,342 L442,319 L440,315 L441,309 L452,284 L456,281 L488,281 L496,279 L507,270 L511,260 L511,199 L507,190 L500,183 L490,179 L455,178 L450,172 L440,147 L442,141 L464,119 L468,112 L469,98 L463,86 L421,45 L413,42 L402,42 L395,45 L369,70 L366,71 L337,60 L332,54 L332,21 L330,15 L321,4 L312,0 L251,0 L241,4 L235,10 L231,18 L229,57 L223,61 L213,64 L199,71 L192,69 L169,46 L163,43 L149,42 Z"/></svg>
-            <span>Settings</span>
+    </div>
+    <label class="sidebar-search-wrap" for="sidebarNavSearch">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+      <input id="sidebarNavSearch" type="search" placeholder="Search navigation…" autocomplete="off" spellcheck="false">
+    </label>
+    <nav class="sidebar-navigation" aria-label="Dashboard navigation">
+      <div class="sidebar-nav-group">
+        <span class="sidebar-section-label">WORKSPACE</span>
+        <div class="dashboard-tabs" role="tablist" aria-label="Dashboard records">
+          <button class="dashboard-tab is-active" id="attendanceTab" data-sidebar-item="attendance" aria-label="Attendance" type="button" role="tab" aria-selected="true" aria-controls="attendanceView" data-tab="attendance">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon-svg lucide lucide-users-round preview-icon" aria-hidden="true" focusable="false"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg> Attendance
           </button>
-          <button class="dashboard-action logout-action" id="logoutButton" type="button" aria-label="Log out" title="Log out">
-            <svg class="dashboard-action-icon-svg logout-action-icon" viewBox="0 0 512 512" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M399,107 L393,110 L387,116 L384,123 L383,192 L294,192 L288,194 L282,199 L278,206 L277,216 L280,224 L287,231 L295,234 L383,234 L384,303 L387,310 L395,317 L400,319 L409,319 L418,315 L507,226 L511,217 L511,208 L508,201 L417,110 L410,107 Z M31,1 L18,7 L11,13 L4,23 L0,36 L1,437 L9,453 L19,462 L27,466 L159,510 L181,510 L197,502 L206,492 L212,477 L213,447 L291,446 L312,437 L330,419 L336,408 L340,394 L340,292 L337,286 L332,281 L322,277 L310,279 L302,286 L299,292 L299,384 L296,394 L290,401 L282,405 L212,404 L212,77 L209,67 L204,59 L196,51 L180,43 L282,42 L290,46 L296,53 L299,63 L299,133 L303,141 L314,148 L325,148 L330,146 L336,141 L340,133 L339,48 L332,31 L316,13 L298,3 L285,0 Z"/></svg>
-            <span>Logout</span>
+          <button class="dashboard-tab" id="matchesTab" data-sidebar-item="matches" aria-label="Matches" type="button" role="tab" aria-selected="false" aria-controls="matchesView" data-tab="matches">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon-svg lucide lucide-swatch-book preview-icon" aria-hidden="true" focusable="false"><path d="M11 17a4 4 0 0 1-8 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2Z"/><path d="M16.7 13H19a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H7"/><path d="M 7 17h.01"/><path d="m11 8 2.3-2.3a2.4 2.4 0 0 1 3.404.004L18.6 7.6a2.4 2.4 0 0 1 .026 3.434L9.9 19.8"/></svg> Matches
+          </button>
+          <button class="dashboard-tab" id="sessionsTab" data-sidebar-item="sessions" aria-label="Session" type="button" role="tab" aria-selected="false" aria-controls="sessionsView" data-tab="sessions">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon-svg lucide lucide-library-big preview-icon" aria-hidden="true" focusable="false"><rect width="8" height="18" x="3" y="3" rx="1"/><path d="M7 3v18"/><path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/></svg>
+            <span class="sidebar-tab-label"><span class="sidebar-tab-label-desktop">Sessions</span><span class="sidebar-tab-label-mobile">Session</span></span>
           </button>
         </div>
-      </nav>
+        <a class="sidebar-nav-link create-action" data-sidebar-item="create session" href="/session" target="_blank" rel="noopener" aria-label="Create session" title="Create session">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-plus preview-icon" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+          <span>Create Session</span>
+          <svg class="sidebar-link-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
+        </a>
+      </div>
+      <div class="sidebar-nav-group sidebar-system-group">
+        <span class="sidebar-section-label">SYSTEM</span>
+        <button class="dashboard-tab sidebar-settings-link" id="openSettingsButton" data-sidebar-item="settings" type="button" aria-label="Settings">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-utility-icon lucide lucide-settings preview-icon" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Settings</span>
+        </button>
+      </div>
+    </nav>
+    <div class="sidebar-profile-card">
+      <span class="sidebar-profile-logo"><img id="organizerLogo" src="pickleball-p-emblem.png" alt="Organizer logo" decoding="async" draggable="false"></span>
+      <span class="sidebar-profile-copy">
+        <strong id="organizerDisplayName">Organizer</strong>
+        <span class="dashboard-brand-username" id="organizerUsername"></span>
+        <span class="dashboard-brand-dupr-badge" id="organizerDuprBadge" hidden></span>
+      </span>
+      <button class="sidebar-logout-button" id="logoutButton" type="button" aria-label="Sign out" title="Sign out">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg>
+      </button>
     </div>
-  </header>
+  </aside>
 
   <main class="dashboard-main">
     <!-- Session selector and primary dashboard views -->
@@ -72,19 +881,7 @@
       </section>
 
       <!-- Attendance, match history, and session-management tabs -->
-      <nav class="records-card dashboard-tabs-card" aria-label="Dashboard sections">
-        <div class="dashboard-tabs" role="tablist" aria-label="Dashboard records">
-          <button class="dashboard-tab is-active" id="attendanceTab" type="button" role="tab" aria-selected="true" aria-controls="attendanceView" data-tab="attendance">
-            <svg class="tab-icon-svg" viewBox="0 0 512 512" fill="currentColor" fill-rule="evenodd" aria-hidden="true" focusable="false"><path d="M468,358 L465,351 L456,343 L453,342 L439,343 L435,345 L384,396 L354,367 L345,363 L337,363 L328,367 L321,377 L320,386 L323,395 L372,444 L379,447 L387,447 L395,444 L465,374 L468,367 Z M372,292 L367,286 L354,277 L332,266 L309,259 L299,258 L298,257 L290,257 L289,256 L180,256 L148,262 L132,268 L118,275 L100,287 L78,308 L63,329 L52,352 L46,372 L44,382 L44,389 L43,390 L43,453 L45,458 L49,463 L58,468 L291,468 L296,466 L302,461 L305,456 L306,442 L302,434 L296,429 L291,427 L86,427 L84,425 L84,399 L85,398 L86,384 L92,364 L103,344 L110,335 L121,324 L141,310 L160,302 L179,298 L290,298 L305,301 L317,305 L331,312 L346,322 L359,323 L367,319 L373,311 L374,297 Z M231,84 L249,86 L259,90 L268,96 L276,104 L281,111 L284,117 L288,132 L288,145 L286,154 L277,171 L263,184 L253,189 L241,192 L222,191 L213,188 L200,180 L189,168 L183,156 L180,141 L181,128 L184,118 L188,110 L194,102 L203,94 L214,88 Z M222,43 L199,49 L183,57 L171,66 L158,80 L149,94 L142,112 L139,126 L139,150 L143,168 L151,186 L160,199 L173,212 L186,221 L198,227 L210,231 L220,233 L229,233 L230,234 L248,233 L265,229 L284,220 L301,207 L312,194 L321,179 L328,158 L329,144 L330,143 L329,124 L323,102 L317,90 L308,77 L295,64 L282,55 L264,47 L246,43 Z" fill-rule="evenodd"/></svg> Attendance
-          </button>
-          <button class="dashboard-tab" id="matchesTab" type="button" role="tab" aria-selected="false" aria-controls="matchesView" data-tab="matches">
-            <svg class="tab-icon-svg" viewBox="0 0 512 512" fill="currentColor" fill-rule="evenodd" aria-hidden="true" focusable="false"><path d="M366,415 L373,415 L378,417 L384,423 L386,428 L386,435 L384,440 L379,445 L373,448 L366,448 L361,446 L355,440 L353,435 L354,425 L361,417 Z M426,372 L431,372 L438,375 L442,379 L445,385 L445,392 L443,397 L437,403 L433,405 L424,405 L420,403 L414,397 L412,392 L412,385 L415,379 L419,375 Z M308,372 L313,372 L320,375 L325,380 L327,385 L327,393 L325,397 L319,403 L315,405 L307,405 L302,403 L296,397 L294,392 L294,386 L297,379 L301,375 Z M366,353 L373,353 L378,355 L384,361 L386,366 L386,373 L384,378 L378,384 L373,386 L366,386 L361,384 L355,378 L353,373 L354,363 L360,356 Z M221,326 L214,320 L205,320 L189,323 L182,323 L173,327 L170,333 L170,337 L172,342 L175,345 L181,347 L212,343 L217,341 L220,338 L222,333 Z M402,303 L409,303 L416,306 L419,309 L422,315 L422,324 L420,328 L414,334 L409,336 L403,336 L398,334 L393,330 L390,325 L389,319 L391,312 L396,306 Z M329,303 L337,303 L343,306 L347,310 L350,318 L349,325 L346,330 L341,334 L336,336 L330,336 L325,334 L319,328 L317,324 L318,312 L325,305 Z M186,258 L184,262 L184,268 L189,275 L215,291 L224,291 L229,287 L231,282 L231,278 L227,271 L200,254 L191,254 Z M244,213 L238,218 L237,227 L247,251 L252,256 L255,257 L263,256 L268,251 L269,243 L258,217 L255,214 L248,212 Z M316,131 L332,147 L312,167 L296,151 Z M351,96 L367,112 L348,130 L333,114 Z M385,56 L407,79 L397,83 L383,95 L368,79 L378,69 L382,62 L383,57 Z M181,29 L173,28 L164,33 L147,49 L137,63 L130,77 L126,90 L125,101 L124,102 L124,114 L125,117 L130,122 L138,123 L141,122 L146,117 L148,97 L155,78 L163,66 L176,53 L186,45 L187,37 L186,34 Z M91,40 L77,54 L68,65 L57,82 L48,100 L41,119 L37,134 L34,150 L34,157 L33,158 L33,168 L32,169 L33,214 L34,215 L34,223 L35,224 L35,230 L39,251 L35,256 L29,271 L29,276 L28,277 L29,295 L31,302 L42,322 L66,356 L80,372 L107,397 L133,416 L151,427 L164,433 L173,435 L186,435 L196,433 L207,428 L213,424 L256,381 L262,407 L266,417 L275,433 L288,449 L306,464 L322,473 L346,481 L359,482 L360,483 L379,483 L380,482 L393,481 L410,476 L425,469 L440,459 L453,447 L462,436 L473,417 L481,393 L482,380 L483,379 L483,360 L482,359 L481,346 L476,329 L464,306 L451,290 L441,281 L430,273 L417,266 L404,261 L387,257 L361,256 L335,261 L320,267 L306,275 L298,281 L281,298 L275,306 L264,327 L259,342 L259,345 L197,407 L185,412 L171,411 L159,405 L132,387 L110,369 L94,353 L73,327 L54,297 L51,288 L51,278 L56,266 L170,152 L177,148 L185,146 L209,149 L225,153 L231,153 L259,159 L270,160 L275,162 L302,190 L309,231 L312,239 L318,243 L324,243 L328,241 L331,238 L333,231 L332,230 L332,225 L331,224 L331,219 L329,213 L325,187 L409,103 L427,96 L432,91 L435,84 L435,77 L432,70 L393,31 L386,28 L376,29 L372,31 L367,36 L360,54 L276,138 L231,130 L219,119 L213,107 L212,96 L215,84 L220,75 L220,68 L218,64 L212,60 L203,61 L196,70 L190,88 L189,103 L190,104 L191,114 L194,122 L193,123 L184,123 L183,124 L173,125 L165,128 L155,134 L110,179 L108,176 L107,171 L107,149 L110,138 L109,129 L105,125 L100,123 L94,124 L89,128 L87,132 L84,147 L84,173 L85,174 L86,184 L91,198 L59,229 L58,228 L57,214 L56,213 L56,202 L55,201 L55,170 L56,169 L56,160 L57,159 L58,147 L63,126 L72,103 L85,81 L92,72 L108,56 L117,50 L122,45 L123,37 L122,34 L117,29 L109,28 L106,29 Z" fill-rule="evenodd"/></svg> Matches
-          </button>
-          <button class="dashboard-tab" id="sessionsTab" type="button" role="tab" aria-selected="false" aria-controls="sessionsView" data-tab="sessions">
-            <svg class="tab-icon-svg" viewBox="0 0 512 512" fill="currentColor" fill-rule="evenodd" aria-hidden="true" focusable="false"><path d="M247,396 L247,481 L246,482 L55,482 L54,481 L54,401 L55,400 L78,399 L79,398 L86,398 L87,397 L104,395 L143,385 L163,378 L177,375 L185,375 L186,374 L200,374 L201,375 L208,375 L218,377 L230,386 Z M326,326 L321,328 L317,332 L315,336 L315,345 L317,349 L323,354 L332,355 L337,353 L343,346 L344,339 L342,333 L337,328 L333,326 Z M406,294 L398,297 L394,301 L392,305 L392,312 L394,317 L398,321 L402,323 L411,323 L419,317 L421,312 L421,306 L419,301 L415,297 Z M262,296 L255,294 L250,295 L242,301 L240,306 L240,312 L242,317 L246,321 L250,323 L259,323 L267,317 L269,313 L269,305 L267,301 Z M432,219 L424,225 L422,230 L422,236 L424,241 L431,247 L437,248 L445,245 L449,241 L451,236 L451,230 L449,225 L445,221 L441,219 Z M217,219 L213,221 L208,228 L207,231 L208,238 L210,242 L217,247 L221,248 L227,247 L232,244 L235,240 L236,229 L234,225 L229,220 Z M323,186 L317,191 L314,198 L314,233 L317,241 L351,275 L358,278 L365,277 L370,274 L373,270 L374,259 L372,255 L343,226 L343,195 L341,191 L338,188 L332,185 Z M402,143 L394,149 L392,154 L392,161 L394,165 L399,170 L405,172 L412,171 L420,163 L421,160 L420,151 L415,145 L411,143 Z M250,143 L246,145 L241,151 L240,154 L241,163 L249,171 L253,172 L260,171 L267,165 L269,161 L268,151 L263,145 L259,143 Z M55,118 L186,118 L187,119 L173,139 L160,165 L151,194 L149,211 L148,212 L148,223 L147,224 L148,254 L149,255 L151,272 L155,287 L162,306 L170,322 L185,344 L183,346 L175,346 L159,349 L132,358 L96,367 L77,369 L76,370 L64,370 L63,371 L57,371 L56,370 L56,365 L61,351 L69,338 L87,321 L105,312 L110,306 L111,298 L106,289 L88,280 L73,267 L63,253 L57,239 L54,224 L54,119 Z M327,111 L320,114 L317,117 L315,121 L315,130 L321,138 L325,140 L333,140 L340,136 L343,131 L344,124 L341,117 L335,112 Z M320,80 L338,80 L339,81 L355,82 L369,85 L384,90 L413,105 L431,119 L444,132 L455,146 L470,173 L479,201 L480,211 L481,212 L481,221 L482,222 L481,254 L476,277 L471,291 L462,309 L445,333 L429,349 L405,366 L387,375 L376,379 L356,384 L341,385 L340,386 L318,386 L317,385 L302,384 L274,376 L253,366 L242,359 L227,347 L206,324 L195,307 L189,295 L182,276 L179,264 L178,253 L177,252 L177,242 L176,241 L177,214 L178,213 L179,202 L185,181 L198,154 L216,130 L225,121 L241,108 L267,93 L286,86 L298,83 L309,82 L310,81 L319,81 Z M309,30 L310,29 L348,29 L349,30 L349,51 L348,52 L340,52 L339,51 L310,52 L309,51 Z M400,3 L394,0 L264,0 L257,4 L253,12 L253,17 L257,25 L265,29 L279,29 L280,30 L280,57 L278,59 L275,59 L261,64 L242,73 L218,89 L13,89 L7,91 L2,96 L0,101 L0,107 L2,112 L10,118 L24,118 L25,119 L25,225 L30,250 L34,260 L43,276 L50,285 L66,300 L51,314 L44,323 L35,338 L28,357 L26,367 L26,374 L25,375 L25,481 L24,482 L11,482 L3,487 L0,493 L0,500 L4,507 L11,511 L290,511 L297,507 L301,499 L301,494 L297,486 L290,482 L277,482 L276,481 L276,408 L277,407 L289,411 L306,413 L307,414 L316,414 L317,415 L351,414 L352,413 L369,411 L384,407 L387,405 L400,401 L420,391 L437,380 L447,372 L468,351 L476,341 L493,313 L503,288 L507,273 L509,256 L510,255 L510,246 L511,245 L511,221 L510,220 L510,210 L509,209 L507,193 L499,167 L487,142 L478,128 L467,114 L448,95 L428,80 L402,66 L381,59 L378,57 L378,30 L379,29 L394,29 L400,26 L404,21 L405,11 Z" fill-rule="evenodd"/></svg> Sessions
-          </button>
-        </div>
-      </nav>
+      
 
       <section class="records-card records-content-card" aria-label="Organizer session records">
         <section class="records-view" id="attendanceView" role="tabpanel" aria-labelledby="attendanceTab">

@@ -78,6 +78,8 @@
     settingsLogoDraft:undefined,
     settingsLogoProcessing:false,
     settingsLogoProcessingToken:0,
+    settingsOpenRequestId:0,
+    settingsFormDirty:false,
     refreshTimer:null,
     appEventStream:null,
     appRevision:0,
@@ -96,6 +98,35 @@
   const safeImagePath = value => /^registration-avatar-(?:0[1-9]|1[0-9]|2[01])\.png$/.test(String(value || '')) ? String(value) : '';
   const fullName = person => String(person?.name || person?.displayName || '').trim();
   const normalizeName = value => String(value || '').normalize('NFC').trim().replace(/\s+/g,' ').toLocaleLowerCase();
+  const DASHBOARD_THEME_STORAGE_KEY='ppm-dashboard-theme';
+
+  function applyDashboardTheme(theme,{persist=true}={}) {
+    const nextTheme=theme==='light'?'light':'dark';
+    document.documentElement.dataset.theme=nextTheme;
+    const toggle=$('themeToggle');
+    const isLight=nextTheme==='light';
+    if(toggle){
+      toggle.setAttribute('aria-checked',String(isLight));
+      toggle.setAttribute('aria-label',isLight?'Switch to dark mode':'Switch to light mode');
+      toggle.title=isLight?'Switch to dark mode':'Switch to light mode';
+    }
+    const themeColor=document.querySelector('meta[name="theme-color"]');
+    if(themeColor)themeColor.content=isLight?'#f4f6fa':'#0b1924';
+    if(persist){try{localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY,nextTheme);}catch(_){/* Theme remains active for this page view. */}}
+  }
+
+  function filterSidebarNavigation(value) {
+    const query=normalizeName(value);
+    const items=Array.from(document.querySelectorAll('[data-sidebar-item]'));
+    items.forEach(item=>{
+      const searchable=normalizeName(`${item.dataset.sidebarItem||''} ${item.textContent||''}`);
+      item.hidden=Boolean(query)&&!searchable.includes(query);
+    });
+    document.querySelectorAll('.sidebar-nav-group').forEach(group=>{
+      const visible=Array.from(group.querySelectorAll('[data-sidebar-item]')).some(item=>!item.hidden);
+      group.classList.toggle('is-search-empty',Boolean(query)&&!visible);
+    });
+  }
   const validDate = value => { const date = value ? new Date(value) : null; return date && Number.isFinite(date.getTime()) ? date : null; };
   const formatDate = value => { const date=validDate(value); return date ? new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',year:'numeric'}).format(date) : 'Date not available'; };
   const formatDateTime = value => { const date=validDate(value); return date ? new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}).format(date) : 'Date not available'; };
@@ -239,7 +270,11 @@
     const username=String(organizer.username||'').trim();
     const duprId=String(organizer.duprId||organizer.personalDuprId||organizer.duprID||organizer.dupr_id||'').trim().replace(/^DUPR\s*:\s*/i,'').replace(/\s+/g,'').toUpperCase();
     const logo=$('organizerLogo');
+    const mobileLogo=$('mobileOrganizerLogo');
+    const displayNameEl=$('organizerDisplayName');
     const clubNameEl=$('organizerClubName');
+    if(displayNameEl&&displayNameEl.textContent!==name)displayNameEl.textContent=name;
+    // The mobile brand is the organizer's configured club name, never the app name.
     if(clubNameEl&&clubNameEl.textContent!==name)clubNameEl.textContent=name;
 
     // Dashboard data is refreshed every eight seconds. Avoid replacing the
@@ -261,12 +296,12 @@
     }
 
     const organizerLogoSrc=organizer.logo&&/^data:image\/(?:png|jpeg|webp);base64,/i.test(organizer.logo)?organizer.logo:'pickleball-p-emblem.png';
-    if(logo){
+    [logo,mobileLogo].filter(Boolean).forEach(logoImage=>{
       const logoAlt=`${name} logo`;
-      if(logo.alt!==logoAlt)logo.alt=logoAlt;
-      logo.onerror=()=>{logo.onerror=null;logo.src='pickleball-p-emblem.png';};
-      if(logo.getAttribute('src')!==organizerLogoSrc)logo.src=organizerLogoSrc;
-    }
+      if(logoImage.alt!==logoAlt)logoImage.alt=logoAlt;
+      logoImage.onerror=()=>{logoImage.onerror=null;logoImage.src='pickleball-p-emblem.png';};
+      if(logoImage.getAttribute('src')!==organizerLogoSrc)logoImage.src=organizerLogoSrc;
+    });
   }
 
   function sessionOptionDetails(session) {
@@ -2137,24 +2172,57 @@
     syncSettingsDuprSlotsToInput();
   }
 
+  function populateSettingsForm(organizer={}) {
+    $('settingsClubName').value=String(organizer.displayName||organizer.username||'');
+    $('settingsUsername').value=String(organizer.username||'');
+    setSettingsDuprValue(organizer.duprId||organizer.personalDuprId||organizer.duprID||organizer.dupr_id||'');
+    $('settingsLogoPreview').src=organizer.logo||'pickleball-p-emblem.png';
+    $('settingsLogoInput').value='';
+    $('settingsCurrentPassword').value='';$('settingsNewPassword').value='';$('settingsConfirmPassword').value='';
+    $('saveSettingsButton').disabled=false;
+    setSettingsMessage('');
+    $('settingsShowPasswords').textContent='Show passwords';
+    $('settingsShowPasswords').setAttribute('aria-pressed','false');
+    document.querySelectorAll('.settings-password-input').forEach(input=>input.type='password');
+  }
+
   async function openSettings() {
+    const isMobile=window.matchMedia?.('(max-width: 760px)').matches;
+    if(isMobile) {
+      // Show the dialog immediately from the organizer record already loaded by the dashboard.
+      const requestId=++state.settingsOpenRequestId;
+      state.settingsFormDirty=false;
+      state.settingsLogoDraft=undefined;
+      state.settingsLogoProcessing=false;
+      state.settingsLogoProcessingToken++;
+      populateSettingsForm(state.auth||{});
+      showDashboardModal('settingsModal');
+      try {
+        const response=await fetchJson('/api/organizer-settings');
+        if(requestId!==state.settingsOpenRequestId||$('settingsModal').hidden)return;
+        const organizer=response.organizer||{};
+        state.auth=organizer;
+        // A late response may refresh untouched fields, but never overwrite edits already made.
+        if(!state.settingsFormDirty)populateSettingsForm(organizer);
+      } catch(error) {
+        if(requestId===state.settingsOpenRequestId&&!$('settingsModal').hidden)showToast(error.message||'Unable to refresh club settings.');
+      }
+      return;
+    }
+
+    // Preserve the existing desktop behavior.
     try {
       const response=await fetchJson('/api/organizer-settings');
       const organizer=response.organizer||{};state.auth=organizer;state.settingsLogoDraft=undefined;
       state.settingsLogoProcessing=false;state.settingsLogoProcessingToken++;
-      $('settingsClubName').value=String(organizer.displayName||organizer.username||'');
-      $('settingsUsername').value=String(organizer.username||'');
-      setSettingsDuprValue(organizer.duprId||'');
-      $('settingsLogoPreview').src=organizer.logo||'pickleball-p-emblem.png';
-      $('settingsLogoInput').value='';$('settingsCurrentPassword').value='';$('settingsNewPassword').value='';$('settingsConfirmPassword').value='';
-      $('saveSettingsButton').disabled=false;
-      setSettingsMessage('');$('settingsShowPasswords').textContent='Show passwords';$('settingsShowPasswords').setAttribute('aria-pressed','false');
-      document.querySelectorAll('.settings-password-input').forEach(input=>input.type='password');
+      populateSettingsForm(organizer);
       showDashboardModal('settingsModal');
     } catch(error) { showToast(error.message||'Unable to load club settings.'); }
   }
 
   function closeSettings() {
+    state.settingsOpenRequestId++;
+    state.settingsFormDirty=false;
     state.settingsLogoProcessingToken++;state.settingsLogoProcessing=false;
     $('saveSettingsButton').disabled=false;
     hideDashboardModal('settingsModal');state.settingsLogoDraft=undefined;
@@ -2303,6 +2371,23 @@
   $('attendanceTab').addEventListener('click',()=>setTab('attendance'));
   $('matchesTab').addEventListener('click',()=>setTab('matches'));
   $('sessionsTab').addEventListener('click',()=>setTab('sessions'));
+  applyDashboardTheme(document.documentElement.dataset.theme||'dark',{persist:false});
+  $('themeToggle').addEventListener('click',()=>{
+    applyDashboardTheme(document.documentElement.dataset.theme==='light'?'dark':'light');
+  });
+  $('sidebarNavSearch').addEventListener('input',event=>filterSidebarNavigation(event.currentTarget.value));
+  $('sidebarNavSearch').addEventListener('keydown',event=>{
+    if(event.key==='Escape'){
+      event.preventDefault();event.currentTarget.value='';filterSidebarNavigation('');event.currentTarget.blur();
+    }
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='/'||event.ctrlKey||event.metaKey||event.altKey)return;
+    const target=event.target;
+    if(target instanceof HTMLElement&&(target.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)))return;
+    const search=$('sidebarNavSearch');
+    if(search&&!search.hidden&&search.offsetParent!==null){event.preventDefault();search.focus();}
+  });
   $('sessionSelect').addEventListener('change',event=>{
     applySessionSelection(event.currentTarget.value);
   });
@@ -2558,8 +2643,11 @@
   $('matchList').addEventListener('submit',saveMatchEdit);
   document.addEventListener('click',event=>{if(!event.target.closest('.match-player-autocomplete'))closeMatchPlayerSuggestions();});
   $('openSettingsButton').addEventListener('click',openSettings);
+  $('mobileOpenSettingsButton').addEventListener('click',openSettings);
   $('cancelSettingsButton').addEventListener('click',closeSettings);
   $('settingsForm').addEventListener('submit',saveSettings);
+  $('settingsForm').addEventListener('input',()=>{state.settingsFormDirty=true;});
+  $('settingsForm').addEventListener('change',()=>{state.settingsFormDirty=true;});
   // Do not close settings when the backdrop is clicked; use Cancel or Escape.
   const settingsDuprSlots=Array.from({length:6},(_,index)=>$(`settingsDuprSlot${index+1}`));
   function fillSettingsDuprSlots(value,focusIndex=null) {
