@@ -16,7 +16,7 @@ const CLUB_ID_SEQUENCE_FILE = path.join(DATA_DIR, 'club-id-sequence.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
-const allowedFiles = new Set(['index.html','dashboard.html','dashboard.css','dashboard-shell.css','dashboard.js','panel.html','panel.css','panel.js','session.html','session-brand.css','session-settings-polish.css','queueing-refresh.css','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js','network-validation.js','tab-auth.js','registration-avatar-01.png','registration-avatar-02.png','registration-avatar-03.png','registration-avatar-04.png','registration-avatar-05.png','registration-avatar-06.png','registration-avatar-07.png','registration-avatar-08.png','registration-avatar-09.png','registration-avatar-10.png','registration-avatar-11.png','registration-avatar-12.png','registration-avatar-13.png','registration-avatar-14.png','registration-avatar-15.png','registration-avatar-16.png','registration-avatar-17.png','registration-avatar-18.png','registration-avatar-19.png','registration-avatar-20.png','registration-avatar-21.png']);
+const allowedFiles = new Set(['index.html','panel.html','panel.css','panel.js','session.html','session-brand.css','session-settings-polish.css','queueing-refresh.css','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js','network-validation.js','tab-auth.js','registration-avatar-01.png','registration-avatar-02.png','registration-avatar-03.png','registration-avatar-04.png','registration-avatar-05.png','registration-avatar-06.png','registration-avatar-07.png','registration-avatar-08.png','registration-avatar-09.png','registration-avatar-10.png','registration-avatar-11.png','registration-avatar-12.png','registration-avatar-13.png','registration-avatar-14.png','registration-avatar-15.png','registration-avatar-16.png','registration-avatar-17.png','registration-avatar-18.png','registration-avatar-19.png','registration-avatar-20.png','registration-avatar-21.png','dashboard.html','dashboard.css','dashboard.js']);
 let latestState = null;
 let sharedAppState = null;
 let sharedAppRevision = 0;
@@ -2886,7 +2886,7 @@ async function handle(req, res) {
   // through redirects so old bookmarks and QR codes continue to resolve.
   const cleanPageRoutes = new Map([
     ['/','index.html'],
-    ['/dashboard','dashboard.html'],
+    ['/manage','dashboard.html'],
     ['/panel','panel.html'],
     ['/queueing','queueing.html'],
     ['/session','session.html'],
@@ -2895,7 +2895,9 @@ async function handle(req, res) {
   ]);
   const legacyPageRedirects = new Map([
     ['/index.html','/'],
-    ['/dashboard.html','/dashboard'],
+    ['/dashboard','/manage'],
+    ['/dashboard.html','/manage'],
+    ['/husay-manager.html','/manage'],
     ['/panel.html','/panel'],
     ['/queueing.html','/queueing'],
     ['/session.html','/session'],
@@ -2932,8 +2934,8 @@ async function handle(req, res) {
   if (name === 'panel.html' && !isPanelAuthenticated(req)) {
     return setRedirect(res, '/?next=panel');
   }
-  if (name === 'dashboard.html' && !isAuthenticated(req)) {
-    return setRedirect(res, '/?next=dashboard');
+  if (name === 'dashboard.html' && !hasRoleSession(req, 'organizer')) {
+    return setRedirect(res, '/?next=manage');
   }
   if ((name === 'session.html' || name === 'queueing.html') && !isAuthenticated(req)) {
     const next = `${name === 'queueing.html' ? 'queueing' : 'session'}${url.search || ''}`;
@@ -2945,7 +2947,7 @@ async function handle(req, res) {
     if (!stat.isFile()) return sendJson(res,404,{ok:false,error:'Not found'});
     const extension=path.extname(filePath).toLowerCase();
     const mutableAsset=['.html','.js','.css'].includes(extension);
-    const noStorePage = ['index.html','dashboard.html','panel.html','session.html','queueing.html','live.html','Registration.html'].includes(name);
+    const noStorePage = ['index.html','panel.html','session.html','queueing.html','live.html','Registration.html','dashboard.html'].includes(name);
     const cacheControl = noStorePage ? 'private, no-store, max-age=0' : (mutableAsset ? 'no-cache, must-revalidate' : 'public, max-age=300');
     res.writeHead(200, {'Content-Type':MIME[extension]||'application/octet-stream','Content-Length':stat.size,'Cache-Control':cacheControl,'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'});
     if(req.method==='HEAD')return res.end();

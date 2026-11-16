@@ -14,6 +14,37 @@
   let stateCheckComplete = false;
   let isNavigating = false;
   let sharedStateSource = null;
+  let locationSuggestTimer = 0;
+  let locationSuggestController = null;
+  let locationSuggestRequestId = 0;
+  let locationSuggestFeatures = [];
+  let locationSuggestActiveIndex = -1;
+  let locationSuggestLastRequestAt = 0;
+
+  const PH_LOCATION_BOUNDS = { minLat: 4.0, maxLat: 22.4, minLon: 115.5, maxLon: 128.6 };
+  const PH_LOCATION_CENTER = { lat: 12.8797, lon: 121.7740 };
+  // Verified court entries are included alongside the live Philippines geocoder
+  // so venues that are not yet indexed in OpenStreetMap can still be selected.
+  const VERIFIED_PH_COURT_LOCATIONS = [
+    {
+      name: 'Summer Pickle and Perks (Alabel)',
+      address: 'Pecolados Compound, Purok Centro, Poblacion, Alabel, Sarangani 9501, Philippines',
+      label: 'Summer Pickle and Perks, Pecolados Compound, Purok Centro, Poblacion, Alabel, Sarangani 9501, Philippines',
+      lat: 6.1114236,
+      lon: 125.2934115,
+      countrycode: 'PH',
+      source: 'verified-venue-listing'
+    },
+    {
+      name: 'Summer Pickle and Perks-Bula',
+      address: 'Zone 9, Bula, General Santos City, South Cotabato, Philippines',
+      label: 'Summer Pickle and Perks-Bula, Zone 9, Bula, General Santos City, South Cotabato, Philippines',
+      lat: 6.106678009,
+      lon: 125.192527771,
+      countrycode: 'PH',
+      source: 'verified-venue-listing'
+    }
+  ];
 
   function readLocalState() {
     for (const key of [STATE_KEY, ...LEGACY_STATE_KEYS]) {
@@ -145,20 +176,278 @@
     });
   }
 
+  function normalizeSelectedLocationCoordinates(value) {
+    let source = value;
+    if (typeof source === 'string') {
+      try { source = JSON.parse(source); } catch (_) { return null; }
+    }
+    if (!source || typeof source !== 'object') return null;
+    const lat = Number(source.lat ?? source.latitude);
+    const lon = Number(source.lon ?? source.lng ?? source.longitude);
+    const insidePhilippines = Number.isFinite(lat) && Number.isFinite(lon) &&
+      lat >= PH_LOCATION_BOUNDS.minLat && lat <= PH_LOCATION_BOUNDS.maxLat &&
+      lon >= PH_LOCATION_BOUNDS.minLon && lon <= PH_LOCATION_BOUNDS.maxLon;
+    if (!insidePhilippines) return null;
+    const countrycode = String(source.countrycode || source.countryCode || 'PH').toUpperCase();
+    if (countrycode !== 'PH') return null;
+    return {
+      lat,
+      lon,
+      label: String(source.label || source.name || '').trim(),
+      name: String(source.name || '').trim(),
+      countrycode: 'PH',
+      source: String(source.source || 'photon')
+    };
+  }
+
+  function getSelectedLocationCoordinates() {
+    return normalizeSelectedLocationCoordinates($('liveQueueDuprLocationCoordinates')?.value || '');
+  }
+
+  function setSelectedLocationCoordinates(value) {
+    const hidden = $('liveQueueDuprLocationCoordinates');
+    if (!hidden) return;
+    const normalized = normalizeSelectedLocationCoordinates(value);
+    hidden.value = normalized ? JSON.stringify(normalized) : '';
+  }
+
+  function hideLocationSuggestions() {
+    const list = $('liveQueueDuprLocationSuggestions');
+    const input = $('liveQueueDuprLocation');
+    if (list) {
+      list.hidden = true;
+      list.innerHTML = '';
+    }
+    if (input) input.setAttribute('aria-expanded', 'false');
+    locationSuggestFeatures = [];
+    locationSuggestActiveIndex = -1;
+  }
+
+  function showLocationMessage(title, message) {
+    const list = $('liveQueueDuprLocationSuggestions');
+    const input = $('liveQueueDuprLocation');
+    if (!list || !input) return;
+    list.innerHTML = `<div class="live-queue-location-message"><strong>${escapeLocationText(title)}</strong>${escapeLocationText(message)}</div>`;
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    locationSuggestFeatures = [];
+    locationSuggestActiveIndex = -1;
+  }
+
+  function escapeLocationText(value) {
+    return String(value || '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+  }
+
+  function normalizeLocationSearchText(value) {
+    return String(value || '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+  }
+
+  function locationFeatureParts(feature) {
+    const properties = feature?.properties || {};
+    const coordinates = feature?.geometry?.coordinates || [];
+    const lon = Number(coordinates[0]);
+    const lat = Number(coordinates[1]);
+    const countrycode = String(properties.countrycode || properties.countryCode || '').toUpperCase();
+    if (countrycode !== 'PH' || !Number.isFinite(lat) || !Number.isFinite(lon) ||
+        lat < PH_LOCATION_BOUNDS.minLat || lat > PH_LOCATION_BOUNDS.maxLat ||
+        lon < PH_LOCATION_BOUNDS.minLon || lon > PH_LOCATION_BOUNDS.maxLon) return null;
+
+    const name = String(properties.name || properties.street || properties.city || 'Philippines location').trim();
+    const street = [properties.housenumber, properties.street].filter(Boolean).join(' ').trim();
+    const addressParts = [
+      street && normalizeLocationSearchText(street) !== normalizeLocationSearchText(name) ? street : '',
+      properties.district,
+      properties.suburb,
+      properties.city,
+      properties.county,
+      properties.state,
+      properties.postcode,
+      'Philippines'
+    ].filter(Boolean);
+    const address = [...new Set(addressParts.map(value => String(value).trim()).filter(Boolean))].join(', ');
+    const label = [...new Set([name, ...addressParts].filter(Boolean))].join(', ');
+    const osmId = [properties.osm_type || '', properties.osm_id || ''].join(':');
+    return { name, address, label, lat, lon, countrycode: 'PH', osmId, properties };
+  }
+
+  function renderLocationSuggestions(features) {
+    const list = $('liveQueueDuprLocationSuggestions');
+    const input = $('liveQueueDuprLocation');
+    if (!list || !input) return;
+    locationSuggestFeatures = features;
+    locationSuggestActiveIndex = -1;
+    if (!features.length) {
+      showLocationMessage('No matching Philippines location', 'Try the venue name with its city, barangay, or province. You can also enter a full address manually.');
+      return;
+    }
+    list.innerHTML = features.map((feature, index) => `
+      <button type="button" class="live-queue-location-option" role="option" aria-selected="false" data-location-option="${index}">
+        <strong>${escapeLocationText(feature.name)}</strong>
+        <small>${escapeLocationText(feature.address || feature.label)}</small>
+        <em>${feature.source === 'verified-venue-listing' ? 'Verified court venue · Philippines' : 'Philippines · Map search'}</em>
+      </button>`).join('');
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+  }
+
+  async function searchPhilippinesLocations(query, requestId) {
+    const input = $('liveQueueDuprLocation');
+    if (!input || input.disabled) return;
+    if (locationSuggestController) locationSuggestController.abort();
+    const controller = new AbortController();
+    locationSuggestController = controller;
+    const delay = Math.max(0, 950 - (Date.now() - locationSuggestLastRequestAt));
+    if (delay) await new Promise(resolve => window.setTimeout(resolve, delay));
+    if (controller.signal.aborted || requestId !== locationSuggestRequestId || String(input.value || '').trim() !== query) return;
+
+    const terms = normalizeLocationSearchText(query).split(' ').filter(term => term.length > 2 && !['the', 'and', 'for', 'philippines'].includes(term));
+    const requiredMatches = terms.length <= 1 ? 1 : Math.max(1, Math.ceil(terms.length * 0.5));
+    const curatedMatches = VERIFIED_PH_COURT_LOCATIONS.filter(feature => {
+      const searchable = normalizeLocationSearchText(`${feature.name} ${feature.address}`);
+      const matches = terms.filter(term => searchable.includes(term)).length;
+      return !terms.length || matches >= requiredMatches;
+    }).map(feature => ({ ...feature }));
+    if (curatedMatches.length) renderLocationSuggestions(curatedMatches);
+    else showLocationMessage('Searching Philippines locations…', 'Looking for matching courts, venues, and addresses.');
+    const params = new URLSearchParams({
+      q: query,
+      limit: '10',
+      lang: 'en',
+      countrycode: 'PH',
+      bbox: '115.5,4.0,128.6,22.4',
+      lat: String(PH_LOCATION_CENTER.lat),
+      lon: String(PH_LOCATION_CENTER.lon),
+      zoom: '5'
+    });
+    locationSuggestLastRequestAt = Date.now();
+    try {
+      const response = await fetch(`https://photon.komoot.io/api/?${params.toString()}`, {
+        headers: { Accept: 'application/geo+json, application/json' },
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      if (!response.ok) throw new Error(`Location search failed (${response.status}).`);
+      const payload = await response.json();
+      if (controller.signal.aborted || requestId !== locationSuggestRequestId || String(input.value || '').trim() !== query) return;
+
+      const unique = new Map();
+      // Add verified Philippine pickleball venues first when the search matches.
+      curatedMatches.forEach(feature => {
+        const key = `${normalizeLocationSearchText(feature.name)}|${feature.lat.toFixed(5)}|${feature.lon.toFixed(5)}`;
+        unique.set(key, feature);
+      });
+      (Array.isArray(payload.features) ? payload.features : []).forEach(feature => {
+        const parts = locationFeatureParts(feature);
+        if (!parts) return;
+        const searchable = normalizeLocationSearchText([parts.name, parts.address, parts.properties?.osm_key, parts.properties?.osm_value].filter(Boolean).join(' '));
+        const matches = terms.filter(term => searchable.includes(term)).length;
+        if (terms.length && matches < requiredMatches) return;
+        const key = `${normalizeLocationSearchText(parts.name)}|${parts.lat.toFixed(5)}|${parts.lon.toFixed(5)}`;
+        if (!unique.has(key)) unique.set(key, parts);
+      });
+      renderLocationSuggestions([...unique.values()].slice(0, 8));
+    } catch (error) {
+      if (error?.name === 'AbortError' || requestId !== locationSuggestRequestId) return;
+      if (curatedMatches.length) renderLocationSuggestions(curatedMatches);
+      else showLocationMessage('Location search unavailable', 'Check your internet connection and try again, or enter the complete court address manually.');
+    }
+  }
+
+  function queuePhilippinesLocationSearch(rawQuery) {
+    const input = $('liveQueueDuprLocation');
+    const query = String(rawQuery || '').trim();
+    locationSuggestRequestId += 1;
+    const requestId = locationSuggestRequestId;
+    window.clearTimeout(locationSuggestTimer);
+    if (locationSuggestController) locationSuggestController.abort();
+    if (!input || input.disabled || query.length < 3) {
+      hideLocationSuggestions();
+      return;
+    }
+    showLocationMessage('Searching Philippines locations…', 'Looking for matching courts, venues, and addresses.');
+    locationSuggestTimer = window.setTimeout(() => searchPhilippinesLocations(query, requestId), 450);
+  }
+
+  function choosePhilippinesLocation(index) {
+    const feature = locationSuggestFeatures[index];
+    const input = $('liveQueueDuprLocation');
+    if (!feature || !input || input.disabled) return;
+    input.value = feature.label;
+    setSelectedLocationCoordinates(feature);
+    input.dataset.locationSelected = 'true';
+    input.setCustomValidity('');
+    hideLocationSuggestions();
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function bindPhilippinesLocationAutocomplete() {
+    const picker = $('liveQueueLocationPicker');
+    const input = $('liveQueueDuprLocation');
+    const list = $('liveQueueDuprLocationSuggestions');
+    if (!picker || !input || !list || picker.dataset.autocompleteBound === 'true') return;
+    picker.dataset.autocompleteBound = 'true';
+
+    input.addEventListener('input', () => {
+      setSelectedLocationCoordinates(null);
+      input.dataset.locationSelected = 'false';
+      input.setCustomValidity('');
+      queuePhilippinesLocationSearch(input.value);
+    });
+    input.addEventListener('focus', () => {
+      if (!getSelectedLocationCoordinates() && String(input.value || '').trim().length >= 3) queuePhilippinesLocationSearch(input.value);
+    });
+    input.addEventListener('keydown', event => {
+      if (list.hidden) return;
+      const options = [...list.querySelectorAll('[data-location-option]')];
+      if (event.key === 'ArrowDown' && options.length) {
+        event.preventDefault();
+        locationSuggestActiveIndex = Math.min(options.length - 1, locationSuggestActiveIndex + 1);
+      } else if (event.key === 'ArrowUp' && options.length) {
+        event.preventDefault();
+        locationSuggestActiveIndex = Math.max(0, locationSuggestActiveIndex - 1);
+      } else if (event.key === 'Enter' && locationSuggestActiveIndex >= 0) {
+        event.preventDefault();
+        choosePhilippinesLocation(locationSuggestActiveIndex);
+      } else if (event.key === 'Escape') {
+        hideLocationSuggestions();
+        return;
+      } else {
+        return;
+      }
+      options.forEach((option, index) => {
+        const active = index === locationSuggestActiveIndex;
+        option.setAttribute('aria-selected', String(active));
+        if (active) option.scrollIntoView({ block: 'nearest' });
+      });
+    });
+    list.addEventListener('pointerdown', event => {
+      if (event.target.closest('[data-location-option]')) event.preventDefault();
+    });
+    list.addEventListener('click', event => {
+      const option = event.target.closest('[data-location-option]');
+      if (option) choosePhilippinesLocation(Number(option.dataset.locationOption));
+    });
+    document.addEventListener('click', event => {
+      if (!picker.contains(event.target)) hideLocationSuggestions();
+    });
+  }
+
   function syncDuprLocationVisibility() {
     const toggle = $('liveQueueDupr');
     const field = $('liveQueueDuprLocationField');
     const input = $('liveQueueDuprLocation');
-    const enabled = !!toggle?.checked;
+    const duprEnabled = !!toggle?.checked;
+    // Court location is useful for dashboard map pins on every session,
+    // even when DUPR export is disabled. Only DUPR sessions require it.
     if (field) {
-      field.classList.toggle('hidden', !enabled);
-      field.classList.toggle('is-required', enabled);
+      field.classList.remove('hidden');
+      field.classList.toggle('is-required', duprEnabled);
     }
     if (input) {
       input.disabled = hasExistingQueue(currentState);
-      input.required = enabled;
-      input.setAttribute('aria-required', String(enabled));
-      if (!enabled || String(input.value || '').trim()) input.setCustomValidity('');
+      input.required = duprEnabled;
+      input.setAttribute('aria-required', String(duprEnabled));
+      if (!duprEnabled || String(input.value || '').trim()) input.setCustomValidity('');
     }
   }
 
@@ -216,6 +505,7 @@
       if ($('liveQueueRecordResults')) $('liveQueueRecordResults').checked = !!currentState.recordScores;
       if ($('liveQueueDupr')) $('liveQueueDupr').checked = !!currentState.duprMatch;
       if ($('liveQueueDuprLocation')) $('liveQueueDuprLocation').value = String(currentState.duprLocation || '');
+      setSelectedLocationCoordinates(currentState.duprLocationCoordinates || currentState.locationCoordinates || null);
       if ($('liveQueueDuprLabels')) $('liveQueueDuprLabels').checked = currentState.duprLabelsEnabled !== false;
       syncDuprLabelToggleText();
       syncDuprLocationVisibility();
@@ -318,6 +608,7 @@
       matchingMode: document.querySelector('#liveQueueMatchingMode .live-queue-matching-option.active')?.dataset.mode || 'balanced',
       recordScores: !!$('liveQueueDupr')?.checked || !!$('liveQueueRecordResults')?.checked,
       duprLocation: String($('liveQueueDuprLocation')?.value || '').trim(),
+      duprLocationCoordinates: getSelectedLocationCoordinates(),
       duprLabelsEnabled: $('liveQueueDuprLabels') ? !!$('liveQueueDuprLabels').checked : true
     };
   }
@@ -385,10 +676,11 @@
     });
   }));
   $('liveQueueDupr')?.addEventListener('change', () => { syncSessionName(); syncDuprLocationVisibility(); syncDuprRecordingResults(); });
-  $('liveQueueDuprLocation')?.addEventListener('input', event => {
+  $('liveQueueDuprLocation')?.addEventListener('change', event => {
     const input = event.currentTarget;
     if (!$('liveQueueDupr')?.checked || String(input.value || '').trim()) input.setCustomValidity('');
   });
+  bindPhilippinesLocationAutocomplete();
   $('liveQueueDuprLabels')?.addEventListener('change', syncDuprLabelToggleText);
   $('liveQueueSessionName')?.addEventListener('input', enforceSessionPrefix);
   $('liveQueueSessionName')?.addEventListener('focus', enforceSessionPrefix);

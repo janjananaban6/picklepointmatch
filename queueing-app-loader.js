@@ -96,7 +96,7 @@
     }
 
     const app = document.createElement('script');
-    app.src = 'script.js?v=queueing-matches-filter-20261113-1';
+    app.src = 'script.js?v=ph-location-coordinates-20261116-1';
     app.onerror = () => {
       console.error('Pickle Point Match could not load script.js.');
       window.__PPM_RELEASE_QUEUEING_STARTUP?.();

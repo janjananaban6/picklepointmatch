@@ -1,8 +1,8 @@
 # Pickle Point Match — Production Security & Data Migration Checklist
 
 This build adds:
-- Login-required server routes for Queueing, Dashboard, Panel, and Session.
-- Signed HttpOnly role-cookie checks for Queueing, Dashboard, Panel, and Session. One browser profile shares its login across same-origin pages; separate devices or browser profiles must sign in independently.
+- Login-required server routes for Queueing, the HUSAY DINKERS Management Dashboard, Panel, and Session.
+- Signed HttpOnly role-cookie checks for Queueing, the HUSAY DINKERS Management Dashboard, Panel, and Session. One browser profile shares its login across same-origin pages; separate devices or browser profiles must sign in independently.
 - Login throttling, same-origin mutation checks, security headers, and bounded in-memory rate-limit storage.
 - Cloudflare client-IP preference for Render rate limiting.
 - Public registration QR responses limited to the fields needed for returning-player check-in; match logs, archived sessions, attendance, DUPR IDs, ratings, and player statistics are not sent to public QR visitors.
@@ -24,7 +24,7 @@ This build adds:
 6. In Render, confirm `DATABASE_URL`, `SESSION_SECRET`, `PANEL_USERNAME`, and `PANEL_PASSWORD` exist. Keep the current `SESSION_SECRET` stable; changing it logs users out and can invalidate encrypted legacy account fields. Use unique strong admin and organizer passwords.
 7. The project targets Node.js 24 LTS (`.node-version`). Keep Render on a supported Node.js LTS release.
 8. Before deployment, run `npm audit --omit=dev` from a trusted local terminal after `npm install`; resolve any critical/high advisories before going live.
-9. Deploy, then verify `/api/health` still reports PostgreSQL. Test organizer login, panel login, `/queueing`, `/dashboard`, `/panel`, a public `/<organizer-slug>/live` page, and a public registration QR. Test a protected link in another tab of the already signed-in browser: it should open without another login. Then test the same link in a separate browser profile or device: it must return to login.
+9. Deploy, then verify `/api/health` still reports PostgreSQL. Test organizer login, panel login, `/queueing`, `/manage`, `/panel`, a public `/<organizer-slug>/live` page, and a public registration QR. Test a protected link in another tab of the already signed-in browser: it should open without another login. Then test the same link in a separate browser profile or device: it must return to login.
 10. If `data/` files were previously committed to Git, `.gitignore` alone does not remove them from Git history. After the database is backed up and migrated, remove them from the repository index with `git rm -r --cached data` and commit that change. If the repository was ever public, rotate credentials/secrets and treat exposed player data as disclosed.
 
 ## Render plan warning
@@ -33,10 +33,12 @@ The included `render.yaml` still uses Render Free plans to avoid silently opting
 
 ## Public and private access
 
-- `/queueing`, `/dashboard`, and `/session` require a valid organizer HttpOnly cookie. `/panel` requires its own Panel Administrator HttpOnly cookie. Cookies are shared by same-origin pages in one browser profile, so normal navigation and new tabs do not require another login. A different device or browser profile has no cookie and must sign in independently. The browser cannot read the HttpOnly cookies through JavaScript.
+- `/queueing`, `/manage`, and `/session` require a valid organizer HttpOnly cookie. `/panel` requires its own Panel Administrator HttpOnly cookie. Cookies are shared by same-origin pages in one browser profile, so normal navigation and new tabs do not require another login. A different device or browser profile has no cookie and must sign in independently. The browser cannot read the HttpOnly cookies through JavaScript.
 - Public Live View and organizer-scoped registration QR pages remain public by design. Public registration endpoints expose only the limited player directory fields needed for returning-player check-in. They do not expose match logs, archived sessions, attendance, DUPR IDs, ratings, or player statistics.
 - Login attempts, organizer applications, player registration attempts, and shared event-stream connections are rate-limited per server process. The built-in limiter is not shared between instances; for a multi-instance deployment or stronger abuse protection, add a managed edge/distributed rate limiter.
 
 ## Limitations
 
 No code change can guarantee that a public service is completely safe. Keep dependencies updated, monitor Render logs, protect administrator credentials, maintain off-site database backups, and review access when an organizer account is deactivated or removed. Perform a security review before adding new API routes or public fields.
+
+The retired `/dashboard` and `/dashboard.html` paths redirect to `/manage`; verify that this redirect works after deployment.

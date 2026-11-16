@@ -8,6 +8,17 @@ const queueingIsPhone=!!(navigator.userAgentData&&navigator.userAgentData.mobile
 const IS_QUEUEING_DESKTOP_OR_IPAD=IS_QUEUEING_PAGE&&(queueingIsIPad||(!queueingIsPhone&&typeof window.matchMedia==='function'&&window.matchMedia('(min-width: 768px)').matches));
 if(IS_QUEUEING_PAGE)document.documentElement.classList.toggle('queueing-desktop-ipad',IS_QUEUEING_DESKTOP_OR_IPAD);
 
+function normalizeSavedPhilippinesCoordinates(value){
+  let source=value;
+  if(typeof source==='string'){try{source=JSON.parse(source);}catch(e){return null;}}
+  if(!source||typeof source!=='object')return null;
+  const lat=Number(source.lat??source.latitude);
+  const lon=Number(source.lon??source.lng??source.longitude);
+  const countrycode=String(source.countrycode||source.countryCode||'PH').toUpperCase();
+  if(countrycode!=='PH'||!Number.isFinite(lat)||!Number.isFinite(lon)||lat<4||lat>22.4||lon<115.5||lon>128.6)return null;
+  return {lat,lon,label:String(source.label||source.name||'').trim(),name:String(source.name||'').trim(),countrycode:'PH',source:String(source.source||'photon')};
+}
+
 const state={
   players:[],
   left:[],
@@ -32,6 +43,7 @@ const state={
   sessionName:'Open Play — Oct 6, 2026',
   duprMatch:false,
   duprLocation:'',
+  duprLocationCoordinates:null,
   duprLabelsEnabled:true,
   recordScores:false,
   liveRankingEnabled:false,
@@ -197,7 +209,7 @@ function applySharedCloudRecords(payload,force=false){
   if($('registerFullname'))updateRegistrationSaveButton();
   if(document.body?.dataset.page==='queueing'&&sharedSyncReady)publishLiveViewState();
 }
-function getSharedAppStateSnapshot(){return {schemaVersion:13,sessionId:state.sessionId||null,players:state.players,left:state.left,queue:state.queue,lockedPartners:state.lockedPartners,courts:state.courts,logs:state.logs,nextPlayer:state.nextPlayer,nextCourt:state.nextCourt,nextWaitingCourt:state.nextWaitingCourt,nextLog:state.nextLog,sessionMetrics:state.sessionMetrics,sessionActive:state.sessionActive,sessionEndedAt:state.sessionEndedAt||null,sessionName:state.sessionName,duprMatch:state.duprMatch,duprLocation:state.duprLocation||'',duprLabelsEnabled:state.duprLabelsEnabled!==false,recordScores:state.recordScores,liveRankingEnabled:state.liveRankingEnabled!==false,liveMatchesEnabled:state.liveMatchesEnabled!==false,eventRules:state.eventRules,matchingMode:state.matchingMode,winnersLosersNextGroup:state.winnersLosersNextGroup};}
+function getSharedAppStateSnapshot(){return {schemaVersion:13,sessionId:state.sessionId||null,players:state.players,left:state.left,queue:state.queue,lockedPartners:state.lockedPartners,courts:state.courts,logs:state.logs,nextPlayer:state.nextPlayer,nextCourt:state.nextCourt,nextWaitingCourt:state.nextWaitingCourt,nextLog:state.nextLog,sessionMetrics:state.sessionMetrics,sessionActive:state.sessionActive,sessionEndedAt:state.sessionEndedAt||null,sessionName:state.sessionName,duprMatch:state.duprMatch,duprLocation:state.duprLocation||'',duprLocationCoordinates:state.duprLocationCoordinates||null,duprLabelsEnabled:state.duprLabelsEnabled!==false,recordScores:state.recordScores,liveRankingEnabled:state.liveRankingEnabled!==false,liveMatchesEnabled:state.liveMatchesEnabled!==false,eventRules:state.eventRules,matchingMode:state.matchingMode,winnersLosersNextGroup:state.winnersLosersNextGroup};}
 function queueSharedAppStateSync(snapshot){if(applyingRemoteAppState)return;appSyncPending=cloneSharedData(snapshot);flushSharedAppStateSync();}
 function flushSharedAppStateSync(){
   if(!sharedSyncAvailable||!sharedSyncReady||appSyncInFlight||!appSyncPending||!isHttpApp())return;
@@ -547,7 +559,7 @@ function archiveLiveSession(){
       duprId:String(person.duprId||person.duprID||person.dupr_id||person.dupr||'')
     });
   });
-  const sessionRecord={id:sid,organizerId:String(window.PPM_ORGANIZER_ID||''),startedAt:logs.map(log=>log.startedAt).filter(Boolean).sort()[0]||null,endedAt:new Date().toISOString(),playerCount:participantMap.size,matchCount:logs.length,sessionName:state.sessionName||'',duprLocation:String(state.duprLocation||'').trim(),participants:Array.from(participantMap.values())};
+  const sessionRecord={id:sid,organizerId:String(window.PPM_ORGANIZER_ID||''),startedAt:logs.map(log=>log.startedAt).filter(Boolean).sort()[0]||null,endedAt:new Date().toISOString(),playerCount:participantMap.size,matchCount:logs.length,sessionName:state.sessionName||'',duprLocation:String(state.duprLocation||'').trim(),duprLocationCoordinates:state.duprLocationCoordinates||null,participants:Array.from(participantMap.values())};
   const existingSessionIndex=cloudRecords.sessions.findIndex(session=>String(session?.id||'')===sid);
   if(existingSessionIndex>=0)cloudRecords.sessions[existingSessionIndex]={...cloudRecords.sessions[existingSessionIndex],...sessionRecord};
   else cloudRecords.sessions.push(sessionRecord);
@@ -1413,6 +1425,7 @@ async function endSession(){
   state.sessionName='Open Play — Oct 6, 2026';
   state.duprMatch=false;
   state.duprLocation='';
+  state.duprLocationCoordinates=null;
   state.duprLabelsEnabled=true;
   state.recordScores=false;
   state.matchingMode='balanced';
@@ -2168,6 +2181,7 @@ function loadState(){
     state.sessionName=String(data.sessionName||'Open Play — Oct 6, 2026');
     state.duprMatch=!!data.duprMatch;
     state.duprLocation=String(data.duprLocation||'').trim();
+    state.duprLocationCoordinates=normalizeSavedPhilippinesCoordinates(data.duprLocationCoordinates || data.locationCoordinates);
     state.duprLabelsEnabled=isCurrentSessionDupr();
     state.recordScores=typeof data.recordScores==='boolean'?data.recordScores:false;
     state.liveRankingEnabled=typeof data.liveRankingEnabled==='boolean'?data.liveRankingEnabled:isLiveRankingEnabled();
@@ -4855,7 +4869,7 @@ function openCourtSettings(){
   $('courtSettingsModal').classList.remove('hidden');
   setTimeout(()=>{$('courtSettingsNameInput')?.focus();},0);
 }
-function closeCourtSettings(){ $('courtSettingsModal').classList.add('hidden'); courtSettingsDraft=null; if(IS_QUEUEING_PAGE&&new URLSearchParams(location.search).get('settings')==='1')window.location.replace('/dashboard'); }
+function closeCourtSettings(){ $('courtSettingsModal').classList.add('hidden'); courtSettingsDraft=null; if(IS_QUEUEING_PAGE&&new URLSearchParams(location.search).get('settings')==='1')window.location.replace('/manage'); }
 function draftCourt(id){return courtSettingsDraft?.find(c=>c.id===id);}
 function renderCourtSettings(){
   const pool=$('courtSettingsPool'), skills=$('courtSettingsSkills'), quick=$('courtSettingsQuickAdd');
@@ -5401,6 +5415,10 @@ function exportDuprCsvWithDetails(eventName,locationName,dateOverride=''){
     if(dateOverride&&dateColumnIndex>=0)output[dateColumnIndex]=dateOverride;
     return output;
   });
+  if(String(state.duprLocation||'').trim().toLocaleLowerCase()!==locationName.toLocaleLowerCase()){
+    // A manually edited CSV location no longer has the previously selected pin coordinates.
+    state.duprLocationCoordinates=null;
+  }
   state.duprLocation=locationName;
   saveState();
   const csv=[DUPR_CSV_COLUMNS.map(duprCsvEscape).join(','),...exportRows.map(row=>row.map(duprCsvEscape).join(','))].join('\r\n');
@@ -6357,6 +6375,7 @@ function enterLiveQueueFromStart(){
   state.sessionEndedAt=null;
   state.duprMatch=!!$('liveQueueDupr')?.checked;
   state.duprLocation=String($('liveQueueDuprLocation')?.value||'').trim();
+  state.duprLocationCoordinates=normalizeSavedPhilippinesCoordinates($('liveQueueDuprLocationCoordinates')?.value || null);
   state.duprLabelsEnabled=state.duprMatch;
   state.recordScores=!!$('liveQueueRecordResults')?.checked;
   state.eventRules={target,winBy,type};
@@ -6451,6 +6470,7 @@ function applyPendingLiveQueueStartConfig(){
   state.sessionEndedAt=null;
   state.duprMatch=!!config.duprMatch;
   state.duprLocation=String(config.duprLocation||'').trim();
+  state.duprLocationCoordinates=normalizeSavedPhilippinesCoordinates(config.duprLocationCoordinates);
   state.duprLabelsEnabled=state.duprMatch;
   state.recordScores=!!config.recordScores;
   state.eventRules={target:[11,15,21].includes(target)?target:11,winBy:[1,2,3].includes(winBy)?winBy:1,type:config.type==='Singles'?'Singles':'Doubles'};

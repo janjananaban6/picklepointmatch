@@ -24,7 +24,7 @@
     }
     button.addEventListener('click', async () => {
       if (isSessionPage) {
-        window.location.href = '/dashboard';
+        window.location.href = '/manage';
         return;
       }
       if (!window.confirm('Log out of the organizer account?')) return;

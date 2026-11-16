@@ -8,11 +8,11 @@
   if (path === '/queueing' && window.__PPM_QUEUEING_MOBILE_BLOCKED === true) return;
   const role = path === '/panel'
     ? 'panel'
-    : (['/dashboard', '/queueing'].includes(path) ? 'organizer' : '');
+    : (['/queueing'].includes(path) ? 'organizer' : '');
   if (!role) return;
 
   const next = `${path.replace(/^\//, '')}${window.location.search || ''}`;
-  const fallback = role === 'panel' ? 'panel' : 'dashboard';
+  const fallback = role === 'panel' ? 'panel' : 'manage';
   const loginUrl = `/?next=${encodeURIComponent(next || fallback)}`;
   const root = document.documentElement;
   root.style.visibility = 'hidden';

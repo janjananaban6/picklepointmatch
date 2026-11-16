@@ -621,11 +621,11 @@
       }
 
       // The server has set the role-specific HttpOnly cookie. Same-origin
-      // Dashboard, Session, and Queueing navigation can now reuse that login.
-      const defaultDestination = result.role === 'panel' ? '/panel' : '/dashboard';
+      // Management, Dashboard, Session, and Queueing navigation can now reuse that login.
+      const defaultDestination = result.role === 'panel' ? '/panel' : '/manage';
       const permittedDestinations = result.role === 'panel'
         ? new Set(['/panel'])
-        : new Set(['/dashboard', '/queueing', '/session']);
+        : new Set(['/manage', '/queueing', '/session']);
       let destination = defaultDestination;
       const requestedNext = new URLSearchParams(window.location.search).get('next') || '';
       if (requestedNext) {

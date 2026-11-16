@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css?v=stability-cleanup-20261030-1&previous=queue-responsive-all-devices-20261022-1&mzoom=20261024-2&sessionfooter=20261024-1&sessionpolish=20261024-3&sessionbrand=20261024-8&sessionscrollbar=20261024-6&brandalign=20261024-1&sessionbg=20261024-1&brandcopy=20261024-1&duprfont=20261026-4">
   <link rel="stylesheet" href="session-brand.css?v=20261024-2">
-  <link rel="stylesheet" href="session-settings-polish.css?v=stability-cleanup-20261030-1&previous=dupr-location-fontfix-20261026-4">
+  <link rel="stylesheet" href="session-settings-polish.css?v=ph-location-autocomplete-20261116-1">
   <link rel="stylesheet" href="network-skeleton.css?v=network-validation-20261027-1">
   <script src="network-skeleton.js?v=network-skeleton-20261024-1"></script>
   <script src="network-validation.js?v=network-validation-20261106-1"></script>
@@ -126,10 +126,14 @@
         <span class="live-queue-toggle" aria-hidden="true"></span>
       </label>
 
-      <div id="liveQueueDuprLocationField" class="live-queue-dupr-location-field hidden">
-        <label class="live-queue-field-label" for="liveQueueDuprLocation">CSV LOCATION</label>
-        <input id="liveQueueDuprLocation" class="live-queue-input" type="text" maxlength="120" autocomplete="street-address" placeholder="e.g. GenSan, Philippines" aria-describedby="liveQueueDuprLocationHelp">
-        <small id="liveQueueDuprLocationHelp" class="live-queue-dupr-location-help">Used as the location in your DUPR CSV export.</small>
+      <div id="liveQueueDuprLocationField" class="live-queue-dupr-location-field">
+        <label class="live-queue-field-label" for="liveQueueDuprLocation">COURT LOCATION / MAP PIN</label>
+        <div id="liveQueueLocationPicker" class="live-queue-location-autocomplete">
+          <input id="liveQueueDuprLocation" class="live-queue-input" type="text" maxlength="180" autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="liveQueueDuprLocationSuggestions" aria-expanded="false" placeholder="Search a court, venue, street, barangay, or city in the Philippines" aria-describedby="liveQueueDuprLocationHelp">
+          <input id="liveQueueDuprLocationCoordinates" type="hidden" value="">
+          <div id="liveQueueDuprLocationSuggestions" class="live-queue-location-suggestions" role="listbox" aria-label="Philippines location search results" hidden></div>
+        </div>
+        <small id="liveQueueDuprLocationHelp" class="live-queue-dupr-location-help">Type at least 3 characters, then choose the correct place from the Philippines-only list. The selected map coordinates will be saved for the 3D dashboard map. Search powered by OpenStreetMap / Photon.</small>
       </div>
 
       <button type="button" id="createLiveQueueBtn" class="create-live-queue-btn">Create Live Queue</button>
@@ -138,6 +142,6 @@
   <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
 </div>
 <script src="auth-session.js?v=organizer-role-cookie-session-20261110-1"></script>
-<script>window.PPM_AUTH_READY?.then(status=>{if(!status||status.role!=='organizer')return;const app=document.createElement('script');app.src='start-page.js?v=session-lifecycle-sync-20261028-1';app.onerror=()=>console.error('Pickle Point Match could not load the organizer start screen.');document.body.appendChild(app);});</script>
+<script>window.PPM_AUTH_READY?.then(status=>{if(!status||status.role!=='organizer')return;const app=document.createElement('script');app.src='start-page.js?v=ph-location-autocomplete-20261116-1';app.onerror=()=>console.error('Pickle Point Match could not load the organizer start screen.');document.body.appendChild(app);});</script>
 </body>
 </html>

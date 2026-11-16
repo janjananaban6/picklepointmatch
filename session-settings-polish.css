@@ -233,3 +233,106 @@
   content: " *";
   color: #b42318;
 }
+
+
+/* Philippines-only court/location autocomplete for Session Setup. */
+#liveQueueStartScreen .live-queue-location-autocomplete {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  z-index: 30;
+}
+#liveQueueStartScreen .live-queue-location-autocomplete #liveQueueDuprLocation {
+  width: 100%;
+}
+#liveQueueStartScreen .live-queue-location-suggestions {
+  position: absolute;
+  z-index: 1000;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: min(340px, 48vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border: 1px solid #d9e5e5;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 16px 38px rgba(17, 46, 52, .18), 0 3px 10px rgba(17, 46, 52, .08);
+}
+#liveQueueStartScreen .live-queue-location-suggestions[hidden] { display: none !important; }
+#liveQueueStartScreen .live-queue-location-option {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #163b40;
+  text-align: left;
+  cursor: pointer;
+}
+#liveQueueStartScreen .live-queue-location-option:hover,
+#liveQueueStartScreen .live-queue-location-option[aria-selected="true"] {
+  background: #edf7f5;
+}
+#liveQueueStartScreen .live-queue-location-option strong {
+  display: block;
+  max-width: 100%;
+  color: #12383d;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+#liveQueueStartScreen .live-queue-location-option small {
+  display: block;
+  max-width: 100%;
+  color: #63797b;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+#liveQueueStartScreen .live-queue-location-option em {
+  color: #168174;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+#liveQueueStartScreen .live-queue-location-message {
+  padding: 12px 11px;
+  color: #607477;
+  font-size: 11px;
+  line-height: 1.45;
+}
+#liveQueueStartScreen .live-queue-location-message strong {
+  display: block;
+  margin-bottom: 2px;
+  color: #24484c;
+  font-size: 11px;
+}
+#liveQueueStartScreen .live-queue-location-autocomplete:focus-within { z-index: 45; }
+#liveQueueStartScreen .live-queue-location-autocomplete #liveQueueDuprLocation:disabled + input + .live-queue-location-suggestions {
+  display: none !important;
+}
+@media (max-width: 600px) {
+  #liveQueueStartScreen .live-queue-location-suggestions {
+    max-height: min(300px, 42vh);
+  }
+}
+/* Let the suggestion list extend outside the card instead of being clipped. */
+#liveQueueStartScreen .live-queue-start-card {
+  overflow: visible !important;
+}
+#liveQueueStartScreen .live-queue-start-panel-actions {
+  position: relative;
+  z-index: 20;
+  overflow: visible !important;
+}
+#liveQueueStartScreen .live-queue-dupr-location-field {
+  position: relative;
+  z-index: 25;
+}

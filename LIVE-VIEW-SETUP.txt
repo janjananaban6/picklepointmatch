@@ -27,10 +27,10 @@ DEPLOY ONLINE (RENDER EXAMPLE)
 
 CLEAN PAGE URLS
 ----------------
-- `/dashboard`, `/panel`, `/session`, `/queueing`, `/registration`, and `/live` are the extensionless page routes.
+- `/manage` (with legacy `/dashboard` redirect), `/panel`, `/session`, `/queueing`, `/registration`, and `/live` are the extensionless page routes.
 - Each organizer's public Live View uses `/<organizer-slug>/live`.
 - Old `.html` page links automatically redirect to their clean equivalents.
-- `/queueing` and `/dashboard` require an organizer sign-in. `/panel` requires a Panel Administrator sign-in. Dashboard and Panel use secure HttpOnly login cookies shared across pages in the same browser. A different browser or device must sign in independently.
+- `/queueing` and `/manage` require an organizer sign-in; the legacy `/dashboard` path redirects to `/manage`. `/panel` requires a Panel Administrator sign-in. Dashboard and Panel use secure HttpOnly login cookies shared across pages in the same browser. A different browser or device must sign in independently.
 
 RUN LOCALLY FIRST
 -----------------
@@ -45,5 +45,5 @@ DATA / HOSTING NOTES
 - Live View broadcasts one current live session at a time.
 - This build uses the included Node server and its live-state snapshot. It is intended for one running server instance; do not scale it to multiple instances without shared storage/pub-sub.
 - Some free hosting plans can sleep and use temporary disk storage. Keep the organizer page open during the session; it republishes the latest queue snapshot every 30 seconds while the session is active. If the organizer page was closed during a host restart, reopen it to republish the locally saved queue.
-- Organizer sign-in protects `/session`, `/queueing`, `/dashboard`, and organizer write APIs. Panel Administrator sign-in protects `/panel`. Public player registration (`/registration`) and Live View (`/live` or `/<organizer-slug>/live`) remain accessible so players can register and watch the queue. Configure `ORGANIZER_USERNAME`, `ORGANIZER_PASSWORD`, and `SESSION_SECRET` in Render and keep the password secret.
+- Organizer sign-in protects `/session`, `/queueing`, `/manage`, and organizer write APIs. Panel Administrator sign-in protects `/panel`. Public player registration (`/registration`) and Live View (`/live` or `/<organizer-slug>/live`) remain accessible so players can register and watch the queue. Configure `ORGANIZER_USERNAME`, `ORGANIZER_PASSWORD`, and `SESSION_SECRET` in Render and keep the password secret.
 - The QR code image is generated through the external QR Server image endpoint, so an internet connection is needed to display the QR image. The copy-link button still provides the exact URL.

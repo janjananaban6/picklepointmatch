@@ -21505,7 +21505,7 @@ body[data-page="queueing"] .queueing-expand-icon-svg{
 }
 
 
-/* QUEUEING PAGE — use the same settings gear as dashboard.html.
+/* QUEUEING PAGE — use the same settings gear as the management dashboard.
    The court toolbar icon stays neutral monochrome; the modal heading icon
    follows the heading text color. No layout or behavior is changed. */
 body[data-page="queueing"] #courtSettingsBtn .court-settings-gear-icon {

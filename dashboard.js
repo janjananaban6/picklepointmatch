@@ -1,2791 +1,2218 @@
-(() => {
-  'use strict';
+'use strict';
 
-  // ===== Shared state and utility helpers =====
-  const $ = id => document.getElementById(id);
-  let sessionDropdownOpen=false;
-  let duprScoreTypeDropdownOpen=false;
+/*
+ * HUSAY DINKERS management dashboard
+ * This UI reads and mutates the existing Pickle Point Match queueing system.
+ * It deliberately does not create a parallel player/session database.
+ */
 
-  // Keep touch swipes within the DUPR table on iPad/iPhone. The table remains
-  // natively scrollable; this only blocks scroll chaining when a swipe reaches an edge.
-  function containTableTouchScroll(scroller) {
-    if (!scroller) return;
-    let startX = null;
-    let startY = null;
-    let touchId = null;
+const ICONS = {
+  dashboard: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3M8 17h6"/>',
+  users: '<path d="M16 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20M9.5 10.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM17 11a3 3 0 1 0 0-6M17 14.5a4 4 0 0 1 4 4V20"/>',
+  trophy: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H3v2a4 4 0 0 0 4 4M17 6h4v2a4 4 0 0 1-4 4"/>',
+  chart: '<path d="M4 20V11h4v9M10 20V4h4v16M16 20v-7h4v7M2 20h20"/>',
+  pin: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
+  report: '<path d="M5 3h10l4 4v14H5zM15 3v5h4M8 12h8M8 16h8M8 8h3"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.5.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.5-.9l-1.7.6-1.4-2.4 1.4-1.1a7 7 0 0 1 0-1.8l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.5-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.5.9l1.7-.6 1.4 2.4-1.4 1.1a7 7 0 0 1 0 1.7Z"/>',
+  search: '<circle cx="10.8" cy="10.8" r="7.2"/><path d="m16.2 16.2 4.3 4.3"/>',
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
+  'chevron-down': '<path d="m6 9 6 6 6-6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  download: '<path d="M12 3v12m-5-5 5 5 5-5M4 19h16"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  check: '<path d="m5 12 4 4L19 6"/>',
+  edit: '<path d="m14 5 5 5M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16l-1 4Z"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3"/>',
+  close: '<path d="m6 6 12 12M18 6 6 18"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  court: '<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M12 3v18M3 8h4v8H3M21 8h-4v8h4"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  external: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/>',
+  filter: '<path d="M4 5h16M7 12h10M10 19h4"/>',
+  refresh: '<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 1M4 17l2 1a7 7 0 0 0 12.5-3"/>'
+};
 
-    scroller.addEventListener('touchstart', event => {
-      if (event.touches.length !== 1) {
-        startX = startY = touchId = null;
-        return;
-      }
-      const touch = event.touches[0];
-      startX = touch.clientX;
-      startY = touch.clientY;
-      touchId = touch.identifier;
-    }, {passive:true});
+const state = {
+  page: 'dashboard',
+  query: '',
+  data: null,
+  raw: null,
+  organizer: null,
+  modal: null,
+  refreshRequest: 0,
+  refreshController: null,
+  dataSignature: '',
+  pendingRender: false,
+  navigationRequest: 0,
+  pointerInteraction: false,
+  eventStream: null,
+  mapInstances: new Map(),
+  mapResolvedLocations: new Map(),
+  rankingRenderToken: 0,
+  rankingRenderPlayers: [],
+  dashboardRankingToken: 0,
+  mapModalSessionId: '',
+  filters: { sessionStatus: 'all', playerCategory: 'all', rankingCategory: 'all', rankingSession: 'all', matchCourt: 'all', matchType: 'all' }
+};
 
-    scroller.addEventListener('touchmove', event => {
-      if (startX === null || startY === null || touchId === null || event.touches.length !== 1) return;
-      const touch = Array.from(event.touches).find(item => item.identifier === touchId);
-      if (!touch) return;
-      const deltaX = touch.clientX - startX;
-      const deltaY = touch.clientY - startY;
-      if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 8) return;
+const $ = (selector, root = document) => root.querySelector(selector);
+const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+const icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ICONS.info}</svg>`;
+const normalizeName = value => String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+const CATEGORY_NAMES = { BEG: 'Beginner', NOV: 'Novice', INT: 'Intermediate', ADV: 'Advanced', EXP: 'Expert', BEGINNER: 'Beginner', NOVICE: 'Novice', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced', EXPERT: 'Expert' };
+const CATEGORY_CODES = { Beginner: 'BEG', Novice: 'NOV', Intermediate: 'INT', Advanced: 'ADV', Expert: 'EXP' };
+const categoryName = value => CATEGORY_NAMES[String(value || '').trim().toUpperCase()] || String(value || 'Unspecified');
+const categoryCode = value => CATEGORY_CODES[categoryName(value)] || String(value || '').toUpperCase();
+const dateObj = value => value ? new Date(value) : null;
+const fmtDate = (value, options = { month: 'short', day: 'numeric', year: 'numeric' }) => {
+  const date = dateObj(value);
+  return date && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat('en-PH', options).format(date) : '—';
+};
+const fmtMatchTime = value => {
+  const date = dateObj(value);
+  return date && !Number.isNaN(date.getTime())
+    ? new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).format(date)
+    : '—';
+};
+const formatMatchDuration = (value, startedAt, endedAt) => {
+  const raw = String(value ?? '').trim();
+  let totalSeconds = NaN;
+  if (/^\d+:\d{2}:\d{2}$/.test(raw)) {
+    const [hours, minutes, seconds] = raw.split(':').map(Number);
+    totalSeconds = hours * 3600 + minutes * 60 + seconds;
+  } else if (/^\d+:\d{2}$/.test(raw)) {
+    const [minutes, seconds] = raw.split(':').map(Number);
+    totalSeconds = minutes * 60 + seconds;
+  } else if (/^\d+(?:\.\d+)?$/.test(raw)) {
+    totalSeconds = Number(raw);
+  }
+  if (!Number.isFinite(totalSeconds)) {
+    const start = dateObj(startedAt);
+    const end = dateObj(endedAt);
+    if (start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+      totalSeconds = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 1000));
+    }
+  }
+  if (!Number.isFinite(totalSeconds)) return '—';
+  totalSeconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = part => String(part).padStart(2, '0');
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)} Mins`;
+};
+const localDateParts = value => {
+  const date = dateObj(value);
+  if (!date || Number.isNaN(date.getTime())) return { date: '', time: '' };
+  const pad = n => String(n).padStart(2, '0');
+  return { date: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`, time: `${pad(date.getHours())}:${pad(date.getMinutes())}` };
+};
+const todayISO = () => {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+};
+const initials = name => String(name || '?').trim().split(/\s+/).slice(0, 2).map(part => part[0] || '').join('').toUpperCase();
 
-      const horizontal = Math.abs(deltaX) > Math.abs(deltaY);
-      const delta = horizontal ? deltaX : deltaY;
-      const maxScroll = Math.max(0, horizontal
-        ? scroller.scrollWidth - scroller.clientWidth
-        : scroller.scrollHeight - scroller.clientHeight);
-      const currentScroll = horizontal ? scroller.scrollLeft : scroller.scrollTop;
-      const atStart = currentScroll <= 1;
-      const atEnd = currentScroll >= maxScroll - 1;
-      const wouldScrollPastEdge = maxScroll <= 1 || (delta > 0 && atStart) || (delta < 0 && atEnd);
+function updateOrganizerProfileDisplay(organizer = {}) {
+  const displayName = String(organizer.displayName || organizer.username || 'Organizer').trim();
+  const username = String(organizer.username || '').trim();
+  const nameElement = $('#organizerName');
+  const usernameElement = $('#organizerUsername');
+  const avatar = $('#organizerAvatar');
+  const avatarImage = $('#organizerAvatarImage');
+  const avatarFallback = $('#organizerAvatarFallback');
 
-      if (wouldScrollPastEdge && event.cancelable) event.preventDefault();
-    }, {passive:false});
-
-    const resetTouch = event => {
-      if (touchId === null || !event.changedTouches ||
-          Array.from(event.changedTouches).some(touch => touch.identifier === touchId) ||
-          event.touches.length === 0) {
-        startX = startY = touchId = null;
-      }
-    };
-    scroller.addEventListener('touchend', resetTouch, {passive:true});
-    scroller.addEventListener('touchcancel', resetTouch, {passive:true});
+  if (nameElement) nameElement.textContent = displayName || 'Organizer';
+  if (usernameElement) {
+    usernameElement.textContent = username || 'Organizer';
+    usernameElement.title = username || 'Organizer';
   }
 
-  const state = {
-    tab:'attendance',
-    auth:null,
-    appState:null,
-    records:{players:[],logs:[],sessions:[]},
-    matchesVisible:[],
-    matchDateRange:'',
-    matchSessionFilterId:'',
-    emptySessionCleanupDone:false,
-    selection:{session:''},
-    pendingDeleteSessionId:'',
-    editingSessionId:'',
-    editingSessionOriginalStartedAt:'',
-    editingSessionOriginalEndedAt:'',
-    editingParticipant:null,
-    pendingDeleteParticipant:null,
-    editingMatch:null,
-    pendingDeleteMatch:null,
-    settingsLogoDraft:undefined,
-    settingsLogoProcessing:false,
-    settingsLogoProcessingToken:0,
-    settingsOpenRequestId:0,
-    settingsFormDirty:false,
-    refreshTimer:null,
-    appEventStream:null,
-    appRevision:0,
-    dashboardLoadRequestId:0,
-    toastTimer:null,
-    duprModalFilter:'all',
-    duprModalSessionId:'',
-    duprModalEventName:'',
-    duprModalLocation:'',
-    duprModalScoreType:'RALLY',
-    duprSubmittedMatchKeys:new Set(),
-    duprMissingNoticeExpanded:false
+  if (!avatar || !avatarImage || !avatarFallback) return;
+  const logo = String(organizer.logo || organizer.profileImage || '').trim();
+  avatarImage.onerror = () => {
+    avatarImage.hidden = true;
+    avatarImage.removeAttribute('src');
+    avatar.classList.remove('has-logo');
+    avatarFallback.hidden = false;
+    avatarFallback.textContent = initials(displayName);
   };
 
-  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
-  const safeImagePath = value => /^registration-avatar-(?:0[1-9]|1[0-9]|2[01])\.png$/.test(String(value || '')) ? String(value) : '';
-  const fullName = person => String(person?.name || person?.displayName || '').trim();
-  const normalizeName = value => String(value || '').normalize('NFC').trim().replace(/\s+/g,' ').toLocaleLowerCase();
-  const DASHBOARD_THEME_STORAGE_KEY='ppm-dashboard-theme';
-
-  function applyDashboardTheme(theme,{persist=true}={}) {
-    const nextTheme=theme==='light'?'light':'dark';
-    document.documentElement.dataset.theme=nextTheme;
-    const toggle=$('themeToggle');
-    const isLight=nextTheme==='light';
-    if(toggle){
-      toggle.setAttribute('aria-checked',String(isLight));
-      toggle.setAttribute('aria-label',isLight?'Switch to dark mode':'Switch to light mode');
-      toggle.title=isLight?'Switch to dark mode':'Switch to light mode';
-    }
-    const themeColor=document.querySelector('meta[name="theme-color"]');
-    if(themeColor)themeColor.content=isLight?'#f4f6fa':'#0b1924';
-    if(persist){try{localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY,nextTheme);}catch(_){/* Theme remains active for this page view. */}}
+  if (logo) {
+    avatar.classList.add('has-logo');
+    avatarFallback.hidden = true;
+    avatarImage.hidden = false;
+    if (avatarImage.src !== logo) avatarImage.src = logo;
+  } else {
+    avatarImage.hidden = true;
+    avatarImage.removeAttribute('src');
+    avatar.classList.remove('has-logo');
+    avatarFallback.hidden = false;
+    avatarFallback.textContent = initials(displayName);
   }
+}
 
-  function filterSidebarNavigation(value) {
-    const query=normalizeName(value);
-    const items=Array.from(document.querySelectorAll('[data-sidebar-item]'));
-    items.forEach(item=>{
-      const searchable=normalizeName(`${item.dataset.sidebarItem||''} ${item.textContent||''}`);
-      item.hidden=Boolean(query)&&!searchable.includes(query);
-    });
-    document.querySelectorAll('.sidebar-nav-group').forEach(group=>{
-      const visible=Array.from(group.querySelectorAll('[data-sidebar-item]')).some(item=>!item.hidden);
-      group.classList.toggle('is-search-empty',Boolean(query)&&!visible);
-    });
+// Keep the interactive map focused on the Philippine archipelago.
+const PH_MAP_BOUNDS = [[4.0, 115.5], [22.4, 128.6]];
+const PH_MAP_CENTER = [12.8797, 121.7740];
+let photonQueue = Promise.resolve();
+let photonLastRequestAt = 0;
+let mapLibreLoadPromise = null;
+
+
+async function api(url, options = {}) {
+  const config = {
+    cache: 'no-store',
+    credentials: 'same-origin',
+    ...options,
+    headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) }
+  };
+  const response = await fetch(url, config);
+  let payload = {};
+  try { payload = await response.json(); } catch (_) {}
+  if (response.status === 401) {
+    window.location.replace(`/?next=${encodeURIComponent('manage')}`);
+    throw new Error('Your organizer session has expired. Please sign in again.');
   }
-  const validDate = value => { const date = value ? new Date(value) : null; return date && Number.isFinite(date.getTime()) ? date : null; };
-  const formatDate = value => { const date=validDate(value); return date ? new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',year:'numeric'}).format(date) : 'Date not available'; };
-  const formatDateTime = value => { const date=validDate(value); return date ? new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}).format(date) : 'Date not available'; };
-  // ===== Session data model and session picker =====
-  function sessionCreatedAt(session) {
-    const saved=validDate(session?.createdAt);
-    if(saved)return saved;
-    // Session IDs are generated as session-${Date.now()}-${uuid}; the timestamp
-    // is the actual creation time and also supports older archived sessions.
-    const match=String(session?.id||'').match(/^session-(\d{10,13})(?:-|$)/);
-    if(match){
-      const raw=Number(match[1]);
-      const timestamp=match[1].length===10?raw*1000:raw;
-      const fromId=new Date(timestamp);
-      if(Number.isFinite(fromId.getTime()))return fromId;
-    }
-    return validDate(session?.startedAt)||validDate(session?.endedAt);
+  if (!response.ok || payload?.ok === false) throw new Error(payload?.error || `Request failed (${response.status}).`);
+  return payload;
+}
+
+function sessionTimestampFromId(sessionId) {
+  const match = String(sessionId || '').match(/^session-(\d{13})-/);
+  if (!match) return null;
+  const date = new Date(Number(match[1]));
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+function asArray(value) { return Array.isArray(value) ? value : []; }
+function normalizeMapLocationCoordinates(value) {
+  let source = value;
+  if (typeof source === 'string') { try { source = JSON.parse(source); } catch (_) { return null; } }
+  if (!source || typeof source !== 'object') return null;
+  const lat = Number(source.lat ?? source.latitude);
+  const lon = Number(source.lon ?? source.lng ?? source.longitude);
+  const countrycode = String(source.countrycode || source.countryCode || 'PH').toUpperCase();
+  if (countrycode !== 'PH' || !Number.isFinite(lat) || !Number.isFinite(lon) || lat < 4.0 || lat > 22.4 || lon < 115.5 || lon > 128.6) return null;
+  return { lat, lon, label: String(source.label || source.name || '').trim(), countrycode: 'PH' };
+}
+function getLogSessionId(log) { return String(log?.sessionId ?? log?.sessionID ?? log?.session_id ?? '').trim(); }
+function getTeamNames(log, side) {
+  const names = asArray(log?.[`${side}Names`]).map(name => String(name || '').trim()).filter(Boolean);
+  if (names.length) return names;
+  const snapshots = asArray(log?.[`${side}Players`]).map(person => String(person?.name || '').trim()).filter(Boolean);
+  return snapshots;
+}
+function scoreParts(log) {
+  const score = String(log?.score || '').trim();
+  const match = score.match(/^(\d{1,2})\s*[-–:]\s*(\d{1,2})$/);
+  if (!match) return { scoreA: null, scoreB: null, scoreLabel: score || (log?.recordingMode === 'win-only' ? 'WIN / LOSS' : '—'), isScored: false };
+  return { scoreA: Number(match[1]), scoreB: Number(match[2]), scoreLabel: `${Number(match[1])}–${Number(match[2])}`, isScored: true };
+}
+function normalizeAttendees(rawPeople) {
+  return asArray(rawPeople).map((person, index) => ({
+    id: String(person?.id ?? person?._attendanceKey ?? `attendance-${index}`),
+    index,
+    playerId: String(person?.registeredCloudId || person?.cloudId || person?.id || ''),
+    playerName: String(person?.name || person?.displayName || 'Unnamed player'),
+    name: String(person?.name || person?.displayName || 'Unnamed player'),
+    nickname: String(person?.nickname || ''),
+    gender: String(person?.gender || ''),
+    category: categoryName(person?.category),
+    categoryCode: categoryCode(person?.category),
+    avatarId: String(person?.avatarId || ''),
+    duprId: String(person?.duprId || ''),
+    checkedIn: true
+  }));
+}
+function normalizeLegacyDashboard(payload) {
+  const rawRecords = payload?.records || {};
+  const appState = payload?.appState && typeof payload.appState === 'object' ? payload.appState : null;
+  const attendanceBySession = rawRecords.attendanceBySession && typeof rawRecords.attendanceBySession === 'object' ? rawRecords.attendanceBySession : {};
+  const rawPlayers = asArray(rawRecords.players);
+  const rawArchived = asArray(rawRecords.sessions);
+  const logsBySession = new Map();
+  for (const log of asArray(rawRecords.logs)) {
+    const sessionId = getLogSessionId(log);
+    if (!sessionId) continue;
+    if (!logsBySession.has(sessionId)) logsBySession.set(sessionId, []);
+    logsBySession.get(sessionId).push(log);
   }
+  const activeSessionId = appState?.sessionActive === true && !appState?.sessionEndedAt ? String(appState.sessionId || '') : '';
 
-  function sessionFilterEndAt(session) {
-    if(!session)return null;
-    // A live session remains open through the current moment. Archived sessions
-    // use their saved end timestamp; older records fall back to their latest match.
-    if(session.isLive)return new Date();
-    const ended=validDate(session.endedAt);
-    if(ended)return ended;
-    const latestMatch=sessionLogs(session)
-      .map(log=>validDate(log?.endedAt)||validDate(log?.startedAt))
-      .filter(Boolean)
-      .sort((a,b)=>b.getTime()-a.getTime())[0];
-    return latestMatch||sessionCreatedAt(session)||validDate(session.startedAt);
-  }
-
-  function toLocalMatchDateTimeValue(value) {
-    const date=validDate(value);
-    if(!date)return '';
-    const local=new Date(date.getTime()-date.getTimezoneOffset()*60000);
-    return local.toISOString().slice(0,19);
-  }
-
-  const escapeAttr = value => escapeHtml(value).replace(/`/g,'&#96;');
-
-  function toLocalDateTimeValue(value) {
-    const date=validDate(value);
-    if(!date)return '';
-    const local=new Date(date.getTime()-date.getTimezoneOffset()*60000);
-    return local.toISOString().slice(0,16);
-  }
-
-
-  function showToast(message) {
-    const el=$('dashboardToast');
-    if(!el)return;
-    el.textContent=message;
-    el.classList.add('is-visible');
-    clearTimeout(state.toastTimer);
-    state.toastTimer=setTimeout(()=>el.classList.remove('is-visible'),2800);
-  }
-
-  async function fetchJson(url, options={}) {
-    const response=await fetch(url,{cache:'no-store',credentials:'same-origin',...options});
-    const body=await response.json().catch(()=>null);
-    if(response.status===401){window.location.replace(`/?next=${encodeURIComponent('dashboard')}`);throw new Error('Please sign in again.');}
-    if(!response.ok||!body||body.ok===false)throw new Error(body?.error||`Request failed (${response.status}).`);
-    return body;
-  }
-
-  function earliestMatchStart(logs) {
-    const dates=(Array.isArray(logs)?logs:[]).map(log=>validDate(log?.startedAt)).filter(Boolean).sort((a,b)=>a-b);
-    return dates.length?dates[0].toISOString():null;
-  }
-
-  function currentActiveSession() {
-    const current=state.appState;
-    if(!current||current.sessionActive!==true||!String(current.sessionId||'').trim()||current.sessionEndedAt)return null;
-    const sessionId=String(current.sessionId);
-    const savedAttendance=state.records.attendanceBySession?.[sessionId];
-    let participants;
-    if(Array.isArray(savedAttendance)) {
-      // Dashboard attendance is deliberately separate from the live queue.
-      participants=savedAttendance;
-    } else {
-      const people=[...(Array.isArray(current.players)?current.players:[]),...(Array.isArray(current.left)?current.left:[])];
-      const seen=new Set();
-      participants=people.filter(person=>{
-        const key=String(person?.id??normalizeName(person?.name));
-        if(!fullName(person)||seen.has(key))return false;
-        seen.add(key);return true;
-      }).map(person=>({id:person.id,name:fullName(person),nickname:person.nickname||'',gender:person.gender||'',category:person.category||'',avatarId:person.avatarId||''}));
-    }
-    const liveLogs=Array.isArray(current.logs)?current.logs:[];
-    return {id:sessionId,sessionName:String(current.sessionName||'Current Session'),startedAt:earliestMatchStart(liveLogs),endedAt:null,playerCount:participants.length,matchCount:liveLogs.length,participants,duprLocation:String(current.duprLocation||'').trim(),isLive:true};
-  }
-
-  function archivedSessions() {
-    return (Array.isArray(state.records.sessions)?state.records.sessions:[])
-      .filter(session=>session&&String(session.id||'').trim())
-      .map(session=>{
-        const savedAttendance=state.records.attendanceBySession?.[String(session.id)];
-        const participants=Array.isArray(savedAttendance)?savedAttendance:(Array.isArray(session.participants)?session.participants:[]);
-        return {...session,id:String(session.id),participants,playerCount:Array.isArray(savedAttendance)?savedAttendance.length:(Number(session.playerCount)||participants.length),isLive:false};
-      })
-      .sort((a,b)=>(validDate(b.endedAt)?.getTime()||0)-(validDate(a.endedAt)?.getTime()||0));
-  }
-
-  function allSessions() {
-    const archived=archivedSessions();
-    const live=currentActiveSession();
-    return live?[live,...archived.filter(session=>session.id!==live.id)]:archived;
-  }
-
-  function sessionLogs(session) {
-    if(!session)return [];
-    // Queueing writes completed match results into appState.logs immediately.
-    // They are copied into cloud-records with a sessionId only when End Session
-    // is pressed, so read the live app state for the active session.
-    const sessionId=String(session.id||'').trim();
-    const logs=session.isLive
-      ? (String(state.appState?.sessionId||'').trim()===sessionId && Array.isArray(state.appState?.logs) ? state.appState.logs : [])
-      : (Array.isArray(state.records.logs)?state.records.logs:[]).filter(log=>{
-          // Accept legacy casing variants, but never use session names as a
-          // fallback because separate sessions can share the same name.
-          const logSessionId=String(log?.sessionId??log?.sessionID??log?.session_id??'').trim();
-          return logSessionId===sessionId;
-        });
-    return logs.slice().sort((a,b)=>(validDate(b.endedAt||b.startedAt)?.getTime()||0)-(validDate(a.endedAt||a.startedAt)?.getTime()||0));
-  }
-
-  function selectedSession() {
-    const selectedId=String(state.selection.session||'');
-    return allSessions().find(session=>String(session.id||'')===selectedId)||null;
-  }
-
-  function ensureSelection() {
-    const options=allSessions();
-    if(!options.some(session=>session.id===state.selection.session))state.selection.session=options[0]?.id||'';
-  }
-
-  function updateDashboardBrand(organizer={}) {
-    const name=String(organizer.displayName||organizer.username||'Organizer').trim()||'Organizer';
-    const username=String(organizer.username||'').trim();
-    const duprId=String(organizer.duprId||organizer.personalDuprId||organizer.duprID||organizer.dupr_id||'').trim().replace(/^DUPR\s*:\s*/i,'').replace(/\s+/g,'').toUpperCase();
-    const logo=$('organizerLogo');
-    const mobileLogo=$('mobileOrganizerLogo');
-    const displayNameEl=$('organizerDisplayName');
-    const clubNameEl=$('organizerClubName');
-    if(displayNameEl&&displayNameEl.textContent!==name)displayNameEl.textContent=name;
-    // The mobile brand is the organizer's configured club name, never the app name.
-    if(clubNameEl&&clubNameEl.textContent!==name)clubNameEl.textContent=name;
-
-    // Dashboard data is refreshed every eight seconds. Avoid replacing the
-    // same header text or reassigning the same logo URL on every poll; those
-    // redundant DOM/image updates can trigger visible sticky-header repainting
-    // while the user is scrolling.
-    const usernameText=username?`@${username}`:'';
-    const usernameEl=$('organizerUsername');
-    if(usernameEl&&usernameEl.textContent!==usernameText)usernameEl.textContent=usernameText;
-
-    const duprBadge=$('organizerDuprBadge');
-    if(duprBadge){
-      const badgeText=duprId?`DUPR ${duprId}`:'';
-      const badgeTitle=duprId?`Organizer DUPR ID: ${duprId}`:'';
-      if(duprBadge.textContent!==badgeText)duprBadge.textContent=badgeText;
-      const badgeHidden=!duprId;
-      if(duprBadge.hidden!==badgeHidden)duprBadge.hidden=badgeHidden;
-      if(duprBadge.title!==badgeTitle)duprBadge.title=badgeTitle;
-    }
-
-    const organizerLogoSrc=organizer.logo&&/^data:image\/(?:png|jpeg|webp);base64,/i.test(organizer.logo)?organizer.logo:'pickleball-p-emblem.png';
-    [logo,mobileLogo].filter(Boolean).forEach(logoImage=>{
-      const logoAlt=`${name} logo`;
-      if(logoImage.alt!==logoAlt)logoImage.alt=logoAlt;
-      logoImage.onerror=()=>{logoImage.onerror=null;logoImage.src='pickleball-p-emblem.png';};
-      if(logoImage.getAttribute('src')!==organizerLogoSrc)logoImage.src=organizerLogoSrc;
-    });
-  }
-
-  function sessionOptionDetails(session) {
-    const title=String(session?.sessionName||'Open Play').trim()||'Open Play';
-    const status=session?.isLive?'LIVE':'COMPLETE';
-    const createdAt=sessionCreatedAt(session);
-    const date=createdAt?formatDate(createdAt):'Date not available';
-    const matchCount=sessionLogs(session).length;
+  const archiveSessions = rawArchived.map(session => {
+    const id = String(session?.id || '');
+    const people = Array.isArray(attendanceBySession[id]) ? attendanceBySession[id] : asArray(session?.participants);
+    const start = session?.startedAt || sessionTimestampFromId(id);
+    const startParts = localDateParts(start);
+    const endParts = localDateParts(session?.endedAt);
+    const sessionLogs = logsBySession.get(id) || [];
+    const courts = [...new Set(sessionLogs.map(log => String(log?.court || (log?.courtNumber ? `Court ${log.courtNumber}` : '')).trim()).filter(Boolean))];
     return {
-      title,
-      status,
-      date,
-      matchCount,
-      searchText:normalizeName(`${title} ${status} ${date} ${matchCount} matches`)
+      id,
+      title: String(session?.sessionName || 'Open Play Session'),
+      sessionName: String(session?.sessionName || 'Open Play Session'),
+      date: endParts.date || startParts.date || '',
+      startTime: startParts.time || '',
+      endTime: endParts.time || '',
+      startedAt: session?.startedAt || start || null,
+      endedAt: session?.endedAt || null,
+      status: 'Completed',
+      isLive: false,
+      capacity: null,
+      attendees: normalizeAttendees(people),
+      courtNames: courts,
+      matchCount: Number(session?.matchCount) || sessionLogs.length,
+      playerCount: Number(session?.playerCount) || people.length,
+      location: String(session?.duprLocation || session?.location || '').trim(),
+      locationCoordinates: normalizeMapLocationCoordinates(session?.duprLocationCoordinates || session?.locationCoordinates),
+      raw: session
+    };
+  });
+
+  let liveSession = null;
+  if (activeSessionId) {
+    const saved = Array.isArray(attendanceBySession[activeSessionId]) ? attendanceBySession[activeSessionId] : null;
+    const queueRoster = [...asArray(appState?.players), ...asArray(appState?.left)];
+    const people = saved || queueRoster.filter((person, index, all) => {
+      const key = String(person?.id ?? normalizeName(person?.name));
+      return normalizeName(person?.name) && all.findIndex(item => String(item?.id ?? normalizeName(item?.name)) === key) === index;
+    });
+    const start = sessionTimestampFromId(activeSessionId) || (asArray(appState?.logs)[0]?.startedAt || null);
+    const startParts = localDateParts(start);
+    const liveLogs = asArray(appState?.logs);
+    const courts = asArray(appState?.courts).map(court => String(court?.name || (court?.number ? `Court ${court.number}` : '')).trim()).filter(Boolean);
+    liveSession = {
+      id: activeSessionId,
+      title: String(appState?.sessionName || 'Current Open Play'),
+      sessionName: String(appState?.sessionName || 'Current Open Play'),
+      date: startParts.date || todayISO(),
+      startTime: startParts.time || '',
+      endTime: '',
+      startedAt: start,
+      endedAt: null,
+      status: 'Live',
+      isLive: true,
+      capacity: null,
+      attendees: normalizeAttendees(people),
+      courtNames: courts,
+      matchCount: liveLogs.length,
+      playerCount: people.length,
+      location: String(appState?.duprLocation || appState?.location || '').trim(),
+      locationCoordinates: normalizeMapLocationCoordinates(appState?.duprLocationCoordinates || appState?.locationCoordinates),
+      raw: appState
     };
   }
 
-  function updateSessionPickerClearButton() {
-    const search=$('sessionSelectSearch');
-    const clear=$('sessionSelectClear');
-    if(clear)clear.hidden=!search||!search.value||search.disabled;
-  }
+  const sessions = [...(liveSession ? [liveSession] : []), ...archiveSessions.filter(session => session.id !== activeSessionId)]
+    .sort((a, b) => (a.isLive ? -1 : b.isLive ? 1 : String(b.endedAt || b.startedAt || '').localeCompare(String(a.endedAt || a.startedAt || ''))));
 
-  function renderSessionPickerOptions(query='') {
-    const list=$('sessionSelectOptions');
-    if(!list)return;
-    const normalized=normalizeName(query);
-    const options=allSessions().filter(session=>{
-      if(!normalized)return true;
-      const details=sessionOptionDetails(session);
-      return details.searchText.includes(normalized);
+  const logs = [];
+  const logKeys = new Set();
+  const appendLog = (log, fallbackSessionId = '') => {
+    const sessionId = getLogSessionId(log) || fallbackSessionId;
+    const id = String(log?.id ?? `log-${logs.length}`);
+    const key = `${sessionId}|${id}`;
+    if (logKeys.has(key)) return;
+    logKeys.add(key);
+    const teamANames = getTeamNames(log, 'team1');
+    const teamBNames = getTeamNames(log, 'team2');
+    const score = scoreParts(log);
+    const playedAt = log?.endedAt || log?.startedAt || null;
+    const dateParts = localDateParts(playedAt);
+    const winnerTeam = Number(log?.winnerTeam);
+    const scoreWinner = score.isScored && score.scoreA !== score.scoreB ? (score.scoreA > score.scoreB ? 'A' : 'B') : '';
+    const winnerText = normalizeName(log?.winner);
+    const winnerFromText = winnerText && [teamANames, teamBNames].findIndex(names => {
+      const joined = normalizeName(names.join(' & '));
+      return joined === winnerText || (names.length > 0 && names.every(name => winnerText.includes(normalizeName(name))));
     });
-    if(!options.length){
-      setMarkupWithoutJump(list,'<div class="session-select-empty">No matching sessions found</div>');
-    }else{
-      setMarkupWithoutJump(list,options.map(session=>{
-        const details=sessionOptionDetails(session);
-        const selected=session.id===state.selection.session;
-        const optionId=`session-option-${String(session.id||'').replace(/[^a-zA-Z0-9_-]/g,'-')}`;
-        return `<button id="${escapeAttr(optionId)}" class="session-select-option${selected?' is-selected':''}" type="button" role="option" aria-selected="${selected?'true':'false'}" data-session-option data-session-id="${escapeAttr(session.id)}"><span class="session-select-option-name">${escapeHtml(details.title)}</span><span class="session-select-option-meta${session.isLive?' is-live':' is-complete'}">${escapeHtml(details.status)}</span></button>`;
-      }).join(''));
+    const winner = winnerTeam === 1 ? 'A' : winnerTeam === 2 ? 'B' : (winnerFromText === 0 ? 'A' : winnerFromText === 1 ? 'B' : scoreWinner);
+    logs.push({
+      id,
+      key,
+      sessionId,
+      sessionName: String(log?.sessionName || sessions.find(item => item.id === sessionId)?.title || 'Open Play'),
+      date: dateParts.date,
+      time: dateParts.time,
+      timeLabel: fmtMatchTime(playedAt),
+      durationLabel: formatMatchDuration(log?.duration, log?.startedAt, log?.endedAt),
+      playedAt,
+      courtId: String(log?.courtNumber ?? log?.court ?? 'Court'),
+      courtName: String(log?.court || (log?.courtNumber ? `Court ${log.courtNumber}` : 'Court')),
+      teamA: asArray(log?.team1Ids).map(String),
+      teamB: asArray(log?.team2Ids).map(String),
+      teamANames,
+      teamBNames,
+      scoreA: score.scoreA,
+      scoreB: score.scoreB,
+      scoreLabel: score.scoreLabel,
+      isScored: score.isScored,
+      winner,
+      winnerText: String(log?.winner || ''),
+      recordingMode: String(log?.recordingMode || ''),
+      duprMatch: log?.duprMatch === true,
+      type: String(log?.type || (teamANames.length === 1 ? 'Singles' : 'Doubles')),
+      raw: log
+    });
+  };
+  asArray(rawRecords.logs).forEach(log => appendLog(log));
+  if (liveSession) asArray(appState?.logs).forEach(log => appendLog(log, activeSessionId));
+  logs.sort((a, b) => String(b.playedAt || '').localeCompare(String(a.playedAt || '')));
+
+  const players = rawPlayers.map(player => ({
+    id: String(player?.cloudId ?? player?.id ?? `player-${normalizeName(player?.name)}`),
+    cloudId: String(player?.cloudId ?? ''),
+    name: String(player?.name || 'Unnamed player'),
+    nickname: String(player?.nickname || ''),
+    category: categoryName(player?.category),
+    categoryCode: categoryCode(player?.category),
+    gender: String(player?.gender || ''),
+    dupr: player?.dupr === '' || player?.dupr === null || player?.dupr === undefined ? null : (Number.isFinite(Number(player.dupr)) ? Number(player.dupr) : null),
+    duprId: String(player?.duprId || player?.duprID || player?.dupr_id || ''),
+    selfRating: String(player?.selfRating || player?.self_rating || ''),
+    matches: Number(player?.matches) || 0,
+    wins: Number(player?.wins) || 0,
+    losses: Number(player?.losses) || 0,
+    phone: String(player?.phone || ''),
+    notes: '',
+    avatarId: String(player?.avatarId || ''),
+    registeredAt: player?.registeredAt || null,
+    raw: player
+  }));
+
+  // Older queue logs may contain participants that have since been removed from
+  // Registered Player Cloud. Keep those names visible in historical match rows.
+  const knownNames = new Set(players.map(player => normalizeName(player.name)));
+  for (const match of logs) {
+    for (const name of [...match.teamANames, ...match.teamBNames]) {
+      const key = normalizeName(name);
+      if (!key || knownNames.has(key)) continue;
+      knownNames.add(key);
+      players.push({ id: `history-${key}`, cloudId: '', name, nickname: '', category: 'Unspecified', categoryCode: '', gender: '', dupr: null, duprId: '', selfRating: '', matches: 0, wins: 0, losses: 0, phone: '', notes: '', historicalOnly: true, raw: null });
     }
-    list.hidden=!sessionDropdownOpen;
-    const search=$('sessionSelectSearch');
-    if(search){
-      const selected=list.querySelector('[data-session-option].is-selected');
-      if(selected)search.setAttribute('aria-activedescendant',`session-option-${String(selected.dataset.sessionId||'').replace(/[^a-zA-Z0-9_-]/g,'-')}`);
-      else search.removeAttribute('aria-activedescendant');
-    }
-    updateSessionPickerClearButton();
   }
 
-  function openSessionPicker({clearSearch=true}={}) {
-    const select=$('sessionSelect');
-    const shell=$('sessionSelectShell');
-    const search=$('sessionSelectSearch');
-    if(!select||select.disabled||!shell||!search)return;
-    sessionDropdownOpen=true;
-    shell.classList.add('is-open');
-    search.setAttribute('aria-expanded','true');
-    $('sessionSelectToggle')?.setAttribute('aria-expanded','true');
-    if(clearSearch)search.value='';
-    renderSessionPickerOptions(search.value);
+  const locations = [liveSession?.location, ...archiveSessions.map(item => item.location)].filter(Boolean);
+  const venueName = locations[0] || '';
+  const venues = venueName ? [{ id: 'legacy-session-location', name: venueName, address: venueName, city: '', notes: '' }] : [];
+  const courtMap = new Map();
+  if (liveSession && appState) {
+    asArray(appState.courts).forEach(court => {
+      const id = String(court?.id ?? court?.number ?? court?.name ?? courtMap.size + 1);
+      courtMap.set(id, {
+        id,
+        name: String(court?.name || (court?.number ? `Court ${court.number}` : 'Court')),
+        status: court?.playing ? 'Active' : court?.waitingOnly ? 'Waiting' : asArray(court?.players).length ? 'Ready' : 'Available',
+        venueId: venues[0]?.id || '',
+        surface: 'Pickleball court',
+        players: asArray(court?.players).length
+      });
+    });
   }
+  if (!courtMap.size) {
+    for (const match of logs) {
+      const name = match.courtName || 'Court';
+      const id = String(match.courtId || name);
+      if (!courtMap.has(id)) courtMap.set(id, { id, name, status: 'Used in history', venueId: '', surface: 'Pickleball court', players: 0 });
+    }
+  }
+  const courts = [...courtMap.values()];
+  const organizer = payload?.organizer || {};
+  const settings = {
+    organizerName: String(organizer.displayName || organizer.username || 'Organizer'),
+    clubName: String(organizer.displayName || 'HUSAY DINKERS'),
+    contact: '',
+    timezone: 'Asia/Manila',
+    duprId: String(organizer.duprId || ''),
+    logo: organizer.logo || ''
+  };
 
-  function closeSessionPicker({restore=true}={}) {
-    const shell=$('sessionSelectShell');
-    const search=$('sessionSelectSearch');
-    const list=$('sessionSelectOptions');
-    sessionDropdownOpen=false;
-    shell?.classList.remove('is-open');
-    if(search){
-      search.setAttribute('aria-expanded','false');
-      if(restore){
-        const selected=selectedSession();
-        search.value=selected?sessionOptionDetails(selected).title:'';
+  return {
+    players,
+    sessions,
+    matches: logs,
+    venues,
+    courts,
+    settings,
+    liveSessionId: activeSessionId,
+    liveState: appState,
+    queueCount: asArray(appState?.queue).length,
+    onCourtCount: asArray(appState?.courts).reduce((sum, court) => sum + (court?.playing ? asArray(court.players).length : 0), 0)
+  };
+}
+
+async function refreshData({ silent = false } = {}) {
+  if (dashboardRefreshTimer) { window.clearTimeout(dashboardRefreshTimer); dashboardRefreshTimer = null; }
+  const requestId = ++state.refreshRequest;
+  if (state.refreshController) state.refreshController.abort();
+  const controller = new AbortController();
+  state.refreshController = controller;
+
+  try {
+    const response = await api('/api/organizer-dashboard', { signal: controller.signal });
+    if (requestId !== state.refreshRequest) return false;
+
+    const nextOrganizer = response.organizer || {};
+    const nextData = normalizeLegacyDashboard(response);
+    // Raw records stay in state.raw for exports. Compare only fields that drive
+    // the UI instead of serializing nested copies of every source record.
+    const stripRaw = ({ raw, ...item }) => item;
+    const signaturePlayers = list => asArray(list).map(person => {
+      if (!person || typeof person !== 'object') return person;
+      return { id: person.id, name: person.name, nickname: person.nickname, waitingSince: person.waitingSince, queuedAt: person.queuedAt };
+    });
+    const live = nextData.liveState;
+    const liveStateSignature = live ? {
+      players: signaturePlayers(live.players),
+      left: signaturePlayers(live.left),
+      queue: signaturePlayers(live.queue),
+      courts: asArray(live.courts).map(court => ({
+        id: court?.id, number: court?.number, name: court?.name, playing: court?.playing,
+        waitingOnly: court?.waitingOnly, waitingOrder: court?.waitingOrder, start: court?.start,
+        players: signaturePlayers(court?.players)
+      }))
+    } : null;
+    const nextSignature = JSON.stringify({
+      organizer: nextOrganizer,
+      data: {
+        players: nextData.players.map(stripRaw),
+        sessions: nextData.sessions.map(stripRaw),
+        matches: nextData.matches.map(stripRaw),
+        venues: nextData.venues,
+        courts: nextData.courts,
+        settings: nextData.settings,
+        liveSessionId: nextData.liveSessionId,
+        liveState: liveStateSignature,
+        queueCount: nextData.queueCount,
+        onCourtCount: nextData.onCourtCount
       }
+    });
+    const hadSignature = Boolean(state.dataSignature);
+    const changed = nextSignature !== state.dataSignature;
+
+    state.raw = response;
+    state.organizer = nextOrganizer;
+    updateOrganizerProfileDisplay(nextOrganizer);
+    state.data = nextData;
+    state.dataSignature = nextSignature;
+    updateNavigation();
+
+    if (!silent) {
+      renderPage(true);
+    } else if (changed && hadSignature) {
+      // Do not mutate dashboard layout while the organizer is scrolled down.
+      // Live data is still fetched and stored; the latest view is applied only
+      // after the user returns to the top of the page-content scroller.
+      if (state.modal || isDashboardInteractionActive() || isDashboardPageScrolled()) state.pendingRender = true;
+      else renderPageStable();
     }
-    $('sessionSelectToggle')?.setAttribute('aria-expanded','false');
-    if(list)list.hidden=true;
-    updateSessionPickerClearButton();
-  }
-
-  function applySessionSelection(sessionId) {
-    const normalizedId=String(sessionId||'').trim();
-    const session=allSessions().find(item=>String(item.id||'')===normalizedId);
-    if(!session)return false;
-
-    // Session selection controls Attendance and scopes Match History to the
-    // selected session. The date-range preset buttons switch Match History back
-    // to the global all-session view.
-    state.selection.session=String(session.id);
-    state.editingParticipant=null;
-    state.pendingDeleteParticipant=null;
-
-    // Selecting a session applies its exact creation-to-end time window and
-    // scopes Match History to that session ID. This keeps sessions created on
-    // the same calendar day (or with the same name) from being mixed together.
-    // The quick range buttons explicitly switch back to global all-session history.
-    const sessionStart=sessionCreatedAt(session);
-    const sessionEnd=sessionFilterEndAt(session);
-    if(sessionStart){
-      const safeEnd=sessionEnd&&sessionEnd>=sessionStart?sessionEnd:sessionStart;
-      $('matchesFromDate').value=toLocalMatchDateTimeValue(sessionStart);
-      $('matchesToDate').value=toLocalMatchDateTimeValue(safeEnd);
-      state.matchSessionFilterId=String(session.id);
-      state.matchDateRange='';
-      syncMatchRangeButtons();
-    }
-
-    const select=$('sessionSelect');
-    if(select)select.value=String(session.id);
-    closeSessionPicker({restore:false});
-    render();
-    closeSessionPicker({restore:true});
     return true;
-  }
-
-  function chooseSessionFromPicker(sessionId) {
-    applySessionSelection(sessionId);
-  }
-
-  function renderSessionSelect() {
-    ensureSelection();
-    const select=$('sessionSelect');
-    const search=$('sessionSelectSearch');
-    const options=allSessions();
-    if(!select)return;
-    if(!options.length){
-      setMarkupWithoutJump(select,'<option value="">No sessions recorded yet</option>');
-      select.disabled=true;
-      if(search){search.value='';search.disabled=true;search.placeholder='No sessions recorded yet';search.setAttribute('aria-expanded','false');}
-      sessionDropdownOpen=false;
-      $('sessionSelectShell')?.classList.remove('is-open');
-      $('sessionSelectToggle')?.setAttribute('aria-expanded','false');
-      $('sessionSelectOptions').hidden=true;
-      $('selectedSessionMeta').textContent='';
-      updateSessionPickerClearButton();
-      return;
+  } catch (error) {
+    if (requestId !== state.refreshRequest || error?.name === 'AbortError') return false;
+    if (!silent) {
+      $('#pageContent').innerHTML = `<div class="empty-state"><span class="empty-icon">${icon('info')}</span><strong>Unable to load your queueing records</strong><p>${escapeHTML(error.message || 'Check the server connection and try again.')}</p><a class="btn btn-primary btn-sm" href="/?next=manage">Return to organizer sign in</a></div>`;
     }
-    select.disabled=false;
-    if(search){search.disabled=false;search.placeholder='Search sessions…';}
-    setMarkupWithoutJump(select,options.map(session=>{
-      const details=sessionOptionDetails(session);
-      return `<option value="${escapeAttr(session.id)}">${escapeHtml(details.title)} · ${escapeHtml(details.date)}</option>`;
-    }).join(''));
-    select.value=state.selection.session;
-    const selected=selectedSession();
-    if(selected){
-      const selectedDetails=sessionOptionDetails(selected);
-      const matchLabel=selectedDetails.matchCount===1?'match':'matches';
-      $('selectedSessionMeta').textContent=`Selected session · ${selectedDetails.matchCount} ${matchLabel} played`;
-      if(search&&!sessionDropdownOpen)search.value=selectedDetails.title;
-    } else {
-      $('selectedSessionMeta').textContent='';
-      if(search&&!sessionDropdownOpen)search.value='';
-    }
-    if(sessionDropdownOpen)renderSessionPickerOptions(search?.value||'');
-    else updateSessionPickerClearButton();
+    return false;
+  } finally {
+    if (requestId === state.refreshRequest) state.refreshController = null;
   }
+}
+function sortedSessions() { return [...(state.data?.sessions || [])]; }
+function allAttendance() { return (state.data?.sessions || []).flatMap(session => (session.attendees || []).map(person => ({ ...person, session }))); }
+function countAttendanceEntries() { return (state.data?.sessions || []).reduce((total, session) => total + (session.attendees?.length || 0), 0); }
+function findPlayer(id) { return state.data?.players.find(player => String(player.id) === String(id)); }
+function playerName(id) { return findPlayer(id)?.name || 'Player'; }
+let playerStatsIndex = null;
+function getPlayerStatsIndex() {
+  if (playerStatsIndex?.signature === state.dataSignature) return playerStatsIndex;
 
-  // ===== Dashboard view rendering: attendance, matches and sessions =====
-  function renderTabs() {
-    ['attendance','matches','sessions'].forEach(tab=>{
-      const active=state.tab===tab;
-      const button=$(`${tab}Tab`);
-      const view=$(`${tab}View`);
-      button.classList.toggle('is-active',active);
-      button.setAttribute('aria-selected',String(active));
-      view.hidden=!active;
-    });
-    const sessionToolbar=document.querySelector('.records-toolbar');
-    if(sessionToolbar)sessionToolbar.hidden=false;
-  }
-
-  function participantAvatar(person) {
-    const raw=String(person?.avatarId||'').replace(/^avatar-/,'');
-    const image=safeImagePath(raw ? `registration-avatar-${raw}.png` : '');
-    const initials=fullName(person).split(/\s+/).filter(Boolean).slice(0,2).map(part=>Array.from(part)[0]).join('').toUpperCase()||'P';
-    return image?`<span class="participant-avatar"><img src="${image}" alt="" loading="lazy" draggable="false"></span>`:`<span class="participant-avatar" aria-hidden="true">${escapeHtml(initials)}</span>`;
-  }
-
-  function cloudPlayerName(person) {
-    const direct=fullName(person);
-    if(direct)return direct;
-    return [person?.firstName,person?.lastName].map(value=>String(value||'').trim()).filter(Boolean).join(' ');
-  }
-
-  function categoryCode(value) {
-    const category=String(value||'').trim().toUpperCase();
-    const map={BEGINNER:'BEG',NOVICE:'NOV',INTERMEDIATE:'INT',ADVANCED:'ADV',EXPERT:'EXP'};
-    return map[category]||(['BEG','NOV','INT','ADV','EXP'].includes(category)?category:'');
-  }
-
-  function renderCloudPlayerSuggestions() {
-    const datalist=$('attendanceCloudPlayerSuggestions');
-    if(!datalist)return;
-    const seen=new Set();
-    const options=(Array.isArray(state.records.players)?state.records.players:[])
-      .map(player=>({player,name:cloudPlayerName(player)}))
-      .filter(item=>item.name&&!seen.has(normalizeName(item.name))&&seen.add(normalizeName(item.name)))
-      .sort((a,b)=>a.name.localeCompare(b.name))
-      .map(({player,name})=>{
-        const details=[player.nickname,player.gender,player.category].filter(Boolean).join(' · ');
-        return `<option value="${escapeAttr(name)}"${details?` label="${escapeAttr(details)}"`:''}></option>`;
-      });
-    setMarkupWithoutJump(datalist,options.join(''));
-  }
-
-  function applyCloudPlayerSuggestion(form) {
-    const nameInput=form?.querySelector('[name="name"]');
-    if(!nameInput)return;
-    const entered=normalizeName(nameInput.value);
-    if(!entered)return;
-    const match=(Array.isArray(state.records.players)?state.records.players:[]).find(player=>normalizeName(cloudPlayerName(player))===entered);
-    if(!match)return;
-    form.querySelector('[name="nickname"]').value=String(match.nickname||'');
-    const gender=String(match.gender||'').trim().toLowerCase();
-    form.querySelector('[name="gender"]').value=gender==='male'?'Male':gender==='female'?'Female':'';
-    form.querySelector('[name="category"]').value=categoryCode(match.category);
-  }
-
-  function participantMarkup(person,index,session) {
-    const name=fullName(person)||'Unnamed participant';
-    const nickname=String(person.nickname||'').trim();
-    const target=state.editingParticipant;
-    const isEditing=!!target&&target.sessionId===session.id&&target.index===index;
-    const avatar=`<div class="participant-avatar-stack">${participantAvatar(person)}<span class="participant-position-badge">${index+1}</span></div>`;
-    if(isEditing){
-      return `<article class="participant-row is-editing">
-        ${avatar}
-        <form class="participant-inline-edit" data-participant-edit-form data-participant-index="${index}">
-          <div class="participant-inline-fields">
-            <input class="participant-inline-input participant-inline-name" name="name" type="text" maxlength="100" required autocomplete="off" list="attendanceCloudPlayerSuggestions" data-cloud-player-name value="${escapeAttr(name)}" aria-label="Full name" placeholder="Full name">
-            <input class="participant-inline-input participant-inline-nickname" name="nickname" type="text" maxlength="60" autocomplete="off" value="${escapeAttr(nickname)}" aria-label="Nickname" placeholder="Nickname">
-            <input type="hidden" name="gender" value="${escapeAttr(person.gender||'')}">
-            <input type="hidden" name="category" value="${escapeAttr(categoryCode(person.category)||person.category||'')}">
-          </div>
-          <div class="participant-inline-actions">
-            <button class="participant-action participant-inline-save" type="submit">Save</button>
-            <button class="participant-action participant-inline-cancel" type="button" data-participant-action="cancel-edit">Cancel</button>
-          </div>
-          <p class="participant-inline-hint">Cloud suggestions update this attendance record only.</p>
-        </form>
-      </article>`;
-    }
-    const singleLine=`${name}${nickname?` (${nickname})`:''}`;
-    const isDeletePending=!!state.pendingDeleteParticipant&&state.pendingDeleteParticipant.sessionId===session.id&&state.pendingDeleteParticipant.index===index;
-    const deleteWarning=isDeletePending?`<div class="cloud-delete-warning dashboard-attendance-delete-warning" role="alert"><span>Remove this player from attendance only? Queue and Cloud Players will remain unchanged.</span><button type="button" data-participant-action="confirm-delete" data-participant-index="${index}">Confirm</button><button type="button" class="attendance-cancel-confirm" data-participant-action="cancel-delete" data-participant-index="${index}">Cancel</button></div>`:'';
-    return `<article class="participant-row${isDeletePending?' is-delete-confirming':''}">
-      ${avatar}
-      <span class="participant-copy"><strong class="participant-name" title="${escapeAttr(singleLine)}">${escapeHtml(singleLine)}</strong></span>
-      <span class="participant-actions">
-        <button class="participant-action edit-participant-action" type="button" data-participant-action="edit" data-participant-index="${index}" aria-label="Edit ${escapeAttr(name)}" title="Edit participant"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg><span>Edit</span></button>
-        <button class="participant-action delete-participant-action" type="button" data-participant-action="delete" data-participant-index="${index}" aria-label="Remove ${escapeAttr(name)}" title="Remove participant"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg><span>Delete</span></button>
-      </span>
-      ${deleteWarning}
-    </article>`;
-  }
-
-  // Avoid replacing unchanged live-refresh markup. When content does change,
-  // retain the list's scroll position so periodic syncs do not jump the user.
-  function setMarkupWithoutJump(element,markup) {
-    if(!element||element.innerHTML===markup)return;
-    const scrollTop=element.scrollTop;
-    const scrollLeft=element.scrollLeft;
-    element.innerHTML=markup;
-    element.scrollTop=scrollTop;
-    element.scrollLeft=scrollLeft;
-  }
-
-  function emptyMarkup(title,description,icon='🏓') {
-    return `<div class="empty-state"><span class="empty-state-icon" aria-hidden="true">${icon}</span><strong>${escapeHtml(title)}</strong><p>${escapeHtml(description)}</p></div>`;
-  }
-
-  function renderAttendance() {
-    const session=selectedSession();
-    const list=$('participantList');
-    const search=String($('attendanceSearch').value||'').trim().toLocaleLowerCase();
-    if(!session){
-      $('attendanceTotal').textContent='(0)';
-      $('attendanceSubtitle').textContent='';
-      setMarkupWithoutJump(list,emptyMarkup('No attendance yet','Select a session to view its checked-in participants.','♧'));
-      return;
-    }
-    const participants=Array.isArray(session.participants)?session.participants:[];
-    const participantCount=session.isLive?participants.length:(Number(session.playerCount)||participants.length);
-    $('attendanceTotal').textContent=`(${participantCount})`;
-    $('attendanceSubtitle').textContent=String(session.sessionName||'');
-    if(state.editingParticipant?.sessionId===session.id && list.querySelector('[data-participant-edit-form]'))return;
-    const filtered=participants.map((person,index)=>({person,index})).filter(({person})=>`${fullName(person)} ${person.nickname||''} ${person.category||''}`.toLocaleLowerCase().includes(search));
-    if(filtered.length){setMarkupWithoutJump(list,filtered.map(({person,index})=>participantMarkup(person,index,session)).join(''));return;}
-    if(!participants.length){
-      const older=Number(session.playerCount)||0;
-      setMarkupWithoutJump(list,older?emptyMarkup('Attendance names not available',`This older session has ${older} participant record(s), but the name list was not saved at the time. New completed sessions include the full check-in list.`,'◷'):emptyMarkup('No participants recorded','This session has no saved participant check-ins.','♧'));
-    }else{
-      setMarkupWithoutJump(list,emptyMarkup('No participants found','Try another name or clear your search.','⌕'));
+  const attendanceByName = new Map();
+  for (const session of state.data?.sessions || []) {
+    for (const person of session.attendees || []) {
+      const key = normalizeName(person.playerName || person.name);
+      if (key) attendanceByName.set(key, (attendanceByName.get(key) || 0) + 1);
     }
   }
 
-  // ===== Match history, scorecards and date filtering =====
-  function teamPeople(log,side) {
-    const direct=Array.isArray(log?.[`${side}Players`])?log[`${side}Players`]:[];
-    if(direct.length)return direct.map(person=>fullName(person)||'Player');
-    const names=Array.isArray(log?.[`${side}Names`])?log[`${side}Names`]:[];
-    if(names.length)return names.map(name=>String(name||'Player'));
-    const ids=Array.isArray(log?.[`${side}Ids`])?log[`${side}Ids`]:[];
-    return ids.map(id=>{
-      const match=(state.records.players||[]).find(person=>String(person.id||person.cloudId)===String(id));
-      return fullName(match)||`Player ${id}`;
-    });
-  }
-
-  function isWinningTeam(log,side) {
-    if(Number(log?.winnerTeam)===1)return side==='team1';
-    if(Number(log?.winnerTeam)===2)return side==='team2';
-    const winnerNames=String(log?.winner||'').split('&').map(normalizeName).filter(Boolean);
-    if(!winnerNames.length)return false;
-    const team=teamPeople(log,side).map(normalizeName);
-    return team.length>0&&team.every(name=>winnerNames.includes(name));
-  }
-
-  function matchTimeOnly(value) {
-    const date=validDate(value);
-    return date?new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'}).format(date):'Time not available';
-  }
-
-  function matchDuration(value) {
-    const raw=String(value||'').trim();
-    if(!raw)return '';
-    const seconds=raw.match(/^(\d+(?:\.\d+)?)\s*(?:s|sec|secs|second|seconds)$/i);
-    if(seconds){const n=Math.max(0,Math.round(Number(seconds[1])));return n>=60?`${Math.floor(n/60)}m ${n%60}s`:`${n}s`;}
-    return raw.replace(/\bminutes?\b/i,'min').replace(/\bseconds?\b/i,'sec');
-  }
-
-  function matchTeamPlayers(log,side) {
-    const snapshots=Array.isArray(log?.[`${side}Players`])?log[`${side}Players`]:[];
-    const ids=Array.isArray(log?.[`${side}Ids`])?log[`${side}Ids`]:[];
-    const names=teamPeople(log,side);
-    return names.map((name,index)=>{
-      const snapshot=snapshots[index]||{};
-      const matchPlayer={id:snapshot.id??ids[index]??null,cloudId:snapshot.cloudId??null,name:fullName(snapshot)||name,nickname:String(snapshot.nickname||'').trim()};
-      const registered=registeredPlayerForMatch(matchPlayer);
-      const duprId=String(registered?.duprId||registered?.duprID||registered?.dupr_id||registered?.dupr||snapshot.duprId||snapshot.duprID||snapshot.dupr_id||snapshot.dupr||'').trim().toUpperCase();
-      return {...matchPlayer,duprId};
-    });
-  }
-
-  function matchPlayerMarkup(player,showDuprBadge=true) {
-    return `<span class="match-player-line"><span class="match-player-name" title="${escapeAttr(player.name)}">${escapeHtml(player.name)}</span>${showDuprBadge&&player.duprId?`<span class="match-dupr-badge">DUPR</span>`:''}</span>`;
-  }
-
-  function isDuprMatch(log,session) {
-    // A match-level label/flag takes precedence over the parent session. This
-    // prevents a stale session DUPR flag from turning an explicitly NON-DUPR
-    // match into an exportable DUPR record.
-    const matchName=String(log?.sessionName||'').trim();
-    if(/^\(NON\s+DUPR\s+MATCH\)/i.test(matchName))return false;
-    if(/^\(DUPR\s+MATCH\)/i.test(matchName))return true;
-    if(typeof log?.duprMatch==='boolean')return log.duprMatch;
-    const sessionName=String(session?.sessionName||'').trim();
-    if(/^\(NON\s+DUPR\s+MATCH\)/i.test(sessionName))return false;
-    if(/^\(DUPR\s+MATCH\)/i.test(sessionName))return true;
-    return session?.duprMatch===true;
-  }
-
-  function duprCsvRowForMatch(log,session) {
-    if(!isDuprMatch(log,session)||!hasRecordedMatchScore(log))return null;
-    const score=String(log?.score||'').trim().match(/^(\d+)\s*-\s*(\d+)$/);
-    if(!score||score[1]===score[2])return null;
-    const type=String(log?.type||'Doubles').toLowerCase();
-    const isSingles=type.includes('single');
-    if(!isSingles&&!type.includes('double'))return null;
-    const size=isSingles?1:2;
-    const teamA=matchTeamPlayers(log,'team1'),teamB=matchTeamPlayers(log,'team2');
-    if(teamA.length!==size||teamB.length!==size||[...teamA,...teamB].some(player=>!player.name||!player.duprId))return null;
-    const sessionName=String(log.sessionName||session?.sessionName||'Open Play').replace(/^\((?:NON\s+)?DUPR\s+MATCH\)\s*/i,'').trim()||'Open Play';
-    const date=validDate(log.endedAt||log.startedAt||session?.endedAt||session?.startedAt);
-    return {matchType:isSingles?'S':'D',event:sessionName,date:date?`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`:'',
-      playerA1:teamA[0]?.name||'',playerA1DuprId:teamA[0]?.duprId||'',playerA1ExternalId:'',playerA2:teamA[1]?.name||'',playerA2DuprId:teamA[1]?.duprId||'',playerA2ExternalId:'',
-      playerB1:teamB[0]?.name||'',playerB1DuprId:teamB[0]?.duprId||'',playerB1ExternalId:'',playerB2:teamB[1]?.name||'',playerB2DuprId:teamB[1]?.duprId||'',playerB2ExternalId:'',
-      teamAGame1:Number(score[1]),teamBGame1:Number(score[2]),teamAGame2:'',teamBGame2:'',teamAGame3:'',teamBGame3:'',teamAGame4:'',teamBGame4:'',teamAGame5:'',teamBGame5:'',scoreType:String(log.scoreType||((Number(log.target)===21)?'Rally':'Sideout')),location:''};
-  }
-
-  function matchScoreCenterMarkup(log,team1Won,team2Won) {
-    // Both DUPR and NON-DUPR matches use the exact same score display rules.
-    // A valid recorded score is always numeric; win-only matches show W-L.
-    const scoreParts=String(log?.score??'').trim().match(/^(\d+)\s*-\s*(\d+)$/);
-    const winOnly=String(log?.recordingMode||'').trim().toLowerCase()==='win-only';
-    const hasRecordedScore=!winOnly&&!!scoreParts&&Number(scoreParts[1])!==Number(scoreParts[2]);
-    const left=hasRecordedScore?scoreParts[1]:(team1Won?'W':team2Won?'L':'—');
-    const right=hasRecordedScore?scoreParts[2]:(team2Won?'W':team1Won?'L':'—');
-    const leftClass=team1Won?'score-is-winner':team2Won?'score-is-loser':'';
-    const rightClass=team2Won?'score-is-winner':team1Won?'score-is-loser':'';
-    return `<strong class="${leftClass}">${escapeHtml(left)}</strong><span>-</span><strong class="${rightClass}">${escapeHtml(right)}</strong>`;
-  }
-
-  function hasRecordedMatchScore(log) {
-    if(String(log?.recordingMode||'').trim().toLowerCase()==='win-only')return false;
-    const score=String(log?.score||'').trim().match(/^(\d+)\s*-\s*(\d+)$/);
-    return !!score&&Number(score[1])!==Number(score[2]);
-  }
-
-  function registeredPlayerForMatch(player) {
-    const cloudPlayers=Array.isArray(state.records.players)?state.records.players:[];
-    const cloudId=String(player?.cloudId||'').trim();
-    if(cloudId){
-      const byId=cloudPlayers.find(item=>String(item?.cloudId||'').trim()===cloudId);
-      if(byId)return byId;
+  const matchStatsByName = new Map();
+  for (const match of state.data?.matches || []) {
+    const teamA = new Set((match.teamANames || []).map(normalizeName).filter(Boolean));
+    const teamB = new Set((match.teamBNames || []).map(normalizeName).filter(Boolean));
+    const participants = new Set([...teamA, ...teamB]);
+    for (const key of participants) {
+      const stats = matchStatsByName.get(key) || { matches: 0, wins: 0 };
+      stats.matches += 1;
+      if ((match.winner === 'A' && teamA.has(key)) || (match.winner === 'B' && teamB.has(key))) stats.wins += 1;
+      matchStatsByName.set(key, stats);
     }
-    const playerName=normalizeName(player?.name);
-    return playerName?cloudPlayers.find(item=>normalizeName(cloudPlayerName(item))===playerName)||null:null;
   }
 
-  function matchEditPlayerMarkup(player,side,index) {
-    const baseName=String(player?.name||'Player details unavailable');
-    const registered=registeredPlayerForMatch(player);
-    const selectedCloudId=registered?.cloudId==null?'':String(registered.cloudId);
-    const selectedName=registered?cloudPlayerName(registered):'';
-    return `<div class="match-edit-player-row">
-      <div class="match-player-autocomplete">
-        <input class="match-edit-player-field" type="text" name="${side}Player${index}" maxlength="120" required autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" data-match-player-input data-match-side="${side}" data-match-player-index="${index}" data-original-name="${escapeAttr(baseName)}" data-selected-cloud-id="${escapeAttr(selectedCloudId)}" data-selected-name="${escapeAttr(selectedName)}" value="${escapeAttr(baseName)}" aria-label="${side==='team1'?'Team 1':'Team 2'} player ${index+1}" placeholder="Search registered player">
-        <div class="match-player-suggestions" role="listbox" hidden></div>
-      </div>
-    </div>`;
-  }
+  playerStatsIndex = { signature: state.dataSignature, attendanceByName, matchStatsByName, cache: new Map() };
+  return playerStatsIndex;
+}
+function playerStats(player) {
+  const index = getPlayerStatsIndex();
+  const nameKey = normalizeName(player.name);
+  const cacheKey = `${nameKey}|${Number(player.wins) || 0}|${Number(player.losses) || 0}|${Number(player.matches) || 0}`;
+  if (index.cache.has(cacheKey)) return index.cache.get(cacheKey);
 
-  function matchEditorMarkup(log,team1,team2,matchNumber,sessionId,cardHeadMarkup,deleteWarningMarkup,syncRowMarkup,renderKey,editFormId) {
-    const parts=String(log?.score||'').trim().match(/^(\d+)\s*-\s*(\d+)$/);
-    const leftScore=parts?parts[1]:'';
-    const rightScore=parts?parts[2]:'';
-    const playerRows=(players,side)=>players.length?players.map((player,index)=>matchEditPlayerMarkup(player,side,index)).join(''):'<div class="match-edit-player-field match-edit-player-field-empty">Player details unavailable</div>';
-    return `<article class="match-card match-record-card is-editing" data-match-id="${escapeAttr(matchNumber)}" data-match-session-id="${escapeAttr(sessionId)}">
-      ${cardHeadMarkup}
-      ${deleteWarningMarkup}
-      ${syncRowMarkup}
-      <form class="match-inline-edit-form" id="${escapeAttr(editFormId)}" data-match-edit-form data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}" data-match-render-key="${escapeAttr(renderKey)}">
-        <div class="match-inline-edit-panel">
-          <div class="match-edit-teams">
-            <section class="match-edit-team-group" aria-label="Team 1 players"><span class="match-edit-team-label">Team 1</span><div class="match-edit-player-list">${playerRows(team1,'team1')}</div></section>
-            <div class="match-edit-score-center" aria-label="Edit recorded match score">
-              <input data-match-score-input name="team1Score" type="text" inputmode="numeric" pattern="[0-9]{1,2}" maxlength="2" autocomplete="off" required aria-label="Team 1 score" value="${escapeAttr(leftScore)}">
-              <span>VS</span>
-              <input data-match-score-input name="team2Score" type="text" inputmode="numeric" pattern="[0-9]{1,2}" maxlength="2" autocomplete="off" required aria-label="Team 2 score" value="${escapeAttr(rightScore)}">
-            </div>
-            <section class="match-edit-team-group" aria-label="Team 2 players"><span class="match-edit-team-label">Team 2</span><div class="match-edit-player-list">${playerRows(team2,'team2')}</div></section>
-          </div>
-          <p class="match-edit-cloud-hint">Choose player names from Registered Player Cloud suggestions. Unregistered or manually typed replacement names cannot be saved.</p>
-        </div>
-      </form>
-    </article>`;
-  }
+  const logged = index.matchStatsByName.get(nameKey) || { matches: 0, wins: 0 };
+  const wins = Math.max(Number(player.wins) || 0, logged.wins);
+  const lossesFromLogs = Math.max(0, logged.matches - logged.wins);
+  const losses = Math.max(Number(player.losses) || 0, lossesFromLogs);
+  const matches = Math.max(Number(player.matches) || 0, logged.matches, wins + losses);
+  const result = { wins, losses, matches, attendance: index.attendanceByName.get(nameKey) || 0 };
+  index.cache.set(cacheKey, result);
+  return result;
+}
+function visibleRows(rows) {
+  if (!state.query) return rows;
+  const q = state.query.toLocaleLowerCase();
+  return rows.filter(row => JSON.stringify(row).toLocaleLowerCase().includes(q));
+}
+function sessionStatus(session) { return session.isLive ? 'Live' : 'Completed'; }
+function sessionStatusBadge(status) {
+  const cls = status === 'Live' ? 'live' : 'ended';
+  return `<span class="status-pill ${cls}">${escapeHTML(status)}</span>`;
+}
+function sessionDateLabel(session) { return session.date ? fmtDate(session.date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Date unavailable'; }
+function sessionTimeLabel(session) { return session.startTime ? `${session.startTime}${session.endTime ? ` – ${session.endTime}` : session.isLive ? ' · In progress' : ''}` : (session.isLive ? 'In progress' : 'Time unavailable'); }
+function sessionLocationLabel(session) { return session.location || 'Location not saved in this session'; }
+function sessionCourtsLabel(session) { return (session.courtNames || []).join(', ') || 'Court details not saved'; }
+function sessionPlayersLabel(session) { return `${(session.attendees || []).length} player${(session.attendees || []).length === 1 ? '' : 's'}`; }
+function getLiveSession() { return state.data?.sessions.find(session => session.isLive) || null; }
+function getRegistrationUrl(session = getLiveSession()) {
+  if (!session || !state.organizer?.slug) return '';
+  const params = new URLSearchParams({ organizer: state.organizer.slug, session: session.id });
+  return `/registration?${params.toString()}`;
+}
+function navigateTo(path) { window.location.assign(path); }
+function openToolTab(path) { window.open(path, '_blank', 'noopener'); }
 
-  function matchDeleteWarningMarkup(matchNumber,sessionId) {
-    return `<div class="cloud-delete-warning dashboard-attendance-delete-warning match-inline-delete-warning" role="alert"><span>Delete this recorded match? The session and its participants will remain unchanged.</span><button type="button" data-match-action="confirm-delete" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}">Confirm</button><button type="button" class="attendance-cancel-confirm" data-match-action="cancel-delete" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}">Cancel</button></div>`;
-  }
-
-  function matchMarkup(log,index,session,renderKey='') {
-    const team1=matchTeamPlayers(log,'team1'),team2=matchTeamPlayers(log,'team2');
-    const team1Won=isWinningTeam(log,'team1'),team2Won=isWinningTeam(log,'team2');
-    const time=matchTimeOnly(log.endedAt||log.startedAt);
-    const duration=matchDuration(log.duration);
-    const type=String(log.type||'Doubles');
-    const matchNumber=log.id!==undefined&&log.id!==null?String(log.id):String(index+1);
-    const idAvailable=log.id!==undefined&&log.id!==null&&String(log.id)!=='';
-    const sessionId=String(session?.id||'');
-    const isDupr=isDuprMatch(log,session);
-    const exportable=!!duprCsvRowForMatch(log,session);
-    const canEditRecordedScore=idAvailable&&hasRecordedMatchScore(log);
-    const hasRecordedScore=hasRecordedMatchScore(log);
-    const isEditingThisMatch=state.editingMatch?.sessionId===sessionId&&state.editingMatch?.matchId===matchNumber;
-    const isDeletePending=String(state.pendingDeleteMatch?.sessionId||'')===sessionId&&String(state.pendingDeleteMatch?.matchId||'')===matchNumber;
-    // Editing and deleting are mutually exclusive across Match History.
-    // Keep the opposite action visible but disabled while either action is active.
-    const blockEditAction=!!state.pendingDeleteMatch||!!state.editingMatch;
-    const blockDeleteAction=!!state.pendingDeleteMatch||!!state.editingMatch;
-    const deleteWarningMarkup=isDeletePending?matchDeleteWarningMarkup(matchNumber,sessionId):'';
-    const scoreCenter=matchScoreCenterMarkup(log,team1Won,team2Won);
-    const editFormId=`match-edit-form-${`${sessionId}-${matchNumber}`.replace(/[^a-zA-Z0-9_-]/g,'-')}`;
-    const meta=`<strong>#${escapeHtml(matchNumber)}</strong><time>${escapeHtml(time)}</time>${duration?`<span class="match-duration">(${escapeHtml(duration)})</span>`:''}<span class="match-type-pill">${escapeHtml(type)}</span>`;
-    const editHeaderActions=isEditingThisMatch?`
-        <button class="match-edit-header-button match-edit-save" type="submit" form="${escapeAttr(editFormId)}">Save</button>
-        <button class="match-edit-header-button match-edit-cancel" type="button" data-match-action="cancel-edit" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}">Cancel</button>`:
-      canEditRecordedScore?`<button class="match-icon-action" type="button" data-match-action="edit" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}" ${blockEditAction?'disabled':''} aria-label="Edit match" title="${blockEditAction?'Finish or cancel the active match action first':'Edit recorded match'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg></button>`:'';
-    const cardHeadMarkup=`<div class="match-card-head">
-      <div class="match-record-meta">${meta}</div>
-      <div class="match-card-actions ${isEditingThisMatch?'is-editing-actions':''}">
-        ${editHeaderActions}
-        <button class="match-icon-action is-delete" type="button" data-match-action="delete" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}" ${idAvailable&&!blockDeleteAction?'':'disabled'} aria-label="Delete match" title="${blockDeleteAction?'Finish or cancel the active match action first':'Delete match'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg></button>
-      </div>
-    </div>`;
-    const syncRowMarkup=hasRecordedScore?`<div class="match-sync-row"><span class="match-sync-status" data-match-kind="${isDupr?'dupr':'non-dupr'}">${isDupr?'DUPR MATCH':'NON-DUPR MATCH'}</span><button class="match-sync-button" type="button" data-match-action="export" data-match-id="${escapeAttr(matchNumber)}" data-session-id="${escapeAttr(sessionId)}" ${exportable&&!state.editingMatch?'':'disabled'} title="${state.editingMatch?'Finish or cancel the open match edit before exporting':exportable?'Download a CSV ready for manual DUPR import':'DUPR export requires a DUPR match, a valid score, and DUPR IDs for every player'}">Export DUPR CSV</button></div>`:'';
-    if(isEditingThisMatch) {
-      return matchEditorMarkup(log,team1,team2,matchNumber,sessionId,cardHeadMarkup,deleteWarningMarkup,syncRowMarkup,renderKey,editFormId);
+function organizerClubName() {
+  return String(state.organizer?.displayName || state.organizer?.clubName || 'PICKLE POINT MATCH').trim() || 'PICKLE POINT MATCH';
+}
+function pageHeading(eyebrow, title, subtitle, actions = '') {
+  const brandedEyebrow = String(eyebrow).replace(/^HUSAY DINKERS(?=\s*\/)/i, organizerClubName());
+  return `<div class="page-heading"><div class="heading-copy"><span class="eyebrow">${escapeHTML(brandedEyebrow)}</span><h1>${escapeHTML(title)}</h1><p class="subtitle">${escapeHTML(subtitle)}</p></div><div class="heading-actions">${actions}</div></div>`;
+}
+function statCard(label, value, foot, iconName, dark = false) {
+  return `<article class="stat-card ${dark ? 'dark' : 'light'}"><div><p class="stat-label">${escapeHTML(label)}</p><p class="stat-value">${escapeHTML(value)}</p><div class="stat-foot">${escapeHTML(foot)}</div></div><span class="stat-icon">${icon(iconName)}</span></article>`;
+}
+function panelTitle(title, iconName, action = '') {
+  return `<div class="panel-heading"><h2 class="panel-title"><span class="mini-icon">${icon(iconName)}</span>${escapeHTML(title)}</h2>${action}</div>`;
+}
+function emptyState(title, message, actionLabel = '', action = '') {
+  return `<div class="empty-state"><span class="empty-icon">${icon('info')}</span><strong>${escapeHTML(title)}</strong><p>${escapeHTML(message)}</p>${actionLabel ? `<button class="btn btn-primary btn-sm" data-action="${escapeHTML(action)}">${escapeHTML(actionLabel)}</button>` : ''}</div>`;
+}
+function chartMarkup(sessions) {
+  const last = sessions.filter(session => !session.isLive).slice(0, 6).reverse();
+  if (!last.length) return '<div class="chart-empty">Attendance activity will appear after an open-play session is completed.</div>';
+  const values = last.map(session => (session.attendees || []).length);
+  const max = Math.max(4, ...values);
+  const bars = last.map((session, index) => {
+    const value = values[index];
+    const height = value ? Math.max(5, (value / max) * 100) : 0;
+    const label = fmtDate(session.date, { month: 'short', day: 'numeric' });
+    return `<div class="attendance-bar-item" title="${escapeHTML(label)}: ${value} players"><div class="attendance-bar-visual" style="--bar-height:${height}%"><span class="attendance-bar-value">${value}</span><span class="attendance-bar-fill"></span></div><span class="attendance-bar-date">${escapeHTML(label)}</span></div>`;
+  }).join('');
+  return `<div class="attendance-chart" role="img" aria-label="Bar chart showing player attendance across the latest completed open-play sessions"><div class="attendance-y-axis"><span>${max}</span><span>${Math.round(max / 2)}</span><span>0</span></div><div class="attendance-plot"><span class="attendance-grid-line grid-top"></span><span class="attendance-grid-line grid-middle"></span><span class="attendance-grid-line grid-bottom"></span><div class="attendance-bars" style="--bar-count:${last.length}">${bars}</div></div></div>`;
+}
+function liveBanner() {
+  const session = getLiveSession();
+  if (!session) return '';
+  const registrationUrl = getRegistrationUrl(session);
+  const queueCount = Number(state.data.queueCount) || 0;
+  const courtsPlaying = asArray(state.data.liveState?.courts).filter(court => court?.playing).length;
+  return `<section class="live-session-banner"><div><strong><span class="status-pill live">LIVE NOW</span> ${escapeHTML(session.title)}</strong><p>${sessionPlayersLabel(session)} checked in · ${queueCount} waiting in queue · ${courtsPlaying} active court${courtsPlaying === 1 ? '' : 's'}</p></div><div class="live-session-actions"><a class="btn btn-sm btn-primary" href="/queueing" target="_blank" rel="noopener">Open Queueing</a>${registrationUrl ? `<a class="btn btn-sm" href="${escapeHTML(registrationUrl)}" target="_blank" rel="noopener">Registration</a>` : ''}<a class="btn btn-sm" href="/live" target="_blank" rel="noopener">Live View</a></div></section>`;
+}
+let rankedPlayersCacheSignature = '';
+let rankedPlayersCache = [];
+function compareRankedPlayers(a, b) {
+  const sa = playerStats(a), sb = playerStats(b);
+  const rateA = sa.matches ? sa.wins / sa.matches : 0;
+  const rateB = sb.matches ? sb.wins / sb.matches : 0;
+  return sb.wins - sa.wins || rateB - rateA || sb.matches - sa.matches || a.name.localeCompare(b.name);
+}
+function getRankedPlayers() {
+  const signature = state.dataSignature || 'initial';
+  if (rankedPlayersCacheSignature === signature) return rankedPlayersCache;
+  const players = [...(state.data?.players || [])];
+  players.sort(compareRankedPlayers);
+  rankedPlayersCacheSignature = signature;
+  rankedPlayersCache = players;
+  return rankedPlayersCache;
+}
+// Dashboard only needs its first 20 rows. Keep the list bounded instead of
+// sorting every player before the dashboard can paint.
+function topRankedPlayers(limit = 5) {
+  if (limit > 100) return getRankedPlayers().slice(0, limit);
+  const top = [];
+  for (const player of state.data?.players || []) {
+    let low = 0, high = top.length;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (compareRankedPlayers(player, top[middle]) < 0) high = middle;
+      else low = middle + 1;
     }
-    const teamMarkup=(players,won)=>`<div class="match-team ${won?'is-winner':'is-loser'}"><span class="match-outcome-mark">${won?'W':'L'}</span><span class="match-team-players">${players.map(player=>matchPlayerMarkup(player,hasRecordedScore)).join('')||'<span class="match-player-line"><span class="match-player-name">Player details unavailable</span></span>'}</span></div>`;
-    return `<article class="match-card match-record-card" data-match-id="${escapeAttr(matchNumber)}" data-match-session-id="${escapeAttr(sessionId)}">
-      ${cardHeadMarkup}
-      ${deleteWarningMarkup}
-      ${syncRowMarkup}
-      <div class="match-teams">
-        ${teamMarkup(team1,team1Won)}
-        <div class="match-score-center">${scoreCenter}</div>
-        ${teamMarkup(team2,team2Won)}
-      </div>
-    </article>`;
-  }
-
-  function allMatchEntries() {
-    // Match History is global: collect completed matches from every archived
-    // session plus the active session, then apply the date range to that set.
-    // Each entry keeps its owning session so edit/delete/DUPR actions still
-    // target the correct session even when match IDs overlap between sessions.
-    return allSessions().flatMap(session=>sessionLogs(session).map(log=>({log,session}))).sort((a,b)=>{
-      const dateA=validDate(a.log?.endedAt||a.log?.startedAt||a.session?.endedAt||a.session?.startedAt)?.getTime()||0;
-      const dateB=validDate(b.log?.endedAt||b.log?.startedAt||b.session?.endedAt||b.session?.startedAt)?.getTime()||0;
-      return dateB-dateA;
-    });
-  }
-
-  function parseLocalMatchDateTimeInput(value) {
-    const match=String(value||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
-    if(!match)return null;
-    const year=Number(match[1]),month=Number(match[2]),day=Number(match[3]);
-    const hour=Number(match[4]),minute=Number(match[5]),second=Number(match[6]||0);
-    const date=new Date(year,month-1,day,hour,minute,second,0);
-    // Reject impossible dates/times instead of allowing Date to roll them over.
-    if(date.getFullYear()!==year||date.getMonth()!==month-1||date.getDate()!==day||
-      date.getHours()!==hour||date.getMinutes()!==minute||date.getSeconds()!==second)return null;
-    return date;
-  }
-
-  function dateRangeBounds() {
-    const from=parseLocalMatchDateTimeInput($('matchesFromDate')?.value);
-    const toDate=parseLocalMatchDateTimeInput($('matchesToDate')?.value);
-    // datetime-local controls have one-second precision. Make the To second
-    // inclusive by using the following second as the exclusive upper boundary.
-    const to=toDate?new Date(toDate.getTime()+1000):null;
-    return {from,to};
-  }
-
-  function matchEntryDate(entry) {
-    // Use the first valid timestamp. A malformed endedAt must not hide a valid
-    // startedAt, and session timestamps are only a last-resort legacy fallback.
-    return validDate(entry.log?.endedAt)||validDate(entry.log?.startedAt)||
-      validDate(entry.session?.endedAt)||validDate(entry.session?.startedAt);
-  }
-
-  function matchEntryMatchesRange(entry,bounds) {
-    const date=matchEntryDate(entry);
-    if(!date&&(bounds.from||bounds.to))return false;
-    if(bounds.from&&date<bounds.from)return false;
-    if(bounds.to&&date>=bounds.to)return false;
-    return true;
-  }
-
-  function syncMatchRangeButtons() {
-    document.querySelectorAll('#matchFilterToolbar [data-match-range]').forEach(button=>{
-      const active=String(button.dataset.matchRange||'')===state.matchDateRange;
-      button.classList.toggle('is-active',active);
-      button.setAttribute('aria-pressed',String(active));
-    });
-  }
-
-  function setManualMatchDateFilter(changedField) {
-    state.matchDateRange='';
-    state.matchSessionFilterId='';
-    const fromInput=$('matchesFromDate');
-    const toInput=$('matchesToDate');
-    const from=parseLocalMatchDateTimeInput(fromInput.value);
-    const to=parseLocalMatchDateTimeInput(toInput.value);
-    // Keep the selected interval valid when its endpoints are edited in either
-    // direction; adjust the opposite endpoint to the newly chosen date.
-    if(from&&to&&from>to){
-      if(changedField==='from')toInput.value=fromInput.value;
-      else fromInput.value=toInput.value;
+    if (low < limit) {
+      top.splice(low, 0, player);
+      if (top.length > limit) top.pop();
+    } else if (top.length < limit) {
+      top.push(player);
     }
-    syncMatchRangeButtons();
-    renderMatches();
   }
-
-  function renderMatches() {
-    const list=$('matchList');
-    const search=normalizeName($('matchesSearch').value||'');
-    const bounds=dateRangeBounds();
-    const allEntries=allMatchEntries();
-    // A session chosen from the picker is isolated by its unique ID and exact
-    // created-time window. Choosing a quick range or editing either date clears
-    // that scope and restores global all-session Match History.
-    const inRange=allEntries.filter(entry=>
-      (!state.matchSessionFilterId||String(entry.session?.id||'')===state.matchSessionFilterId)&&
-      matchEntryMatchesRange(entry,bounds)
-    );
-    const filtered=inRange.filter(({log})=>{
-      if(!search)return true;
-      // Match search is intentionally limited to player names only. Court,
-      // session, score, DUPR ID, and nickname text are not search fields.
-      const playerNames=[
-        ...matchTeamPlayers(log,'team1').map(player=>player.name),
-        ...matchTeamPlayers(log,'team2').map(player=>player.name)
-      ];
-      return playerNames.some(name=>normalizeName(name).includes(search));
-    });
-    // The summary and CSV export set follow the date range, not the text search.
-    state.matchesVisible=inRange;
-    const totalMatches=inRange.length;
-    const duprMatches=inRange.filter(({log,session})=>isDuprMatch(log,session));
-    const exportable=duprMatches.filter(({log,session})=>!!duprCsvRowForMatch(log,session));
-    $('matchesTotal').textContent=`(${totalMatches})`;
-    $('matchesPlayedCount').textContent=String(totalMatches);
-    $('duprExportCount').textContent=String(exportable.length);
-    // DUPR export follows the same scope currently shown in Match History.
-    // Quick ranges and All Time clear the selected-session scope first.
-    $('exportMatchesButton').disabled=duprMatches.length===0||!!state.editingMatch;
-    $('exportMatchesButton').title=duprMatches.length===0
-      ?'No DUPR MATCH sessions in the selected date range'
-      :state.editingMatch
-        ?'Finish or cancel the open match edit before exporting'
-        :exportable.length===duprMatches.length
-          ?'Review and export DUPR-ready matches'
-          :exportable.length
-            ?'Review DUPR matches and missing IDs before exporting'
-            :'Open DUPR export to review matches and missing details';
-    const scopedSession=state.matchSessionFilterId?allSessions().find(session=>String(session.id)===state.matchSessionFilterId):null;
-    $('matchesSubtitle').textContent=scopedSession?`Selected Session · ${scopedSession.sessionName||'Open Play'}`:'All Sessions';
-    const renderKey=[search,state.matchSessionFilterId||'',bounds.from?bounds.from.getTime():'',bounds.to?bounds.to.getTime():''].join('|');
-    if(state.editingMatch){
-      const targetStillVisible=filtered.some(({log,session})=>String(log?.id??'')===state.editingMatch.matchId&&String(session?.id||'')===state.editingMatch.sessionId);
-      const mountedEditor=list.querySelector('[data-match-edit-form]');
-      const mountedEditorIsTarget=!!mountedEditor&&
-        String(mountedEditor.dataset.matchId||'')===String(state.editingMatch.matchId)&&
-        String(mountedEditor.dataset.sessionId||'')===String(state.editingMatch.sessionId);
-      if(targetStillVisible&&mountedEditorIsTarget&&mountedEditor.dataset.matchRenderKey===renderKey)return;
-      if(!targetStillVisible)state.editingMatch=null;
-    }
-    if(!filtered.length){
-      setMarkupWithoutJump(list,inRange.length?emptyMarkup('No matches found','Try another player name or clear your search.','⌕'):allEntries.length?emptyMarkup('No matches in this date range','Change the dates or choose All Time to view older match records.','🏓'):emptyMarkup('No match history yet','Completed matches recorded in Queueing will appear here.','🏓'));
-      return;
-    }
-    setMarkupWithoutJump(list,filtered.map(({log,session},index)=>matchMarkup(log,index,session,renderKey)).join(''));
+  return top;
+}
+function scheduleIdleTask(callback, timeout = 180) {
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(callback, { timeout });
+  } else {
+    window.setTimeout(() => callback({ didTimeout: true, timeRemaining: () => 0 }), 24);
   }
-
-  function matchDateTimeInputValue(date) {
-    return toLocalMatchDateTimeValue(date);
-  }
-
-  function initializeDefaultMatchDateRange() {
-    // Default to Today on first load. Quick ranges always show global history.
-    state.matchDateRange='today';
-    state.matchSessionFilterId='';
-    const today=new Date();
-    const start=new Date(today.getFullYear(),today.getMonth(),today.getDate(),0,0,0);
-    const end=new Date(today.getFullYear(),today.getMonth(),today.getDate(),23,59,59);
-    $('matchesFromDate').value=matchDateTimeInputValue(start);
-    $('matchesToDate').value=matchDateTimeInputValue(end);
-    syncMatchRangeButtons();
-    renderMatches();
-  }
-
-  function setMatchDateRange(range) {
-    const normalized=String(range??'').trim().toLowerCase();
-    if(!['today','7','30','all'].includes(normalized))return;
-    state.matchDateRange=normalized;
-    state.matchSessionFilterId='';
-    const today=new Date();
-    const end=new Date(today.getFullYear(),today.getMonth(),today.getDate(),23,59,59);
-    let start=null;
-    if(normalized==='today')start=new Date(today.getFullYear(),today.getMonth(),today.getDate(),0,0,0);
-    else if(normalized==='7')start=new Date(today.getFullYear(),today.getMonth(),today.getDate()-6,0,0,0);
-    else if(normalized==='30')start=new Date(today.getFullYear(),today.getMonth(),today.getDate()-29,0,0,0);
-    // All Time intentionally clears both endpoints and remains global.
-    $('matchesFromDate').value=start?matchDateTimeInputValue(start):'';
-    $('matchesToDate').value=normalized==='all'?'':matchDateTimeInputValue(end);
-    syncMatchRangeButtons();
-    renderMatches();
-  }
-
-  // ===== Session management and player rankings =====
-  function sessionManageMarkup(session) {
-    const matchCount=sessionLogs(session).length;
-    const participantCount=Number(session.playerCount)||session.participants?.length||0;
-    const createdDate=formatDateTime(sessionCreatedAt(session));
-    const endedDate=session.isLive?'LIVE':`${formatDateTime(session.endedAt||session.startedAt)} ENDED`;
-    const subtitle=`${endedDate} · ${participantCount} participant${participantCount===1?'':'s'} · ${matchCount} match${matchCount===1?'':'es'}`;
-    const disabled=session.isLive?'disabled':'';
-    const status=session.isLive?'<span class="session-status is-live">LIVE</span>':'<span class="session-status">COMPLETED</span>';
-    const isDeletePending=String(state.pendingDeleteSessionId||'')===String(session.id||'');
-    const deleteWarningMarkup=isDeletePending?`<div class="cloud-delete-warning dashboard-attendance-delete-warning session-inline-delete-warning" role="alert"><span>Delete this session and all match records saved under it? This action cannot be undone.</span><button type="button" data-session-action="confirm-delete" data-session-id="${escapeAttr(session.id)}">Confirm</button><button type="button" class="attendance-cancel-confirm" data-session-action="cancel-delete" data-session-id="${escapeAttr(session.id)}">Cancel</button></div>`:'';
-    return `<article class="session-manage-card" data-session-id="${escapeAttr(session.id)}">
-      <div class="session-manage-copy"><div class="session-manage-topline">${status}<span class="session-manage-date">${escapeHtml(createdDate)} CREATED</span></div>
-        <h3>${escapeHtml(session.sessionName||'Open Play')}</h3><p>${escapeHtml(subtitle)}</p>
-      </div>
-      <div class="session-manage-actions">
-        <button type="button" class="session-manage-btn tally-session-btn" data-session-action="tally" data-session-id="${escapeAttr(session.id)}" ${disabled} aria-label="View ranking for ${escapeAttr(session.sessionName||'session')}" title="View completed session ranking"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0V4Z"></path><path d="M8 6H5v2a3 3 0 0 0 3 3M16 6h3v2a3 3 0 0 1-3 3M12 13v4M8 21h8M10 17h4"></path></svg><span>Tally</span></button>
-        <button type="button" class="session-manage-btn edit-session-btn" data-session-action="edit" data-session-id="${escapeAttr(session.id)}" ${disabled} aria-label="Edit ${escapeAttr(session.sessionName||'session')}" title="Edit session"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg><span>Edit</span></button>
-        <button type="button" class="session-manage-btn delete-session-btn" data-session-action="delete" data-session-id="${escapeAttr(session.id)}" ${disabled||isDeletePending?'disabled':''} aria-label="Delete ${escapeAttr(session.sessionName||'session')}" title="Delete session"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg><span>Delete</span></button>
-      </div>
-      ${deleteWarningMarkup}
-      ${session.isLive?'<div class="session-manage-note">End this live session before editing or deleting it.</div>':''}
-    </article>`;
-  }
-
-  function sessionDurationSeconds(value) {
-    const raw=String(value||'').trim();
-    const match=raw.match(/^(\d+):(\d{1,2})$/);
-    if(match)return (Number(match[1])||0)*60+(Number(match[2])||0);
-    const minutes=raw.match(/(\d+)\s*m/i);
-    return minutes?(Number(minutes[1])||0)*60:0;
-  }
-
-  function buildSessionRanking(session) {
-    const logs=sessionLogs(session);
-    const playersByKey=new Map();
-    const addPlayer=(person,fallbackName='')=>{
-      if(!person||typeof person!=='object')person={name:fallbackName};
-      const name=String(person.name||person.displayName||fallbackName||'').trim();
-      if(!name)return;
-      const id=person.id??person.playerId??null;
-      let key=id!==null&&id!==undefined&&String(id).trim()!==''?`id:${String(id)}`:`name:${normalizeName(name)}`;
-      if(id===null||id===undefined||String(id).trim()===''){
-        const sameName=Array.from(playersByKey.values()).filter(existing=>normalizeName(existing.name)===normalizeName(name));
-        if(sameName.length===1)key=sameName[0]._key;
-        else if(sameName.length>1)return;
-      }
-      if(!playersByKey.has(key))playersByKey.set(key,{id:id===null?null:String(id),name,nickname:String(person.nickname||''),gender:String(person.gender||''),category:String(person.category||''),_key:key});
-      else {
-        const existing=playersByKey.get(key);
-        if(!existing.nickname&&person.nickname)existing.nickname=String(person.nickname);
-        if(!existing.category&&person.category)existing.category=String(person.category);
-        if(!existing.gender&&person.gender)existing.gender=String(person.gender);
-      }
+}
+function liveTimestamp(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  const text = String(value ?? '').trim();
+  if (!text) return NaN;
+  if (/^\d+(?:\.\d+)?$/.test(text)) return Number(text);
+  const parsed = Date.parse(text);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+function elapsedClockLabel(value) {
+  const started = liveTimestamp(value);
+  if (!Number.isFinite(started) || started <= 0) return '--:--';
+  const seconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainder = seconds % 60;
+  return hours ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}` : `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
+}
+function waitingClockLabel(value) {
+  const started = liveTimestamp(value);
+  if (!Number.isFinite(started) || started <= 0) return '0m';
+  const minutes = Math.max(0, Math.floor((Date.now() - started) / 60000));
+  if (minutes < 60) return `${minutes}m`;
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+}
+function livePlayerLabel(player) {
+  if (!player) return 'Player';
+  const name = String(player.name || 'Player').trim();
+  const nickname = String(player.nickname || '').trim();
+  return nickname && normalizeName(nickname) !== normalizeName(name) ? `${name} (${nickname})` : name;
+}
+function courtPlayerChip(player, waiting = false) {
+  if (!player) return '';
+  const waitStart = player.waitingSince || player.queuedAt || '';
+  return `<span class="court-player-chip" title="${escapeHTML(livePlayerLabel(player))}"><span class="court-player-name">${escapeHTML(livePlayerLabel(player))}</span>${waiting ? `<small data-wait-clock="${escapeHTML(String(waitStart))}">${escapeHTML(waitingClockLabel(waitStart))} wait</small>` : ''}</span>`;
+}
+function courtTile(court, playersById) {
+  const waitingOnly = Boolean(court.waitingOnly);
+  const playing = Boolean(court.playing);
+  const status = waitingOnly ? 'UP NEXT' : playing ? 'PLAYING' : 'READY';
+  const statusClass = waitingOnly ? 'up-next' : playing ? 'playing' : 'ready';
+  const rawPlayers = asArray(court.players);
+  const players = rawPlayers.map(entry => entry && typeof entry === 'object' ? entry : playersById.get(String(entry))).filter(Boolean);
+  const courtNumber = Number(court.number);
+  const courtName = waitingOnly
+    ? (String(court.name || '').trim() || `Up Next ${court.waitingOrder || ''}`).trim()
+    : (String(court.name || '').trim() || (courtNumber > 0 ? `Court ${courtNumber}` : 'Court'));
+  const start = playing ? (court.start || '') : '';
+  const timer = `<span class="court-tile-timer${playing ? ' is-running' : ''}" ${playing && start ? `data-court-clock="${escapeHTML(String(start))}"` : ''}><small>Timer</small><strong>${playing ? escapeHTML(elapsedClockLabel(start)) : '--:--'}</strong></span>`;
+  const roster = players.length
+    ? players.slice(0, 6).map(player => courtPlayerChip(player)).join('') + (players.length > 6 ? `<span class="court-player-more">+${players.length - 6} more</span>` : '')
+    : `<span class="court-player-empty">${waitingOnly ? 'Waiting for next lineup' : 'No players assigned yet'}</span>`;
+  return `<article class="court-tile court-tile-${statusClass}" title="${escapeHTML(courtName)} · ${status}"><div class="court-tile-heading"><strong>${escapeHTML(courtName)}</strong><span class="court-tile-status">${status}</span></div><div class="court-tile-meta">${timer}<span class="court-tile-player-count">${players.length} player${players.length === 1 ? '' : 's'}</span></div><div class="court-tile-roster">${roster}</div></article>`;
+}
+function waitingQueueTile(liveState, playersById) {
+  const queue = asArray(liveState?.queue).map(entry => entry && typeof entry === 'object' ? entry : playersById.get(String(entry))).filter(Boolean);
+  if (!queue.length) return '';
+  const roster = queue.slice(0, 6).map(player => courtPlayerChip(player, true)).join('') + (queue.length > 6 ? `<span class="court-player-more">+${queue.length - 6} more waiting</span>` : '');
+  return `<article class="court-tile court-tile-waiting" title="Players waiting in the queue"><div class="court-tile-heading"><strong>Waiting Queue</strong><span class="court-tile-status">WAITING</span></div><div class="court-tile-meta"><span class="court-tile-player-count">${queue.length} player${queue.length === 1 ? '' : 's'} waiting</span></div><div class="court-tile-roster">${roster}</div></article>`;
+}
+function courtStatusMarkup(live) {
+  if (!live) return '<div class="court-empty-note"><strong>No live session</strong><span>There is no active open-play session, so no live court tiles are shown.</span></div>';
+  const liveState = state.data?.liveState || {};
+  const roster = [...asArray(liveState.players), ...asArray(liveState.left)];
+  const playersById = new Map(roster.map(player => [String(player?.id), player]));
+  // Keep the visible strip in court-number order so Court 1 is always the first card.
+  const courts = asArray(liveState.courts).map((court, index) => ({ court, index })).sort((a, b) => {
+    const sortNumber = court => {
+      const explicit = Number(court?.number);
+      if (Number.isFinite(explicit) && explicit > 0) return explicit;
+      const fromName = String(court?.name || '').match(/\bcourt\s*#?\s*(\d+)/i);
+      return fromName ? Number(fromName[1]) : Number.MAX_SAFE_INTEGER;
     };
-
-    (Array.isArray(session?.participants)?session.participants:[]).forEach(person=>addPlayer(person));
-    logs.forEach(log=>{
-      (Array.isArray(log?.team1Players)?log.team1Players:[]).forEach(person=>addPlayer(person));
-      (Array.isArray(log?.team2Players)?log.team2Players:[]).forEach(person=>addPlayer(person));
-      const team1Ids=Array.isArray(log?.team1Ids)?log.team1Ids:[];
-      const team2Ids=Array.isArray(log?.team2Ids)?log.team2Ids:[];
-      const team1Names=Array.isArray(log?.team1Names)?log.team1Names:[];
-      const team2Names=Array.isArray(log?.team2Names)?log.team2Names:[];
-      team1Ids.forEach((id,index)=>addPlayer({id,name:team1Names[index]||''}));
-      team2Ids.forEach((id,index)=>addPlayer({id,name:team2Names[index]||''}));
-      team1Names.forEach(name=>addPlayer({name}));
-      team2Names.forEach(name=>addPlayer({name}));
-    });
-
-    const players=Array.from(playersByKey.values());
-    const statsByKey=new Map(players.map(player=>[player._key,{matches:0,wins:0,losses:0,totalSeconds:0,winRate:0}]));
-    const normalizedName=value=>normalizeName(value);
-    const splitTeamNames=value=>String(value||'').split(/\s*&\s*/).map(normalizedName).filter(Boolean);
-    logs.forEach(log=>{
-      if(!log||typeof log!=='object')return;
-      const team1Players=Array.isArray(log.team1Players)?log.team1Players:[];
-      const team2Players=Array.isArray(log.team2Players)?log.team2Players:[];
-      const rawTeam1Ids=Array.isArray(log.team1Ids)&&log.team1Ids.length?log.team1Ids:team1Players.map(person=>person?.id);
-      const rawTeam2Ids=Array.isArray(log.team2Ids)&&log.team2Ids.length?log.team2Ids:team2Players.map(person=>person?.id);
-      const team1Ids=rawTeam1Ids.filter(id=>id!==null&&id!==undefined&&String(id)!=='').map(String);
-      const team2Ids=rawTeam2Ids.filter(id=>id!==null&&id!==undefined&&String(id)!=='').map(String);
-      const rawTeam1Names=Array.isArray(log.team1Names)&&log.team1Names.length?log.team1Names:team1Players.map(person=>person?.name);
-      const rawTeam2Names=Array.isArray(log.team2Names)&&log.team2Names.length?log.team2Names:team2Players.map(person=>person?.name);
-      const team1Names=rawTeam1Names.map(normalizedName).filter(Boolean);
-      const team2Names=rawTeam2Names.map(normalizedName).filter(Boolean);
-      const winnerNames=new Set(splitTeamNames(log.winner));
-      const loserNames=new Set(splitTeamNames(log.loser));
-      const team1IdSet=new Set(team1Ids);
-      const team2IdSet=new Set(team2Ids);
-      const hasReliableTeamIds=team1Ids.length>0&&team2Ids.length>0;
-      const hasTeamNames=team1Names.length>0&&team2Names.length>0;
-      const scoreMatch=String(log.score??'').trim().match(/^(\d+)\s*-\s*(\d+)$/);
-      const score1=scoreMatch?Number(scoreMatch[1]):NaN;
-      const score2=scoreMatch?Number(scoreMatch[2]):NaN;
-      const scoreWinner=scoreMatch&&Number.isFinite(score1)&&Number.isFinite(score2)&&score1!==score2?(score1>score2?1:2):null;
-      const savedWinnerTeam=Number(log.winnerTeam);
-      const winningSide=scoreWinner||(savedWinnerTeam===1||savedWinnerTeam===2?savedWinnerTeam:null);
-      const durationSeconds=sessionDurationSeconds(log.duration);
-
-      players.forEach(player=>{
-        const playerName=normalizedName(player.name);
-        const isWinner=winnerNames.has(playerName);
-        const isLoser=loserNames.has(playerName);
-        let side=0;
-        if(hasReliableTeamIds){
-          if(player.id!==null&&team1IdSet.has(String(player.id)))side=1;
-          else if(player.id!==null&&team2IdSet.has(String(player.id)))side=2;
-        }else if(hasTeamNames){
-          const inTeam1=team1Names.includes(playerName);
-          const inTeam2=team2Names.includes(playerName);
-          if(inTeam1!==inTeam2)side=inTeam1?1:2;
-        }
-
-        let result='';
-        if(side){
-          if(winningSide)result=side===winningSide?'win':'loss';
-          else if(isWinner!==isLoser)result=isWinner?'win':'loss';
-        }else if(!hasReliableTeamIds&&!hasTeamNames&&isWinner!==isLoser){
-          result=isWinner?'win':'loss';
-        }
-        if(!result)return;
-        const stats=statsByKey.get(player._key);
-        if(!stats)return;
-        stats.matches++;
-        stats.totalSeconds+=durationSeconds;
-        if(result==='win')stats.wins++;
-        else stats.losses++;
-      });
-    });
-
-    players.forEach(player=>{
-      const stats=statsByKey.get(player._key);
-      stats.winRate=stats.matches?Math.round((stats.wins/stats.matches)*100):0;
-    });
-    return players
-      .filter(player=>(statsByKey.get(player._key)?.matches||0)>0)
-      .sort((a,b)=>{
-        const sa=statsByKey.get(a._key)||{wins:0,losses:0,matches:0};
-        const sb=statsByKey.get(b._key)||{wins:0,losses:0,matches:0};
-        const rateA=sa.matches?sa.wins/sa.matches:0;
-        const rateB=sb.matches?sb.wins/sb.matches:0;
-        return (Number(sb.wins)||0)-(Number(sa.wins)||0)
-          ||rateB-rateA
-          ||(Number(sa.losses)||0)-(Number(sb.losses)||0)
-          ||(Number(sb.matches)||0)-(Number(sa.matches)||0)
-          ||String(a.name||'').localeCompare(String(b.name||''));
-      })
-      .map((player,index)=>({...player,rank:index+1,...statsByKey.get(player._key)}));
+    return sortNumber(a.court) - sortNumber(b.court) || a.index - b.index;
+  }).map(entry => entry.court);
+  const courtTiles = courts.map(court => courtTile(court, playersById));
+  const queueTile = waitingQueueTile(liveState, playersById);
+  const tiles = [...courtTiles, queueTile].filter(Boolean);
+  return tiles.length
+    ? tiles.join('')
+    : '<div class="court-empty-note"><strong>No live court available</strong><span>No courts or waiting players are configured for this session yet. Add courts or check in players in Queueing.</span></div>';
+}
+function updateCourtStatusClocks() {
+  // Per-second timer text can change card dimensions while the page is being
+  // read. Pause these tiny visual updates until the dashboard is back at top.
+  if (isDashboardPageScrolled()) return;
+  document.querySelectorAll('[data-court-clock]').forEach(node => {
+    const value = node.querySelector('strong');
+    const nextLabel = elapsedClockLabel(node.dataset.courtClock);
+    if (value && value.textContent !== nextLabel) value.textContent = nextLabel;
+  });
+  document.querySelectorAll('[data-wait-clock]').forEach(node => {
+    const nextLabel = `${waitingClockLabel(node.dataset.waitClock)} wait`;
+    if (node.textContent !== nextLabel) node.textContent = nextLabel;
+  });
+}
+function mapSessionsForPins() {
+  const byLocation = new Map();
+  const matchCountBySession = new Map();
+  for (const match of (state.data?.matches || [])) {
+    const key = String(match.sessionId || '');
+    if (key) matchCountBySession.set(key, (matchCountBySession.get(key) || 0) + 1);
   }
-
-  function sessionTallyGenderMarkup(player) {
-    const gender=String(player?.gender||'').trim().toLowerCase();
-    if(['female','f','woman','women'].includes(gender)){
-      return '<span class="session-tally-gender is-female" title="Female" aria-label="Female"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="4.8" r="3.55" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.4v5.9M5.25 11.35h5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>';
-    }
-    if(['male','m','man','men'].includes(gender)){
-      return '<span class="session-tally-gender is-male" title="Male" aria-label="Male"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.35" cy="10.65" r="3.45" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.8 8.2 14.1 1.9M9.35 1.9h4.75v4.75" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
-    }
-    return '';
-  }
-
-  function sessionTallyCategoryMarkup(player) {
-    const category=categoryCode(player?.category);
-    return category?`<span class="session-tally-category skill-${category.toLowerCase()}">${escapeHtml(category)}</span>`:'';
-  }
-
-  function sessionTallyDisplayName(player) {
-    return player.nickname?`${player.name} (${player.nickname})`:player.name;
-  }
-
-  function sessionTallyPlayTime(player) {
-    const total=Math.max(0,Number(player.totalSeconds)||0);
-    const hours=Math.floor(total/3600);
-    const minutes=Math.floor((total%3600)/60);
-    return hours?`${hours}h${minutes?` ${minutes}m`:''}`:`${minutes}m`;
-  }
-
-  function sessionTallyPodiumSlot(player,rank) {
-    if(!player)return `<div class="session-tally-podium-slot place-${rank} is-empty" aria-hidden="true"></div>`;
-    const medal=['','🥇','🥈','🥉'][rank];
-    const displayName=sessionTallyDisplayName(player);
-    const gender=sessionTallyGenderMarkup(player);
-    const category=sessionTallyCategoryMarkup(player);
-    return `<div class="session-tally-podium-slot place-${rank}">
-      <div class="session-tally-podium-medal" aria-hidden="true">${medal}</div>
-      <div class="session-tally-podium-player">
-        <div class="session-tally-podium-name-line"><strong>${escapeHtml(displayName)}</strong>${gender}${category}</div>
-        <span class="session-tally-podium-rate">${player.winRate}% win rate</span>
-      </div>
-      <div class="session-tally-podium-block"><strong>${rank}</strong><span>${player.wins}W - ${player.losses}L</span></div>
-    </div>`;
-  }
-
-  function sessionTallyRankingRow(player) {
-    const displayName=sessionTallyDisplayName(player);
-    const gender=sessionTallyGenderMarkup(player);
-    const category=sessionTallyCategoryMarkup(player);
-    const progress=Math.max(0,Math.min(100,Number(player.winRate)||0));
-    return `<article class="session-tally-row">
-      <div class="session-tally-position">#${player.rank}</div>
-      <div class="session-tally-player">
-        <div class="session-tally-name-line"><strong>${escapeHtml(displayName)}</strong>${gender}${category}</div>
-        <div class="session-tally-secondary">
-          <div class="session-tally-progress"><span style="width:${progress}%"></span></div>
-          <div class="session-tally-meta"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2a5.8 5.8 0 1 1-4.1 1.7M2.2 2.6v3.1h3.1M8 4.6v3.7l2.4 1.4" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${sessionTallyPlayTime(player)}</span></div>
-        </div>
-      </div>
-      <div class="session-tally-result"><strong>${player.winRate}%</strong><span>${player.wins}W - ${player.losses}L</span><small>${player.matches} match${player.matches===1?'':'es'}</small></div>
-    </article>`;
-  }
-
-  function sessionTallyMarkup(session) {
-    const ranking=buildSessionRanking(session);
-    if(!ranking.length)return '<div class="session-tally-empty"><span aria-hidden="true">🏆</span><strong>No ranking available yet</strong><p>This session has no completed match results to tally.</p></div>';
-    const remaining=ranking.slice(3);
-    // The leaderboard count includes every ranked player, including the top-three podium.
-    const playerCount=ranking.length;
-    // Category totals also use the full ranking so the chips match the leaderboard total.
-    const categoryCounts=ranking.reduce((counts,player)=>{
-      const category=categoryCode(player?.category);
-      counts.ALL++;
-      if(category&&Object.prototype.hasOwnProperty.call(counts,category))counts[category]++;
-      return counts;
-    },{ALL:0,BEG:0,NOV:0,INT:0,ADV:0,EXP:0});
-    return `<section class="session-tally-podium session-tally-podium-stage" aria-label="Top three players">
-      ${sessionTallyPodiumSlot(ranking[1],2)}
-      ${sessionTallyPodiumSlot(ranking[0],1)}
-      ${sessionTallyPodiumSlot(ranking[2],3)}
-    </section>
-    <section class="session-tally-list" aria-label="Other player rankings">
-      <div class="session-tally-list-heading"><span>LEADERBOARD</span><small>(${playerCount})</small></div>
-      <div class="live-tab-search live-matches-searchbar session-tally-searchbar" role="search">
-        <svg class="live-tab-search-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="m12.7 12.7 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
-        <input id="sessionTallySearch" type="search" placeholder="Search player name..." aria-label="Search leaderboard player name" autocomplete="off" spellcheck="false">
-        <button id="sessionTallyFilterToggle" class="live-ranking-filter-toggle live-matches-filter-toggle session-tally-filter-toggle" type="button" aria-expanded="false" aria-controls="sessionTallyFilterControls" aria-label="Open leaderboard filters" title="Filter leaderboard by category">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5H2"/><path d="M6 12h12"/><path d="M9 19h6"/><path d="M16 5h6"/><path d="M19 8V2"/></svg>
-        </button>
-      </div>
-      <div id="sessionTallyFilterControls" class="live-ranking-filter-controls session-tally-filter-controls" aria-label="Filter leaderboard by skill category" hidden>
-        <div class="leaderboard-filter-row leaderboard-category-filters" role="group" aria-label="Skill categories">
-          <button type="button" class="leaderboard-filter-chip category-all active" data-session-tally-category="ALL" aria-pressed="true">ALL (${categoryCounts.ALL})</button>
-          <button type="button" class="leaderboard-filter-chip category-beg" data-session-tally-category="BEG" aria-pressed="false">BEG (${categoryCounts.BEG})</button>
-          <button type="button" class="leaderboard-filter-chip category-nov" data-session-tally-category="NOV" aria-pressed="false">NOV (${categoryCounts.NOV})</button>
-          <button type="button" class="leaderboard-filter-chip category-int" data-session-tally-category="INT" aria-pressed="false">INT (${categoryCounts.INT})</button>
-          <button type="button" class="leaderboard-filter-chip category-adv" data-session-tally-category="ADV" aria-pressed="false">ADV (${categoryCounts.ADV})</button>
-          <button type="button" class="leaderboard-filter-chip category-exp" data-session-tally-category="EXP" aria-pressed="false">EXP (${categoryCounts.EXP})</button>
-        </div>
-      </div>
-      <div class="session-tally-rows">${remaining.length?remaining.map(sessionTallyRankingRow).join(''):'<div class="session-tally-no-more">Top players are shown on the podium.</div>'}<div class="session-tally-filter-empty" hidden><strong>No players found</strong><span>Try another name or category.</span></div></div>
-    </section>`;
-  }
-
-  function bindSessionTallySearch() {
-    const root=$('sessionTallyRanking');
-    const search=root?.querySelector('#sessionTallySearch');
-    const rowsHost=root?.querySelector('.session-tally-rows');
-    const filterToggle=root?.querySelector('#sessionTallyFilterToggle');
-    const filterControls=root?.querySelector('#sessionTallyFilterControls');
-    const emptyState=root?.querySelector('.session-tally-filter-empty');
-    if(!root||!search||!rowsHost||!filterToggle||!filterControls)return;
-
-    let selectedCategory='ALL';
-    const applyFilters=()=>{
-      const term=String(search.value||'').trim().toLocaleLowerCase();
-      const rows=Array.from(rowsHost.querySelectorAll('.session-tally-row'));
-      let visibleCount=0;
-      rows.forEach(row=>{
-        const name=String(row.querySelector('.session-tally-name-line strong')?.textContent||'').toLocaleLowerCase();
-        const category=String(row.querySelector('.session-tally-category')?.textContent||'').trim().toUpperCase();
-        const matchesName=!term||name.includes(term);
-        const matchesCategory=selectedCategory==='ALL'||category===selectedCategory;
-        const visible=matchesName&&matchesCategory;
-        row.classList.toggle('is-filtered-out',!visible);
-        if(visible)visibleCount++;
-      });
-      if(emptyState)emptyState.hidden=rows.length===0||visibleCount>0;
-    };
-
-    search.addEventListener('input',applyFilters);
-    filterToggle.addEventListener('click',()=>{
-      const opening=filterControls.hidden;
-      filterControls.hidden=!opening;
-      filterToggle.classList.toggle('is-open',opening);
-      filterToggle.setAttribute('aria-expanded',String(opening));
-      filterToggle.setAttribute('aria-label',opening?'Close leaderboard filters':'Open leaderboard filters');
-      filterToggle.title=opening?'Close leaderboard filters':'Filter leaderboard by category';
-    });
-    filterControls.addEventListener('click',event=>{
-      const button=event.target.closest('[data-session-tally-category]');
-      if(!button)return;
-      selectedCategory=button.dataset.sessionTallyCategory||'ALL';
-      filterControls.querySelectorAll('[data-session-tally-category]').forEach(chip=>{
-        const active=chip===button;
-        chip.classList.toggle('active',active);
-        chip.setAttribute('aria-pressed',String(active));
-      });
-      applyFilters();
-    });
-    root.addEventListener('keydown',event=>{
-      if(event.key!=='Escape'||filterControls.hidden)return;
-      event.preventDefault();
-      filterControls.hidden=true;
-      filterToggle.classList.remove('is-open');
-      filterToggle.setAttribute('aria-expanded','false');
-      filterToggle.setAttribute('aria-label','Open leaderboard filters');
-      filterToggle.title='Filter leaderboard by category';
-      filterToggle.focus();
+  for (const session of (state.data?.sessions || [])) {
+    // The marker address must come from the saved Location field only.
+    // A session title/name is intentionally never used as a geocoding fallback.
+    const location = String(session.location || session.raw?.duprLocation || session.raw?.location || '').trim();
+    if (!location) continue;
+    const key = normalizeName(location);
+    if (!key) continue;
+    const coordinates = normalizeMapLocationCoordinates(session.locationCoordinates || session.raw?.duprLocationCoordinates || session.raw?.locationCoordinates);
+    if (!byLocation.has(key)) byLocation.set(key, { location, coordinates, sessions: [] });
+    else if (!byLocation.get(key).coordinates && coordinates) byLocation.get(key).coordinates = coordinates;
+    byLocation.get(key).sessions.push({
+      id: String(session.id || ''),
+      title: String(session.title || 'Open Play Session'),
+      date: String(session.date || ''),
+      time: sessionTimeLabel(session),
+      startedAt: session.startedAt || null,
+      isLive: Boolean(session.isLive),
+      playerCount: (session.attendees || []).length,
+      matchCount: matchCountBySession.get(String(session.id)) || 0,
+      courtNames: asArray(session.courtNames),
+      locationCoordinates: normalizeMapLocationCoordinates(session.locationCoordinates || session.raw?.duprLocationCoordinates || session.raw?.locationCoordinates)
     });
   }
-
-  function openSessionTally(sessionId) {
-    const session=archivedSessions().find(item=>String(item.id)===String(sessionId));
-    if(!session){showToast('Only completed sessions have a tally.');return;}
-    const modal=$('sessionTallyModal');
-    if(!modal)return;
-    $('sessionTallyTitle').textContent=`${session.sessionName||'Open Play'} Podium`;
-    $('sessionTallySubtitle').textContent='Top players ranked by win rate, wins, and match performance.';
-    $('sessionTallyRanking').innerHTML=sessionTallyMarkup(session);
-    bindSessionTallySearch();
-    showDashboardModal('sessionTallyModal');
-    $('closeSessionTallyModal')?.focus();
-  }
-
-  function closeSessionTally() {
-    if(!$('sessionTallyModal'))return;
-    hideDashboardModal('sessionTallyModal');
-  }
-
-  function renderSessions() {
-    const list=$('sessionManagementList');
-    const search=String($('sessionsSearch').value||'').trim().toLocaleLowerCase();
-    const sessions=allSessions();
-    $('sessionsTotal').textContent=`(${sessions.length})`;
-    const filtered=sessions.filter(session=>`${session.sessionName||''} ${session.endedAt||''} ${session.startedAt||''}`.toLocaleLowerCase().includes(search));
-    if(filtered.length){setMarkupWithoutJump(list,filtered.map(sessionManageMarkup).join(''));return;}
-    setMarkupWithoutJump(list,sessions.length?emptyMarkup('No sessions found','Try another session name or clear your search.','⌕'):emptyMarkup('No sessions to manage','Create your first session to see it listed here.','◷'));
-  }
-
-  // ===== Dashboard loading and live-state synchronization =====
-  function render() {
-    renderTabs();
-    renderSessionSelect();
-    renderAttendance();
-    renderMatches();
-    renderSessions();
-    if($('duprExportModal')&&!$('duprExportModal').hidden)renderDuprExportModal();
-  }
-
-  function setTab(tab) {
-    if(!['attendance','matches','sessions'].includes(tab)||state.tab===tab)return;
-    state.tab=tab;
-    render();
-  }
-
-  async function loadDashboardData({silent=false}={}) {
-    // Polling, manual refreshes, and mutations can overlap. Only the newest
-    // request may update dashboard data, otherwise a slow older response can
-    // replace newer match/session records and make the dashboard appear to glitch.
-    const requestId=++state.dashboardLoadRequestId;
-    try {
-      // Completed sessions are retained until an organizer explicitly deletes them.
-      state.emptySessionCleanupDone=true;
-      const dashboard=await fetchJson('/api/organizer-dashboard');
-      if(requestId!==state.dashboardLoadRequestId)return true;
-
-      const organizer=dashboard.organizer||{};
-      state.auth=organizer;
-      const responseRevision=Number(dashboard.appRevision)||0;
-      // The EventSource can deliver a newer app state while this fetch is in
-      // flight. Keep its app state AND its corresponding cloud-record snapshot.
-      const shouldApplySnapshot=responseRevision>=state.appRevision;
-      if(shouldApplySnapshot){
-        const previousSessionId=String(state.appState?.sessionId||'');
-        const nextAppState=dashboard.appState&&typeof dashboard.appState==='object'?dashboard.appState:null;
-        const nextSessionId=String(nextAppState?.sessionId||'');
-        const newLiveSession=nextAppState?.sessionActive===true&&nextSessionId&&nextSessionId!==previousSessionId;
-        state.appState=nextAppState;
-        state.appRevision=responseRevision;
-
-        const records=dashboard.records&&typeof dashboard.records==='object'?dashboard.records:{};
-        state.records={players:Array.isArray(records.players)?records.players:[],logs:Array.isArray(records.logs)?records.logs:[],sessions:Array.isArray(records.sessions)?records.sessions:[],attendanceBySession:records.attendanceBySession&&typeof records.attendanceBySession==='object'?records.attendanceBySession:{}};
-        if(newLiveSession)state.selection.session=nextSessionId;
-      }
-      renderCloudPlayerSuggestions();
-      updateDashboardBrand(organizer);
-      ensureSelection();
-      render();
-      return true;
-    }catch(error){
-      // A superseded request is expected during polling; its failure must not
-      // clear the UI or show an error over a newer successful response.
-      if(requestId!==state.dashboardLoadRequestId)return true;
-      if(!silent){
-        $('participantList').innerHTML=emptyMarkup('Unable to load attendance','Check your connection and refresh this page.','!');
-        $('matchList').innerHTML=emptyMarkup('Unable to load match history','Check your connection and refresh this page.','!');
-        $('sessionManagementList').innerHTML=emptyMarkup('Unable to load sessions','Check your connection and refresh this page.','!');
-        showToast(error.message||'Unable to load dashboard records.');
-      }
-      return false;
-    }
-  }
-
-  function initLiveStateStream() {
-    if(!('EventSource' in window)||state.appEventStream)return;
-    const stream=new EventSource('/api/shared-events');
-    state.appEventStream=stream;
-    stream.addEventListener('app-state',event=>{
-      let payload;
-      try{payload=JSON.parse(event.data);}catch(_){return;}
-      if(payload?.organizerId&&state.auth?.id&&String(payload.organizerId)!==String(state.auth.id))return;
-      const revision=Number(payload?.revision)||0;
-      if(revision&&revision<=state.appRevision)return;
-      const incoming=payload?.state;
-      if(!incoming||typeof incoming!=='object')return;
-      const previousSessionId=String(state.appState?.sessionId||'');
-      const nextSessionId=String(incoming.sessionId||'');
-      const newLiveSession=incoming.sessionActive===true&&nextSessionId&&nextSessionId!==previousSessionId;
-      state.appRevision=Math.max(state.appRevision,revision);
-      state.appState=incoming;
-      if(newLiveSession)state.selection.session=nextSessionId;
-      ensureSelection();
-      render();
-      if(incoming.sessionActive===false&&incoming.sessionEndedAt){
-        // End Session archives to the cloud record store as well. Refresh the
-        // archive after the app-state transition so the new session is selectable.
-        window.setTimeout(()=>loadDashboardData({silent:true}),700);
-      }
-    });
-  }
-
-  // ===== Session editor calendar and date/time controls =====
-  let sessionEditCalendarCursor=new Date();
-  let sessionEditSelectedDate='';
-
-  function localCalendarDate(value) {
-    const match=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    return match?new Date(Number(match[1]),Number(match[2])-1,Number(match[3])):null;
-  }
-
-  function localDateKey(date) {
-    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-  }
-
-  function formatSessionDateKey(value) {
-    const date=localCalendarDate(value);
-    return date?new Intl.DateTimeFormat('en-US',{month:'long',day:'numeric',year:'numeric'}).format(date):'Select a day';
-  }
-
-  function formatSessionDateTime(value) {
-    const date=validDate(value);
-    if(!date)return '—';
-    const dateLabel=new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric'}).format(date);
-    const timeLabel=new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(date);
-    return `${dateLabel} • ${timeLabel}`;
-  }
-
-  function closeSessionEditCalendar() {
-    $('sessionEditCalendar').hidden=true;
-    $('sessionEditDateTrigger').setAttribute('aria-expanded','false');
-  }
-
-  function renderSessionEditCalendar() {
-    const cursor=sessionEditCalendarCursor;
-    $('sessionEditMonthLabel').textContent=new Intl.DateTimeFormat(undefined,{month:'long',year:'numeric'}).format(cursor);
-    const firstDay=new Date(cursor.getFullYear(),cursor.getMonth(),1);
-    const mondayOffset=(firstDay.getDay()+6)%7;
-    const gridStart=new Date(cursor.getFullYear(),cursor.getMonth(),1-mondayOffset);
-    const todayKey=localDateKey(new Date());
-    const visibleDays=Math.ceil((mondayOffset+new Date(cursor.getFullYear(),cursor.getMonth()+1,0).getDate())/7)*7;
-    const cells=[];
-    for(let index=0;index<visibleDays;index++){
-      const day=new Date(gridStart.getFullYear(),gridStart.getMonth(),gridStart.getDate()+index);
-      const key=localDateKey(day);
-      const outside=day.getMonth()!==cursor.getMonth();
-      const selected=key===sessionEditSelectedDate;
-      cells.push(`<button class="session-edit-calendar-day${outside?' is-outside':''}${selected?' is-selected':''}${key===todayKey?' is-today':''}" type="button" data-session-date="${key}" aria-label="${new Intl.DateTimeFormat(undefined,{dateStyle:'full'}).format(day)}" aria-pressed="${selected?'true':'false'}">${day.getDate()}</button>`);
-    }
-    $('sessionEditCalendarGrid').innerHTML=cells.join('');
-  }
-
-  function updateSessionEditStartPreview() {
-    let start=validDate(state.editingSessionOriginalStartedAt);
-    const originalEnd=validDate(state.editingSessionOriginalEndedAt);
-    const editedEnd=validDate($('sessionEditEndedAt').value);
-    if(start&&originalEnd&&editedEnd)start=new Date(start.getTime()+(editedEnd.getTime()-originalEnd.getTime()));
-    $('sessionEditStartTimePreview').textContent=start?formatSessionDateTime(start.toISOString()):'—';
-    $('sessionEditEndPreview').textContent=editedEnd?formatSessionDateTime(editedEnd.toISOString()):'—';
-  }
-
-  function syncSessionEditDateTime() {
-    const date=sessionEditSelectedDate;
-    const endLocal=toLocalDateTimeValue(state.editingSessionOriginalEndedAt)||toLocalDateTimeValue(state.editingSessionOriginalStartedAt);
-    const time=endLocal?endLocal.slice(11,16):'23:59';
-    $('sessionEditEndedAt').value=date?`${date}T${time}`:'';
-    $('sessionEditDateLabel').textContent=formatSessionDateKey(date);
-    updateSessionEditStartPreview();
-  }
-
-  function chooseSessionEditDate(dateKey) {
-    if(!localCalendarDate(dateKey))return;
-    sessionEditSelectedDate=dateKey;
-    syncSessionEditDateTime();
-    renderSessionEditCalendar();
-  }
-
-  function openEditSession(sessionId) {
-    const session=archivedSessions().find(item=>item.id===sessionId);
-    if(!session){showToast('This session is no longer available.');return;}
-    state.editingSessionId=session.id;
-    state.editingSessionOriginalStartedAt=session.startedAt||'';
-    state.editingSessionOriginalEndedAt=session.endedAt||'';
-    $('sessionEditName').value=String(session.sessionName||'Open Play');
-    const endLocal=toLocalDateTimeValue(session.endedAt);
-    sessionEditSelectedDate=endLocal?endLocal.slice(0,10):'';
-    const cursorDate=localCalendarDate(sessionEditSelectedDate)||new Date();
-    sessionEditCalendarCursor=new Date(cursorDate.getFullYear(),cursorDate.getMonth(),1);
-    $('sessionEditEndedAt').value=endLocal;
-    $('sessionEditDateLabel').textContent=formatSessionDateKey(sessionEditSelectedDate);
-    closeSessionEditCalendar();
-    renderSessionEditCalendar();
-    updateSessionEditStartPreview();
-    showDashboardModal('sessionEditModal');
-    $('sessionEditName').focus();
-  }
-
-  function closeEditSession() {
-    closeSessionEditCalendar();
-    hideDashboardModal('sessionEditModal');
-    state.editingSessionId='';
-    state.editingSessionOriginalStartedAt='';
-    state.editingSessionOriginalEndedAt='';
-  }
-
-  function openDeleteSession(sessionId) {
-    const session=archivedSessions().find(item=>String(item.id)===String(sessionId));
-    if(!session){showToast('This session is no longer available.');return;}
-    state.pendingDeleteSessionId=String(session.id);
-    renderSessions();
-  }
-
-  function closeDeleteSession() {
-    state.pendingDeleteSessionId='';
-    renderSessions();
-  }
-
-  async function saveSessionEdit(event) {
-    event.preventDefault();
-    if(!state.editingSessionId)return;
-    const button=$('saveSessionEditButton');
-    const sessionName=String($('sessionEditName').value||'').trim();
-    if(!sessionName){$('sessionEditName').focus();return;}
-    const localDate=String($('sessionEditEndedAt').value||'').trim();
-    let endedAt='';
-    if(localDate){
-      const parsed=new Date(localDate);
-      if(!Number.isFinite(parsed.getTime())){showToast('Please enter a valid session date and time.');return;}
-      endedAt=parsed.toISOString();
-    }
-    button.disabled=true;
-    button.textContent='Saving…';
-    try{
-      await fetchJson(`/api/organizer-dashboard/sessions/${encodeURIComponent(state.editingSessionId)}`,{
-        method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionName,endedAt})
-      });
-      closeEditSession();
-      await loadDashboardData({silent:true});
-      showToast('Session updated successfully.');
-    }catch(error){showToast(error.message||'Unable to update session.');}
-    finally{button.disabled=false;button.textContent='Save Changes';}
-  }
-
-  async function confirmDeleteSession(button) {
-    const sessionId=state.pendingDeleteSessionId;
-    if(!sessionId)return;
-    if(button){button.disabled=true;button.textContent='Deleting…';}
-    try{
-      await fetchJson(`/api/organizer-dashboard/sessions/${encodeURIComponent(sessionId)}`,{method:'DELETE'});
-      state.pendingDeleteSessionId='';
-      await loadDashboardData({silent:true});
-      showToast('Session and its recorded matches were deleted.');
-    }catch(error){showToast(error.message||'Unable to delete session.');}
-    finally{if(button){button.disabled=false;button.textContent='Confirm';}}
-  }
-
-  // ===== Modal behavior and attendance/match record actions =====
-  function syncModalBodyLock() {
-    const open=['sessionEditModal','settingsModal','duprExportModal','sessionTallyModal'].some(id=>$(id)&&!$(id).hidden);
-    document.body.classList.toggle('modal-open',open);
-  }
-
-  // Keep the Tally dialog's top offset aligned with the real responsive dashboard header.
-  function observeDashboardTopbarHeight() {
-    const topbar=document.querySelector('.dashboard-topbar');
-    if(!topbar)return;
-    const update=()=>{
-      const height=Math.ceil(topbar.getBoundingClientRect().height);
-      if(height>0)document.documentElement.style.setProperty('--dashboard-topbar-height',`${height}px`);
-    };
-    update();
-    if(typeof ResizeObserver==='function'){
-      const observer=new ResizeObserver(update);
-      observer.observe(topbar);
-    }
-    window.addEventListener('resize',update,{passive:true});
-  }
-  observeDashboardTopbarHeight();
-
-  function showDashboardModal(id) {
-    $(id).hidden=false;
-    syncModalBodyLock();
-  }
-
-  function hideDashboardModal(id) {
-    $(id).hidden=true;
-    syncModalBodyLock();
-  }
-
-  function openEditParticipant(index) {
-    const session=selectedSession();
-    const person=session?.participants?.[index];
-    if(!session||!person){showToast('This attendance record is no longer available.');return;}
-    state.editingParticipant={sessionId:session.id,index};
-    renderAttendance();
-    const input=$('participantList').querySelector('[data-cloud-player-name]');
-    input?.focus();input?.select();
-  }
-
-  function closeEditParticipant() {
-    state.editingParticipant=null;
-    renderAttendance();
-  }
-
-  async function saveParticipantEdit(event) {
-    event.preventDefault();
-    const form=event.target.closest('[data-participant-edit-form]');
-    const target=state.editingParticipant;
-    if(!target||!form)return;
-    const name=String(form.querySelector('[name="name"]')?.value||'').normalize('NFC').trim().replace(/\s+/g,' ');
-    if(!name){form.querySelector('[name="name"]')?.focus();return;}
-    const button=form.querySelector('button[type="submit"]');
-    button.disabled=true;button.textContent='Saving…';
-    try {
-      await fetchJson(`/api/organizer-dashboard/sessions/${encodeURIComponent(target.sessionId)}/participants/${target.index}`,{
-        method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-          name,nickname:form.querySelector('[name="nickname"]').value,
-          gender:form.querySelector('[name="gender"]').value,
-          category:form.querySelector('[name="category"]').value
-        })
-      });
-      state.editingParticipant=null;
-      await loadDashboardData({silent:true});
-      showToast('Attendance record updated. Queue and Cloud Players were not changed.');
-    } catch(error) { showToast(error.message||'Unable to update participant.');button.disabled=false;button.textContent='Save'; }
-  }
-
-  function openDeleteParticipant(index) {
-    const session=selectedSession();
-    const person=session?.participants?.[index];
-    if(!session||!person){showToast('This attendance record is no longer available.');return;}
-    state.editingParticipant=null;
-    state.pendingDeleteParticipant={sessionId:session.id,index};
-    renderAttendance();
-  }
-
-  function closeDeleteParticipant() {
-    state.pendingDeleteParticipant=null;
-    renderAttendance();
-  }
-
-  async function confirmDeleteParticipant(button) {
-    const target=state.pendingDeleteParticipant;
-    if(!target||!button)return;
-    button.disabled=true;button.textContent='Removing…';
-    try {
-      await fetchJson(`/api/organizer-dashboard/sessions/${encodeURIComponent(target.sessionId)}/participants/${target.index}`,{method:'DELETE'});
-      state.pendingDeleteParticipant=null;
-      await loadDashboardData({silent:true});
-      showToast('Participant removed from attendance. Match history was kept.');
-    } catch(error) { showToast(error.message||'Unable to remove participant.');button.disabled=false;button.textContent='Confirm'; }
-  }
-
-  function findMatch(sessionId,matchId) {
-    const session=allSessions().find(item=>item.id===String(sessionId));
-    return session?{session,log:sessionLogs(session).find(log=>String(log?.id??'')===String(matchId))}:null;
-  }
-
-  function openEditMatch(matchId,sessionId) {
-    if(state.pendingDeleteMatch){showToast('Close the delete confirmation before editing a match.');return;}
-    if(state.editingMatch){showToast('Finish or cancel the current match edit first.');return;}
-    const found=findMatch(sessionId,matchId);
-    if(!found?.session||!found?.log){showToast('This match is no longer available.');return;}
-    if(!hasRecordedMatchScore(found.log)){showToast('Only matches with a recorded score can be edited.');return;}
-    const scrollX=window.scrollX;
-    const scrollY=window.scrollY;
-    state.editingMatch={sessionId:found.session.id,matchId:String(matchId)};
-    renderMatches();
-    // Restore after layout/paint so the browser cannot anchor the viewport to
-    // the newly expanded card or the removed pencil button.
-    requestAnimationFrame(()=>window.scrollTo(scrollX,scrollY));
-  }
-
-  function closeEditMatch() {
-    if(!state.editingMatch)return;
-    state.editingMatch=null;
-    renderMatches();
-  }
-
-  async function saveMatchEdit(event) {
-    const form=event.target.closest('[data-match-edit-form]');
-    if(!form)return;
-    event.preventDefault();
-    const target=state.editingMatch;
-    if(!target)return;
-    const left=String(form.querySelector('[name="team1Score"]')?.value||'').trim();
-    const right=String(form.querySelector('[name="team2Score"]')?.value||'').trim();
-    const leftInput=form.querySelector('[name="team1Score"]');
-    const rightInput=form.querySelector('[name="team2Score"]');
-    if(!left||!right){showToast('A recorded score is required to edit this match.');(!left?leftInput:rightInput)?.focus();return;}
-    if((left&&!/^\d{1,2}$/.test(left))||(right&&!/^\d{1,2}$/.test(right))){showToast('Each score must contain 1 or 2 digits only.');(left&&!/^\d{1,2}$/.test(left)?leftInput:rightInput)?.focus();return;}
-    const score=`${Number(left)}-${Number(right)}`;
-    if(Number(left)===Number(right)){showToast('A completed match cannot have a tied score.');rightInput?.focus();return;}
-
-    const usedNames=new Set();
-    const usedCloudIds=new Set();
-    const teamSelections={team1Players:[],team2Players:[]};
-    for(const input of Array.from(form.querySelectorAll('[data-match-player-input]'))){
-      const name=String(input.value||'').normalize('NFC').trim().replace(/\s+/g,' ');
-      const originalName=String(input.dataset.originalName||'').normalize('NFC').trim().replace(/\s+/g,' ');
-      const cloudId=String(input.dataset.selectedCloudId||'').trim();
-      if(!name){showToast('Each match player must have a name.');input.focus();return;}
-      if(usedNames.has(normalizeName(name))){showToast('A player cannot appear more than once in the same match.');input.focus();return;}
-      usedNames.add(normalizeName(name));
-      if(cloudId){
-        const cloudPlayer=(state.records.players||[]).find(player=>String(player?.cloudId||'').trim()===cloudId);
-        if(!cloudPlayer||normalizeName(cloudPlayerName(cloudPlayer))!==normalizeName(name)){
-          showToast('Please select the player from Registered Player Cloud suggestions.');input.focus();return;
-        }
-        if(usedCloudIds.has(cloudId)){showToast('A registered player cannot be selected twice in the same match.');input.focus();return;}
-        usedCloudIds.add(cloudId);
-      }else if(normalizeName(name)!==normalizeName(originalName)){
-        showToast('Player names must be selected from Registered Player Cloud suggestions.');input.focus();return;
-      }
-      const side=input.dataset.matchSide==='team2'?'team2Players':'team1Players';
-      teamSelections[side].push({name,cloudId});
-    }
-    if(!teamSelections.team1Players.length||!teamSelections.team2Players.length){showToast('Both teams must have registered player entries.');return;}
-
-    const button=form.querySelector('button[type="submit"]');
-    if(button){button.disabled=true;button.textContent='Saving…';}
-    try {
-      await fetchJson(`/api/organizer-dashboard/sessions/${encodeURIComponent(target.sessionId)}/matches/${encodeURIComponent(target.matchId)}`,{
-        method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({score,...teamSelections})
-      });
-      state.editingMatch=null;
-      await loadDashboardData({silent:true});
-      showToast('Match score and players updated.');
-    } catch(error) {
-      showToast(error.message||'Unable to update match.');
-      if(button?.isConnected){button.disabled=false;button.textContent='Save';}
-    }
-  }
-
-  function closeMatchPlayerSuggestions(except=null) {
-    $('matchList').querySelectorAll('[data-match-player-input]').forEach(input=>{
-      if(input===except)return;
-      input.setAttribute('aria-expanded','false');
-      const list=input.closest('.match-player-autocomplete')?.querySelector('.match-player-suggestions');
-      if(list)list.hidden=true;
-    });
-  }
-
-  function renderMatchPlayerSuggestions(input) {
-    const wrapper=input?.closest('.match-player-autocomplete');
-    const suggestionList=wrapper?.querySelector('.match-player-suggestions');
-    if(!input||!suggestionList)return;
-    // Keep the autocomplete menus mutually exclusive: opening this one
-    // always closes every other player's suggestion list first.
-    closeMatchPlayerSuggestions(input);
-    const query=normalizeName(input.value);
-    const players=(Array.isArray(state.records.players)?state.records.players:[])
-      .filter(player=>String(player?.cloudId||'').trim()&&cloudPlayerName(player))
-      .filter(player=>{
-        if(!query)return true;
-        return normalizeName(cloudPlayerName(player)).includes(query)||normalizeName(player.nickname).includes(query);
-      })
-      .sort((a,b)=>cloudPlayerName(a).localeCompare(cloudPlayerName(b)));
-    if(!players.length){
-      suggestionList.innerHTML='<div class="match-player-suggestions-empty">No registered player found</div>';
-    }else{
-      suggestionList.innerHTML=players.map(player=>{
-        const name=cloudPlayerName(player);
-        const detail=player.nickname?`(${player.nickname})`:'';
-        return `<button class="match-player-suggestion" type="button" role="option" data-match-player-select data-cloud-id="${escapeAttr(player.cloudId)}"><strong>${escapeHtml(name)}</strong>${detail?`<span>${escapeHtml(detail)}</span>`:''}</button>`;
-      }).join('');
-    }
-    suggestionList.hidden=false;
-    input.setAttribute('aria-expanded','true');
-  }
-
-  function selectMatchCloudPlayer(button) {
-    const wrapper=button.closest('.match-player-autocomplete');
-    const input=wrapper?.querySelector('[data-match-player-input]');
-    const cloudId=String(button.dataset.cloudId||'');
-    const player=(state.records.players||[]).find(item=>String(item?.cloudId||'')===cloudId);
-    if(!input||!player)return;
-    const name=cloudPlayerName(player);
-    input.value=name;
-    input.dataset.selectedCloudId=cloudId;
-    input.dataset.selectedName=name;
-    const list=wrapper.querySelector('.match-player-suggestions');
-    if(list)list.hidden=true;
-    input.setAttribute('aria-expanded','false');
-    input.focus();
-  }
-
-  function openDeleteMatch(matchId,sessionId) {
-    if(state.editingMatch){showToast('Finish or cancel the current match edit before deleting.');return;}
-    if(state.pendingDeleteMatch){return;}
-    const found=findMatch(sessionId,matchId);
-    const session=found?.session,log=found?.log;
-    if(!session||!log){showToast('This match is no longer available.');return;}
-    state.pendingDeleteMatch={sessionId:String(session.id),matchId:String(matchId)};
-    // Re-render so every edit/delete action is disabled while confirmation is open.
-    renderMatches();
-  }
-
-  function closeDeleteMatch() {
-    if(!state.pendingDeleteMatch)return;
-    state.pendingDeleteMatch=null;
-    // Re-enable both action types together after the confirmation is closed.
-    renderMatches();
-  }
-
-  async function confirmDeleteMatch(button) {
-    const target=state.pendingDeleteMatch;if(!target)return;
-    if(button){button.disabled=true;button.textContent='Deleting…';}
-    try {
-      await fetchJson(`/api/organizer-dashboard/sessions/${encodeURIComponent(target.sessionId)}/matches/${encodeURIComponent(target.matchId)}`,{method:'DELETE'});
-      state.editingMatch=null;state.pendingDeleteMatch=null;await loadDashboardData({silent:true});showToast('Match record deleted.');
-    } catch(error) { showToast(error.message||'Unable to delete match.'); }
-    finally { if(button){button.disabled=false;button.textContent='Confirm';} }
-  }
-
-  // ===== DUPR export, CSV generation and submission tracking =====
-  const DUPR_EXPORT_COLUMNS=['matchType','event','date','playerA1','playerA1DuprId','playerA1ExternalId','playerA2','playerA2DuprId','playerA2ExternalId','playerB1','playerB1DuprId','playerB1ExternalId','playerB2','playerB2DuprId','playerB2ExternalId','teamAGame1','teamBGame1','teamAGame2','teamBGame2','teamAGame3','teamBGame3','teamAGame4','teamBGame4','teamAGame5','teamBGame5','scoreType','location'];
-  function csvCell(value) { const text=String(value??'');return /[",\r\n]/.test(text)?`"${text.replace(/"/g,'""')}"`:text; }
-
-  function downloadDuprCsv(rows,filename) {
-    const csv=[DUPR_EXPORT_COLUMNS.join(','),...rows.map(row=>DUPR_EXPORT_COLUMNS.map(column=>csvCell(row[column])).join(','))].join('\r\n');
-    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-    const url=URL.createObjectURL(blob);const link=document.createElement('a');
-    link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);
-  }
-
-  function duprExportExclusions(entries) {
-    // Keep warning groups mutually exclusive so a NON-DUPR match without a
-    // score is not counted twice in the export warning.
-    const nonDupr=entries.filter(({log,session})=>!isDuprMatch(log,session));
-    const duprEntries=entries.filter(({log,session})=>isDuprMatch(log,session));
-    const unscored=duprEntries.filter(({log})=>!hasRecordedMatchScore(log));
-    const scoredButIncomplete=duprEntries.filter(({log,session})=>hasRecordedMatchScore(log)&&!duprCsvRowForMatch(log,session));
-    return {nonDupr,unscored,scoredButIncomplete};
-  }
-
-  function duprExportWarningMessage(exclusions) {
-    const lines=['Some matches are not allowed in a DUPR CSV export:'];
-    if(exclusions.nonDupr.length)lines.push(`• ${exclusions.nonDupr.length} NON-DUPR match(es) — not eligible for DUPR export`);
-    if(exclusions.unscored.length)lines.push(`• ${exclusions.unscored.length} match(es) without a recorded score — not eligible for DUPR export`);
-    if(exclusions.scoredButIncomplete.length)lines.push(`• ${exclusions.scoredButIncomplete.length} scored DUPR match(es) missing valid player DUPR IDs or match details`);
-    return lines.join('\n');
-  }
-
-  function exportMatchToDupr(matchId,sessionId) {
-    if(state.editingMatch){showToast('Finish or cancel the open match edit before exporting.');return;}
-    const found=findMatch(sessionId,matchId);
-    if(!found?.log||!found?.session)return;
-    const row=duprCsvRowForMatch(found.log,found.session);
-    if(!row){
-      const exclusions=duprExportExclusions([{log:found.log,session:found.session}]);
-      window.alert(`${duprExportWarningMessage(exclusions)}\n\nThis match was not exported.`);
-      return;
-    }
-    downloadDuprCsv([row],`dupr-match-${String(matchId).replace(/[^a-z0-9_-]/gi,'-')}.csv`);
-    showToast('DUPR CSV downloaded. Import it in DUPR to complete syncing.');
-  }
-
-  const DUPR_SUBMITTED_STORAGE_KEY='pickle-point-dupr-submitted-v1';
-  function loadDuprSubmittedMatchKeys() {
-    try{
-      const saved=JSON.parse(localStorage.getItem(DUPR_SUBMITTED_STORAGE_KEY)||'[]');
-      state.duprSubmittedMatchKeys=new Set(Array.isArray(saved)?saved.map(String):[]);
-    }catch(_){state.duprSubmittedMatchKeys=new Set();}
-  }
-
-  function duprModalMatchKey(entry,index=0) {
-    const sessionId=String(entry?.session?.id||'');
-    const log=entry?.log||{};
-    const matchId=log.id??log.matchId??log.matchID??log.match_id;
-    if(matchId!==undefined&&matchId!==null&&String(matchId).trim()!=='')return `${sessionId}:${String(matchId)}`;
-    const players=[...matchTeamPlayers(log,'team1'),...matchTeamPlayers(log,'team2')].map(player=>normalizeName(player.name)).join('|');
-    return `${sessionId}:${String(log.endedAt||log.startedAt||'')}:${String(log.score||'')}:${players}:${index}`;
-  }
-
-  function persistDuprSubmittedMatchKeys() {
-    try{localStorage.setItem(DUPR_SUBMITTED_STORAGE_KEY,JSON.stringify(Array.from(state.duprSubmittedMatchKeys)));}
-    catch(_){showToast('Submission status could not be saved in this browser.');}
-  }
-
-  function duprModalSessionEventName(session) {
-    return String(session?.sessionName||'Open Play').replace(/^\((?:NON\s+)?DUPR\s+MATCH\)\s*/i,'').trim()||'Open Play';
-  }
-
-  function duprModalSessionLocation(session) {
-    // Session setup stores this value as duprLocation. Keep the legacy aliases
-    // for older archives that may have stored it as location or venue.
-    return String(session?.duprLocation||session?.location||session?.venue||'').trim();
-  }
-
-  function duprModalEntries() {
-    const entries=(Array.isArray(state.matchesVisible)?state.matchesVisible:[])
-      .filter(entry=>isDuprMatch(entry.log,entry.session));
-    return entries.map((entry,index)=>{
-      const log=entry.log||{};
-      const playersA=matchTeamPlayers(log,'team1');
-      const playersB=matchTeamPlayers(log,'team2');
-      const players=[...playersA,...playersB];
-      const row=duprCsvRowForMatch(log,entry.session);
-      const score=String(log.score||'').trim().match(/^(\d+)\s*-\s*(\d+)$/);
-      const type=String(log.type||'Doubles').toLowerCase().includes('single')?'S':'D';
-      const key=duprModalMatchKey(entry,index);
-      return {entry,log,session:entry.session,playersA,playersB,players,score,type,row,key,submitted:state.duprSubmittedMatchKeys.has(key),missingPlayers:players.filter(player=>!player.duprId)};
-    });
-  }
-
-  // Build one canonical missing-player directory from the player IDs used by
-  // the missing-player chips. The filter and its count both consult this same
-  // directory, so neither can drift from the names displayed in the notice.
-  function duprModalMissingPlayerList(entries) {
-    const unique=new Map();
-    entries.forEach((item,itemIndex)=>item.missingPlayers.forEach((player,playerIndex)=>{
-      const name=String(player.name||'').trim();
-      const key=normalizeName(name)||`missing-${item.key||itemIndex}-${playerIndex}`;
-      if(!unique.has(key))unique.set(key,name||'Unnamed player');
-    }));
-    return unique;
-  }
-
-  function duprModalHasMissingPlayer(item,missingPlayerList) {
-    return item.missingPlayers.some((player,playerIndex)=>{
-      const key=normalizeName(player.name)||`missing-${item.key||''}-${playerIndex}`;
-      return missingPlayerList.has(key);
-    });
-  }
-
-  function duprModalFilteredEntries(entries) {
-    const missingPlayerList=duprModalMissingPlayerList(entries);
-    switch(state.duprModalFilter){
-      case 'not-submitted':return entries.filter(item=>!item.submitted);
-      case 'already-submitted':return entries.filter(item=>item.submitted);
-      case 'all-have-dupr':return entries.filter(item=>item.players.length>0&&item.players.every(player=>!!player.duprId));
-      case 'missing-dupr':return entries.filter(item=>duprModalHasMissingPlayer(item,missingPlayerList));
-      default:return entries;
-    }
-  }
-
-  function duprModalSyncFilterButtons() {
-    document.querySelectorAll('[data-dupr-export-filter]').forEach(button=>{
-      const active=button.dataset.duprExportFilter===state.duprModalFilter;
-      button.classList.toggle('is-active',active);
-      button.setAttribute('aria-pressed',String(active));
-    });
-  }
-
-  function duprModalSetFilterCounts(entries) {
-    const counts={
-      all:entries.length,
-      'not-submitted':entries.filter(item=>!item.submitted).length,
-      'already-submitted':entries.filter(item=>item.submitted).length,
-      'all-have-dupr':entries.filter(item=>item.players.length>0&&item.players.every(player=>!!player.duprId)).length
-    };
-    Object.entries(counts).forEach(([filter,count])=>{
-      const node=$(`duprExportCount-${filter}`);
-      if(node)node.textContent=String(count);
-    });
-  }
-
-  function duprModalMissingPlayersMarkup(entries) {
-    const unique=duprModalMissingPlayerList(entries);
-    const names=Array.from(unique.values());
-    $('duprMissingPlayersCount').textContent=String(names.length);
-    const list=$('duprMissingPlayersList');
-    setMarkupWithoutJump(list,names.map(name=>`<span class="dupr-missing-player-chip">${escapeHtml(name)}</span>`).join(''));
-    // The Missing DUPR filter badge mirrors the actual player chips shown in
-    // the missing-player list, never the number of match-table rows.
-    const missingPlayerCount=list.querySelectorAll('.dupr-missing-player-chip').length;
-    $('duprExportCount-missing-dupr').textContent=String(missingPlayerCount);
-    const toggle=$('duprMissingNoticeToggle');
-    const notice=$('duprMissingNotice');
-    if(!names.length)state.duprMissingNoticeExpanded=false;
-    notice.hidden=!names.length;
-    list.hidden=!names.length||!state.duprMissingNoticeExpanded;
-    if(toggle){
-      toggle.hidden=!names.length;
-      toggle.classList.toggle('is-expanded',state.duprMissingNoticeExpanded);
-      toggle.setAttribute('aria-expanded',String(state.duprMissingNoticeExpanded));
-      toggle.setAttribute('aria-label',state.duprMissingNoticeExpanded?'Hide missing DUPR player names':'Show missing DUPR player names');
-      toggle.title=state.duprMissingNoticeExpanded?'Hide missing DUPR player names':'Show missing DUPR player names';
-    }
-  }
-
-  function duprModalPlayerCell(player) {
-    if(!player)return '<td class="dupr-export-empty-cell">—</td><td class="dupr-export-id-cell">—</td>';
-    const id=String(player.duprId||'').trim();
-    return `<td class="dupr-export-player-cell" title="${escapeAttr(player.name)}">${escapeHtml(player.name||'—')}</td><td class="dupr-export-id-cell ${id?'is-present':'is-missing'}">${id?escapeHtml(id):'MISSING'}</td>`;
-  }
-
-  function duprModalRowMarkup(item,index) {
-    const date=validDate(item.log.endedAt||item.log.startedAt||item.session?.endedAt||item.session?.startedAt);
-    const scoreA=item.score?item.score[1]:'—';
-    const scoreB=item.score?item.score[2]:'—';
-    return `<tr class="${item.submitted?'is-submitted':''}"><td class="dupr-export-number-cell">${index+1}</td><td><span class="dupr-export-type ${item.type==='S'?'is-singles':''}">${item.type}</span></td><td class="dupr-export-date-cell">${date?escapeHtml(formatDate(date)):'—'}</td>${duprModalPlayerCell(item.playersA[0])}${item.type==='D'?duprModalPlayerCell(item.playersA[1]):'<td class="dupr-export-empty-cell">—</td><td class="dupr-export-id-cell">—</td>'}${duprModalPlayerCell(item.playersB[0])}${item.type==='D'?duprModalPlayerCell(item.playersB[1]):'<td class="dupr-export-empty-cell">—</td><td class="dupr-export-id-cell">—</td>'}<td class="dupr-export-score ${item.score&&Number(item.score[1])>Number(item.score[2])?'is-winning':''}">${escapeHtml(scoreA)}</td><td class="dupr-export-score ${item.score&&Number(item.score[2])>Number(item.score[1])?'is-winning':''}">${escapeHtml(scoreB)}</td></tr>`;
-  }
-
-  function syncDuprScoreTypePicker() {
-    const select=$('duprExportScoreType');
-    const label=$('duprExportScoreTypeLabel');
-    const shell=$('duprScoreTypeShell');
-    const toggle=$('duprExportScoreTypeToggle');
-    const options=$('duprExportScoreTypeOptions');
-    if(!select||!label||!shell||!toggle||!options)return;
-    label.textContent=select.value||'RALLY';
-    options.querySelectorAll('[data-dupr-score-type]').forEach(option=>{
-      const selected=option.dataset.duprScoreType===select.value;
-      option.classList.toggle('is-selected',selected);
-      option.setAttribute('aria-selected',String(selected));
-      const marker=option.querySelector('.session-select-option-meta');
-      if(marker)marker.hidden=!selected;
-    });
-    shell.classList.toggle('is-open',duprScoreTypeDropdownOpen);
-    toggle.setAttribute('aria-expanded',String(duprScoreTypeDropdownOpen));
-    options.hidden=!duprScoreTypeDropdownOpen;
-  }
-
-  function closeDuprScoreTypePicker({restoreFocus=false}={}) {
-    if(!duprScoreTypeDropdownOpen)return;
-    duprScoreTypeDropdownOpen=false;
-    syncDuprScoreTypePicker();
-    if(restoreFocus)$('duprExportScoreTypeToggle')?.focus();
-  }
-
-  function openDuprScoreTypePicker() {
-    duprScoreTypeDropdownOpen=true;
-    syncDuprScoreTypePicker();
-    $('duprExportScoreTypeOptions')?.querySelector('[data-dupr-score-type].is-selected')?.focus();
-  }
-
-  function renderDuprExportModal() {
-    const modal=$('duprExportModal');
-    if(!modal||modal.hidden)return;
-    const entries=duprModalEntries();
-    if(!entries.length){closeDuprExportModal();return;}
-    const sessions=Array.from(new Map(entries.map(item=>[String(item.session?.id||''),item.session])).values());
-    const sessionSignature=sessions.map(session=>String(session.id||'')).sort().join('|');
-    if(state.duprModalSessionId!==sessionSignature){
-      state.duprModalSessionId=sessionSignature;
-      // For a single session, prefill its event and location. For a mixed
-      // multi-session range, leave overrides blank so each row keeps its own
-      // event/location from the source session.
-      state.duprModalEventName=sessions.length===1?duprModalSessionEventName(sessions[0]):'';
-      state.duprModalLocation=sessions.length===1?duprModalSessionLocation(sessions[0]):'';
-      const firstScore=entries.map(item=>String(item.log?.scoreType||'').trim().toUpperCase()).find(Boolean)||'RALLY';
-      state.duprModalScoreType=/SIDE.?OUT/.test(firstScore)?'SIDEOUT':'RALLY';
-    }
-    const filtered=duprModalFilteredEntries(entries);
-    const readyCount=filtered.filter(item=>!!item.row).length;
-    $('duprExportSubheading').textContent=readyCount?`${readyCount} matches ready. Download the CSV, then import that file in DUPR.`:'No eligible matches in this filter. Check scores and player DUPR IDs.';
-    if($('duprExportEventName').value!==state.duprModalEventName)$('duprExportEventName').value=state.duprModalEventName;
-    if($('duprExportLocation').value!==state.duprModalLocation)$('duprExportLocation').value=state.duprModalLocation;
-    if($('duprExportScoreType').value!==state.duprModalScoreType)$('duprExportScoreType').value=state.duprModalScoreType;
-    syncDuprScoreTypePicker();
-    duprModalSetFilterCounts(entries);
-    duprModalSyncFilterButtons();
-    // Keep the missing-DUPR notice in sync with the exact rows rendered in the table.
-    // This respects the active export filter (All, Not Submitted, Already Submitted,
-    // All Players Have DUPR, or Missing DUPR) so names from hidden rows never appear.
-    duprModalMissingPlayersMarkup(filtered);
-    setMarkupWithoutJump($('duprExportTableBody'),filtered.map((item,index)=>duprModalRowMarkup(item,index)).join(''));
-    $('duprExportEmpty').hidden=filtered.length>0;
-    $('duprExportTableWrap').hidden=!filtered.length;
-    if(sessions.length===1){
-      const session=sessions[0];
-      const startTime=session.startedAt?matchTimeOnly(session.startedAt):'';
-      const endTime=session.endedAt?matchTimeOnly(session.endedAt):'';
-      const period=session.isLive?'LIVE':startTime&&endTime?`${startTime}–${endTime}`:formatDate(session.startedAt||session.endedAt);
-      $('duprExportFooterCount').textContent=`${filtered.length} matches · ${String(session.sessionName||'DUPR MATCH').trim()} | ${period}`;
-    }else{
-      $('duprExportFooterCount').textContent=`${filtered.length} matches · ${sessions.length} sessions`;
-    }
-    $('duprExportDownloadButton').disabled=readyCount===0;
-    const pendingReady=filtered.filter(item=>!!item.row&&!item.submitted).length;
-    $('duprMarkSubmittedButton').disabled=pendingReady===0;
-    $('duprMarkSubmittedButton').title=pendingReady?`Mark ${pendingReady} eligible match(es) as submitted after importing the CSV in DUPR`:'No unsubmitted eligible matches in this filter';
-  }
-
-  function openDuprExportModal() {
-    if(state.editingMatch){showToast('Finish or cancel the open match edit before exporting.');return;}
-    if(!Array.isArray(state.matchesVisible)||!state.matchesVisible.length){showToast('No matches in the selected date range.');return;}
-    const entries=duprModalEntries();
-    if(!entries.length){showToast('No DUPR MATCH sessions in the selected date range.');return;}
-    // Force the modal to refresh its session-specific defaults for this range.
-    state.duprModalSessionId='';
-    state.duprModalFilter='all';
-    state.duprMissingNoticeExpanded=false;
-    duprScoreTypeDropdownOpen=false;
-    showDashboardModal('duprExportModal');
-    renderDuprExportModal();
-    $('closeDuprExportModal')?.focus();
-  }
-
-  function closeDuprExportModal() {
-    const modal=$('duprExportModal');
-    if(!modal||modal.hidden)return;
-    closeDuprScoreTypePicker();
-    hideDashboardModal('duprExportModal');
-    $('exportMatchesButton')?.focus();
-  }
-
-  async function refreshDuprExportIds(button) {
-    if(button){button.disabled=true;button.classList.add('is-refreshing');}
-    try{
-      const refreshed=await loadDashboardData({silent:true});
-      if(!refreshed)throw new Error('Unable to refresh player records. Check your connection.');
-      renderDuprExportModal();
-      showToast('Player DUPR IDs refreshed from Registered Player Cloud.');
-    }catch(error){showToast(error.message||'Unable to refresh DUPR IDs.');}
-    finally{if(button){button.disabled=false;button.classList.remove('is-refreshing');}}
-  }
-
-  function downloadDuprModalCsv() {
-    const entries=duprModalFilteredEntries(duprModalEntries());
-    const rows=entries.filter(item=>item.row).map(item=>({...item.row,
-      event:state.duprModalEventName.trim()||item.row.event,
-      location:state.duprModalLocation.trim()||duprModalSessionLocation(item.session),
-      scoreType:state.duprModalScoreType==='SIDEOUT'?'Sideout':'Rally'
-    }));
-    if(!rows.length){showToast('No eligible DUPR matches in this filter.');return;}
-    const club=String(state.auth?.displayName||state.auth?.username||'club').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'club';
-    downloadDuprCsv(rows,`${club}-dupr-matches-${rows.length}.csv`);
-    showToast(`${rows.length} DUPR-ready match${rows.length===1?'':'es'} downloaded. Import the CSV in DUPR, then mark them as submitted here.`);
-  }
-
-  function markDuprModalMatchesSubmitted() {
-    const entries=duprModalFilteredEntries(duprModalEntries());
-    const pending=entries.filter(item=>item.row&&!item.submitted);
-    if(!pending.length){showToast('No unsubmitted eligible matches in this filter.');return;}
-    pending.forEach(item=>state.duprSubmittedMatchKeys.add(item.key));
-    persistDuprSubmittedMatchKeys();
-    renderDuprExportModal();
-    showToast(`${pending.length} match${pending.length===1?'':'es'} marked as submitted in this browser.`);
-  }
-
-  // ===== Organizer profile, logo, password and DUPR settings =====
-  function settingsDuprValue() {
-    // Build the value from the six visible character inputs at the moment Save
-    // is pressed. Never rely on a possibly stale hidden input value.
-    const value=Array.from({length:6},(_,index)=>{
-      const slot=$(`settingsDuprSlot${index+1}`);
-      const normalized=String(slot?.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-      const character=normalized.slice(0,1);
-      if(slot&&slot.value!==character)slot.value=character;
-      return character;
-    }).join('').slice(0,6);
-    const hiddenInput=$('settingsOrganizerDuprId');
-    if(hiddenInput){
-      hiddenInput.value=value;
-      // Keep form integrations and browser autofill observers in sync too.
-      hiddenInput.dispatchEvent(new Event('input',{bubbles:true}));
-      hiddenInput.dispatchEvent(new Event('change',{bubbles:true}));
-    }
-    return value;
-  }
-
-  function syncSettingsDuprSlotsToInput() {
-    return settingsDuprValue();
-  }
-
-  function setSettingsDuprValue(value) {
-    const normalized=String(value||'').replace(/^DUPR\s*:\s*/i,'').replace(/\s+/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
-    for(let index=0;index<6;index++)$(`settingsDuprSlot${index+1}`).value=normalized[index]||'';
-    syncSettingsDuprSlotsToInput();
-  }
-
-  function populateSettingsForm(organizer={}) {
-    $('settingsClubName').value=String(organizer.displayName||organizer.username||'');
-    $('settingsUsername').value=String(organizer.username||'');
-    setSettingsDuprValue(organizer.duprId||organizer.personalDuprId||organizer.duprID||organizer.dupr_id||'');
-    $('settingsLogoPreview').src=organizer.logo||'pickleball-p-emblem.png';
-    $('settingsLogoInput').value='';
-    $('settingsCurrentPassword').value='';$('settingsNewPassword').value='';$('settingsConfirmPassword').value='';
-    $('saveSettingsButton').disabled=false;
-    setSettingsMessage('');
-    $('settingsShowPasswords').textContent='Show passwords';
-    $('settingsShowPasswords').setAttribute('aria-pressed','false');
-    document.querySelectorAll('.settings-password-input').forEach(input=>input.type='password');
-  }
-
-  async function openSettings() {
-    const isMobile=window.matchMedia?.('(max-width: 760px)').matches;
-    if(isMobile) {
-      // Show the dialog immediately from the organizer record already loaded by the dashboard.
-      const requestId=++state.settingsOpenRequestId;
-      state.settingsFormDirty=false;
-      state.settingsLogoDraft=undefined;
-      state.settingsLogoProcessing=false;
-      state.settingsLogoProcessingToken++;
-      populateSettingsForm(state.auth||{});
-      showDashboardModal('settingsModal');
+  return [...byLocation.values()];
+}
+function mapCard(session, mapId = 'courtLocationMap') {
+  const locations = mapSessionsForPins();
+  const payload = JSON.stringify(locations).replace(/</g, '\\u003c');
+  const count = locations.length;
+  const liveSessionId = session?.isLive ? String(session.id || '') : '';
+  return `<section class="panel panel-pad map-panel">${panelTitle('Court Locations in the Philippines', 'pin', `<button type="button" class="text-link map-open-link" data-open-map-modal="${escapeHTML(liveSessionId)}">Open 3D Map ${icon('arrow')}</button>`)}<div id="${escapeHTML(mapId)}" class="interactive-map map-preview" data-map-variant="preview" data-map-focus-session="${escapeHTML(liveSessionId)}" data-map-locations="${escapeHTML(payload)}" role="application" aria-label="Interactive 3D map of the Philippines with saved open-play court locations"><div class="map-loading">Loading Philippines 3D map…</div></div><div class="map-preview-footer"><span class="map-count">${count} saved location${count === 1 ? '' : 's'}</span><span>Drag to move · scroll or use + / − to zoom</span></div><p class="map-status" data-map-status="${escapeHTML(mapId)}">Court pins are placed from each session's saved Location field.</p></section>`;
+}
+function isPhilippinesCoordinate(lat, lon) {
+  return Number.isFinite(lat) && Number.isFinite(lon) && lat >= PH_MAP_BOUNDS[0][0] && lat <= PH_MAP_BOUNDS[1][0] && lon >= PH_MAP_BOUNDS[0][1] && lon <= PH_MAP_BOUNDS[1][1];
+}
+function coordinatesFromText(value) {
+  const match = String(value || '').match(/(-?\d{1,2}(?:\.\d+)?)\s*[,;]\s*(-?\d{2,3}(?:\.\d+)?)/);
+  if (!match) return null;
+  const lat = Number(match[1]);
+  const lon = Number(match[2]);
+  return isPhilippinesCoordinate(lat, lon) ? { lat, lon, label: 'GPS coordinates from saved session location' } : null;
+}
+function mapCacheRead() {
+  try { return JSON.parse(localStorage.getItem('ppm-dashboard-map-cache-v3') || '{}'); } catch (_) { return {}; }
+}
+function mapCacheWrite(cache) {
+  try { localStorage.setItem('ppm-dashboard-map-cache-v3', JSON.stringify(cache)); } catch (_) { /* Storage may be disabled. */ }
+}
+function photonQueryVariants(location) {
+  const original = String(location || '').trim();
+  const corrected = original
+    .replace(/\bsout\s+cotabato\b/ig, 'South Cotabato')
+    .replace(/\bgensan\b/ig, 'General Santos City');
+  const variants = [corrected];
+  if (/pioneer/i.test(corrected) && /general santos/i.test(corrected)) {
+    variants.push('Pioneer Avenue, General Santos City, South Cotabato, Philippines');
+    variants.push('Pioneer Ave, General Santos City, South Cotabato, Philippines');
+    variants.push('Pioneer, General Santos City, Philippines');
+  }
+  return [...new Set(variants.map(item => item.replace(/\s+/g, ' ').trim()).filter(Boolean))];
+}
+function photonLookup(location) {
+  const key = normalizeName(location);
+  const cache = mapCacheRead();
+  const cached = cache[key];
+  const cacheAgeLimit = Number(cached?.ttl) || 90 * 24 * 60 * 60 * 1000;
+  if (cached && Date.now() - Number(cached.savedAt || 0) < cacheAgeLimit) {
+    return Promise.resolve(cached.result || null);
+  }
+  if (String(location).trim().length < 5) return Promise.resolve(null);
+  const request = async () => {
+    const wait = Math.max(0, 900 - (Date.now() - photonLastRequestAt));
+    if (wait) await new Promise(resolve => window.setTimeout(resolve, wait));
+    let best = null;
+    for (const query of photonQueryVariants(location)) {
+      photonLastRequestAt = Date.now();
+      const fullQuery = /philippines/i.test(query) ? query : `${query}, Philippines`;
+      const params = new URLSearchParams({ q: fullQuery, limit: '8', lang: 'en', countrycode: 'PH', lat: String(PH_MAP_CENTER[0]), lon: String(PH_MAP_CENTER[1]), zoom: '5', bbox: '115.5,4.0,128.6,22.4' });
       try {
-        const response=await fetchJson('/api/organizer-settings');
-        if(requestId!==state.settingsOpenRequestId||$('settingsModal').hidden)return;
-        const organizer=response.organizer||{};
-        state.auth=organizer;
-        // A late response may refresh untouched fields, but never overwrite edits already made.
-        if(!state.settingsFormDirty)populateSettingsForm(organizer);
-      } catch(error) {
-        if(requestId===state.settingsOpenRequestId&&!$('settingsModal').hidden)showToast(error.message||'Unable to refresh club settings.');
+        const response = await fetch(`https://photon.komoot.io/api/?${params.toString()}`, { headers: { Accept: 'application/geo+json, application/json' } });
+        if (!response.ok) continue;
+        const payload = await response.json();
+        const features = Array.isArray(payload.features) ? payload.features : [];
+        // Match against the saved Location text only. Do not include the session title,
+        // event name, or any descriptive session metadata in the geocoding request.
+        const terms = normalizeName(query).split(/[^a-z0-9]+/).filter(term => term.length > 2 && !['philippines', 'south', 'cotabato', 'city', 'avenue', 'ave'].includes(term));
+        const venueMustMatch = /pioneer/i.test(location);
+        const cityMustMatch = /general\s+santos|gensan/i.test(location);
+        const scored = features.map(feature => {
+          const coordinates = feature?.geometry?.coordinates || [];
+          const lat = Number(coordinates[1]), lon = Number(coordinates[0]);
+          const properties = feature?.properties || {};
+          const text = normalizeName([properties.name, properties.street, properties.city, properties.district, properties.county, properties.state, properties.country].filter(Boolean).join(' '));
+          const countryOk = String(properties.countrycode || properties.countryCode || '').toUpperCase() === 'PH' || /philippines/i.test(properties.country || '');
+          if (!countryOk || !isPhilippinesCoordinate(lat, lon)) return null;
+          if (venueMustMatch && !text.includes('pioneer')) return null;
+          if (cityMustMatch && !(text.includes('general') && text.includes('santos'))) return null;
+          const score = terms.reduce((sum, term) => sum + (text.includes(term) ? 1 : 0), 0);
+          const minScore = terms.length <= 1 ? 1 : Math.max(2, Math.ceil(terms.length * 0.5));
+          if (score < minScore) return null;
+          return { feature, lat, lon, score, text };
+        }).filter(Boolean).sort((a, b) => b.score - a.score);
+        if (scored.length && (!best || scored[0].score > best.score)) best = scored[0];
+        if (best && best.score >= Math.max(2, Math.ceil(terms.length * 0.5))) break;
+      } catch (_) { /* Try the next location spelling. */ }
+    }
+    const feature = best?.feature;
+    const properties = feature?.properties || {};
+    const result = feature ? {
+      lat: best.lat,
+      lon: best.lon,
+      label: [properties.name, properties.street, properties.city, properties.state, properties.country].filter(Boolean).join(', ')
+    } : null;
+    cache[key] = { savedAt: Date.now(), ...(result ? {} : { ttl: 6 * 60 * 60 * 1000 }), result };
+    mapCacheWrite(cache);
+    return result;
+  };
+  const lookup = photonQueue.then(request, request);
+  photonQueue = lookup.catch(() => null);
+  return lookup;
+}
+function mapPopupMarkup(item, coords) {
+  const sessionButtons = item.sessions.map(entry => `<button type="button" class="map-popup-session" data-map-session-select="${escapeHTML(entry.id)}"><strong>${escapeHTML(entry.title)}</strong><small>${entry.date ? `${escapeHTML(fmtDate(entry.date))} · ` : ''}${entry.isLive ? 'LIVE' : 'Completed'} · ${entry.matchCount} matches</small></button>`).join('');
+  return `<div class="map-popup"><strong class="map-popup-location">${escapeHTML(item.location)}</strong>${coords.label ? `<small class="map-popup-resolved">${escapeHTML(coords.label)}</small>` : ''}<div class="map-popup-sessions">${sessionButtons}</div></div>`;
+}
+async function populateMapMarkers(map, node, locations) {
+  const status = document.querySelector(`[data-map-status="${node.id}"]`);
+  if (!locations.length) {
+    if (status) status.textContent = 'No session location has been saved yet. Add a venue and city in Session Setup to place a court pin.';
+    return;
+  }
+  if (status) status.textContent = `Finding map pins for ${locations.length} saved session location${locations.length === 1 ? '' : 's'}…`;
+  let pinned = 0;
+  let unresolved = 0;
+  for (const item of locations) {
+    if (!node.isConnected || !map || !map.getStyle()) return;
+    const savedLocation = String(item.location || '').trim();
+    if (!savedLocation) { unresolved += 1; continue; }
+    const savedCoordinates = normalizeMapLocationCoordinates(item.coordinates || item.sessions.find(entry => entry.locationCoordinates)?.locationCoordinates);
+    const direct = savedCoordinates || coordinatesFromText(savedLocation);
+    const coords = direct || await photonLookup(savedLocation);
+    if (!node.isConnected || !map) return;
+    if (!coords || !isPhilippinesCoordinate(coords.lat, coords.lon)) { unresolved += 1; continue; }
+    state.mapResolvedLocations.set(normalizeName(item.location), coords);
+    const markerElement = document.createElement('button');
+    markerElement.type = 'button';
+    markerElement.className = 'dashboard-map-pin';
+    markerElement.setAttribute('aria-label', `Court location: ${item.location}`);
+    markerElement.innerHTML = '<span></span>';
+    const marker = new window.maplibregl.Marker({ element: markerElement, anchor: 'bottom' }).setLngLat([coords.lon, coords.lat]);
+    if (node.dataset.mapModal === 'true') {
+      const popup = new window.maplibregl.Popup({ offset: 22, closeButton: true, maxWidth: '290px' }).setHTML(mapPopupMarkup(item, coords));
+      marker.setPopup(popup);
+    } else {
+      markerElement.addEventListener('click', () => openMapModal(item.sessions[0]?.id || ''));
+    }
+    marker.addTo(map);
+    pinned += 1;
+  }
+  if (status) {
+    status.textContent = pinned
+      ? `${pinned} saved court location${pinned === 1 ? '' : 's'} pinned on the Philippines map${unresolved ? ` · ${unresolved} location${unresolved === 1 ? '' : 's'} could not be matched` : ''}.`
+      : 'The map is ready, but the saved venue text could not be matched accurately. Check the Location field in Session Setup.';
+  }
+  const focusedSessionId = String(node.dataset.mapFocusSession || '');
+  if (focusedSessionId) focusMapSession(focusedSessionId, node.id);
+  else showPhilippinesMap(node.id);
+}
+function mapSessionDetailsMarkup(session) {
+  if (!session) return '<div class="map-detail-empty"><strong>No session selected</strong><span>Choose a saved open-play session to see its details beside the map.</span></div>';
+  const matches = (state.data?.matches || []).filter(match => String(match.sessionId) === String(session.id)).length;
+  const courts = asArray(session.courtNames).join(', ') || 'No court details saved';
+  const created = session.startedAt ? fmtDate(session.startedAt, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Not available';
+  const location = String(session.location || '').trim();
+  return `<div class="map-session-detail"><div class="map-session-status"><span class="status-pill ${session.isLive ? 'live' : 'ended'}">${session.isLive ? 'LIVE NOW' : 'COMPLETED'}</span><span>${escapeHTML(sessionDateLabel(session))}</span></div><h3>${escapeHTML(session.title)}</h3><div class="map-session-facts"><div><span>Session time</span><strong>${escapeHTML(sessionTimeLabel(session))}</strong></div><div><span>Created / started</span><strong>${escapeHTML(created)}</strong></div><div><span>Location</span><strong>${escapeHTML(location || 'Location not saved')}</strong></div><div><span>Courts</span><strong>${escapeHTML(courts)}</strong></div><div class="map-session-metrics"><span><strong>${(session.attendees || []).length}</strong> players</span><span><strong>${matches}</strong> matches</span></div></div><p class="map-pin-note">${location ? 'The pin on the map is matched from this session’s saved Location field.' : 'This session has no saved location, so it cannot have a map pin yet.'}</p><button type="button" class="btn btn-sm btn-primary" data-map-open-session="${escapeHTML(session.id)}">View full session details</button></div>`;
+}
+function mapModalMarkup(selectedSessionId) {
+  const sessions = state.data?.sessions || [];
+  const selected = sessions.find(session => String(session.id) === String(selectedSessionId)) || sessions[0] || null;
+  const locations = mapSessionsForPins();
+  const payload = JSON.stringify(locations).replace(/</g, '\\u003c');
+  const sessionOptions = sessions.map(session => `<option value="${escapeHTML(session.id)}" ${selected && String(selected.id) === String(session.id) ? 'selected' : ''}>${escapeHTML(session.title)}${session.date ? ` · ${escapeHTML(fmtDate(session.date, { month: 'short', day: 'numeric' }))}` : ''}${session.isLive ? ' · LIVE' : ''}</option>`).join('');
+  const savedLocations = locations.length ? locations.map(item => {
+    const recent = item.sessions[0];
+    return `<button type="button" class="map-location-row" data-map-session-select="${escapeHTML(recent.id)}"><span class="map-location-pin">${icon('pin')}</span><span><strong>${escapeHTML(item.location)}</strong><small>${item.sessions.length} session${item.sessions.length === 1 ? '' : 's'} · ${escapeHTML(recent.title)}</small></span><span class="map-location-arrow">${icon('arrow')}</span></button>`;
+  }).join('') : '<p class="map-detail-empty">No saved session location yet. Add the court venue and city in Session Setup to create a map pin.</p>';
+  const liveFocusSessionId = selected?.isLive ? String(selected.id || '') : '';
+  return `<div class="map-modal-layout"><aside class="map-modal-details"><div class="map-modal-intro"><span class="eyebrow">${escapeHTML(organizerClubName())} · COURT MAP</span><h3>Open-play locations</h3><p>Session pins are based on the exact Location field saved when each session was created.</p></div><div class="map-session-picker"><label for="mapModalSessionSelect">Session details</label><select id="mapModalSessionSelect" class="select-control" ${sessions.length ? '' : 'disabled'}>${sessionOptions || '<option>No saved sessions</option>'}</select></div><div id="mapModalSessionInfo">${mapSessionDetailsMarkup(selected)}</div><div class="map-saved-location-list"><div class="map-list-heading">Saved court locations <span>${locations.length}</span></div>${savedLocations}</div></aside><section class="map-modal-view"><div class="map-modal-toolbar"><span><strong>3D Philippines map</strong><small>Drag to move · scroll or + / − to zoom</small></span><div class="map-modal-actions"><button type="button" class="btn btn-sm" data-map-show-philippines>Philippines view</button><button type="button" class="btn btn-sm btn-primary" data-map-focus-selected>Focus session</button></div></div><div id="sessionMapModal" class="interactive-map map-modal-canvas" data-map-variant="modal" data-map-modal="true" data-map-focus-session="${escapeHTML(liveFocusSessionId)}" data-map-locations="${escapeHTML(payload)}" role="application" aria-label="Draggable and zoomable 3D Philippines map with open-play court pins"><div class="map-loading">Loading 3D Philippines map…</div></div><p class="map-status" data-map-status="sessionMapModal">Loading session court pins…</p></section></div>`;
+}
+function openMapModal(sessionId = '') {
+  const sessions = state.data?.sessions || [];
+  const initial = sessions.find(session => String(session.id) === String(sessionId)) || getLiveSession() || sessions[0] || null;
+  state.mapModalSessionId = initial?.id || '';
+  modal('Philippines 3D Court Map & Session Details', mapModalMarkup(state.mapModalSessionId), { wide: true, className: 'map-modal-card' });
+  initializeInteractiveMaps();
+  window.setTimeout(() => state.mapInstances.get('sessionMapModal')?.resize(), 50);
+}
+function setMapModalSession(sessionId) {
+  const session = (state.data?.sessions || []).find(item => String(item.id) === String(sessionId));
+  if (!session) return;
+  state.mapModalSessionId = session.id;
+  const select = $('#mapModalSessionSelect');
+  if (select) select.value = session.id;
+  const modalMapNode = $('#sessionMapModal');
+  if (modalMapNode) modalMapNode.dataset.mapFocusSession = session.id;
+  const details = $('#mapModalSessionInfo');
+  if (details) details.innerHTML = mapSessionDetailsMarkup(session);
+  focusMapSession(session.id, 'sessionMapModal');
+}
+function focusMapSession(sessionId, mapId = 'sessionMapModal') {
+  const map = state.mapInstances.get(mapId);
+  if (!map) return false;
+  const item = mapSessionsForPins().find(location => location.sessions.some(entry => String(entry.id) === String(sessionId)));
+  if (!item) return false;
+  const coords = state.mapResolvedLocations.get(normalizeName(item.location));
+  if (!coords) {
+    const status = document.querySelector(`[data-map-status="${mapId}"]`);
+    if (status) status.textContent = `Finding the saved venue “${item.location}”…`;
+    return false;
+  }
+  map.flyTo({ center: [coords.lon, coords.lat], zoom: 15, pitch: 54, bearing: -16, duration: 1250, essential: true });
+  return true;
+}
+function showPhilippinesMap(mapId = 'sessionMapModal') {
+  const map = state.mapInstances.get(mapId);
+  if (!map) return;
+  map.fitBounds([[115.5, 4.0], [128.6, 22.4]], { padding: mapId === 'sessionMapModal' ? 44 : 10, maxZoom: mapId === 'sessionMapModal' ? 5.2 : 4.8, duration: 900 });
+  map.easeTo({ pitch: 34, bearing: -8, duration: 900 });
+}
+function collapseMapAttribution(node) {
+  const attribution = $('.maplibregl-ctrl-attrib', node);
+  if (!attribution) return;
+  // MapLibre initially expands its compact control; start with the details closed.
+  attribution.classList.add('maplibregl-compact');
+  attribution.classList.remove('maplibregl-compact-show');
+  attribution.removeAttribute('open');
+}
+
+function ensureMapLibreLoaded() {
+  if (window.maplibregl) return Promise.resolve(window.maplibregl);
+  if (mapLibreLoadPromise) return mapLibreLoadPromise;
+
+  if (!document.querySelector('link[data-maplibre-stylesheet]')) {
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = 'https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css';
+    stylesheet.dataset.maplibreStylesheet = 'true';
+    document.head.append(stylesheet);
+  }
+
+  mapLibreLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js';
+    script.async = true;
+    script.dataset.maplibreScript = 'true';
+    script.onload = () => window.maplibregl ? resolve(window.maplibregl) : reject(new Error('MapLibre did not initialize.'));
+    script.onerror = () => reject(new Error('MapLibre could not be downloaded.'));
+    document.head.append(script);
+  }).catch(error => {
+    mapLibreLoadPromise = null;
+    throw error;
+  });
+  return mapLibreLoadPromise;
+}
+
+function initializeInteractiveMaps() {
+  const mapNodes = $$('.interactive-map');
+  if (!mapNodes.length) return;
+  if (!window.maplibregl) {
+    ensureMapLibreLoaded().then(() => {
+      // Re-query after loading: the user may have navigated away while the CDN
+      // request was in flight, so only initialize maps that are still mounted.
+      initializeInteractiveMaps();
+    }).catch(() => {
+      $$('.interactive-map').forEach(node => {
+        if (node.isConnected) node.innerHTML = '<div class="map-loading map-error">The 3D map library could not be loaded. Check your internet connection and refresh.</div>';
+      });
+    });
+    return;
+  }
+  mapNodes.forEach(node => {
+    if (state.mapInstances.has(node.id)) return;
+    const isModal = node.dataset.mapModal === 'true';
+    node.innerHTML = '';
+    const map = new window.maplibregl.Map({
+      container: node,
+      style: 'https://tiles.openfreemap.org/styles/liberty',
+      center: [PH_MAP_CENTER[1], PH_MAP_CENTER[0]],
+      zoom: 4.4,
+      minZoom: 3.8,
+      maxZoom: 18,
+      pitch: isModal ? 43 : 32,
+      bearing: -8,
+      maxBounds: [[115.5, 4.0], [128.6, 22.4]],
+      renderWorldCopies: false,
+      scrollZoom: true,
+      dragPan: true,
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchZoomRotate: true,
+      cooperativeGestures: false,
+      attributionControl: { compact: true },
+      fadeDuration: 180
+    });
+    map.addControl(new window.maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }), 'top-right');
+    collapseMapAttribution(node);
+    map.on('resize', () => collapseMapAttribution(node));
+    state.mapInstances.set(node.id, map);
+    map.on('load', () => {
+      if (!node.isConnected) return;
+      collapseMapAttribution(node);
+      map.fitBounds([[115.5, 4.0], [128.6, 22.4]], { padding: isModal ? 42 : 8, maxZoom: isModal ? 5.2 : 4.8, duration: 0 });
+      map.setPitch(isModal ? 43 : 32);
+      let locations = [];
+      try { locations = JSON.parse(node.dataset.mapLocations || '[]'); } catch (_) { locations = []; }
+      populateMapMarkers(map, node, locations);
+      window.setTimeout(() => {
+        if (!node.isConnected) return;
+        map.resize();
+        collapseMapAttribution(node);
+      }, 80);
+    });
+    map.on('error', event => {
+      if (!node.isConnected || !event?.error) return;
+      const status = document.querySelector(`[data-map-status="${node.id}"]`);
+      if (status && /style|source|tile|fetch|network/i.test(String(event.error.message || ''))) {
+        status.textContent = 'Map tiles are temporarily unavailable. Check your internet connection and refresh.';
       }
+    });
+  });
+}
+function renderDashboard() {
+  const players = state.data.players;
+  const sessions = state.data.sessions;
+  const matches = state.data.matches;
+  const attendanceCount = countAttendanceEntries();
+  const live = getLiveSession();
+  const activeCourts = live ? state.data.courts.filter(court => ['Active', 'Ready', 'Waiting', 'Available'].includes(court.status)) : [];
+  const lastSession = sessions[0] || null;
+  const recentMatches = [];
+  if (lastSession) {
+    const sessionId = String(lastSession.id);
+    for (const match of matches) {
+      if (String(match.sessionId) !== sessionId) continue;
+      const key = String(match.playedAt || '');
+      let insertAt = 0;
+      while (insertAt < recentMatches.length && String(recentMatches[insertAt].playedAt || '') >= key) insertAt += 1;
+      if (insertAt < 5) {
+        recentMatches.splice(insertAt, 0, match);
+        if (recentMatches.length > 5) recentMatches.pop();
+      } else if (recentMatches.length < 5) {
+        recentMatches.push(match);
+      }
+    }
+  }
+  const recentAction = lastSession
+    ? `<span class="latest-session-label">${escapeHTML(lastSession.title)}${lastSession.date ? ` · ${escapeHTML(fmtDate(lastSession.date, { month: 'short', day: 'numeric' }))}` : ''}</span>`
+    : '<span class="latest-session-label">Latest session</span>';
+  const courtsMarkup = courtStatusMarkup(live);
+  const recentMarkup = recentMatches.length
+    ? `<div class="table-wrap"><table class="compact-table"><thead><tr><th>Court</th><th>Players</th><th>Result</th></tr></thead><tbody>${recentMatches.map(match => `<tr><td>${escapeHTML(match.courtName)}</td><td class="primary-cell">${escapeHTML(match.teamANames.join(' / '))} <span class="page-note">vs</span> ${escapeHTML(match.teamBNames.join(' / '))}</td><td><span class="score-pill">${escapeHTML(match.scoreLabel)}</span></td></tr>`).join('')}</tbody></table></div>`
+    : emptyState('No matches in the latest session', lastSession ? 'Matches from this session will appear here after they are recorded in Queueing.' : 'Completed matches recorded in Queueing will appear here.');
+  return `<div class="page-dashboard">
+    ${pageHeading('HUSAY DINKERS / OVERVIEW', 'Pickleball Dashboard', 'Your existing queueing records, open-play attendance and match results in one place.', `<button class="btn" data-action="refresh">${icon('refresh')} Refresh</button><a class="btn btn-primary" href="/session" target="_blank" rel="noopener">${icon('plus')} Start Open Play</a>`)}
+    ${liveBanner()}
+    <div class="stats-grid">${statCard('Registered Players', String(players.filter(player => !player.historicalOnly).length), 'Registered Player Cloud', 'users')}${statCard('Recorded Matches', String(matches.length), 'From queueing match logs', 'trophy', true)}${statCard('Attendance Records', String(attendanceCount), 'Saved session check-ins', 'users', true)}${statCard('Active Courts', String(live ? activeCourts.filter(court => court.status === 'Active').length : 0), live ? `${activeCourts.length} courts in current session` : 'No live session', 'court')}</div>
+    <div class="dashboard-grid">
+      <section class="panel panel-pad trend-panel">${panelTitle('Attendance Trend', 'chart', '<span class="page-note">Completed sessions · bar chart</span>')}<div class="chart-meta"><strong>${attendanceCount}</strong><span>attendance entries loaded from queueing history</span></div><div class="chart-box">${chartMarkup(sessions)}</div></section>
+      <section class="panel panel-pad ranking-panel">${panelTitle('Overall Player Rankings', 'trophy', '<button class="text-link" data-page="rankings">View all →</button>')}<div class="ranking-list" id="dashboardTopRankings"><div class="ranking-loading">Preparing player rankings…</div></div></section>
+      <div class="side-stack">${mapCard(live || lastSession, 'dashboardCourtMap')}<section class="panel panel-pad court-panel">${panelTitle('Court Status', 'court', '<a class="text-link" href="/queueing" target="_blank" rel="noopener">Open Queueing →</a>')}<div class="court-status-grid" role="region" aria-label="Court status. Swipe horizontally to view each court"><div class="court-status-track ${live && activeCourts.length ? '' : 'is-empty'}">${courtsMarkup}</div></div></section></div>
+      <section class="panel panel-pad recent-panel">${panelTitle('Recent Matches', 'trophy', recentAction)}${recentMarkup}</section>
+    </div>
+    <p class="data-note">Connected to your existing Pickle Point Match data. Rankings combine saved player totals with match results across all sessions.</p>
+  </div>`;
+}
+function sessionCard(session) {
+  const count = (session.attendees || []).length;
+  return `<article class="session-card ${session.isLive ? 'is-live' : ''}"><div class="session-main"><h3 class="session-name">${sessionStatusBadge(sessionStatus(session))}<span>${escapeHTML(session.title)}</span></h3><div class="session-meta"><span>${icon('calendar')}${escapeHTML(sessionDateLabel(session))}</span><span>${icon('clock')}${escapeHTML(sessionTimeLabel(session))}</span><span>${icon('pin')}${escapeHTML(sessionLocationLabel(session))}</span><span>${icon('court')}${escapeHTML(sessionCourtsLabel(session))}</span><span>${count} player${count === 1 ? '' : 's'}</span></div></div><div class="session-actions"><button class="btn btn-sm" data-session-view="${escapeHTML(session.id)}">Details</button>${session.isLive ? `<a class="btn btn-sm btn-primary" href="/queueing" target="_blank" rel="noopener">Open Queue</a>` : `<button class="btn btn-sm" data-session-edit="${escapeHTML(session.id)}">Rename</button><button class="icon-action danger" title="Delete session" data-session-delete="${escapeHTML(session.id)}">${icon('trash')}</button>`}${session.isLive && getRegistrationUrl(session) ? `<a class="btn btn-sm btn-soft" href="${escapeHTML(getRegistrationUrl(session))}" target="_blank" rel="noopener">Register</a>` : ''}</div></article>`;
+}
+function renderSessions() {
+  const all = visibleRows(sortedSessions()).filter(session => state.filters.sessionStatus === 'all' || sessionStatus(session) === state.filters.sessionStatus);
+  const liveCount = state.data.sessions.filter(session => session.isLive).length;
+  const completedCount = state.data.sessions.filter(session => !session.isLive).length;
+  const attendanceCount = countAttendanceEntries();
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / OPEN PLAY', 'Open Play Sessions', 'Session history and live attendance synced from your original queueing system.', `<a class="btn btn-primary" href="/session" target="_blank" rel="noopener">${icon('plus')} Start Open Play</a>`)}
+    <div class="metric-grid"><div class="metric-tile"><span>Live sessions</span><strong>${liveCount}</strong></div><div class="metric-tile"><span>Completed sessions</span><strong>${completedCount}</strong></div><div class="metric-tile"><span>Total attendance</span><strong>${attendanceCount}</strong></div><div class="metric-tile"><span>Recorded matches</span><strong>${state.data.matches.length}</strong></div></div>
+    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Session History', 'calendar')}<div class="toolbar"><select class="select-control" id="sessionStatusFilter" aria-label="Filter sessions"><option value="all" ${state.filters.sessionStatus === 'all' ? 'selected' : ''}>All sessions</option><option value="Live" ${state.filters.sessionStatus === 'Live' ? 'selected' : ''}>Live</option><option value="Completed" ${state.filters.sessionStatus === 'Completed' ? 'selected' : ''}>Completed</option></select></div></div><div class="session-list">${all.length ? all.map(sessionCard).join('') : emptyState('No sessions found', 'Start an open-play session in the existing Session Setup page.')}</div></section>
+    <p class="page-note">The original queueing system creates a session when an organizer starts Open Play. This dashboard does not create a separate, duplicate session record.</p></div>`;
+}
+function playersTable(players) {
+  if (!players.length) return emptyState('No registered players yet', 'Players added through the player registration page will appear here.', 'Open registration', 'register-player');
+  return `<div class="table-wrap players-table-wrap"><table class="data-table players-table"><colgroup><col style="width:5%"><col style="width:30%"><col style="width:16%"><col style="width:11%"><col style="width:14%"><col style="width:11%"><col style="width:13%"></colgroup><thead><tr><th scope="col">#</th><th scope="col">Player's Fullname (Nickname)</th><th scope="col">Category</th><th scope="col">Gender</th><th scope="col">DUPR ID</th><th scope="col">Attendance</th><th scope="col">Match Records</th></tr></thead><tbody>${players.map((player, index) => {
+    const stats = playerStats(player);
+    const category = categoryName(player.category);
+    const categoryClass = `category-${categoryCode(player.category).toLowerCase()}`;
+    const gender = String(player.gender || '').trim();
+    const genderClass = gender.toLowerCase() === 'male' ? 'gender-male' : gender.toLowerCase() === 'female' ? 'gender-female' : '';
+    const genderCell = genderClass
+      ? `<span class="player-gender-badge ${genderClass}">${escapeHTML(gender)}</span>`
+      : escapeHTML(gender || '—');
+    const fullDisplayName = `${player.name || 'Unnamed Player'}${player.nickname ? ` (${player.nickname})` : ''}`;
+    return `<tr><td class="player-number">${index + 1}</td><td class="primary-cell"><span class="table-player"><span class="player-avatar">${initials(player.name)}</span><span class="player-name-text">${escapeHTML(fullDisplayName)}</span></span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td>${genderCell}</td><td><strong>${escapeHTML(player.duprId || '—')}</strong></td><td class="player-count-cell">${stats.attendance}</td><td class="player-count-cell">${stats.matches}</td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+function renderPlayers() {
+  const players = visibleRows([...state.data.players].filter(player => !player.historicalOnly).sort((a, b) => a.name.localeCompare(b.name)));
+  const attendanceCount = countAttendanceEntries();
+  const rated = state.data.players.filter(player => player.duprId).length;
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / COMMUNITY', 'Players', 'Registered Player Cloud profiles used by queueing, player registration and match history.', `<button class="btn" data-action="export-players">${icon('download')} Export CSV</button><button class="btn btn-primary" data-action="register-player">${icon('plus')} Register Player</button>`)}
+    <div class="metric-grid"><div class="metric-tile"><span>Registered players</span><strong>${state.data.players.filter(player => !player.historicalOnly).length}</strong></div><div class="metric-tile"><span>With DUPR ID</span><strong>${rated}</strong></div><div class="metric-tile"><span>Attendance entries</span><strong>${attendanceCount}</strong></div><div class="metric-tile"><span>Match records</span><strong>${state.data.matches.length}</strong></div></div>
+    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Registered Player Cloud', 'users')}<div class="toolbar"><select class="select-control" id="playerCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.playerCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div id="playersTableWrap">${playersTable(players.filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory))}</div></section>
+    <p class="page-note">Player profiles are stored in the existing Registered Player Cloud. Register new players through the live session registration page so they enter the real queue.</p></div>`;
+}
+function matchesTable(matches) {
+  if (!matches.length) return emptyState('No matches recorded', 'Completed matches saved by the queueing system will appear here.');
+  return `<div class="table-wrap match-records-wrap"><table class="data-table match-records-table"><colgroup><col style="width:15%"><col style="width:9%"><col style="width:13%"><col style="width:16%"><col style="width:16%"><col style="width:9%"><col style="width:10%"><col style="width:12%"></colgroup><thead><tr><th scope="col">Date</th><th scope="col">Court</th><th scope="col">Duration</th><th scope="col">Team 1</th><th scope="col">Team 2</th><th scope="col">Result</th><th scope="col">Type</th><th scope="col">Action</th></tr></thead><tbody>${matches.map(match => `<tr><td class="match-date-cell"><strong>${escapeHTML(fmtDate(match.date))}</strong><span class="muted-cell match-time">${escapeHTML(match.timeLabel || match.time || '—')}</span></td><td>${escapeHTML(match.courtName || '—')}</td><td class="match-duration-cell">${escapeHTML(match.durationLabel || '—')}</td><td class="primary-cell match-team-cell">${escapeHTML(match.teamANames.join(' / ') || '—')}</td><td class="primary-cell match-team-cell">${escapeHTML(match.teamBNames.join(' / ') || '—')}</td><td><span class="score-pill">${escapeHTML(match.scoreLabel || '—')}</span></td><td>${match.duprMatch ? '<span class="status-pill dupr">DUPR</span>' : '<span class="status-pill gray">NON-DUPR</span>'}</td><td><div class="table-actions">${match.isScored ? `<button class="btn btn-sm" data-match-edit="${escapeHTML(match.key)}">Edit</button>` : '<button class="btn btn-sm" type="button" disabled title="Only matches with a recorded score can be edited">Edit</button>'}<button class="btn btn-sm btn-danger" type="button" title="Delete match" data-match-delete="${escapeHTML(match.key)}">${icon('trash')} Delete</button></div></td></tr>`).join('')}</tbody></table></div>`;
+}
+function filteredMatchRecords() {
+  const matchType = state.filters.matchType || 'all';
+  return visibleRows([...state.data.matches]).filter(match => {
+    const matchesCourt = state.filters.matchCourt === 'all' || match.courtId === state.filters.matchCourt;
+    const matchesType = matchType === 'all' || (matchType === 'dupr' ? match.duprMatch === true : match.duprMatch !== true);
+    return matchesCourt && matchesType;
+  });
+}
+function renderMatches() {
+  const matches = filteredMatchRecords();
+  const matchType = state.filters.matchType || 'all';
+  const playersInMatches = new Set(state.data.matches.flatMap(match => [...match.teamANames, ...match.teamBNames].map(normalizeName))).size;
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / MATCH HISTORY', 'Match Records', 'Results recorded from Court Queueing, including scored and win/loss matches.', `<button class="btn" data-action="export-matches">${icon('download')} Export</button><button class="btn" data-action="export-dupr">${icon('download')} Export DUPR CSV</button><a class="btn btn-primary" href="/queueing" target="_blank" rel="noopener">${icon('plus')} Record in Queue</a>`)}
+    <div class="metric-grid"><div class="metric-tile"><span>Recorded matches</span><strong>${state.data.matches.length}</strong></div><div class="metric-tile"><span>Players involved</span><strong>${playersInMatches}</strong></div><div class="metric-tile"><span>Courts used</span><strong>${new Set(state.data.matches.map(match => match.courtId)).size}</strong></div><div class="metric-tile"><span>DUPR matches</span><strong>${state.data.matches.filter(match => match.duprMatch).length}</strong></div></div>
+    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('All Match Records', 'trophy')}<div class="toolbar"><select class="select-control" id="matchCourtFilter"><option value="all">All courts</option>${[...new Map(state.data.matches.map(match => [match.courtId, match.courtName])).entries()].map(([id, name]) => `<option value="${escapeHTML(id)}" ${state.filters.matchCourt === id ? 'selected' : ''}>${escapeHTML(name)}</option>`).join('')}</select><div class="match-type-filter" data-active="${escapeHTML(matchType)}" role="group" aria-label="Filter match records by type"><button class="match-type-option" type="button" data-match-type-filter="all" aria-pressed="${matchType === 'all'}">ALL</button><button class="match-type-option" type="button" data-match-type-filter="dupr" aria-pressed="${matchType === 'dupr'}">DUPR</button><button class="match-type-option" type="button" data-match-type-filter="non-dupr" aria-pressed="${matchType === 'non-dupr'}">NON-DUPR</button></div></div></div><div id="matchRecordsTableWrap">${matchesTable(matches)}</div></section>
+    <p class="page-note">Match creation and player lineups remain in the original Queueing page, which updates this history automatically.</p></div>`;
+}
+function rankingRowMarkup(player, index) {
+  const stats = player.rankingStats || playerStats(player);
+  const rate = stats.matches ? `${Math.round(stats.wins / stats.matches * 100)}%` : '—';
+  const rank = ['🥇', '🥈', '🥉'][index] || `#${index + 1}`;
+  const rankLabel = `Rank ${index + 1}`;
+  const playerName = player.name || 'Unnamed Player';
+  const fullDisplayName = `${playerName}${player.nickname ? ` (${player.nickname})` : ''}`;
+  const category = categoryName(player.category);
+  const categoryClass = `category-${categoryCode(player.category).toLowerCase()}`;
+  return `<tr><td class="ranking-rank-cell"><span class="ranking-rank-mark" aria-label="${rankLabel}">${rank}</span></td><td class="primary-cell ranking-player-cell"><span class="ranking-player-name">${escapeHTML(fullDisplayName)}</span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td class="ranking-stat-cell"><strong>${stats.wins}</strong></td><td class="ranking-stat-cell">${stats.losses}</td><td class="ranking-stat-cell">${stats.matches}</td><td class="ranking-stat-cell">${rate}</td><td class="ranking-dupr-cell"><strong>${escapeHTML(player.duprId || '-')}</strong></td></tr>`;
+}
+function appendRankingRowsInChunks(token, cursor = 0) {
+  const batchSize = 60;
+  const liveTbody = $('#rankingTableBody');
+  const players = state.rankingRenderPlayers;
+  if (!liveTbody?.isConnected) return;
+
+  // Build the replacement body off-screen and swap it in once complete. This
+  // keeps the visible table height stable while larger leaderboards are built.
+  const stagedTbody = document.createElement('tbody');
+  stagedTbody.id = 'rankingTableBody';
+  const appendNext = () => {
+    const currentTbody = $('#rankingTableBody');
+    if (state.page !== 'rankings' || token !== state.rankingRenderToken || !currentTbody?.isConnected) return;
+
+    const end = Math.min(cursor + batchSize, players.length);
+    if (cursor < end) {
+      const holder = document.createElement('tbody');
+      holder.innerHTML = players.slice(cursor, end).map((player, offset) => rankingRowMarkup(player, cursor + offset)).join('');
+      stagedTbody.append(...holder.childNodes);
+      cursor = end;
+    }
+
+    if (cursor < players.length) {
+      window.requestAnimationFrame(appendNext);
       return;
     }
 
-    // Preserve the existing desktop behavior.
-    try {
-      const response=await fetchJson('/api/organizer-settings');
-      const organizer=response.organizer||{};state.auth=organizer;state.settingsLogoDraft=undefined;
-      state.settingsLogoProcessing=false;state.settingsLogoProcessingToken++;
-      populateSettingsForm(organizer);
-      showDashboardModal('settingsModal');
-    } catch(error) { showToast(error.message||'Unable to load club settings.'); }
+    if (!players.length) {
+      stagedTbody.innerHTML = '<tr><td colspan="8" class="ranking-empty">No ranking data yet. Rankings will appear when players have saved match results.</td></tr>';
+    }
+    currentTbody.replaceWith(stagedTbody);
+    $('#rankingsTableWrap')?.setAttribute('aria-busy', 'false');
+  };
+  appendNext();
+}
+function scheduleDashboardRankings() {
+  const token = ++state.dashboardRankingToken;
+  scheduleIdleTask(() => {
+    const target = $('#dashboardTopRankings');
+    if (state.page !== 'dashboard' || token !== state.dashboardRankingToken || !target?.isConnected) return;
+    const top = topRankedPlayers(20);
+    target.innerHTML = top.length ? top.map((player, index) => {
+      const stats = playerStats(player);
+      return `<div class="ranking-row"><span class="rank-index ${index < 3 ? 'top' : ''}">${index + 1}</span><span class="player-avatar">${initials(player.name)}</span><span class="ranking-name">${escapeHTML(player.name)}</span><span class="ranking-rating">${stats.wins}W - ${stats.losses}L (${stats.matches} Matches)</span></div>`;
+    }).join('') : emptyState('No player records yet', 'Players registered through the existing queueing system will appear here.');
+  });
+}
+function currentRankingSessionId() {
+  const selected = String(state.filters.rankingSession || 'all');
+  if (selected !== 'all' && !(state.data?.sessions || []).some(session => String(session.id) === selected)) {
+    state.filters.rankingSession = 'all';
+    return 'all';
   }
-
-  function closeSettings() {
-    state.settingsOpenRequestId++;
-    state.settingsFormDirty=false;
-    state.settingsLogoProcessingToken++;state.settingsLogoProcessing=false;
-    $('saveSettingsButton').disabled=false;
-    hideDashboardModal('settingsModal');state.settingsLogoDraft=undefined;
+  return selected;
+}
+function rankingSessionType(session) {
+  const raw = session?.raw || {};
+  const names = [raw.sessionName, raw.name, session?.sessionName, session?.title].map(value => String(value || '').trim()).filter(Boolean);
+  const markedName = names.find(value => /^\((?:NON[\s-]+)?DUPR\s+MATCH\)/i.test(value));
+  if (markedName) return /^\(NON[\s-]+DUPR\s+MATCH\)/i.test(markedName) ? 'NON-DUPR' : 'DUPR';
+  const sessionMatches = (state.data?.matches || []).filter(match => String(match.sessionId) === String(session.id));
+  if (sessionMatches.length) {
+    const hasDupr = sessionMatches.some(match => matchIsDupr(match, session));
+    const hasNonDupr = sessionMatches.some(match => !matchIsDupr(match, session));
+    if (hasDupr && hasNonDupr) return 'MIXED';
+    return hasDupr ? 'DUPR' : 'NON-DUPR';
   }
-
-  function setSettingsMessage(message,isError=false) {
-    const el=$('settingsFormMessage');
-    const text=String(message||'');
-    el.textContent=text;
-    el.classList.toggle('is-visible',!!text);
-    el.classList.toggle('is-error',!!isError&&!!text);
+  if (typeof raw.duprMatch === 'boolean') return raw.duprMatch ? 'DUPR' : 'NON-DUPR';
+  return 'NON-DUPR';
+}
+function rankingSessionTitle(session) {
+  return String(session?.title || session?.sessionName || 'Open Play Session')
+    .replace(/^\((?:NON[\s-]+)?DUPR\s+MATCH\)\s*/i, '').trim() || 'Open Play Session';
+}
+function getRankingPlayersForCurrentView() {
+  const selectedSessionId = currentRankingSessionId();
+  let players;
+  if (selectedSessionId === 'all') {
+    players = getRankedPlayers().filter(player => !player.historicalOnly);
+  } else {
+    const session = (state.data?.sessions || []).find(item => String(item.id) === selectedSessionId);
+    players = session ? buildSessionRanking(session).map(entry => {
+      const profile = state.data.players.find(player => normalizeName(player.name) === normalizeName(entry.name)) || {};
+      return {
+        ...profile,
+        name: entry.name,
+        nickname: entry.nickname || profile.nickname || '',
+        category: entry.category || profile.category || 'Unspecified',
+        duprId: profile.duprId || '',
+        rankingStats: {
+          wins: entry.wins,
+          losses: entry.losses,
+          matches: entry.matches,
+          attendance: (session.attendees || []).some(person => normalizeName(person.name) === normalizeName(entry.name)) ? 1 : 0
+        }
+      };
+    }) : [];
   }
+  return visibleRows(players.filter(player => state.filters.rankingCategory === 'all' || player.category === state.filters.rankingCategory));
+}
+function scheduleRankingsPage() {
+  const token = ++state.rankingRenderToken;
+  $('#rankingsTableWrap')?.setAttribute('aria-busy', 'true');
+  scheduleIdleTask(() => {
+    if (state.page !== 'rankings' || token !== state.rankingRenderToken) return;
+    const players = getRankingPlayersForCurrentView();
+    state.rankingRenderPlayers = players;
+    const count = $('#rankingPlayerCount');
+    if (count) count.textContent = String(players.length);
+    if (!$('#rankingTableBody')?.isConnected) return;
+    appendRankingRowsInChunks(token);
+  });
+}
+function renderRankings() {
+  state.rankingRenderPlayers = [];
+  const selectedSessionId = currentRankingSessionId();
+  const sessionOptions = sortedSessions().map(session => {
+    const sessionType = rankingSessionType(session);
+    const optionLabel = `(${sessionType}) ${rankingSessionTitle(session)} — ${sessionDateLabel(session)} · ${sessionStatus(session)}`;
+    return `<option value="${escapeHTML(session.id)}" ${selectedSessionId === String(session.id) ? 'selected' : ''}>${escapeHTML(optionLabel)}</option>`;
+  }).join('');
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / LEADERBOARD', 'Player Rankings', 'Rank players using their wins, losses, total matches and win rate from the existing system.', `<button class="btn" data-action="export-rankings">${icon('download')} Export</button>`)}
+    <div class="metric-grid"><div class="metric-tile"><span>Players ranked</span><strong id="rankingPlayerCount">${state.data.players.filter(player => !player.historicalOnly).length}</strong></div><div class="metric-tile"><span>Matches recorded</span><strong>${state.data.matches.length}</strong></div><div class="metric-tile"><span>Attendance entries</span><strong>${countAttendanceEntries()}</strong></div><div class="metric-tile"><span>DUPR IDs recorded</span><strong>${state.data.players.filter(player => player.duprId).length}</strong></div></div>
+    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Community Leaderboard', 'trophy')}<div class="toolbar"><select class="select-control ranking-session-filter" id="rankingSessionFilter"><option value="all" ${selectedSessionId === 'all' ? 'selected' : ''}>All Sessions</option>${sessionOptions}</select><select class="select-control" id="rankingCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.rankingCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div class="table-wrap rankings-table-wrap" id="rankingsTableWrap" aria-busy="true"><table class="data-table rankings-table"><colgroup><col style="width:8%"><col style="width:25%"><col style="width:15%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:11%"><col style="width:16%"></colgroup><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Category</th><th scope="col">Wins</th><th scope="col">Losses</th><th scope="col">Matches</th><th scope="col">Win rate</th><th scope="col">DUPR ID</th></tr></thead><tbody id="rankingTableBody"><tr><td colspan="8" class="ranking-loading-row">Preparing player rankings…</td></tr></tbody></table></div></section>
+    <p class="page-note">DUPR ID is shown as an identifier only. This dashboard does not treat a DUPR ID as a numeric DUPR rating.</p></div>`;
+}
+function renderCourts() {
+  const session = getLiveSession();
+  const courts = state.data.courts;
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / VENUES', 'Courts & Locations', 'Current court activity is read directly from the live queueing session.', `<a class="btn btn-primary" href="/queueing" target="_blank" rel="noopener">Manage in Queueing ${icon('external')}</a>`)}
+    <div class="metric-grid"><div class="metric-tile"><span>Total courts</span><strong>${courts.length}</strong></div><div class="metric-tile"><span>In play</span><strong>${courts.filter(court => court.status === 'Active').length}</strong></div><div class="metric-tile"><span>Ready / assigned</span><strong>${courts.filter(court => court.status === 'Ready').length}</strong></div><div class="metric-tile"><span>Waiting courts</span><strong>${courts.filter(court => court.status === 'Waiting').length}</strong></div></div>
+    <section class="panel panel-pad">${panelTitle('Live Court Status', 'court')}<div class="court-cards">${courts.length ? courts.map(court => `<article class="court-card"><div class="court-card-head"><h3>${escapeHTML(court.name)}</h3>${sessionStatusBadge(court.status === 'Active' ? 'Live' : court.status)}</div><p>${court.players ? `${court.players} player positions assigned` : 'No players assigned at the moment'}<br>Pickleball court</p><a class="btn btn-sm" href="/queueing" target="_blank" rel="noopener">Open court controls</a></article>`).join('') : emptyState('No live court data', 'Start an open-play session and configure courts in the original Queueing page.')}</div></section>
+    ${mapCard(session, 'venuesCourtMap')}
+    <p class="page-note">Court creation, court numbering and match assignments remain in Queueing to keep both screens synchronized.</p></div>`;
+}
+function renderSchedule() {
+  const sessions = visibleRows(sortedSessions());
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / SESSION HISTORY', 'Open Play Schedule', 'A date-ordered view of sessions already created in your queueing system.', `<a class="btn btn-primary" href="/session" target="_blank" rel="noopener">${icon('plus')} Start Open Play</a>`)}<section class="panel panel-pad">${panelTitle('Session Timeline', 'calendar')}<div class="session-list">${sessions.length ? sessions.map(sessionCard).join('') : emptyState('No session history', 'Start your first session from Session Setup.')}</div></section></div>`;
+}
+function downloadCSV(filename, headers, rows) {
+  const csv = [headers, ...rows].map(row => row.map(value => `"${String(value ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const blob = new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a'); link.href = url; link.download = filename; document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+}
+function exportPlayers() {
+  downloadCSV('husay-dinkers-players.csv', ['Name', 'Nickname', 'Category', 'Gender', 'DUPR ID', 'Self Rating', 'Matches', 'Wins', 'Losses', 'Attendance'], state.data.players.filter(p => !p.historicalOnly).map(player => { const s = playerStats(player); return [player.name, player.nickname, player.category, player.gender, player.duprId, player.selfRating, s.matches, s.wins, s.losses, s.attendance]; }));
+}
+function exportMatches() {
+  downloadCSV('husay-dinkers-match-records.csv', ['Date', 'Time', 'Session', 'Court', 'Team 1', 'Team 2', 'Result', 'Winner', 'DUPR Match'], state.data.matches.map(match => [match.date, match.time, match.sessionName, match.courtName, match.teamANames.join(' / '), match.teamBNames.join(' / '), match.scoreLabel, match.winner === 'A' ? 'Team 1' : match.winner === 'B' ? 'Team 2' : match.winnerText, match.duprMatch ? 'Yes' : 'No']));
+}
 
-  function fileAsDataUrl(file) {
-    return new Promise((resolve,reject)=>{
-      const reader=new FileReader();
-      reader.onload=()=>resolve(String(reader.result||''));
-      reader.onerror=()=>reject(new Error('Unable to read the selected logo.'));
-      reader.readAsDataURL(file);
+const DUPR_EXPORT_COLUMNS = ['matchType','event','date','playerA1','playerA1DuprId','playerA1ExternalId','playerA2','playerA2DuprId','playerA2ExternalId','playerB1','playerB1DuprId','playerB1ExternalId','playerB2','playerB2DuprId','playerB2ExternalId','teamAGame1','teamBGame1','teamAGame2','teamBGame2','teamAGame3','teamBGame3','teamAGame4','teamBGame4','teamAGame5','teamBGame5','scoreType','location'];
+function matchIsDupr(match, session) {
+  const log = match.raw || {};
+  const sessionRaw = session?.raw || {};
+  const matchName = String(log.sessionName || '').trim();
+  if (/^\(NON\s+DUPR\s+MATCH\)/i.test(matchName)) return false;
+  if (/^\(DUPR\s+MATCH\)/i.test(matchName)) return true;
+  if (typeof log.duprMatch === 'boolean') return log.duprMatch;
+  const sessionName = String(sessionRaw.sessionName || sessionRaw.name || '').trim();
+  if (/^\(NON\s+DUPR\s+MATCH\)/i.test(sessionName)) return false;
+  if (/^\(DUPR\s+MATCH\)/i.test(sessionName)) return true;
+  return sessionRaw.duprMatch === true;
+}
+function matchDuprPlayer(match, side, index) {
+  const log = match.raw || {};
+  const snapshots = asArray(log[`${side}Players`]);
+  const ids = asArray(log[`${side}Ids`]);
+  const names = side === 'team1' ? match.teamANames : match.teamBNames;
+  const snapshot = snapshots[index] || {};
+  const name = String(snapshot.name || names[index] || '').trim();
+  const id = snapshot.id ?? snapshot.playerId ?? ids[index] ?? '';
+  const cloudId = String(snapshot.cloudId || snapshot.registeredCloudId || '');
+  const registered = state.data.players.find(player =>
+    (cloudId && player.cloudId === cloudId) ||
+    (id !== '' && (player.id === String(id) || player.cloudId === String(id))) ||
+    normalizeName(player.name) === normalizeName(name)
+  );
+  const duprId = String(registered?.duprId || snapshot.duprId || snapshot.duprID || snapshot.dupr_id || snapshot.dupr || '').trim().toUpperCase();
+  return { name, duprId };
+}
+function duprRowForMatch(match) {
+  const session = state.data.sessions.find(item => item.id === match.sessionId);
+  if (!session || !matchIsDupr(match, session)) return { row: null, reason: 'nonDupr' };
+  const log = match.raw || {};
+  const score = String(log.score || '').trim().match(/^(\d+)\s*-\s*(\d+)$/);
+  if (String(log.recordingMode || '').toLowerCase() === 'win-only' || !score || Number(score[1]) === Number(score[2])) return { row: null, reason: 'unscored' };
+  const type = String(log.type || match.type || 'Doubles').toLowerCase();
+  const singles = type.includes('single');
+  if (!singles && !type.includes('double')) return { row: null, reason: 'incomplete' };
+  const teamA = match.teamANames.map((_, index) => matchDuprPlayer(match, 'team1', index));
+  const teamB = match.teamBNames.map((_, index) => matchDuprPlayer(match, 'team2', index));
+  const expected = singles ? 1 : 2;
+  if (teamA.length !== expected || teamB.length !== expected || [...teamA, ...teamB].some(player => !player.name || !player.duprId)) return { row: null, reason: 'incomplete' };
+  const sessionRaw = session.raw || {};
+  const event = String(log.sessionName || sessionRaw.sessionName || session.title || 'Open Play').replace(/^\((?:NON\s+)?DUPR\s+MATCH\)\s*/i, '').trim() || 'Open Play';
+  const playedAt = new Date(log.endedAt || log.startedAt || sessionRaw.endedAt || sessionRaw.startedAt || match.playedAt || '');
+  const date = Number.isNaN(playedAt.getTime()) ? '' : `${playedAt.getFullYear()}-${String(playedAt.getMonth() + 1).padStart(2, '0')}-${String(playedAt.getDate()).padStart(2, '0')}`;
+  const row = {
+    matchType: singles ? 'S' : 'D', event, date,
+    playerA1: teamA[0]?.name || '', playerA1DuprId: teamA[0]?.duprId || '', playerA1ExternalId: '',
+    playerA2: teamA[1]?.name || '', playerA2DuprId: teamA[1]?.duprId || '', playerA2ExternalId: '',
+    playerB1: teamB[0]?.name || '', playerB1DuprId: teamB[0]?.duprId || '', playerB1ExternalId: '',
+    playerB2: teamB[1]?.name || '', playerB2DuprId: teamB[1]?.duprId || '', playerB2ExternalId: '',
+    teamAGame1: Number(score[1]), teamBGame1: Number(score[2]),
+    teamAGame2: '', teamBGame2: '', teamAGame3: '', teamBGame3: '', teamAGame4: '', teamBGame4: '', teamAGame5: '', teamBGame5: '',
+    scoreType: String(log.scoreType || (Number(log.target) === 21 ? 'Rally' : 'Sideout')),
+    location: String(sessionRaw.duprLocation || sessionRaw.location || session.location || sessionRaw.venue || '').trim()
+  };
+  return { row, reason: '' };
+}
+function exportDuprMatches() {
+  const results = state.data.matches.map(match => duprRowForMatch(match));
+  const rows = results.filter(result => result.row).map(result => result.row);
+  const excluded = results.reduce((counts, result) => { if (result.reason) counts[result.reason] += 1; return counts; }, { nonDupr: 0, unscored: 0, incomplete: 0 });
+  if (!rows.length) {
+    toast('No matches currently meet DUPR export requirements. Check DUPR match flags, scores, match type, and all player DUPR IDs.', 'error');
+    return;
+  }
+  downloadCSV('husay-dinkers-dupr-matches.csv', DUPR_EXPORT_COLUMNS, rows.map(row => DUPR_EXPORT_COLUMNS.map(column => row[column])));
+  const warningCount = excluded.nonDupr + excluded.unscored + excluded.incomplete;
+  toast(`Downloaded ${rows.length} DUPR match${rows.length === 1 ? '' : 'es'}${warningCount ? `; ${warningCount} other record(s) were excluded` : ''}.`);
+}
+function exportRankings() {
+  const players = getRankingPlayersForCurrentView();
+  downloadCSV('husay-dinkers-rankings.csv', ['Rank', 'Player', 'Category', 'Wins', 'Losses', 'Matches', 'Attendance', 'DUPR ID'], players.map((player, index) => { const s = player.rankingStats || playerStats(player); return [index + 1, player.name, player.category, s.wins, s.losses, s.matches, s.attendance, player.duprId]; }));
+}
+function exportReport() {
+  downloadCSV('husay-dinkers-session-attendance.csv', ['Session', 'Status', 'Date', 'Location', 'Player', 'Nickname', 'Gender', 'Category'], state.data.sessions.flatMap(session => session.attendees.map(person => [session.title, sessionStatus(session), session.date, session.location, person.name, person.nickname, person.gender, person.category])));
+}
+function exportBackup() {
+  const safeBackup = {
+    exportedAt: new Date().toISOString(),
+    source: 'Existing Pickle Point Match organizer data',
+    organizer: { id: state.organizer?.id, slug: state.organizer?.slug, displayName: state.organizer?.displayName },
+    records: state.raw?.records || {},
+    appState: state.raw?.appState || null
+  };
+  const blob = new Blob([JSON.stringify(safeBackup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a'); link.href = url; link.download = 'husay-dinkers-queueing-backup.json'; document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+}
+function renderReports() {
+  const attendance = allAttendance();
+  const byPlayer = new Map();
+  attendance.forEach(row => byPlayer.set(normalizeName(row.name), (byPlayer.get(normalizeName(row.name)) || { name: row.name, count: 0 }).count + 1));
+  const topAttendance = [...byPlayer.values()].sort((a, b) => b.count - a.count).slice(0, 8);
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / ANALYTICS', 'Reports', 'Attendance and match activity calculated from your existing queueing records.', `<button class="btn" data-action="export-backup">${icon('download')} Full Backup</button><button class="btn btn-primary" data-action="export-report">${icon('download')} Export Attendance</button>`)}
+    <div class="metric-grid"><div class="metric-tile"><span>Players registered</span><strong>${state.data.players.filter(p => !p.historicalOnly).length}</strong></div><div class="metric-tile"><span>Sessions saved</span><strong>${state.data.sessions.length}</strong></div><div class="metric-tile"><span>Attendance entries</span><strong>${attendance.length}</strong></div><div class="metric-tile"><span>Matches saved</span><strong>${state.data.matches.length}</strong></div></div>
+    <section class="panel panel-pad">${panelTitle('Most Frequent Attendees', 'users')}<div class="table-wrap">${topAttendance.length ? `<table class="data-table"><thead><tr><th>Player</th><th>Attendance</th></tr></thead><tbody>${topAttendance.map(item => `<tr><td class="primary-cell">${escapeHTML(item.name)}</td><td>${item.count}</td></tr>`).join('')}</tbody></table>` : emptyState('No attendance data', 'Completed or live session attendance will appear here.')}</div></section>
+    <div class="notice-box">This report reads saved sessions and player records from the existing Pickle Point Match server. The dashboard does not store a second copy of your attendance.</div></div>`;
+}
+function renderSettings() {
+  const organizer = state.organizer || {};
+  const live = getLiveSession();
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / WORKSPACE', 'Workspace & Tools', 'The new management dashboard is your main organizer workspace. Queueing tools remain connected below.')}
+    <section class="panel panel-pad">${panelTitle('Organizer Profile', 'users')}<div class="detail-list"><div class="detail-row"><span>Club / organizer</span><strong>${escapeHTML(organizer.displayName || organizer.username || 'HUSAY DINKERS')}</strong></div><div class="detail-row"><span>Username</span><strong>${escapeHTML(organizer.username || '—')}</strong></div><div class="detail-row"><span>Organizer slug</span><strong>${escapeHTML(organizer.slug || '—')}</strong></div><div class="detail-row"><span>DUPR ID</span><strong>${escapeHTML(organizer.duprId || '—')}</strong></div></div><div class="detail-actions"><button class="btn btn-primary" data-action="edit-settings">${icon('edit')} Edit workspace profile</button><button class="btn" data-action="export-backup">${icon('download')} Download Backup</button><button class="btn btn-danger" data-action="logout">Sign Out</button></div></section>
+    <section class="panel panel-pad">${panelTitle('Connected Queueing Tools', 'court')}<div class="external-tools-grid"><a class="external-tool-card" href="/session" target="_blank" rel="noopener"><span>${icon('calendar')}</span><span><strong>Session Setup</strong><small>Start or end an open-play session</small></span></a><a class="external-tool-card" href="/queueing" target="_blank" rel="noopener"><span>${icon('court')}</span><span><strong>Live Queueing</strong><small>Manage players, courts and matches</small></span></a><a class="external-tool-card" href="/live" target="_blank" rel="noopener"><span>${icon('external')}</span><span><strong>Public Live View</strong><small>Display queue and match activity</small></span></a>${live && getRegistrationUrl(live) ? `<a class="external-tool-card" href="${escapeHTML(getRegistrationUrl(live))}" target="_blank" rel="noopener"><span>${icon('users')}</span><span><strong>Player Registration</strong><small>Open the current session registration page</small></span></a>` : ''}<a class="external-tool-card" href="/panel"><span>${icon('users')}</span><span><strong>Admin Panel</strong><small>Organizer account administration</small></span></a></div></section>
+    <section class="panel panel-pad">${panelTitle('Data Source', 'report')}<div class="notice-box">This dashboard reads the same organizer-scoped app state, Registered Player Cloud, saved sessions, attendance snapshots and match logs used by Queueing. No duplicate player or match database is created.</div></section></div>`;
+}
+
+function isDashboardInteractionActive() {
+  const container = $('#pageContent');
+  const active = document.activeElement;
+  const editingControl = Boolean(container && active && container.contains(active)
+    && active.matches('input, textarea, select, [contenteditable="true"]'));
+  return Boolean(state.pointerInteraction || courtStripDrag || editingControl);
+}
+
+function isDashboardPageScrolled() {
+  const container = $('#pageContent');
+  return Boolean(state.page === 'dashboard' && container && container.scrollTop > 1);
+}
+
+function flushPendingDashboardRender() {
+  if (!state.pendingRender || isDashboardPageScrolled()) return;
+  window.setTimeout(() => {
+    if (state.pendingRender && !state.modal && !isDashboardInteractionActive()) renderPageStable();
+  }, 160);
+}
+
+function interactiveMapSignature(node) {
+  const raw = node.dataset.mapLocations || '';
+  const variant = node.dataset.mapVariant || '';
+  const focusSession = node.dataset.mapFocusSession || '';
+  if (variant !== 'preview') return `${variant}|${focusSession}|${raw}`;
+  try {
+    const locations = JSON.parse(raw);
+    return JSON.stringify({
+      variant,
+      focusSession,
+      locations: asArray(locations).map(item => ({
+        location: item.location,
+        coordinates: item.coordinates,
+        sessionIds: asArray(item.sessions).map(session => session.id)
+      }))
     });
+  } catch (_) {
+    return `${variant}|${focusSession}|${raw}`;
+  }
+}
+
+function samePatchNode(current, next) {
+  return current.nodeType === next.nodeType
+    && (current.nodeType !== Node.ELEMENT_NODE || current.tagName === next.tagName);
+}
+
+function syncPatchAttributes(current, next) {
+  for (const attribute of [...current.attributes]) {
+    if (!next.hasAttribute(attribute.name)) current.removeAttribute(attribute.name);
+  }
+  for (const attribute of [...next.attributes]) {
+    if (current.getAttribute(attribute.name) !== attribute.value) {
+      current.setAttribute(attribute.name, attribute.value);
+    }
+  }
+}
+
+function patchNodeIdentity(node) {
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    if (node.id) return `id:${node.id}`;
+    const classes = node.getAttribute('class');
+    if (classes) return `${node.tagName}|class:${classes}`;
+    for (const attribute of ['data-key', 'data-session-id', 'data-player-id', 'data-match-id']) {
+      if (node.hasAttribute(attribute)) return `${node.tagName}|${attribute}:${node.getAttribute(attribute)}`;
+    }
+    return `${node.tagName}|plain`;
+  }
+  return `node:${node.nodeType}`;
+}
+
+function patchDashboardChildren(current, next) {
+  let cursor = current.firstChild;
+  for (const nextChild of [...next.childNodes]) {
+    const identity = patchNodeIdentity(nextChild);
+    let match = null;
+    if (cursor && samePatchNode(cursor, nextChild) && patchNodeIdentity(cursor) === identity) {
+      match = cursor;
+    } else {
+      for (let candidate = cursor; candidate; candidate = candidate.nextSibling) {
+        if (samePatchNode(candidate, nextChild) && patchNodeIdentity(candidate) === identity) {
+          match = candidate;
+          break;
+        }
+      }
+    }
+
+    if (!match) {
+      const inserted = nextChild.cloneNode(true);
+      current.insertBefore(inserted, cursor);
+      cursor = inserted.nextSibling;
+      continue;
+    }
+    if (match !== cursor) current.insertBefore(match, cursor);
+    patchDashboardNode(match, nextChild);
+    cursor = match.nextSibling;
   }
 
-  async function automaticallyRemoveLogoBackground(file) {
-    const bitmap=await createImageBitmap(file);
-    const maxSide=640;
-    const scale=Math.min(1,maxSide/Math.max(bitmap.width,bitmap.height));
-    const width=Math.max(1,Math.round(bitmap.width*scale));
-    const height=Math.max(1,Math.round(bitmap.height*scale));
-    const canvas=document.createElement('canvas');
-    canvas.width=width;canvas.height=height;
-    const context=canvas.getContext('2d',{willReadFrequently:true});
-    if(!context){bitmap.close?.();throw new Error('Your browser could not process this logo.');}
-    context.drawImage(bitmap,0,0,width,height);bitmap.close?.();
-    const image=context.getImageData(0,0,width,height);
-    const pixels=image.data;const pixelCount=width*height;
-    const edgeSamples=[];
-    const stride=Math.max(1,Math.floor(Math.min(width,height)/350));
-    for(let x=0;x<width;x+=stride){edgeSamples.push(x,x+(height-1)*width);}
-    for(let y=0;y<height;y+=stride){edgeSamples.push(y*width,y*width+width-1);}
-    let transparentEdges=0;
-    const buckets=new Map();
-    for(const index of edgeSamples){
-      const offset=index*4;
-      const alpha=pixels[offset+3];
-      if(alpha<24){transparentEdges++;continue;}
-      const r=pixels[offset],g=pixels[offset+1],b=pixels[offset+2];
-      const key=((r>>5)<<6)|((g>>5)<<3)|(b>>5);
-      let entry=buckets.get(key);
-      if(!entry){entry={count:0,r:0,g:0,b:0};buckets.set(key,entry);}
-      entry.count++;entry.r+=r;entry.g+=g;entry.b+=b;
-    }
-    const outputType='image/webp';
-    if(transparentEdges>edgeSamples.length*.3){
-      const ready=canvas.toDataURL(outputType,.93);
-      return {dataUrl:ready,removed:false,alreadyTransparent:true};
-    }
-    let dominant=null;
-    for(const entry of buckets.values())if(!dominant||entry.count>dominant.count)dominant=entry;
-    const validEdgeCount=Math.max(1,edgeSamples.length-transparentEdges);
-    if(!dominant||dominant.count/validEdgeCount<.13){
-      return {dataUrl:await fileAsDataUrl(file),removed:false,undetected:true};
-    }
-    const background={r:dominant.r/dominant.count,g:dominant.g/dominant.count,b:dominant.b/dominant.count};
-    let spread=0;
-    for(const index of edgeSamples){
-      const offset=index*4;if(pixels[offset+3]<24)continue;
-      const d=Math.hypot(pixels[offset]-background.r,pixels[offset+1]-background.g,pixels[offset+2]-background.b);
-      if(d<=55)spread+=d;
-    }
-    const averageSpread=spread/Math.max(1,dominant.count);
-    const tolerance=Math.max(38,Math.min(72,38+averageSpread*1.25));
-    const visited=new Uint8Array(pixelCount);
-    const queue=new Int32Array(pixelCount);
-    let head=0,tail=0;
-    const visit=(index)=>{
-      if(index<0||index>=pixelCount||visited[index])return;
-      visited[index]=1;
-      const offset=index*4;
-      if(pixels[offset+3]<12){queue[tail++]=index;return;}
-      const distance=Math.hypot(pixels[offset]-background.r,pixels[offset+1]-background.g,pixels[offset+2]-background.b);
-      if(distance<=tolerance)queue[tail++]=index;
-    };
-    for(let x=0;x<width;x++){visit(x);visit((height-1)*width+x);}
-    for(let y=0;y<height;y++){visit(y*width);visit(y*width+width-1);}
-    while(head<tail){
-      const index=queue[head++];
-      const x=index%width;
-      if(x>0)visit(index-1);
-      if(x<width-1)visit(index+1);
-      if(index>=width)visit(index-width);
-      if(index<pixelCount-width)visit(index+width);
-    }
-    const removedRatio=tail/pixelCount;
-    if(removedRatio<.008){
-      return {dataUrl:await fileAsDataUrl(file),removed:false,undetected:true};
-    }
-    for(let i=0;i<pixelCount;i++){
-      if(!visited[i])continue;
-      const offset=i*4;
-      if(pixels[offset+3]<12){pixels[offset+3]=0;continue;}
-      const distance=Math.hypot(pixels[offset]-background.r,pixels[offset+1]-background.g,pixels[offset+2]-background.b);
-      const t=Math.max(0,Math.min(1,(distance-tolerance*.32)/(tolerance*.68)));
-      const feather=t*t*(3-2*t);
-      pixels[offset+3]=Math.round(pixels[offset+3]*feather);
-    }
-    context.putImageData(image,0,0);
-    let dataUrl=canvas.toDataURL(outputType,.93);
-    if(!dataUrl.startsWith('data:image/webp'))dataUrl=canvas.toDataURL('image/png');
-    return {dataUrl,removed:true,removedRatio};
+  while (cursor) {
+    const following = cursor.nextSibling;
+    cursor.remove();
+    cursor = following;
+  }
+}
+
+// Patch existing dashboard nodes instead of replacing the whole page. This keeps
+// the scroll containers, focused controls, map canvas and card layout in place.
+function patchDashboardNode(current, next) {
+  if (!samePatchNode(current, next)) {
+    const replacement = next.cloneNode(true);
+    current.replaceWith(replacement);
+    return replacement;
   }
 
-  async function saveSettings(event) {
+  if (current.nodeType === Node.TEXT_NODE || current.nodeType === Node.COMMENT_NODE) {
+    if (current.nodeValue !== next.nodeValue) current.nodeValue = next.nodeValue;
+    return current;
+  }
+
+  if (current.classList?.contains('interactive-map') && current.id === next.id) {
+    const sameMap = interactiveMapSignature(current) === interactiveMapSignature(next);
+    if (sameMap) {
+      syncPatchAttributes(current, next);
+      return current;
+    }
+    const map = state.mapInstances.get(current.id);
+    if (map) { try { map.remove(); } catch (_) {} }
+    state.mapInstances.delete(current.id);
+    const replacement = next.cloneNode(true);
+    current.replaceWith(replacement);
+    return replacement;
+  }
+
+  syncPatchAttributes(current, next);
+  patchDashboardChildren(current, next);
+  return current;
+}
+
+function renderDashboardInPlace() {
+  const container = $('#pageContent');
+  if (isDashboardPageScrolled()) {
+    state.pendingRender = true;
+    return;
+  }
+  const currentRoot = container?.firstElementChild;
+  if (!container || !currentRoot?.classList.contains('page-dashboard')) {
+    renderPage(true);
+    return;
+  }
+
+  const staging = document.createElement('div');
+  staging.innerHTML = renderDashboard();
+  const nextRoot = staging.firstElementChild;
+  if (!nextRoot) return;
+
+  patchDashboardNode(currentRoot, nextRoot);
+  state.pendingRender = false;
+  updateNavigation();
+  scheduleDashboardRankings();
+  initializeInteractiveMaps();
+}
+
+function renderPage(preserveScroll = true) {
+  if (!state.data) return;
+  const container = $('#pageContent');
+  const oldScroll = preserveScroll ? container.scrollTop : 0;
+  const activeElement = preserveScroll && container.contains(document.activeElement) ? document.activeElement : null;
+  const activeId = activeElement?.id || '';
+  const previousMaps = preserveScroll
+    ? new Map($$('.interactive-map', container).map(node => [node.id, {
+        node,
+        locations: interactiveMapSignature(node),
+        variant: node.dataset.mapVariant || ''
+      }]))
+    : new Map();
+
+  // Detach old map instances from state immediately, but dispose their WebGL
+  // resources after the new page has painted so sidebar navigation stays responsive.
+  const mapsToDestroy = preserveScroll ? [] : [...state.mapInstances.values()];
+  if (!preserveScroll) state.mapInstances.clear();
+  const renderers = { dashboard: renderDashboard, sessions: renderSessions, players: renderPlayers, matches: renderMatches, rankings: renderRankings, courts: renderCourts, schedule: renderSchedule, reports: renderReports, settings: renderSettings };
+  container.innerHTML = (renderers[state.page] || renderDashboard)();
+  if (state.page === 'rankings') {
+    scheduleRankingsPage();
+    state.dashboardRankingToken += 1;
+  } else if (state.page === 'dashboard') {
+    state.rankingRenderToken += 1;
+    scheduleDashboardRankings();
+  } else {
+    state.rankingRenderToken += 1;
+    state.dashboardRankingToken += 1;
+  }
+
+  // Retain loaded WebGL maps when their saved location payload is unchanged.
+  for (const [mapId, previous] of previousMaps) {
+    const replacement = $('#' + mapId, container);
+    const canKeepMap = replacement
+      && previous.locations === interactiveMapSignature(replacement)
+      && previous.variant === (replacement.dataset.mapVariant || '');
+    if (canKeepMap) {
+      replacement.replaceWith(previous.node);
+      const map = state.mapInstances.get(mapId);
+      if (map) window.requestAnimationFrame(() => { if (previous.node.isConnected) map.resize(); });
+    } else {
+      const map = state.mapInstances.get(mapId);
+      if (map) { try { map.remove(); } catch (_) {} }
+      state.mapInstances.delete(mapId);
+    }
+  }
+
+  container.scrollTop = oldScroll;
+  if (activeId) {
+    const replacement = document.getElementById(activeId);
+    if (replacement) replacement.focus({ preventScroll: true });
+  }
+  updateNavigation();
+  state.pendingRender = false;
+  window.requestAnimationFrame(() => {
+    if (container.isConnected) container.scrollTop = oldScroll;
+    // Give the browser one paint with the new page before doing WebGL teardown
+    // or creating a map for the destination page.
+    window.setTimeout(() => {
+      mapsToDestroy.forEach(map => { try { map.remove(); } catch (_) { /* The old map node may already be detached. */ } });
+      if (container.isConnected) initializeInteractiveMaps();
+    }, 0);
+  });
+}
+function renderPageStable() {
+  const container = $('#pageContent');
+  if (!container || !state.data) return;
+  if (isDashboardPageScrolled()) {
+    state.pendingRender = true;
+    return;
+  }
+  if (state.page === 'dashboard') {
+    renderDashboardInPlace();
+    return;
+  }
+  const scrollTop = container.scrollTop;
+  const nested = ['.table-wrap', '.session-list', '.ranking-list', '.court-status-grid'].flatMap(selector => $$(selector, container).map((node, index) => ({ selector, index, top: node.scrollTop, left: node.scrollLeft })));
+  renderPage(true);
+  container.scrollTop = scrollTop;
+  nested.forEach(saved => {
+    const nodes = $$(saved.selector, container);
+    if (nodes[saved.index]) {
+      nodes[saved.index].scrollTop = saved.top;
+      nodes[saved.index].scrollLeft = saved.left;
+    }
+  });
+  state.pendingRender = false;
+}
+
+function updateNavigation() {
+  $$('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.page === state.page));
+  const labels = { dashboard: 'Dashboard', sessions: 'Open Play Sessions', players: 'Players', matches: 'Match Records', rankings: 'Player Rankings', courts: 'Courts & Locations', schedule: 'Schedule', reports: 'Reports', settings: 'Workspace & Tools' };
+  $('#breadcrumb').textContent = labels[state.page] || 'Dashboard';
+  $('#organizerName').textContent = state.organizer?.displayName || state.organizer?.username || 'HUSAY DINKERS';
+}
+function setPage(page) {
+  if (!['dashboard', 'sessions', 'players', 'matches', 'rankings', 'courts', 'schedule', 'reports', 'settings'].includes(page)) return;
+  $('#sidebar').classList.remove('mobile-open');
+  $('#mobileScrim').classList.remove('visible');
+  $('#topPopover').hidden = true;
+
+  // Clicking the already-open item should not rebuild the page or restart its map.
+  // Preserve the old behavior of clearing an active search on the current page.
+  if (state.page === page) {
+    if (state.query) {
+      state.query = '';
+      $('#globalSearch').value = '';
+      renderPage(true);
+    }
+    return;
+  }
+
+  state.page = page;
+  state.query = '';
+  $('#globalSearch').value = '';
+  updateNavigation();
+  // Dashboard and Rankings now paint lightweight shells first; their ranking
+  // calculations and map initialization happen after the first content paint.
+  // Render the shell in this click task instead of waiting for another frame.
+  state.navigationRequest += 1;
+  renderPage(false);
+}
+function toast(message, type = 'success') {
+  const node = document.createElement('div');
+  node.className = 'toast';
+  node.innerHTML = `${icon(type === 'error' ? 'info' : 'check')}<span>${escapeHTML(message)}</span>`;
+  $('#toastRegion').append(node);
+  window.setTimeout(() => node.remove(), 3400);
+}
+function modal(title, body, options = {}) {
+  const existingMap = state.mapInstances.get('sessionMapModal');
+  if (existingMap) { try { existingMap.remove(); } catch (_) {} state.mapInstances.delete('sessionMapModal'); }
+  const root = $('#modalRoot');
+  root.innerHTML = `<div class="modal-backdrop" data-action="close-modal"></div><section class="modal-card ${options.wide ? 'wide' : ''} ${escapeHTML(options.className || '')}" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><header class="modal-header"><h2 id="modalTitle">${escapeHTML(title)}</h2><button type="button" class="icon-action" data-action="close-modal" aria-label="Close">${icon('close')}</button></header><div class="modal-body">${body}</div></section>`;
+  state.modal = title;
+  const focusable = $('input:not([type=hidden]),select,textarea,button', root);
+  if (focusable) window.setTimeout(() => focusable.focus(), 20);
+}
+function closeModal() {
+  const map = state.mapInstances.get('sessionMapModal');
+  if (map) { try { map.remove(); } catch (_) {} state.mapInstances.delete('sessionMapModal'); }
+  $('#modalRoot').innerHTML = '';
+  state.modal = null;
+  flushPendingDashboardRender();
+}
+function datetimeLocalValue(value) {
+  const parts = localDateParts(value);
+  return parts.date && parts.time ? `${parts.date}T${parts.time}` : '';
+}
+function buildSessionRanking(session) {
+  const ranked = new Map();
+  const ensure = name => {
+    const clean = String(name || '').trim();
+    const key = normalizeName(clean);
+    if (!key) return null;
+    if (!ranked.has(key)) {
+      const profile = state.data.players.find(player => normalizeName(player.name) === key) || {};
+      ranked.set(key, { name: clean, nickname: profile.nickname || '', gender: profile.gender || '', category: profile.category || '', wins: 0, losses: 0, matches: 0, winRate: 0 });
+    }
+    return ranked.get(key);
+  };
+  (session.attendees || []).forEach(person => ensure(person.name));
+  state.data.matches.filter(match => match.sessionId === session.id).forEach(match => {
+    const a = match.teamANames.map(ensure).filter(Boolean);
+    const b = match.teamBNames.map(ensure).filter(Boolean);
+    const score = String(match.raw?.score || match.scoreLabel || '').match(/^(\d{1,2})\s*[-–:]\s*(\d{1,2})$/);
+    let winner = match.winner;
+    if (score && Number(score[1]) !== Number(score[2])) winner = Number(score[1]) > Number(score[2]) ? 'A' : 'B';
+    if (!winner) return;
+    [...a, ...b].forEach(player => { player.matches += 1; });
+    a.forEach(player => { if (winner === 'A') player.wins += 1; else player.losses += 1; });
+    b.forEach(player => { if (winner === 'B') player.wins += 1; else player.losses += 1; });
+  });
+  return [...ranked.values()].filter(player => player.matches > 0).map(player => ({ ...player, winRate: Math.round(player.wins / player.matches * 100) })).sort((a, b) => b.wins - a.wins || b.winRate - a.winRate || a.losses - b.losses || b.matches - a.matches || a.name.localeCompare(b.name));
+}
+function openSessionPodium(sessionId) {
+  const session = state.data.sessions.find(item => item.id === sessionId);
+  if (!session || session.isLive) return;
+  const ranking = buildSessionRanking(session);
+  const podium = ranking.slice(0, 3);
+  const podiumMarkup = podium.length ? `<div class="session-podium">${podium.map((player, index) => `<article class="session-podium-card place-${index + 1}"><span class="session-podium-medal">${['🥇','🥈','🥉'][index]}</span><strong>${escapeHTML(player.name)}${player.nickname ? ` (${escapeHTML(player.nickname)})` : ''}</strong><span>${player.winRate}% win rate</span><small>${player.wins}W · ${player.losses}L · ${player.matches} matches</small></article>`).join('')}</div>` : emptyState('No ranking available yet', 'This session has no completed match results with a recorded winner.');
+  const rows = ranking.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Rank</th><th>Player</th><th>Category</th><th>Wins</th><th>Losses</th><th>Win rate</th><th>Matches</th></tr></thead><tbody>${ranking.map((player, index) => `<tr><td class="primary-cell">${index + 1}</td><td class="primary-cell">${escapeHTML(player.name)}</td><td>${escapeHTML(player.category || '—')}</td><td>${player.wins}</td><td>${player.losses}</td><td>${player.winRate}%</td><td>${player.matches}</td></tr>`).join('')}</tbody></table></div>` : '';
+  modal(`${session.title} — Session Podium`, `${podiumMarkup}${rows}<div class="detail-actions"><button class="btn" data-action="close-modal">Close</button></div>`, { wide: true });
+}
+
+function openSessionDetails(sessionId) {
+  const session = state.data.sessions.find(item => item.id === sessionId);
+  if (!session) return;
+  const attendees = session.attendees || [];
+  const attendanceRows = attendees.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Player</th><th>Category</th><th>Gender</th><th>Action</th></tr></thead><tbody>${attendees.map(person => `<tr><td>${person.index + 1}</td><td class="primary-cell">${escapeHTML(person.name)}${person.nickname ? `<span class="muted-cell">${escapeHTML(person.nickname)}</span>` : ''}</td><td>${escapeHTML(person.category)}</td><td>${escapeHTML(person.gender || '—')}</td><td><div class="table-actions"><button class="btn btn-sm" data-attendance-edit="${escapeHTML(session.id)}|${person.index}">Edit</button><button class="icon-action danger" data-attendance-delete="${escapeHTML(session.id)}|${person.index}" title="Remove attendance">${icon('trash')}</button></div></td></tr>`).join('')}</tbody></table></div>` : emptyState('No attendance names available', 'No player attendance snapshots were saved for this session.');
+  const sessionMatches = state.data.matches.filter(match => match.sessionId === session.id);
+  modal(session.title, `<div class="detail-list"><div class="detail-row"><span>Date</span><strong>${escapeHTML(sessionDateLabel(session))}</strong></div><div class="detail-row"><span>Time</span><strong>${escapeHTML(sessionTimeLabel(session))}</strong></div><div class="detail-row"><span>Status</span><strong>${escapeHTML(sessionStatus(session))}</strong></div><div class="detail-row"><span>Players</span><strong>${attendees.length}</strong></div><div class="detail-row"><span>Matches</span><strong>${sessionMatches.length}</strong></div><div class="detail-row"><span>Location</span><strong>${escapeHTML(sessionLocationLabel(session))}</strong></div></div><div class="panel-heading session-detail-heading"><h3 class="panel-title">${icon('users')} Attendance List</h3><span class="page-note">${attendees.length} saved check-ins</span></div>${attendanceRows}<div class="detail-actions"><button class="btn" data-action="close-modal">Close</button>${!session.isLive && sessionMatches.length ? `<button class="btn btn-primary" data-session-podium="${escapeHTML(session.id)}">View Session Podium</button>` : ''}${session.isLive ? `<a class="btn btn-primary" href="/queueing" target="_blank" rel="noopener">Open Live Queue</a>` : ''}</div>`, { wide: true });
+}
+function openSessionRename(sessionId) {
+  const session = state.data.sessions.find(item => item.id === sessionId);
+  if (!session || session.isLive) return;
+  const endValue = datetimeLocalValue(session.endedAt);
+  modal('Edit Open Play Session', `<form id="sessionRenameForm" data-session-id="${escapeHTML(session.id)}"><div class="form-grid"><div class="field full"><label for="renameSession">Session name</label><input id="renameSession" name="sessionName" maxlength="200" required value="${escapeHTML(session.title)}"></div><div class="field full"><label for="renameSessionEnd">Session end date and time</label><input id="renameSessionEnd" name="endedAt" type="datetime-local" value="${escapeHTML(endValue)}"><small class="field-help">Changing the end time also adjusts the saved start time and match timestamps in the original records.</small></div><div class="field full"><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save changes</button></div></div></div></form>`);
+}
+function openParticipantEdit(sessionId, index) {
+  const session = state.data.sessions.find(item => item.id === sessionId);
+  const person = session?.attendees.find(item => item.index === index);
+  if (!session || !person) return;
+  const categories = ['BEG', 'NOV', 'INT', 'ADV', 'EXP'];
+  modal('Edit Attendance Record', `<form id="participantEditForm" data-session-id="${escapeHTML(sessionId)}" data-index="${index}"><div class="participant-edit-grid"><div class="field full"><label for="participantName">Full name</label><input id="participantName" name="name" maxlength="100" required value="${escapeHTML(person.name)}"></div><div class="field"><label for="participantNickname">Nickname</label><input id="participantNickname" name="nickname" maxlength="60" value="${escapeHTML(person.nickname)}"></div><div class="field"><label for="participantGender">Gender</label><select id="participantGender" name="gender"><option value="">Not specified</option><option ${person.gender === 'Male' ? 'selected' : ''}>Male</option><option ${person.gender === 'Female' ? 'selected' : ''}>Female</option></select></div><div class="field full"><label for="participantCategory">Category</label><select id="participantCategory" name="category"><option value="">Not specified</option>${categories.map(code => `<option value="${code}" ${person.categoryCode === code ? 'selected' : ''}>${CATEGORY_NAMES[code]}</option>`).join('')}</select></div></div><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save attendance</button></div></form>`);
+}
+function openMatchEdit(matchKey) {
+  const match = state.data.matches.find(item => item.key === matchKey);
+  if (!match || !match.isScored) return;
+  modal('Edit Match Score', `<form id="matchEditForm" data-session-id="${escapeHTML(match.sessionId)}" data-match-id="${escapeHTML(match.id)}"><div class="form-grid"><div class="field full"><label>Match</label><div class="notice-box">${escapeHTML(match.teamANames.join(' / '))} vs ${escapeHTML(match.teamBNames.join(' / '))}</div></div><div class="field"><label for="matchEditScore">Score (Team 1 – Team 2)</label><input id="matchEditScore" name="score" required maxlength="5" pattern="\\d{1,2}\\s*-\\s*\\d{1,2}" value="${escapeHTML(match.scoreLabel.replace('–', '-'))}" placeholder="11-7"></div><div class="field full"><div class="field-help">Only matches with a recorded score can be edited in the original queueing system.</div></div><div class="field full"><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save score</button></div></div></div></form>`);
+}
+
+async function openOrganizerSettings() {
+  try {
+    const response = await api('/api/organizer-settings');
+    const organizer = response.organizer || {};
+    modal('Edit Workspace Profile', `<form id="organizerSettingsForm"><div class="form-grid"><div class="field full"><label for="workspaceDisplayName">Club / organizer name</label><input id="workspaceDisplayName" name="displayName" maxlength="80" required value="${escapeHTML(organizer.displayName || '')}"></div><div class="field"><label for="workspaceDuprId">Organizer DUPR ID</label><input id="workspaceDuprId" name="duprId" maxlength="6" minlength="6" pattern="[A-Za-z0-9]{6}" value="${escapeHTML(organizer.duprId || '')}" placeholder="6 characters"><small class="field-help">Exactly 6 letters or numbers.</small></div><div class="field"><label for="workspaceLogo">Club logo (optional)</label><input id="workspaceLogo" name="profileImage" type="file" accept="image/png,image/jpeg,image/webp"><small class="field-help">PNG, JPG or WebP, maximum 2 MB.</small></div><div class="field full"><label class="checkbox-field"><input type="checkbox" name="showOnLeaderboard" ${organizer.showOnLeaderboard !== false ? 'checked' : ''}> Show this club on organizer leaderboard</label></div><div class="field full"><div class="notice-box">Password change is optional. Leave password fields blank to keep your current password.</div></div><div class="field"><label for="workspaceCurrentPassword">Current password</label><input id="workspaceCurrentPassword" name="currentPassword" type="password" autocomplete="current-password"></div><div class="field"><label for="workspaceNewPassword">New password</label><input id="workspaceNewPassword" name="newPassword" type="password" minlength="8" maxlength="200" autocomplete="new-password"></div><div class="field full"><label for="workspaceConfirmPassword">Confirm new password</label><input id="workspaceConfirmPassword" name="confirmPassword" type="password" minlength="8" maxlength="200" autocomplete="new-password"></div></div><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save profile</button></div></form>`, { wide: true });
+  } catch (error) { toast(error.message || 'Unable to load workspace settings.', 'error'); }
+}
+function readImageFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) return resolve('');
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) return reject(new Error('Choose a PNG, JPG or WebP logo no larger than 2 MB.'));
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('The selected logo could not be read.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function withRefresh(successMessage, requestFn, page = state.page) {
+  try {
+    await requestFn();
+    await refreshData({ silent: true });
+    closeModal();
+    state.page = page;
+    renderPage(true);
+    if (successMessage) toast(successMessage);
+  } catch (error) {
+    toast(error.message || 'The change could not be saved.', 'error');
+  }
+}
+function parseComposite(value) {
+  const parts = String(value || '').split('|');
+  return { sessionId: parts[0] || '', index: Number(parts[1]) };
+}
+function getMatchByKey(key) { return state.data.matches.find(match => match.key === key); }
+
+function populateStaticIcons() { $$('[data-icon]').forEach(element => { element.innerHTML = icon(element.dataset.icon); }); }
+function closeMobileNav() { $('#sidebar').classList.remove('mobile-open'); $('#mobileScrim').classList.remove('visible'); }
+
+// Main click delegation keeps controls stable when view HTML is refreshed.
+// Mouse users can drag the horizontal court strip just like a touch swipe.
+let courtStripDrag = null;
+document.addEventListener('pointerdown', event => {
+  if (event.pointerType !== 'mouse' || event.button !== 0 || !event.isPrimary) return;
+  const viewport = event.target.closest('.court-status-grid');
+  if (!viewport || viewport.scrollWidth <= viewport.clientWidth + 1) return;
+  courtStripDrag = { viewport, pointerId: event.pointerId, startX: event.clientX, startScrollLeft: viewport.scrollLeft, moved: false };
+  // Capture the pointer so dragging keeps working even when the cursor leaves the court strip.
+  try { viewport.setPointerCapture(event.pointerId); } catch (_) {}
+});
+document.addEventListener('pointermove', event => {
+  if (!courtStripDrag || event.pointerId !== courtStripDrag.pointerId) return;
+  const delta = event.clientX - courtStripDrag.startX;
+  if (!courtStripDrag.moved && Math.abs(delta) < 3) return;
+  courtStripDrag.moved = true;
+  const viewport = courtStripDrag.viewport;
+  viewport.classList.add('is-dragging');
+  const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+  viewport.scrollLeft = Math.min(maxScroll, Math.max(0, courtStripDrag.startScrollLeft - delta));
+  event.preventDefault();
+});
+function finishCourtStripDrag(event) {
+  if (!courtStripDrag || (event && event.pointerId !== courtStripDrag.pointerId)) return;
+  const { viewport, pointerId } = courtStripDrag;
+  viewport.classList.remove('is-dragging');
+  try { if (viewport.hasPointerCapture(pointerId)) viewport.releasePointerCapture(pointerId); } catch (_) {}
+  courtStripDrag = null;
+}
+document.addEventListener('pointerup', finishCourtStripDrag);
+document.addEventListener('pointercancel', finishCourtStripDrag);
+
+// Pause automatic DOM replacement while a pointer gesture is in progress.
+document.addEventListener('pointerdown', event => {
+  if ($('#pageContent').contains(event.target)) state.pointerInteraction = true;
+}, true);
+function finishDashboardPointerInteraction() {
+  state.pointerInteraction = false;
+  flushPendingDashboardRender();
+}
+document.addEventListener('pointerup', finishDashboardPointerInteraction);
+document.addEventListener('pointercancel', finishDashboardPointerInteraction);
+window.addEventListener('blur', finishDashboardPointerInteraction);
+
+document.addEventListener('click', async event => {
+  const matchTypeButton = event.target.closest('[data-match-type-filter]');
+  if (matchTypeButton) {
+    const nextMatchType = matchTypeButton.dataset.matchTypeFilter;
+    if (!['all', 'dupr', 'non-dupr'].includes(nextMatchType)) return;
+    state.filters.matchType = nextMatchType;
+    const matchTypeFilter = matchTypeButton.closest('.match-type-filter');
+    if (matchTypeFilter) {
+      matchTypeFilter.dataset.active = nextMatchType;
+      $$('.match-type-option', matchTypeFilter).forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.matchTypeFilter === nextMatchType));
+      });
+    }
+    const recordsWrap = $('#matchRecordsTableWrap');
+    if (recordsWrap) recordsWrap.innerHTML = matchesTable(filteredMatchRecords());
+    return;
+  }
+
+  const pageButton = event.target.closest('[data-page]');
+  if (pageButton) { event.preventDefault(); setPage(pageButton.dataset.page); return; }
+
+  const navigationButton = event.target.closest('[data-navigate]');
+  if (navigationButton) { event.preventDefault(); openToolTab(navigationButton.dataset.navigate); return; }
+
+  const actionButton = event.target.closest('[data-action]');
+  if (actionButton) {
+    const action = actionButton.dataset.action;
+    if (action === 'close-modal') { closeModal(); return; }
+    if (action === 'create-session') { openToolTab('/session'); return; }
+    if (action === 'register-player') {
+      const url = getRegistrationUrl();
+      if (url) navigateTo(url); else { toast('Start an open-play session before registering players.', 'error'); openToolTab('/session'); }
+      return;
+    }
+    if (action === 'record-match' || action === 'open-queue' || action === 'manage-courts') { openToolTab('/queueing'); return; }
+    if (action === 'open-live') { window.open('/live', '_blank', 'noopener'); return; }
+    if (action === 'refresh') { const ok = await refreshData({ silent: true }); if (ok) toast('Queueing data refreshed.'); return; }
+    if (action === 'export-players') { exportPlayers(); return; }
+    if (action === 'export-matches') { exportMatches(); return; }
+    if (action === 'export-dupr') { exportDuprMatches(); return; }
+    if (action === 'edit-settings') { openOrganizerSettings(); return; }
+    if (action === 'export-rankings') { exportRankings(); return; }
+    if (action === 'export-report') { exportReport(); return; }
+    if (action === 'export-backup') { exportBackup(); return; }
+    if (action === 'logout') {
+      try { await api('/api/logout', { method: 'POST' }); } catch (_) {}
+      navigateTo('/'); return;
+    }
+  }
+
+  const openMap = event.target.closest('[data-open-map-modal]');
+  if (openMap) { openMapModal(openMap.dataset.openMapModal || ''); return; }
+  const mapSessionSelect = event.target.closest('[data-map-session-select]');
+  if (mapSessionSelect) {
+    const selectedId = mapSessionSelect.dataset.mapSessionSelect;
+    if ($('#sessionMapModal')) setMapModalSession(selectedId);
+    else openMapModal(selectedId);
+    return;
+  }
+  const mapOpenSession = event.target.closest('[data-map-open-session]');
+  if (mapOpenSession) { openSessionDetails(mapOpenSession.dataset.mapOpenSession); return; }
+  if (event.target.closest('[data-map-show-philippines]')) { showPhilippinesMap('sessionMapModal'); return; }
+  if (event.target.closest('[data-map-focus-selected]')) { focusMapSession(state.mapModalSessionId, 'sessionMapModal'); return; }
+
+  const sessionView = event.target.closest('[data-session-view]');
+  if (sessionView) { openSessionDetails(sessionView.dataset.sessionView); return; }
+  const sessionPodium = event.target.closest('[data-session-podium]');
+  if (sessionPodium) { openSessionPodium(sessionPodium.dataset.sessionPodium); return; }
+  const sessionEdit = event.target.closest('[data-session-edit]');
+  if (sessionEdit) { openSessionRename(sessionEdit.dataset.sessionEdit); return; }
+  const sessionRegister = event.target.closest('[data-session-register]');
+  if (sessionRegister) {
+    const session = state.data.sessions.find(item => item.id === sessionRegister.dataset.sessionRegister);
+    const url = getRegistrationUrl(session);
+    if (url) window.open(url, '_blank', 'noopener'); else toast('Registration is available only for the current live session.', 'error');
+    return;
+  }
+  const sessionDelete = event.target.closest('[data-session-delete]');
+  if (sessionDelete) {
+    const session = state.data.sessions.find(item => item.id === sessionDelete.dataset.sessionDelete);
+    if (!session || session.isLive) { toast('End the live session before deleting it.', 'error'); return; }
+    if (window.confirm('Delete this session and all match records saved under it? This cannot be undone.')) {
+      await withRefresh('Session deleted.', () => api(`/api/organizer-dashboard/sessions/${encodeURIComponent(session.id)}`, { method: 'DELETE' }), 'sessions');
+    }
+    return;
+  }
+  const attendanceEdit = event.target.closest('[data-attendance-edit]');
+  if (attendanceEdit) { const { sessionId, index } = parseComposite(attendanceEdit.dataset.attendanceEdit); openParticipantEdit(sessionId, index); return; }
+  const attendanceDelete = event.target.closest('[data-attendance-delete]');
+  if (attendanceDelete) {
+    const { sessionId, index } = parseComposite(attendanceDelete.dataset.attendanceDelete);
+    const session = state.data.sessions.find(item => item.id === sessionId);
+    const person = session?.attendees.find(item => item.index === index);
+    if (person && window.confirm(`Remove ${person.name} from this session's attendance only? The player profile and queue history remain unchanged.`)) {
+      await withRefresh('Attendance record removed.', () => api(`/api/organizer-dashboard/sessions/${encodeURIComponent(sessionId)}/participants/${index}`, { method: 'DELETE' }));
+      if (state.data) openSessionDetails(sessionId);
+    }
+    return;
+  }
+  const matchEdit = event.target.closest('[data-match-edit]');
+  if (matchEdit) { openMatchEdit(matchEdit.dataset.matchEdit); return; }
+  const matchDelete = event.target.closest('[data-match-delete]');
+  if (matchDelete) {
+    const match = getMatchByKey(matchDelete.dataset.matchDelete);
+    if (match && window.confirm('Delete this match record from the original queueing history?')) {
+      await withRefresh('Match record deleted.', () => api(`/api/organizer-dashboard/sessions/${encodeURIComponent(match.sessionId)}/matches/${encodeURIComponent(match.id)}`, { method: 'DELETE' }), 'matches');
+    }
+    return;
+  }
+});
+
+document.addEventListener('submit', async event => {
+  const form = event.target;
+  if (form.id === 'sessionRenameForm') {
     event.preventDefault();
-    if(state.settingsLogoProcessing){setSettingsMessage('Please wait for the logo background removal to finish.');return;}
-    const displayName=String($('settingsClubName').value||'').normalize('NFC').trim().replace(/\s+/g,' ');
-    const currentPassword=String($('settingsCurrentPassword').value||'');
-    const newPassword=String($('settingsNewPassword').value||'');
-    const confirmPassword=String($('settingsConfirmPassword').value||'');
-    if(!displayName){setSettingsMessage('Club or organizer name is required.',true);$('settingsClubName').focus();return;}
-    const duprId=syncSettingsDuprSlotsToInput();
-    if(!/^[A-Z0-9]{6}$/.test(duprId)){
-      setSettingsMessage('Enter all 6 characters of your organizer DUPR ID.',true);
-      const firstEmpty=Array.from({length:6},(_,index)=>$(`settingsDuprSlot${index+1}`)).find(slot=>!String(slot?.value||'').trim());
-      (firstEmpty||$('settingsDuprSlot1'))?.focus();
-      return;
+    const sessionId = form.dataset.sessionId;
+    const fd = new FormData(form);
+    const sessionName = String(fd.get('sessionName') || '').trim();
+    const endValue = String(fd.get('endedAt') || '').trim();
+    const session = state.data.sessions.find(item => item.id === sessionId);
+    const body = { sessionName };
+    if (endValue) {
+      const endDate = new Date(endValue);
+      if (!Number.isFinite(endDate.getTime())) { toast('Please enter a valid session end date and time.', 'error'); return; }
+      if (session?.startedAt && endDate.getTime() < new Date(session.startedAt).getTime()) { toast('Session end time cannot be earlier than its start time.', 'error'); return; }
+      body.endedAt = endDate.toISOString();
     }
-    if(newPassword||confirmPassword){
-      if(newPassword.length<8){setSettingsMessage('New password must be at least 8 characters.',true);$('settingsNewPassword').focus();return;}
-      if(newPassword!==confirmPassword){setSettingsMessage('New password and confirmation do not match.',true);$('settingsConfirmPassword').focus();return;}
-      if(!currentPassword){setSettingsMessage('Enter your current password to set a new password.',true);$('settingsCurrentPassword').focus();return;}
-    }
-    const payload={displayName,duprId,showOnLeaderboard:state.auth?.showOnLeaderboard!==false};
-    if(state.settingsLogoDraft!==undefined)payload.profileImage=state.settingsLogoDraft||null;
-    if(newPassword){payload.currentPassword=currentPassword;payload.newPassword=newPassword;}
-    const button=$('saveSettingsButton');button.disabled=true;button.textContent='Saving…';setSettingsMessage('');
-    try {
-      const response=await fetchJson('/api/organizer-settings',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      state.auth=response.organizer||state.auth;
-      updateDashboardBrand(state.auth);
-      closeSettings();await loadDashboardData({silent:true});showToast('Club settings saved successfully.');
-    } catch(error) { setSettingsMessage(error.message||'Unable to save settings.',true); }
-    finally { button.disabled=false;button.textContent='Save settings'; }
+    await withRefresh('Session details updated.', () => api(`/api/organizer-dashboard/sessions/${encodeURIComponent(sessionId)}`, { method: 'PATCH', body: JSON.stringify(body) }), 'sessions');
   }
-
-  // ===== DOM event handlers and dashboard startup =====
-  $('attendanceTab').addEventListener('click',()=>setTab('attendance'));
-  $('matchesTab').addEventListener('click',()=>setTab('matches'));
-  $('sessionsTab').addEventListener('click',()=>setTab('sessions'));
-  applyDashboardTheme(document.documentElement.dataset.theme||'dark',{persist:false});
-  $('themeToggle').addEventListener('click',()=>{
-    applyDashboardTheme(document.documentElement.dataset.theme==='light'?'dark':'light');
-  });
-  $('sidebarNavSearch').addEventListener('input',event=>filterSidebarNavigation(event.currentTarget.value));
-  $('sidebarNavSearch').addEventListener('keydown',event=>{
-    if(event.key==='Escape'){
-      event.preventDefault();event.currentTarget.value='';filterSidebarNavigation('');event.currentTarget.blur();
-    }
-  });
-  document.addEventListener('keydown',event=>{
-    if(event.key!=='/'||event.ctrlKey||event.metaKey||event.altKey)return;
-    const target=event.target;
-    if(target instanceof HTMLElement&&(target.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)))return;
-    const search=$('sidebarNavSearch');
-    if(search&&!search.hidden&&search.offsetParent!==null){event.preventDefault();search.focus();}
-  });
-  $('sessionSelect').addEventListener('change',event=>{
-    applySessionSelection(event.currentTarget.value);
-  });
-  $('sessionSelectSearch').addEventListener('focus',()=>{
-    if(!sessionDropdownOpen)openSessionPicker();
-  });
-  $('sessionSelectSearch').addEventListener('input',event=>{
-    if(!sessionDropdownOpen)openSessionPicker({clearSearch:false});
-    renderSessionPickerOptions(event.currentTarget.value);
-  });
-  $('sessionSelectSearch').addEventListener('keydown',event=>{
-    if(event.key==='Escape'&&sessionDropdownOpen){event.preventDefault();closeSessionPicker();return;}
-    if(event.key==='ArrowDown'){
-      event.preventDefault();
-      if(!sessionDropdownOpen)openSessionPicker();
-      $('sessionSelectOptions').querySelector('[data-session-option]')?.focus();
-    }
-    if(event.key==='Enter'&&sessionDropdownOpen){
-      const first=$('sessionSelectOptions').querySelector('[data-session-option]');
-      if(first){event.preventDefault();chooseSessionFromPicker(first.dataset.sessionId);}
-    }
-  });
-  $('sessionSelectClear').addEventListener('click',()=>{
-    if(!sessionDropdownOpen)openSessionPicker();
-    $('sessionSelectSearch').value='';
-    renderSessionPickerOptions('');
-    $('sessionSelectSearch').focus();
-  });
-  $('sessionSelectToggle').addEventListener('click',()=>{
-    if(sessionDropdownOpen){closeSessionPicker();return;}
-    openSessionPicker();
-    $('sessionSelectSearch').focus();
-  });
-  $('sessionSelectOptions').addEventListener('pointerdown',event=>{
-    if(event.target.closest('[data-session-option]'))event.preventDefault();
-  });
-  $('sessionSelectOptions').addEventListener('click',event=>{
-    const option=event.target.closest('[data-session-option]');
-    if(option)chooseSessionFromPicker(option.dataset.sessionId);
-  });
-  $('sessionSelectOptions').addEventListener('keydown',event=>{
-    const current=event.target.closest('[data-session-option]');
-    if(!current)return;
-    if(event.key==='ArrowDown'){
-      event.preventDefault();
-      (current.nextElementSibling?.matches('[data-session-option]')?current.nextElementSibling:$('sessionSelectOptions').querySelector('[data-session-option]'))?.focus();
-    }else if(event.key==='ArrowUp'){
-      event.preventDefault();
-      (current.previousElementSibling?.matches('[data-session-option]')?current.previousElementSibling:$('sessionSelectSearch'))?.focus();
-    }else if(event.key==='Escape'){
-      event.preventDefault();closeSessionPicker();$('sessionSelectSearch').focus();
-    }else if(event.key==='Enter'){
-      event.preventDefault();chooseSessionFromPicker(current.dataset.sessionId);
-    }
-  });
-  document.addEventListener('pointerdown',event=>{
-    if(!event.target.closest('#sessionSelectShell')&&sessionDropdownOpen)closeSessionPicker();
-    if(!event.target.closest('#duprScoreTypeShell')&&duprScoreTypeDropdownOpen)closeDuprScoreTypePicker();
-  });
-  $('attendanceSearch').addEventListener('input',renderAttendance);
-  $('matchesSearch').addEventListener('input',renderMatches);
-  $('matchesFromDate').addEventListener('change',()=>setManualMatchDateFilter('from'));
-  $('matchesToDate').addEventListener('change',()=>setManualMatchDateFilter('to'));
-  // Delegate from the toolbar so the preset controls continue working even if
-  // the toolbar's inner markup is refreshed by a future dashboard update.
-  $('matchFilterToolbar').addEventListener('click',event=>{
-    const button=event.target.closest('[data-match-range]');
-    if(!button||!event.currentTarget.contains(button))return;
+  if (form.id === 'organizerSettingsForm') {
     event.preventDefault();
-    event.stopPropagation();
-    setMatchDateRange(button.dataset.matchRange);
-  });
-  $('refreshMatchesButton').addEventListener('click',async()=>{const button=$('refreshMatchesButton');button.disabled=true;button.classList.add('is-refreshing');try{const refreshed=await loadDashboardData({silent:true});if(refreshed)showToast('Match history refreshed.');else showToast('Unable to refresh match history. Check your connection.');}finally{button.disabled=false;button.classList.remove('is-refreshing');}});
-  $('exportMatchesButton').addEventListener('click',openDuprExportModal);
-  $('closeDuprExportModal').addEventListener('click',closeDuprExportModal);
-  // Let desktop users drag the table left/right to reach the A and B score columns.
-  // Touch devices keep their native scrolling behavior.
-  const duprTableWrap=$('duprExportTableWrap');
-  containTableTouchScroll(duprTableWrap);
-  if(duprTableWrap){
-    let duprDragPointerId=null;
-    let duprDragStartX=0;
-    let duprDragStartY=0;
-    let duprDragStartScrollLeft=0;
-    let duprDragActive=false;
-    duprTableWrap.addEventListener('pointerdown',event=>{
-      if(event.pointerType!=='mouse'||event.button!==0)return;
-      if(event.target.closest('button,a,input,select,textarea'))return;
-      if(duprTableWrap.scrollWidth<=duprTableWrap.clientWidth)return;
-      duprDragPointerId=event.pointerId;
-      duprDragStartX=event.clientX;
-      duprDragStartY=event.clientY;
-      duprDragStartScrollLeft=duprTableWrap.scrollLeft;
-      duprDragActive=false;
-      duprTableWrap.classList.add('is-pointer-down');
-      try{duprTableWrap.setPointerCapture(event.pointerId);}catch(_){/* Pointer capture is a progressive enhancement. */}
-    });
-    duprTableWrap.addEventListener('pointermove',event=>{
-      if(duprDragPointerId!==event.pointerId)return;
-      const deltaX=event.clientX-duprDragStartX;
-      const deltaY=event.clientY-duprDragStartY;
-      if(!duprDragActive&&Math.abs(deltaX)>5&&Math.abs(deltaX)>Math.abs(deltaY)){
-        duprDragActive=true;
-        duprTableWrap.classList.add('is-dragging');
-      }
-      if(duprDragActive){
-        event.preventDefault();
-        duprTableWrap.scrollLeft=duprDragStartScrollLeft-deltaX;
-      }
-    });
-    const finishDuprTableDrag=event=>{
-      if(duprDragPointerId===null||(event.pointerId!==undefined&&event.pointerId!==duprDragPointerId))return;
-      duprDragPointerId=null;
-      duprDragActive=false;
-      duprTableWrap.classList.remove('is-pointer-down','is-dragging');
-    };
-    duprTableWrap.addEventListener('pointerup',finishDuprTableDrag);
-    duprTableWrap.addEventListener('pointercancel',finishDuprTableDrag);
-    duprTableWrap.addEventListener('lostpointercapture',finishDuprTableDrag);
+    const fd = new FormData(form);
+    const newPassword = String(fd.get('newPassword') || '');
+    const confirmPassword = String(fd.get('confirmPassword') || '');
+    if (newPassword && newPassword !== confirmPassword) { toast('New password and confirmation do not match.', 'error'); return; }
+    if (newPassword && !String(fd.get('currentPassword') || '')) { toast('Enter your current password to change it.', 'error'); return; }
+    try {
+      const body = {
+        displayName: String(fd.get('displayName') || '').trim(),
+        showOnLeaderboard: fd.get('showOnLeaderboard') === 'on'
+      };
+      const submittedDuprId = String(fd.get('duprId') || '').trim().toUpperCase();
+      if (submittedDuprId) body.duprId = submittedDuprId;
+      if (newPassword) { body.currentPassword = String(fd.get('currentPassword') || ''); body.newPassword = newPassword; }
+      const image = form.querySelector('[name="profileImage"]')?.files?.[0];
+      if (image) body.profileImage = await readImageFile(image);
+      const response = await api('/api/organizer-settings', { method: 'PATCH', body: JSON.stringify(body) });
+      state.organizer = { ...(state.organizer || {}), ...(response.organizer || {}) };
+      closeModal();
+      await refreshData({ silent: false });
+      toast('Workspace profile updated.');
+    } catch (error) { toast(error.message || 'Workspace profile could not be saved.', 'error'); }
   }
-  $('refreshDuprIdsButton').addEventListener('click',event=>refreshDuprExportIds(event.currentTarget));
-  $('duprMissingNoticeToggle').addEventListener('click',()=>{
-    const hasMissing=Number($('duprMissingPlayersCount').textContent)>0;
-    if(!hasMissing)return;
-    state.duprMissingNoticeExpanded=!state.duprMissingNoticeExpanded;
-    const toggle=$('duprMissingNoticeToggle');
-    const list=$('duprMissingPlayersList');
-    list.hidden=!state.duprMissingNoticeExpanded;
-    toggle.classList.toggle('is-expanded',state.duprMissingNoticeExpanded);
-    toggle.setAttribute('aria-expanded',String(state.duprMissingNoticeExpanded));
-    toggle.setAttribute('aria-label',state.duprMissingNoticeExpanded?'Hide missing DUPR player names':'Show missing DUPR player names');
-    toggle.title=state.duprMissingNoticeExpanded?'Hide missing DUPR player names':'Show missing DUPR player names';
-  });
-  $('duprExportDownloadButton').addEventListener('click',downloadDuprModalCsv);
-  $('duprMarkSubmittedButton').addEventListener('click',markDuprModalMatchesSubmitted);
-  $('duprExportFilters').addEventListener('click',event=>{
-    const button=event.target.closest('[data-dupr-export-filter]');
-    if(!button)return;
-    state.duprModalFilter=button.dataset.duprExportFilter||'all';
-    renderDuprExportModal();
-  });
-  $('duprExportEventName').addEventListener('input',event=>{state.duprModalEventName=event.currentTarget.value;});
-  $('duprExportLocation').addEventListener('input',event=>{state.duprModalLocation=event.currentTarget.value;});
-  $('duprExportScoreTypeToggle').addEventListener('click',()=>{
-    if(duprScoreTypeDropdownOpen){closeDuprScoreTypePicker();return;}
-    openDuprScoreTypePicker();
-  });
-  $('duprExportScoreTypeOptions').addEventListener('click',event=>{
-    const option=event.target.closest('[data-dupr-score-type]');
-    if(!option)return;
-    $('duprExportScoreType').value=option.dataset.duprScoreType||'RALLY';
-    $('duprExportScoreType').dispatchEvent(new Event('change',{bubbles:true}));
-    closeDuprScoreTypePicker({restoreFocus:true});
-  });
-  $('duprExportScoreTypeToggle').addEventListener('keydown',event=>{
-    if(event.key==='Escape'&&duprScoreTypeDropdownOpen){event.preventDefault();event.stopPropagation();closeDuprScoreTypePicker();}
-    else if(['ArrowDown','ArrowUp','Enter',' '].includes(event.key)){
-      event.preventDefault();
-      if(!duprScoreTypeDropdownOpen)openDuprScoreTypePicker();
-    }
-  });
-  $('duprExportScoreTypeOptions').addEventListener('keydown',event=>{
-    const current=event.target.closest('[data-dupr-score-type]');
-    if(!current)return;
-    const options=Array.from($('duprExportScoreTypeOptions').querySelectorAll('[data-dupr-score-type]'));
-    const index=options.indexOf(current);
-    if(event.key==='ArrowDown'||event.key==='ArrowUp'){
-      event.preventDefault();
-      const nextIndex=(index+(event.key==='ArrowDown'?1:-1)+options.length)%options.length;
-      options[nextIndex]?.focus();
-    }else if(event.key==='Escape'){
-      event.preventDefault();event.stopPropagation();closeDuprScoreTypePicker({restoreFocus:true});
-    }else if(event.key==='Tab'){
-      closeDuprScoreTypePicker();
-    }
-  });
-  $('duprExportScoreType').addEventListener('change',event=>{
-    state.duprModalScoreType=event.currentTarget.value;
-    syncDuprScoreTypePicker();
-  });
-  $('sessionsSearch').addEventListener('input',renderSessions);
-  $('sessionManagementList').addEventListener('click',event=>{
-    const button=event.target.closest('[data-session-action]');
-    if(!button||button.disabled)return;
-    const id=button.dataset.sessionId;
-    if(button.dataset.sessionAction==='cancel-delete'){closeDeleteSession();return;}
-    if(button.dataset.sessionAction==='confirm-delete'){confirmDeleteSession(button);return;}
-    if(button.dataset.sessionAction==='tally')openSessionTally(id);
-    if(button.dataset.sessionAction==='edit')openEditSession(id);
-    if(button.dataset.sessionAction==='delete')openDeleteSession(id);
-  });
-  $('participantList').addEventListener('click',event=>{
-    const button=event.target.closest('[data-participant-action]');if(!button||button.disabled)return;
-    const action=button.dataset.participantAction;
-    if(action==='cancel-edit'){closeEditParticipant();return;}
-    if(action==='cancel-delete'){closeDeleteParticipant();return;}
-    if(action==='confirm-delete'){confirmDeleteParticipant(button);return;}
-    const index=Number(button.dataset.participantIndex);if(!Number.isInteger(index)||index<0)return;
-    if(action==='edit')openEditParticipant(index);
-    if(action==='delete')openDeleteParticipant(index);
-  });
-  $('participantList').addEventListener('change',event=>{
-    if(event.target.matches('[data-cloud-player-name]'))applyCloudPlayerSuggestion(event.target.closest('[data-participant-edit-form]'));
-  });
-  $('participantList').addEventListener('submit',saveParticipantEdit);
-
-  $('matchList').addEventListener('input',event=>{
-    const scoreInput=event.target.closest('[data-match-score-input]');
-    if(scoreInput){
-      const cleaned=String(scoreInput.value||'').replace(/\D/g,'').slice(0,2);
-      if(scoreInput.value!==cleaned)scoreInput.value=cleaned;
-      return;
-    }
-    const input=event.target.closest('[data-match-player-input]');
-    if(!input)return;
-    const selectedName=normalizeName(input.dataset.selectedName||'');
-    if(!selectedName||normalizeName(input.value)!==selectedName){
-      delete input.dataset.selectedCloudId;
-      delete input.dataset.selectedName;
-      const original=normalizeName(input.dataset.originalName||'');
-      if(normalizeName(input.value)===original){
-        const originalPlayer=(state.records.players||[]).find(player=>normalizeName(cloudPlayerName(player))===original&&String(player?.cloudId||'').trim());
-        if(originalPlayer){input.dataset.selectedCloudId=String(originalPlayer.cloudId);input.dataset.selectedName=cloudPlayerName(originalPlayer);}
-      }
-    }
-    closeMatchPlayerSuggestions(input);
-    renderMatchPlayerSuggestions(input);
-  });
-  $('matchList').addEventListener('focusin',event=>{
-    const input=event.target.closest('[data-match-player-input]');
-    if(input)renderMatchPlayerSuggestions(input);
-  });
-  $('matchList').addEventListener('pointerdown',event=>{
-    const suggestion=event.target.closest('[data-match-player-select]');
-    if(suggestion){event.preventDefault();selectMatchCloudPlayer(suggestion);}
-  });
-  $('matchList').addEventListener('click',event=>{
-    const suggestion=event.target.closest('[data-match-player-select]');
-    if(suggestion){
-      const input=suggestion.closest('.match-player-autocomplete')?.querySelector('[data-match-player-input]');
-      if(input?.dataset.selectedCloudId!==String(suggestion.dataset.cloudId||''))selectMatchCloudPlayer(suggestion);
-      return;
-    }
-    const button=event.target.closest('[data-match-action]');if(!button||button.disabled)return;
-    const id=button.dataset.matchId;const sessionId=button.dataset.sessionId;
-    if(button.dataset.matchAction==='cancel-delete'){closeDeleteMatch();return;}
-    if(button.dataset.matchAction==='confirm-delete'){confirmDeleteMatch(button);return;}
-    if(button.dataset.matchAction==='edit')openEditMatch(id,sessionId);
-    if(button.dataset.matchAction==='cancel-edit'){closeEditMatch();return;}
-    if(button.dataset.matchAction==='delete')openDeleteMatch(id,sessionId);
-    if(button.dataset.matchAction==='export'&&!state.editingMatch)exportMatchToDupr(id,sessionId);
-  });
-  $('matchList').addEventListener('submit',saveMatchEdit);
-  document.addEventListener('click',event=>{if(!event.target.closest('.match-player-autocomplete'))closeMatchPlayerSuggestions();});
-  $('openSettingsButton').addEventListener('click',openSettings);
-  $('mobileOpenSettingsButton').addEventListener('click',openSettings);
-  $('cancelSettingsButton').addEventListener('click',closeSettings);
-  $('settingsForm').addEventListener('submit',saveSettings);
-  $('settingsForm').addEventListener('input',()=>{state.settingsFormDirty=true;});
-  $('settingsForm').addEventListener('change',()=>{state.settingsFormDirty=true;});
-  // Do not close settings when the backdrop is clicked; use Cancel or Escape.
-  const settingsDuprSlots=Array.from({length:6},(_,index)=>$(`settingsDuprSlot${index+1}`));
-  function fillSettingsDuprSlots(value,focusIndex=null) {
-    const normalized=String(value||'').replace(/^DUPR\s*:\s*/i,'').replace(/\s+/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
-    settingsDuprSlots.forEach((slot,index)=>{slot.value=normalized[index]||'';});
-    syncSettingsDuprSlotsToInput();
-    if(Number.isInteger(focusIndex)&&settingsDuprSlots.length)settingsDuprSlots[Math.max(0,Math.min(focusIndex,settingsDuprSlots.length-1))]?.focus();
+  if (form.id === 'participantEditForm') {
+    event.preventDefault();
+    const fd = new FormData(form);
+    const sessionId = form.dataset.sessionId;
+    const index = Number(form.dataset.index);
+    const body = { name: fd.get('name'), nickname: fd.get('nickname'), gender: fd.get('gender'), category: fd.get('category') };
+    await withRefresh('Attendance participant updated.', () => api(`/api/organizer-dashboard/sessions/${encodeURIComponent(sessionId)}/participants/${index}`, { method: 'PATCH', body: JSON.stringify(body) }));
+    openSessionDetails(sessionId);
   }
-  settingsDuprSlots.forEach((slot,index)=>{
-    slot.addEventListener('input',()=>{
-      const raw=String(slot.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-      if(raw.length>1){fillSettingsDuprSlots(raw,Math.min(raw.length,settingsDuprSlots.length-1));return;}
-      slot.value=raw.slice(0,1);
-      syncSettingsDuprSlotsToInput();
-      if(slot.value&&index<settingsDuprSlots.length-1)settingsDuprSlots[index+1].focus();
-    });
-    // Some mobile keyboards and autofill flows dispatch change/blur without a
-    // final input event. Sync these too so the saved ID always matches the UI.
-    slot.addEventListener('change',syncSettingsDuprSlotsToInput);
-    slot.addEventListener('blur',syncSettingsDuprSlotsToInput);
-    slot.addEventListener('paste',event=>{
-      const pasted=String(event.clipboardData?.getData('text')||'').replace(/^DUPR\s*:\s*/i,'').replace(/\s+/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-      if(!pasted)return;
-      event.preventDefault();
-      fillSettingsDuprSlots(pasted,Math.min(pasted.length,settingsDuprSlots.length-1));
-    });
-    slot.addEventListener('keydown',event=>{
-      if(event.key==='Backspace'&&!slot.value&&index>0){event.preventDefault();settingsDuprSlots[index-1].value='';settingsDuprSlots[index-1].focus();syncSettingsDuprSlotsToInput();}
-      else if(event.key==='ArrowLeft'&&index>0){event.preventDefault();settingsDuprSlots[index-1].focus();}
-      else if(event.key==='ArrowRight'&&index<settingsDuprSlots.length-1){event.preventDefault();settingsDuprSlots[index+1].focus();}
-    });
-  });
-  $('settingsLogoInput').addEventListener('change',async event=>{
-    const file=event.target.files?.[0];if(!file)return;
-    const processToken=++state.settingsLogoProcessingToken;
-    if(!/^image\/(png|jpeg|webp)$/i.test(file.type)||file.size>2*1024*1024){state.settingsLogoProcessing=false;$('saveSettingsButton').disabled=false;setSettingsMessage('Choose a PNG, JPG, or WebP image up to 2 MB.',true);event.target.value='';return;}
-    state.settingsLogoProcessing=true;$('saveSettingsButton').disabled=true;
-    setSettingsMessage('Removing the logo background automatically…');
-    try{
-      const result=await automaticallyRemoveLogoBackground(file);
-      if(processToken!==state.settingsLogoProcessingToken)return;
-      state.settingsLogoDraft=result.dataUrl;
-      $('settingsLogoPreview').src=result.dataUrl;
-      if(result.removed)setSettingsMessage('Background removed automatically. Review the preview, then save your settings.');
-      else if(result.alreadyTransparent)setSettingsMessage('This logo already has a transparent background.');
-      else setSettingsMessage('A plain background could not be detected, so the original logo was kept.');
-    }catch(error){
-      if(processToken!==state.settingsLogoProcessingToken)return;
-      setSettingsMessage(error.message||'Unable to process this logo. The existing logo was kept.',true);
-      event.target.value='';
-    }finally{
-      if(processToken===state.settingsLogoProcessingToken){state.settingsLogoProcessing=false;$('saveSettingsButton').disabled=false;}
-    }
-  });
-  $('removeSettingsLogoButton').addEventListener('click',()=>{state.settingsLogoProcessingToken++;state.settingsLogoProcessing=false;$('saveSettingsButton').disabled=false;state.settingsLogoDraft='';$('settingsLogoPreview').src='pickleball-p-emblem.png';$('settingsLogoInput').value='';setSettingsMessage('The default logo will be used after saving.');});
-  $('settingsShowPasswords').addEventListener('click',()=>{
-    const show=$('settingsShowPasswords').getAttribute('aria-pressed')!=='true';
-    document.querySelectorAll('.settings-password-input').forEach(input=>input.type=show?'text':'password');
-    $('settingsShowPasswords').setAttribute('aria-pressed',String(show));$('settingsShowPasswords').textContent=show?'Hide passwords':'Show passwords';
-  });
+  if (form.id === 'matchEditForm') {
+    event.preventDefault();
+    const fd = new FormData(form);
+    const sessionId = form.dataset.sessionId;
+    const matchId = form.dataset.matchId;
+    await withRefresh('Match score updated.', () => api(`/api/organizer-dashboard/sessions/${encodeURIComponent(sessionId)}/matches/${encodeURIComponent(matchId)}`, { method: 'PATCH', body: JSON.stringify({ score: fd.get('score') }) }), 'matches');
+  }
+});
 
-  $('sessionEditDateTrigger').addEventListener('click',()=>{
-    const calendar=$('sessionEditCalendar');
-    calendar.hidden=!calendar.hidden;
-    $('sessionEditDateTrigger').setAttribute('aria-expanded',String(!calendar.hidden));
-    if(!calendar.hidden)renderSessionEditCalendar();
-  });
-  $('sessionEditPrevMonth').addEventListener('click',()=>{
-    sessionEditCalendarCursor=new Date(sessionEditCalendarCursor.getFullYear(),sessionEditCalendarCursor.getMonth()-1,1);
-    renderSessionEditCalendar();
-  });
-  $('sessionEditNextMonth').addEventListener('click',()=>{
-    sessionEditCalendarCursor=new Date(sessionEditCalendarCursor.getFullYear(),sessionEditCalendarCursor.getMonth()+1,1);
-    renderSessionEditCalendar();
-  });
-  $('sessionEditCalendarGrid').addEventListener('click',event=>{
-    const day=event.target.closest('[data-session-date]');
-    if(day)chooseSessionEditDate(day.dataset.sessionDate);
-  });
-  $('sessionEditRemoveButton').addEventListener('click',()=>{
-    // Remove clears the optional session date without changing the original session times.
-    sessionEditSelectedDate='';
-    $('sessionEditEndedAt').value='';
-    $('sessionEditDateLabel').textContent='Select a day';
-    updateSessionEditStartPreview();
-    renderSessionEditCalendar();
-  });
-  $('sessionEditDoneButton').addEventListener('click',closeSessionEditCalendar);
-  document.addEventListener('pointerdown',event=>{
-    const picker=$('sessionEditDatePicker');
-    if(!picker)return;
-    const path=typeof event.composedPath==='function'?event.composedPath():[];
-    const clickedInside=path.length?path.includes(picker):picker.contains(event.target);
-    if(!clickedInside)closeSessionEditCalendar();
-  },true);
+// Keep the dashboard visually still while the user scrolls through it.
+// Background refreshes may update state, but the DOM is patched only at the top.
+$('#pageContent').addEventListener('scroll', () => {
+  if (state.page !== 'dashboard') return;
+  if ($('#pageContent').scrollTop <= 1) {
+    updateCourtStatusClocks();
+    if (state.pendingRender) flushPendingDashboardRender();
+  }
+}, { passive: true });
 
-  $('sessionEditForm').addEventListener('submit',saveSessionEdit);
-  $('cancelSessionEditButton').addEventListener('click',closeEditSession);
-  $('closeSessionTallyModal').addEventListener('click',closeSessionTally);
-  // Close dashboard/settings dialogs only when the backdrop itself is clicked.
-  // Clicks inside the dialog content must never dismiss the modal.
-  document.querySelectorAll('.dashboard-modal-backdrop, .settings-modal-backdrop').forEach(backdrop=>{
-    backdrop.addEventListener('click',event=>{
-      if(event.target!==backdrop)return;
-      if(backdrop.id==='sessionEditModal')closeEditSession();
-      else if(backdrop.id==='settingsModal')closeSettings();
-      else if(backdrop.id==='duprExportModal')closeDuprExportModal();
-      else if(backdrop.id==='sessionTallyModal')closeSessionTally();
-    });
-  });
-  document.addEventListener('keydown',event=>{
-    if(event.key==='Escape'){
-      if(!$('sessionEditModal').hidden&&!$('sessionEditCalendar').hidden){closeSessionEditCalendar();return;}
-      if(!$('sessionEditModal').hidden)closeEditSession();
-      if(state.editingParticipant)closeEditParticipant();
-      if(state.pendingDeleteParticipant)closeDeleteParticipant();
-      if(state.pendingDeleteMatch)closeDeleteMatch();
-      if(state.pendingDeleteSessionId)closeDeleteSession();
-      if(state.editingMatch)closeEditMatch();
-      if(!$('settingsModal').hidden)closeSettings();
-      if(!$('duprExportModal').hidden)closeDuprExportModal();
-      if(!$('sessionTallyModal').hidden)closeSessionTally();
-    }
-  });
-  $('logoutButton').addEventListener('click',async()=>{
-    // Use the browser's native confirmation dialog; no custom logout modal.
-    const confirmed=window.confirm('Are you sure you want to log out?');
-    if(!confirmed)return;
-    $('logoutButton').disabled=true;
-    try{await fetch('/api/logout',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'X-PPM-Auth-Role':'organizer'}});}catch(_){/* Local navigation still ends the visible session. */}
-    window.location.replace('/');
-  });
+$('#pageContent').addEventListener('focusout', () => {
+  if (!state.pendingRender) return;
+  window.setTimeout(() => {
+    const active = document.activeElement;
+    const editingControl = $('#pageContent').contains(active) && active && active.matches('input, textarea, select, [contenteditable="true"]');
+    if (!editingControl && !state.modal && !state.pointerInteraction && !courtStripDrag) renderPageStable();
+  }, 0);
+});
 
-  loadDuprSubmittedMatchKeys();
-  initializeDefaultMatchDateRange();
-  loadDashboardData().then(initLiveStateStream);
-  state.refreshTimer=setInterval(()=>{
-    if(document.visibilityState!=='hidden')loadDashboardData({silent:true});
-  },8000);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')loadDashboardData({silent:true});});
-})();
+let registrationPrefetchUrl = '';
+function prefetchRegistrationPage() {
+  const url = getRegistrationUrl();
+  if (!url || url === registrationPrefetchUrl) return;
+  registrationPrefetchUrl = url;
+  const link = document.createElement('link');
+  link.rel = 'prefetch';
+  link.as = 'document';
+  link.href = url;
+  document.head.append(link);
+}
+document.addEventListener('pointerover', event => {
+  if (event.target.closest('[data-action="register-player"]')) prefetchRegistrationPage();
+}, { passive: true });
+document.addEventListener('focusin', event => {
+  if (event.target.closest('[data-action="register-player"]')) prefetchRegistrationPage();
+});
+
+$('#globalSearch').addEventListener('input', event => { state.query = event.target.value.trim(); renderPage(true); });
+$('#globalSearch').addEventListener('keydown', event => { if (event.key === 'Escape') { event.target.value = ''; state.query = ''; renderPage(true); } });
+$('#mobileMenu').addEventListener('click', () => { $('#sidebar').classList.add('mobile-open'); $('#mobileScrim').classList.add('visible'); });
+$('#mobileScrim').addEventListener('click', closeMobileNav);
+$('#notificationsBtn').addEventListener('click', () => {
+  const pop = $('#topPopover');
+  const live = getLiveSession();
+  pop.innerHTML = `<strong class="popover-heading">Queueing activity</strong>${live ? `<button type="button" data-session-view="${escapeHTML(live.id)}">${escapeHTML(live.title)} · Live now</button>` : '<span class="popover-empty">No active open-play session.</span>'}<div class="popover-actions"><button type="button" class="popover-action" data-navigate="/queueing">Open live queue</button><button type="button" class="popover-action" data-navigate="/session">Session setup</button></div>`;
+  pop.hidden = !pop.hidden;
+});
+$('#profileBtn').addEventListener('click', () => {
+  const pop = $('#topPopover');
+  pop.innerHTML = `<strong class="popover-heading">${escapeHTML(state.organizer?.displayName || 'HUSAY DINKERS')}</strong><button data-page="settings">Workspace & tools</button><button data-action="export-backup">Download data backup</button><button data-action="logout">Sign out</button>`;
+  pop.hidden = !pop.hidden;
+});
+document.addEventListener('click', event => {
+  if (!event.target.closest('#topPopover') && !event.target.closest('#notificationsBtn') && !event.target.closest('#profileBtn')) $('#topPopover').hidden = true;
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') { closeModal(); $('#topPopover').hidden = true; closeMobileNav(); }
+});
+document.addEventListener('change', event => {
+  const target = event.target;
+  if (target.id === 'mapModalSessionSelect') { setMapModalSession(target.value); return; }
+  if (target.id === 'sessionStatusFilter') { state.filters.sessionStatus = target.value; renderPage(true); }
+  if (target.id === 'playerCategoryFilter') { state.filters.playerCategory = target.value; const filtered = visibleRows(state.data.players.filter(player => !player.historicalOnly).sort((a,b)=>a.name.localeCompare(b.name))).filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory); $('#playersTableWrap').innerHTML = playersTable(filtered); }
+  if (target.id === 'rankingCategoryFilter') { state.filters.rankingCategory = target.value; scheduleRankingsPage(); }
+  if (target.id === 'rankingSessionFilter') { state.filters.rankingSession = target.value; scheduleRankingsPage(); }
+  if (target.id === 'matchCourtFilter') { state.filters.matchCourt = target.value; renderPage(true); }
+});
+
+let dashboardRefreshTimer = null;
+function scheduleDashboardRefresh(delay = 220) {
+  if (dashboardRefreshTimer) window.clearTimeout(dashboardRefreshTimer);
+  dashboardRefreshTimer = window.setTimeout(() => {
+    dashboardRefreshTimer = null;
+    if (!document.hidden && !state.modal) refreshData({ silent: true });
+  }, delay);
+}
+
+function initEventStream() {
+  if (!('EventSource' in window) || state.eventStream) return;
+  const stream = new EventSource('/api/shared-events');
+  state.eventStream = stream;
+  const refresh = () => scheduleDashboardRefresh();
+  stream.addEventListener('app-state', refresh);
+  stream.addEventListener('cloud-records', refresh);
+  stream.addEventListener('error', () => { /* EventSource retries automatically. */ });
+}
+
+async function init() {
+  populateStaticIcons();
+  try {
+    await refreshData({ silent: true });
+    if (!state.data) return;
+    renderPage(false);
+    initEventStream();
+    updateCourtStatusClocks();
+    window.setInterval(updateCourtStatusClocks, 1000);
+    window.setInterval(() => scheduleDashboardRefresh(0), 30000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && !state.modal) scheduleDashboardRefresh(0); });
+  } catch (error) {
+    $('#pageContent').innerHTML = `<div class="empty-state"><span class="empty-icon">${icon('info')}</span><strong>Unable to connect to the Pickle Point Match server</strong><p>${escapeHTML(error.message || 'Please sign in again or check the server.')}</p><a class="btn btn-primary btn-sm" href="/?next=manage">Organizer sign in</a></div>`;
+  }
+}
+
+init();

@@ -1,0 +1,25 @@
+HUSAY DINKERS MANAGEMENT DASHBOARD FILE RENAME UPDATE
+
+Copy/update these files in the ROOT of the existing Pickle Point Match GitHub repository:
+
+- server.js                 Updated: /manage remains protected and now serves dashboard.html; /dashboard and /dashboard.html continue redirecting to /manage.
+- login.js                  Updated: organizer login defaults to the new /manage dashboard.
+- auth-session.js           Updated: Session page back-to-dashboard action opens /manage.
+- tab-auth.js               Updated: retired dashboard path is no longer treated as a page; organizer fallback is /manage.
+- script.js                 Updated: queueing settings return to /manage.
+- dashboard.html            Renamed from husay-manager.html; dashboard UI and behavior remain unchanged.
+- dashboard.css             Renamed from husay-manager.css; styles remain unchanged.
+- dashboard.js              Renamed from husay-manager.js; dashboard logic remains unchanged.
+- README.md                 Updated setup/deployment instructions.
+- DASHBOARD-INTEGRATION.md  Updated route, data and feature notes.
+- DEPLOYMENT-SECURITY-CHECKLIST.md, LIVE-VIEW-SETUP.txt  Updated management route guidance.
+
+The existing dashboard-related shell/icon assets are retained unchanged; only the three manager page filenames and their required references were renamed.
+
+The only organizer management screen is now `/manage` (served by `dashboard.html`, which loads `dashboard.css` and `dashboard.js`). `/dashboard`, `/dashboard.html`, and the direct legacy `/husay-manager.html` filename redirect to `/manage`.
+
+Do NOT delete these backend routes or APIs from server.js:
+- /api/organizer-dashboard and its mutation routes
+- /api/organizer-settings
+
+Do not create a new Render service or database. Keep the existing DATABASE_URL, SESSION_SECRET, organizer accounts and all current environment variables. Commit/push to the same GitHub repository/branch used by the current Render service.
