@@ -43,6 +43,7 @@ const state = {
   modal: null,
   refreshRequest: 0,
   refreshController: null,
+  refreshingDashboard: false,
   dataSignature: '',
   pendingRender: false,
   navigationRequest: 0,
@@ -54,13 +55,19 @@ const state = {
   rankingRenderPlayers: [],
   dashboardRankingToken: 0,
   mapModalSessionId: '',
+  mapIncludeRegisteredCourts: false,
   filters: { sessionStatus: 'all', playerCategory: 'all', rankingCategory: 'all', rankingSession: 'all', matchCourt: 'all', matchType: 'all' }
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+function registeredCourtLogo(court = {}) {
+  const candidates = [court?.logo, court?.logoUrl, court?.logoData, court?.logoDataUrl, court?.imageUrl, court?.image];
+  return candidates.map(value => String(value || '').trim()).find(Boolean) || '';
+}
 const icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ICONS.info}</svg>`;
+const refreshIcon = () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-ccw preview-icon dashboard-refresh-icon" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>';
 const normalizeName = value => String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 const CATEGORY_NAMES = { BEG: 'Beginner', NOV: 'Novice', INT: 'Intermediate', ADV: 'Advanced', EXP: 'Expert', BEGINNER: 'Beginner', NOVICE: 'Novice', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced', EXPERT: 'Expert' };
 const CATEGORY_CODES = { Beginner: 'BEG', Novice: 'NOV', Intermediate: 'INT', Advanced: 'ADV', Expert: 'EXP' };
@@ -191,13 +198,45 @@ function sessionTimestampFromId(sessionId) {
 function asArray(value) { return Array.isArray(value) ? value : []; }
 function normalizeMapLocationCoordinates(value) {
   let source = value;
-  if (typeof source === 'string') { try { source = JSON.parse(source); } catch (_) { return null; } }
+  if (typeof source === 'string') {
+    try { source = JSON.parse(source); } catch (_) { return null; }
+  }
   if (!source || typeof source !== 'object') return null;
-  const lat = Number(source.lat ?? source.latitude);
-  const lon = Number(source.lon ?? source.lng ?? source.longitude);
-  const countrycode = String(source.countrycode || source.countryCode || 'PH').toUpperCase();
+
+  // Accept legacy coordinate formats as well as the current saved object:
+  // MapLibre arrays use [longitude, latitude], while some older imports store
+  // latitude/longitude as named fields or under a nested coordinates object.
+  let coordinateArray = null;
+  if (Array.isArray(source)) coordinateArray = source;
+  else if (Array.isArray(source.coordinates)) coordinateArray = source.coordinates;
+  else if (Array.isArray(source.geometry?.coordinates)) coordinateArray = source.geometry.coordinates;
+
+  let lat = coordinateArray
+    ? Number(coordinateArray[1])
+    : Number(source.lat ?? source.latitude ?? source.y ?? source.location?.lat ?? source.location?.latitude);
+  let lon = coordinateArray
+    ? Number(coordinateArray[0])
+    : Number(source.lon ?? source.lng ?? source.longitude ?? source.x ?? source.location?.lon ?? source.location?.lng ?? source.location?.longitude);
+
+  // A previous map export/import may have stored [lat, lon] or reversed named
+  // fields. Detect that exact Philippines range pattern and correct it so the
+  // marker is not projected beyond the map's top-left edge.
+  if (lat >= 115.5 && lat <= 128.6 && lon >= 4.0 && lon <= 22.4) {
+    [lat, lon] = [lon, lat];
+  }
+
+  const countrycode = String(source.countrycode || source.countryCode || source.country_code || 'PH').toUpperCase();
   if (countrycode !== 'PH' || !Number.isFinite(lat) || !Number.isFinite(lon) || lat < 4.0 || lat > 22.4 || lon < 115.5 || lon > 128.6) return null;
-  return { lat, lon, label: String(source.label || source.name || '').trim(), countrycode: 'PH' };
+  return {
+    lat, lon,
+    label: String(source.label || source.name || source.location?.label || '').trim(),
+    countrycode: 'PH',
+    source: String(source.source || '').trim(),
+    verified: source.verified === true,
+    placeId: String(source.placeId || source.osmId || '').trim(),
+    pinId: String(source.pinId || '').trim(),
+    osmId: String(source.osmId || '').trim()
+  };
 }
 function getLogSessionId(log) { return String(log?.sessionId ?? log?.sessionID ?? log?.session_id ?? '').trim(); }
 function getTeamNames(log, side) {
@@ -437,6 +476,14 @@ function normalizeLegacyDashboard(payload) {
     matches: logs,
     venues,
     courts,
+    registeredCourts: asArray(organizer.registeredCourts).map(court => ({
+      id: String(court?.id || ''),
+      name: String(court?.name || 'Registered Court'),
+      location: String(court?.location || '').trim(),
+      logo: registeredCourtLogo(court),
+      locationCoordinates: normalizeMapLocationCoordinates(court?.locationCoordinates || court?.coordinates || court),
+      registeredAt: court?.registeredAt || null
+    })).filter(court => court.id && court.location),
     settings,
     liveSessionId: activeSessionId,
     liveState: appState,
@@ -484,6 +531,7 @@ async function refreshData({ silent = false } = {}) {
         matches: nextData.matches.map(stripRaw),
         venues: nextData.venues,
         courts: nextData.courts,
+        registeredCourts: nextData.registeredCourts,
         settings: nextData.settings,
         liveSessionId: nextData.liveSessionId,
         liveState: liveStateSignature,
@@ -601,7 +649,107 @@ function pageHeading(eyebrow, title, subtitle, actions = '') {
   return `<div class="page-heading"><div class="heading-copy"><span class="eyebrow">${escapeHTML(brandedEyebrow)}</span><h1>${escapeHTML(title)}</h1><p class="subtitle">${escapeHTML(subtitle)}</p></div><div class="heading-actions">${actions}</div></div>`;
 }
 function statCard(label, value, foot, iconName, dark = false) {
-  return `<article class="stat-card ${dark ? 'dark' : 'light'}"><div><p class="stat-label">${escapeHTML(label)}</p><p class="stat-value">${escapeHTML(value)}</p><div class="stat-foot">${escapeHTML(foot)}</div></div><span class="stat-icon">${icon(iconName)}</span></article>`;
+  const target = Number(value);
+  const isCount = String(value).trim() !== '' && Number.isFinite(target);
+  const initialValue = isCount ? '0' : value;
+  const countKey = `stat:${String(label).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  return `<article class="stat-card ${dark ? 'dark' : 'light'}"><div><p class="stat-label">${escapeHTML(label)}</p><p class="stat-value" aria-live="off"${isCount ? ` data-count-target="${target}" data-count-key="${escapeHTML(countKey)}"` : ''}>${escapeHTML(initialValue)}</p><div class="stat-foot">${escapeHTML(foot)}</div></div><span class="stat-icon">${icon(iconName)}</span></article>`;
+}
+
+// All dashboard numeric readouts share one counter so refreshed values animate consistently.
+const dashboardCountFrames = new WeakMap();
+function captureDashboardCountValues() {
+  const values = new Map();
+  $$('.page-dashboard [data-count-target][data-count-key]').forEach(node => {
+    const key = node.dataset.countKey;
+    const value = Number(String(node.textContent || '').replace(/,/g, '').trim());
+    if (key && Number.isFinite(value)) values.set(key, value);
+  });
+  return values;
+}
+function animateDashboardCountValues(previousValues = new Map()) {
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  $$('.page-dashboard [data-count-target][data-count-key]').forEach(node => {
+    const target = Number(node.dataset.countTarget);
+    if (!Number.isFinite(target)) return;
+
+    const previousFrame = dashboardCountFrames.get(node);
+    if (previousFrame) cancelAnimationFrame(previousFrame);
+
+    const key = node.dataset.countKey;
+    const previousValue = previousValues.has(key) ? previousValues.get(key) : 0;
+    const start = Number.isFinite(previousValue) ? previousValue : 0;
+    const display = value => String(Math.round(value));
+    node.textContent = display(start);
+
+    if (reducedMotion || start === target) {
+      node.textContent = display(target);
+      dashboardCountFrames.delete(node);
+      return;
+    }
+
+    const duration = node.classList.contains('attendance-bar-value') ? 720 : 760;
+    let startedAt = 0;
+    const tick = timestamp => {
+      if (!node.isConnected) {
+        dashboardCountFrames.delete(node);
+        return;
+      }
+      if (!startedAt) startedAt = timestamp;
+      const progress = Math.min(1, (timestamp - startedAt) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      node.textContent = display(start + (target - start) * eased);
+      if (progress < 1) {
+        dashboardCountFrames.set(node, requestAnimationFrame(tick));
+      } else {
+        node.textContent = display(target);
+        dashboardCountFrames.delete(node);
+      }
+    };
+    dashboardCountFrames.set(node, requestAnimationFrame(tick));
+  });
+}
+
+const attendanceBarFrames = new WeakMap();
+const attendanceBarTargets = new WeakMap();
+function animateDashboardAttendanceBars() {
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  $$('.page-dashboard .attendance-bar-fill').forEach(fill => {
+    const visual = fill.closest('.attendance-bar-visual');
+    const targetHeight = visual?.style.getPropertyValue('--bar-height') || '0%';
+    const previousTarget = attendanceBarTargets.get(fill);
+    const previousFrame = attendanceBarFrames.get(fill);
+    if (previousFrame) cancelAnimationFrame(previousFrame);
+
+    // Unchanged bars stay settled during routine background refreshes.
+    if (previousTarget === targetHeight) {
+      fill.style.setProperty('--bar-scale', '1');
+      return;
+    }
+    attendanceBarTargets.set(fill, targetHeight);
+    fill.style.setProperty('--bar-scale', '0');
+    if (reducedMotion) {
+      fill.style.setProperty('--bar-scale', '1');
+      attendanceBarFrames.delete(fill);
+      return;
+    }
+
+    // Give the browser a paint opportunity with the bar collapsed before raising it.
+    // A single requestAnimationFrame can apply both states before the first paint,
+    // which makes the CSS transition appear to jump straight to its final height.
+    const firstFrame = requestAnimationFrame(() => {
+      if (!fill.isConnected) {
+        attendanceBarFrames.delete(fill);
+        return;
+      }
+      const secondFrame = requestAnimationFrame(() => {
+        if (fill.isConnected) fill.style.setProperty('--bar-scale', '1');
+        attendanceBarFrames.delete(fill);
+      });
+      attendanceBarFrames.set(fill, secondFrame);
+    });
+    attendanceBarFrames.set(fill, firstFrame);
+  });
 }
 function panelTitle(title, iconName, action = '') {
   return `<div class="panel-heading"><h2 class="panel-title"><span class="mini-icon">${icon(iconName)}</span>${escapeHTML(title)}</h2>${action}</div>`;
@@ -613,12 +761,13 @@ function chartMarkup(sessions) {
   const last = sessions.filter(session => !session.isLive).slice(0, 6).reverse();
   if (!last.length) return '<div class="chart-empty">Attendance activity will appear after an open-play session is completed.</div>';
   const values = last.map(session => (session.attendees || []).length);
-  const max = Math.max(4, ...values);
+  const max = Math.max(4, ...values) + 1;
   const bars = last.map((session, index) => {
     const value = values[index];
     const height = value ? Math.max(5, (value / max) * 100) : 0;
     const label = fmtDate(session.date, { month: 'short', day: 'numeric' });
-    return `<div class="attendance-bar-item" title="${escapeHTML(label)}: ${value} players"><div class="attendance-bar-visual" style="--bar-height:${height}%"><span class="attendance-bar-value">${value}</span><span class="attendance-bar-fill"></span></div><span class="attendance-bar-date">${escapeHTML(label)}</span></div>`;
+    const countKey = `attendance-bar:${String(session.id ?? index)}`;
+    return `<div class="attendance-bar-item" title="${escapeHTML(label)}: ${value} players"><div class="attendance-bar-visual" style="--bar-height:${height}%;--bar-scale:0"><span class="attendance-bar-value" data-count-target="${value}" data-count-key="${escapeHTML(countKey)}" aria-hidden="true">0</span><span class="attendance-bar-fill"></span></div><span class="attendance-bar-date">${escapeHTML(label)}</span></div>`;
   }).join('');
   return `<div class="attendance-chart" role="img" aria-label="Bar chart showing player attendance across the latest completed open-play sessions"><div class="attendance-y-axis"><span>${max}</span><span>${Math.round(max / 2)}</span><span>0</span></div><div class="attendance-plot"><span class="attendance-grid-line grid-top"></span><span class="attendance-grid-line grid-middle"></span><span class="attendance-grid-line grid-bottom"></span><div class="attendance-bars" style="--bar-count:${last.length}">${bars}</div></div></div>`;
 }
@@ -756,7 +905,27 @@ function courtStatusMarkup(live) {
     ? tiles.join('')
     : '<div class="court-empty-note"><strong>No live court available</strong><span>No courts or waiting players are configured for this session yet. Add courts or check in players in Queueing.</span></div>';
 }
+const REGISTERED_COURT_NEW_MARKER_WINDOW_MS = 10 * 60 * 1000;
+function registeredCourtMapMarkerStatus(registeredAt, isLive, now = Date.now()) {
+  if (isLive) return 'live';
+  const registeredTime = Date.parse(String(registeredAt || ''));
+  if (Number.isFinite(registeredTime) && now - registeredTime < REGISTERED_COURT_NEW_MARKER_WINDOW_MS) return 'new';
+  return 'idle';
+}
+function updateRegisteredCourtMapMarkerBorders() {
+  const now = Date.now();
+  document.querySelectorAll('.dashboard-map-pin-court[data-registered-court-marker="true"]').forEach(marker => {
+    const status = registeredCourtMapMarkerStatus(
+      marker.dataset.registeredAt,
+      marker.dataset.registeredCourtLive === 'true',
+      now
+    );
+    marker.classList.toggle('is-live', status === 'live');
+    marker.classList.toggle('is-new', status === 'new');
+  });
+}
 function updateCourtStatusClocks() {
+  updateRegisteredCourtMapMarkerBorders();
   // Per-second timer text can change card dimensions while the page is being
   // read. Pause these tiny visual updates until the dashboard is back at top.
   if (isDashboardPageScrolled()) return;
@@ -770,7 +939,7 @@ function updateCourtStatusClocks() {
     if (node.textContent !== nextLabel) node.textContent = nextLabel;
   });
 }
-function mapSessionsForPins() {
+function mapSessionsForPins(includeRegisteredCourts = false) {
   const byLocation = new Map();
   const matchCountBySession = new Map();
   for (const match of (state.data?.matches || [])) {
@@ -785,7 +954,7 @@ function mapSessionsForPins() {
     const key = normalizeName(location);
     if (!key) continue;
     const coordinates = normalizeMapLocationCoordinates(session.locationCoordinates || session.raw?.duprLocationCoordinates || session.raw?.locationCoordinates);
-    if (!byLocation.has(key)) byLocation.set(key, { location, coordinates, sessions: [] });
+    if (!byLocation.has(key)) byLocation.set(key, { location, coordinates, sessions: [], courts: [] });
     else if (!byLocation.get(key).coordinates && coordinates) byLocation.get(key).coordinates = coordinates;
     byLocation.get(key).sessions.push({
       id: String(session.id || ''),
@@ -800,30 +969,99 @@ function mapSessionsForPins() {
       locationCoordinates: normalizeMapLocationCoordinates(session.locationCoordinates || session.raw?.duprLocationCoordinates || session.raw?.locationCoordinates)
     });
   }
-  return [...byLocation.values()];
+
+  const sessionLocations = [...byLocation.values()].map(item => ({
+    ...item,
+    isLive: asArray(item.sessions).some(entry => entry.isLive === true)
+  }));
+  if (!includeRegisteredCourts) return sessionLocations;
+
+  // Merge a session into a registered court when the saved address or GPS pin
+  // identifies the same venue. This avoids two overlapping pins and lets the
+  // registered court marker show the live state of its current session.
+  const distanceBetweenMapPoints = (first, second) => {
+    const a = normalizeMapLocationCoordinates(first);
+    const b = normalizeMapLocationCoordinates(second);
+    if (!a || !b) return Infinity;
+    const radians = value => value * Math.PI / 180;
+    const dLat = radians(b.lat - a.lat);
+    const dLon = radians(b.lon - a.lon);
+    const lat1 = radians(a.lat), lat2 = radians(b.lat);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  };
+  const matchedSessionLocations = new Set();
+  const registeredCourtLocations = asArray(state.data?.registeredCourts).map(court => {
+    const location = String(court?.location || '').trim();
+    const id = String(court?.id || '').trim();
+    if (!location || !id) return null;
+    const coordinates = normalizeMapLocationCoordinates(court.locationCoordinates || court.coordinates || court);
+    const locationKey = normalizeName(location);
+    const matchingSessions = sessionLocations.filter(sessionLocation => {
+      const sameAddress = normalizeName(sessionLocation.location) === locationKey;
+      const sessionCoordinates = sessionLocation.coordinates || asArray(sessionLocation.sessions)
+        .map(entry => normalizeMapLocationCoordinates(entry.locationCoordinates)).find(Boolean);
+      const sameMapPoint = distanceBetweenMapPoints(coordinates, sessionCoordinates) <= 200;
+      if (!sameAddress && !sameMapPoint) return false;
+      matchedSessionLocations.add(sessionLocation);
+      return true;
+    }).flatMap(sessionLocation => asArray(sessionLocation.sessions));
+    const isLive = matchingSessions.some(entry => entry.isLive === true);
+    return {
+      mapKey: `registered-court:${id}`,
+      location,
+      coordinates,
+      sessions: matchingSessions,
+      isLive,
+      courts: [{
+        id,
+        name: String(court.name || 'Registered Court'),
+        logo: registeredCourtLogo(court),
+        locationCoordinates: coordinates,
+        registeredAt: court.registeredAt || null,
+        isLive
+      }]
+    };
+  }).filter(Boolean);
+
+  // Session-only pins stay visible, but a session at a registered court is
+  // represented by that court's branded marker instead of a duplicate pin.
+  return [
+    ...sessionLocations.filter(item => !matchedSessionLocations.has(item)),
+    ...registeredCourtLocations
+  ];
 }
 function mapCard(session, mapId = 'courtLocationMap') {
-  const locations = mapSessionsForPins();
+  // The dashboard overview and the Courts & Locations map both show every
+  // registered court, not only locations that currently have a live session.
+  const includeRegisteredCourts = ['venuesCourtMap', 'dashboardCourtMap'].includes(mapId);
+  const locations = mapSessionsForPins(includeRegisteredCourts);
   const payload = JSON.stringify(locations).replace(/</g, '\\u003c');
   const count = locations.length;
   const liveSessionId = session?.isLive ? String(session.id || '') : '';
-  return `<section class="panel panel-pad map-panel">${panelTitle('Court Locations in the Philippines', 'pin', `<button type="button" class="text-link map-open-link" data-open-map-modal="${escapeHTML(liveSessionId)}">Open 3D Map ${icon('arrow')}</button>`)}<div id="${escapeHTML(mapId)}" class="interactive-map map-preview" data-map-variant="preview" data-map-focus-session="${escapeHTML(liveSessionId)}" data-map-locations="${escapeHTML(payload)}" role="application" aria-label="Interactive 3D map of the Philippines with saved open-play court locations"><div class="map-loading">Loading Philippines 3D map…</div></div><div class="map-preview-footer"><span class="map-count">${count} saved location${count === 1 ? '' : 's'}</span><span>Drag to move · scroll or use + / − to zoom</span></div><p class="map-status" data-map-status="${escapeHTML(mapId)}">Court pins are placed from each session's saved Location field.</p></section>`;
+  return `<section class="panel panel-pad map-panel">${panelTitle('Court Locations in the Philippines', 'pin', `<button type="button" class="text-link map-open-link" data-open-map-modal="${escapeHTML(liveSessionId)}" data-map-include-registered="${includeRegisteredCourts ? 'true' : 'false'}">Open 3D Map ${icon('arrow')}</button>`)}<div id="${escapeHTML(mapId)}" class="interactive-map map-preview" data-map-variant="preview" data-map-include-registered="${includeRegisteredCourts ? 'true' : 'false'}" data-map-focus-session="${escapeHTML(liveSessionId)}" data-map-locations="${escapeHTML(payload)}" role="application" aria-label="Interactive 3D map of the Philippines with saved open-play court locations"><div class="map-loading">Loading Philippines 3D map…</div></div><div class="map-preview-footer"><span class="map-count">${count} saved location${count === 1 ? '' : 's'}</span><span>Drag to move · scroll or use + / − to zoom</span></div><p class="map-status" data-map-status="${escapeHTML(mapId)}">${includeRegisteredCourts ? 'Registered court locations and saved session locations appear as map pins.' : "Court pins are placed from each session's saved Location field."}</p></section>`;
 }
 function isPhilippinesCoordinate(lat, lon) {
   return Number.isFinite(lat) && Number.isFinite(lon) && lat >= PH_MAP_BOUNDS[0][0] && lat <= PH_MAP_BOUNDS[1][0] && lon >= PH_MAP_BOUNDS[0][1] && lon <= PH_MAP_BOUNDS[1][1];
 }
 function coordinatesFromText(value) {
-  const match = String(value || '').match(/(-?\d{1,2}(?:\.\d+)?)\s*[,;]\s*(-?\d{2,3}(?:\.\d+)?)/);
+  const match = String(value || '').match(/(-?\d{1,3}(?:\.\d+)?)\s*[,;]\s*(-?\d{1,3}(?:\.\d+)?)/);
   if (!match) return null;
-  const lat = Number(match[1]);
-  const lon = Number(match[2]);
-  return isPhilippinesCoordinate(lat, lon) ? { lat, lon, label: 'GPS coordinates from saved session location' } : null;
+  let first = Number(match[1]);
+  let second = Number(match[2]);
+  if (isPhilippinesCoordinate(first, second)) {
+    return { lat: first, lon: second, label: 'GPS coordinates from saved location' };
+  }
+  if (isPhilippinesCoordinate(second, first)) {
+    return { lat: second, lon: first, label: 'GPS coordinates from saved location (coordinate order corrected)' };
+  }
+  return null;
 }
 function mapCacheRead() {
-  try { return JSON.parse(localStorage.getItem('ppm-dashboard-map-cache-v3') || '{}'); } catch (_) { return {}; }
+  try { return JSON.parse(localStorage.getItem('ppm-dashboard-map-cache-v5') || '{}'); } catch (_) { return {}; }
 }
 function mapCacheWrite(cache) {
-  try { localStorage.setItem('ppm-dashboard-map-cache-v3', JSON.stringify(cache)); } catch (_) { /* Storage may be disabled. */ }
+  try { localStorage.setItem('ppm-dashboard-map-cache-v5', JSON.stringify(cache)); } catch (_) { /* Storage may be disabled. */ }
 }
 function photonQueryVariants(location) {
   const original = String(location || '').trim();
@@ -877,7 +1115,7 @@ function photonLookup(location) {
           const score = terms.reduce((sum, term) => sum + (text.includes(term) ? 1 : 0), 0);
           const minScore = terms.length <= 1 ? 1 : Math.max(2, Math.ceil(terms.length * 0.5));
           if (score < minScore) return null;
-          return { feature, lat, lon, score, text };
+          return { feature, lat, lon, score, totalTerms: terms.length, text };
         }).filter(Boolean).sort((a, b) => b.score - a.score);
         if (scored.length && (!best || scored[0].score > best.score)) best = scored[0];
         if (best && best.score >= Math.max(2, Math.ceil(terms.length * 0.5))) break;
@@ -888,7 +1126,12 @@ function photonLookup(location) {
     const result = feature ? {
       lat: best.lat,
       lon: best.lon,
-      label: [properties.name, properties.street, properties.city, properties.state, properties.country].filter(Boolean).join(', ')
+      label: [properties.name, properties.street, properties.city, properties.state, properties.country].filter(Boolean).join(', '),
+      confidence: best.totalTerms ? best.score / best.totalTerms : 0,
+      source: 'photon-geocoder',
+      verified: false,
+      placeId: photonPlaceId(properties),
+      osmId: photonPlaceId(properties)
     } : null;
     cache[key] = { savedAt: Date.now(), ...(result ? {} : { ttl: 6 * 60 * 60 * 1000 }), result };
     mapCacheWrite(cache);
@@ -898,48 +1141,1317 @@ function photonLookup(location) {
   photonQueue = lookup.catch(() => null);
   return lookup;
 }
+let courtLocationSearchTimer = null;
+let courtLocationSearchToken = 0;
+let courtLocationActiveIndex = -1;
+const courtLocationSearchCache = new Map();
+const VERIFIED_PH_COURT_LOCATIONS = [
+  {
+    name: 'Summer Pickle and Perks (Alabel)',
+    address: 'Pecolados Compound, Purok Centro, Poblacion, Alabel, Sarangani 9501, Philippines',
+    label: 'Summer Pickle and Perks, Pecolados Compound, Purok Centro, Poblacion, Alabel, Sarangani 9501, Philippines',
+    lat: 6.1114236,
+    lon: 125.2934115,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1114236,125.2934115',
+    placeId: 'venue:summer-pickle-and-perks-alabel'
+  },
+  {
+    name: 'Summer Pickle and Perks-Bula',
+    address: 'Zone 9, Bula, General Santos City, South Cotabato, Philippines',
+    label: 'Summer Pickle and Perks-Bula, Zone 9, Bula, General Santos City, South Cotabato, Philippines',
+    lat: 6.106678009,
+    lon: 125.192527771,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.106678009,125.192527771',
+    placeId: 'venue:summer-pickle-and-perks-bula'
+  },
+  {
+    name: 'Pickle World Gensan - Downtown',
+    address: 'NCCC Compound, National Highway, General Santos City (Dadiangas), 9500 South Cotabato, Philippines',
+    label: 'Pickle World Gensan - Downtown, NCCC Compound, National Highway, General Santos City (Dadiangas), 9500 South Cotabato, Philippines',
+    lat: 6.121556,
+    lon: 125.1754212,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79ffa312fcc13:0x530972c55c9f7c3b',
+    mapsUrl: 'https://maps.app.goo.gl/i2oK4WniREN33NAv7'
+  },
+  {
+    name: 'Pickle World Gensan - Lagao',
+    address: '114L, Purok 12 Arradaza St, General Santos City (Dadiangas), 9500 South Cotabato, Philippines',
+    label: 'Pickle World Gensan - Lagao, 114L, Purok 12 Arradaza St, General Santos City (Dadiangas), 9500 South Cotabato, Philippines',
+    lat: 6.1187434,
+    lon: 125.2048218,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79fcbfb8ef755:0x9f1ebf6d818c1463',
+    mapsUrl: 'https://maps.app.goo.gl/3U1eqL1KNjto2i1BA'
+  },
+  {
+    name: "965 Pickleball Court",
+    address: "Barangay Conel, General Santos City, South Cotabato, Philippines",
+    label: "965 Pickleball Court, Barangay Conel, General Santos City, South Cotabato, Philippines",
+    lat: 6.1926129,
+    lon: 125.1603689,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79d00738e2791:0xfc636a0255966313',
+    mapsUrl: 'https://maps.app.goo.gl/FCgyGVzSB4tPWtyu6'
+  },
+  {
+    name: "AFA Paddle & Events Place",
+    address: "NLSA Extension, Barangay Mabuhay, General Santos City, South Cotabato, Philippines",
+    label: "AFA Paddle & Events Place, NLSA Extension, Barangay Mabuhay, General Santos City, South Cotabato, Philippines",
+    lat: 6.155658,
+    lon: 125.157001,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.155658,125.157001'
+  },
+  {
+    name: "Altori Park Pickleball",
+    address: "Matatag Park Square, Nuñez Extension Street, General Santos City, South Cotabato, Philippines",
+    label: "Altori Park Pickleball, Matatag Park Square, Nuñez Extension Street, General Santos City, South Cotabato, Philippines",
+    lat: 6.139041,
+    lon: 125.156759,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.139041,125.156759'
+  },
+  {
+    name: "Bayview Pickleball Court",
+    address: "Zone 8, Upper Banualan, Barangay Tambler, General Santos City, South Cotabato, Philippines",
+    label: "Bayview Pickleball Court, Zone 8, Upper Banualan, Barangay Tambler, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Brigada Golf Range",
+    address: "Brigada Business Hub, National Highway, Barangay Mabuhay, General Santos City, South Cotabato, Philippines",
+    label: "Brigada Golf Range, Brigada Business Hub, National Highway, Barangay Mabuhay, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Cabin Pickle Club",
+    address: "Diversion Road, Barangay Apopong, The Cabin Brewery, General Santos City, South Cotabato, Philippines",
+    label: "Cabin Pickle Club, Diversion Road, Barangay Apopong, The Cabin Brewery, General Santos City, South Cotabato, Philippines",
+    lat: 6.1014193,
+    lon: 125.1056464,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f7995021542b5f:0x251e594250baa8bd',
+    mapsUrl: 'https://maps.app.goo.gl/gUMpR2Pi1fxcDYSX9'
+  },
+  {
+    name: "CCM Pickleball Court",
+    address: "CCM Sports Center, Purok Masagana, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    label: "CCM Pickleball Court, CCM Sports Center, Purok Masagana, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    lat: 6.153997,
+    lon: 125.165505,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.153997,125.165505'
+  },
+  {
+    name: "Central PickleHub",
+    address: "Manansala Street, Dadiangas North, General Santos City, South Cotabato, Philippines",
+    label: "Central PickleHub, Manansala Street, Dadiangas North, General Santos City, South Cotabato, Philippines",
+    lat: 6.1177125,
+    lon: 125.1677942,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://maps.app.goo.gl/YesBChcUndWDdpU19'
+  },
+  {
+    name: "City Smash Pickleball",
+    address: "PG Building, National Highway, Queens Love Village, General Santos City, South Cotabato, Philippines",
+    label: "City Smash Pickleball, PG Building, National Highway, Queens Love Village, General Santos City, South Cotabato, Philippines",
+    lat: 6.11925,
+    lon: 125.17311,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.11925,125.17311'
+  },
+  {
+    name: "Conel Courts Pickle and Brew",
+    address: "Purok 1B, Santos Compound, Barangay Conel, General Santos City, South Cotabato, Philippines",
+    label: "Conel Courts Pickle and Brew, Purok 1B, Santos Compound, Barangay Conel, General Santos City, South Cotabato, Philippines",
+    lat: 6.202036,
+    lon: 125.1913919,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79d5b00c3cb07:0xca57c964e897db52',
+    mapsUrl: 'https://maps.app.goo.gl/ZZGukqXUMLqj2BSW8'
+  },
+  {
+    name: "Court Zero Racquet Club",
+    address: "Sampaguita Street, Barangay City Heights, General Santos City, South Cotabato, Philippines",
+    label: "Court Zero Racquet Club, Sampaguita Street, Barangay City Heights, General Santos City, South Cotabato, Philippines",
+    lat: 6.1265535,
+    lon: 125.1692548,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1265535,125.1692548'
+  },
+  {
+    name: "D'Lotte Picklepark",
+    address: "44QW+5H6, Nuñez Street, Purok Riverside, General Santos City, South Cotabato, Philippines",
+    label: "D'Lotte Picklepark, 44QW+5H6, Nuñez Street, Purok Riverside, General Santos City, South Cotabato, Philippines",
+    lat: 6.1379025,
+    lon: 125.14637890625,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1379025,125.14637890625'
+  },
+  {
+    name: "Dink O'Clock",
+    address: "Big Wide, National Highway, Palen, Barangay Labangal, General Santos City, South Cotabato, Philippines",
+    label: "Dink O'Clock, Big Wide, National Highway, Palen, Barangay Labangal, General Santos City, South Cotabato, Philippines",
+    lat: 6.1184025,
+    lon: 125.15416015625,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1184025,125.15416015625'
+  },
+  {
+    name: "Dinkwondo",
+    address: "NLSA Road, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    label: "Dinkwondo, NLSA Road, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    lat: 6.1330625,
+    lon: 125.1849375,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79f78e3b51ad3:0x3c8131512958b7e0',
+    mapsUrl: 'https://maps.app.goo.gl/knc8wHTtfVqWfEKW6'
+  },
+  {
+    name: "Frasssati Outdoor Recreation Area (FORA)",
+    address: "Our Lady Manaog Compound, Nuñez Street, General Santos City, South Cotabato, Philippines",
+    label: "Frasssati Outdoor Recreation Area (FORA), Our Lady Manaog Compound, Nuñez Street, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "FRNDZONE Playhub",
+    address: "Purok Ricvill, San Jose, near General Santos Airport, General Santos City, South Cotabato, Philippines",
+    label: "FRNDZONE Playhub, Purok Ricvill, San Jose, near General Santos Airport, General Santos City, South Cotabato, Philippines",
+    lat: 6.0799663,
+    lon: 125.0856893,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f7a38886b31997:0x9cd39d23155e9a79',
+    mapsUrl: 'https://maps.app.goo.gl/133whi3br3dRnUZk9'
+  },
+  {
+    name: "Game Yard",
+    address: "Purok Amadeo, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    label: "Game Yard, Purok Amadeo, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    lat: 6.136615,
+    lon: 125.1843838,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79ffd6b407bbb:0x426ab1e8ad1acaef',
+    mapsUrl: 'https://maps.app.goo.gl/tFvJpUeVwXwjkLaXA'
+  },
+  {
+    name: "Game-On Picklehaus",
+    address: "National Highway, General Santos City, South Cotabato, Philippines",
+    label: "Game-On Picklehaus, National Highway, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Gensan Rackets Pickleball Club",
+    address: "Nursery Road, near EmJake Aquawave, General Santos City, South Cotabato, Philippines",
+    label: "Gensan Rackets Pickleball Club, Nursery Road, near EmJake Aquawave, General Santos City, South Cotabato, Philippines",
+    lat: 6.144005,
+    lon: 125.1932769,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79f003b725e2b:0x579b49a5b16cc6b8',
+    mapsUrl: 'https://maps.app.goo.gl/n2rLaDc14oLnfzgn9'
+  },
+  {
+    name: "Gmall Pickleball Gensan",
+    address: "Gaisano Mall, J. Catolico Sr. Avenue, General Santos City, South Cotabato, Philippines",
+    label: "Gmall Pickleball Gensan, Gaisano Mall, J. Catolico Sr. Avenue, General Santos City, South Cotabato, Philippines",
+    lat: 6.1183134,
+    lon: 125.1845544,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79fb078fccdab:0x99982f61dbc955e9',
+    mapsUrl: 'https://maps.app.goo.gl/YZ7vCmUtkmo2uacG9'
+  },
+  {
+    name: "J&P Pickleball Academy",
+    address: "45VH+PGR, Pancubila Street, General Santos City, South Cotabato, Philippines",
+    label: "J&P Pickleball Academy, 45VH+PGR, Pancubila Street, General Santos City, South Cotabato, Philippines",
+    lat: 6.1443525,
+    lon: 125.17875390625,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1443525,125.17875390625'
+  },
+  {
+    name: "JCO Pickleball Hub",
+    address: "46R5+FJR, Davao Road, Lagao, beside VSM Estate, General Santos City, South Cotabato, Philippines",
+    label: "JCO Pickleball Hub, 46R5+FJR, Davao Road, Lagao, beside VSM Estate, General Santos City, South Cotabato, Philippines",
+    lat: 6.1412275,
+    lon: 125.20900390625,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1412275,125.20900390625'
+  },
+  {
+    name: "JG Oranza Sports Arena",
+    address: "Buayan, General Santos City, South Cotabato, Philippines",
+    label: "JG Oranza Sports Arena, Buayan, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Laureto Pickleball Court",
+    address: "44QW+4MR, Nuñez Street, General Santos City, South Cotabato, Philippines",
+    label: "Laureto Pickleball Court, 44QW+4MR, Nuñez Street, General Santos City, South Cotabato, Philippines",
+    lat: 6.1378525,
+    lon: 125.14662890625,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1378525,125.14662890625'
+  },
+  {
+    name: "Lim Spring Garden",
+    address: "Near Lagao Barangay Hall, General Santos City, South Cotabato, Philippines",
+    label: "Lim Spring Garden, Near Lagao Barangay Hall, General Santos City, South Cotabato, Philippines",
+    lat: 6.1296466,
+    lon: 125.1971456,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79f00008990e3:0x2203e1d9ca535f51',
+    mapsUrl: 'https://maps.app.goo.gl/E9LEPzc89yrsLkB9A'
+  },
+  {
+    name: "LPS Homecourt",
+    address: "Fil-Am Road, Barangay Calumpang, General Santos City, South Cotabato, Philippines",
+    label: "LPS Homecourt, Fil-Am Road, Barangay Calumpang, General Santos City, South Cotabato, Philippines",
+    lat: 6.0718022,
+    lon: 125.1345484,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f7a100608cffb7:0x368e6dd81ffebb80',
+    mapsUrl: 'https://maps.app.goo.gl/JcRmkEGerEz8uzSn9'
+  },
+  {
+    name: "Mamikilay",
+    address: "Lower Cabuay Road, Barangay Sinawal, General Santos City, South Cotabato, Philippines",
+    label: "Mamikilay, Lower Cabuay Road, Barangay Sinawal, General Santos City, South Cotabato, Philippines",
+    lat: 6.1406545,
+    lon: 125.1127992,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f799005c95f7a1:0x405b75587d671514',
+    mapsUrl: 'https://maps.app.goo.gl/P4wZLTpFNFDp41p28'
+  },
+  {
+    name: "NRT Events Center",
+    address: "Purok Cañas, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    label: "NRT Events Center, Purok Cañas, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    lat: 6.16112,
+    lon: 125.167273,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79f0a7dae8fff:0x7cece8854e054ecf',
+    mapsUrl: 'https://maps.app.goo.gl/FXhF1UMMhe4HNMeG9'
+  },
+  {
+    name: "Paddle King Court",
+    address: "MC Village, Block 3, Barangay Fatima, General Santos City, South Cotabato, Philippines",
+    label: "Paddle King Court, MC Village, Block 3, Barangay Fatima, General Santos City, South Cotabato, Philippines",
+    lat: 6.071332,
+    lon: 125.1049725,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f7a3003b360a19:0x5714df713af06d75',
+    mapsUrl: 'https://maps.app.goo.gl/pkbQEafHmRQacJDu8'
+  },
+  {
+    name: "Pickle Barn",
+    address: "Upper Villegas, beside Imperial Bodega, General Santos City, South Cotabato, Philippines",
+    label: "Pickle Barn, Upper Villegas, beside Imperial Bodega, General Santos City, South Cotabato, Philippines",
+    lat: 6.1431454,
+    lon: 125.1741914,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79f07cdfc0831:0xc59a7ab7af150b84',
+    mapsUrl: 'https://maps.app.goo.gl/uDNzGxhK6ERNzHrn7'
+  },
+  {
+    name: "Pickle Bull by Kwiky Mart",
+    address: "National Highway, General Santos City, South Cotabato, Philippines",
+    label: "Pickle Bull by Kwiky Mart, National Highway, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Pickle Court Co.",
+    address: "Golden Village, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    label: "Pickle Court Co., Golden Village, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Pickle Panic Recreational Park",
+    address: "Lagare Farms & Parks, General Santos City, South Cotabato, Philippines",
+    label: "Pickle Panic Recreational Park, Lagare Farms & Parks, General Santos City, South Cotabato, Philippines",
+    lat: 6.131262,
+    lon: 125.149036,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79f13956fcd9b:0x30c3dc62dbe93cf5',
+    mapsUrl: 'https://maps.app.goo.gl/T3Wn9TvPYwyN5JXP8'
+  },
+  {
+    name: "Pickleholics",
+    address: "Purok Soriano, Barangay Sinawal, General Santos City, South Cotabato, Philippines",
+    label: "Pickleholics, Purok Soriano, Barangay Sinawal, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Picklehub & Cafe",
+    address: "Velasquez Street, Dadiangas North, General Santos City, South Cotabato, Philippines",
+    label: "Picklehub & Cafe, Velasquez Street, Dadiangas North, General Santos City, South Cotabato, Philippines",
+    lat: 6.118462563,
+    lon: 125.165641785,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.118462563,125.165641785'
+  },
+  {
+    name: "Picklepals – SM City GenSan",
+    address: "Parking Lot E, SM City General Santos, J. Catolico Sr. Avenue, General Santos City, South Cotabato, Philippines",
+    label: "Picklepals – SM City GenSan, Parking Lot E, SM City General Santos, J. Catolico Sr. Avenue, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Pickleyard & Co",
+    address: "Fernandez Street, near Lagao Barangay Hall, General Santos City, South Cotabato, Philippines",
+    label: "Pickleyard & Co, Fernandez Street, near Lagao Barangay Hall, General Santos City, South Cotabato, Philippines",
+    lat: 6.1235625,
+    lon: 125.1845625,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1235625,125.1845625'
+  },
+  {
+    name: "Rally Point GenSan (RPG-GUPC) Pickleball Courts",
+    address: "45CM+6J5, behind GSIS Office, National Highway, General Santos City, South Cotabato, Philippines",
+    label: "Rally Point GenSan (RPG-GUPC) Pickleball Courts, 45CM+6J5, behind GSIS Office, National Highway, General Santos City, South Cotabato, Philippines",
+    lat: 6.1205169,
+    lon: 125.1841202,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79f0012e2b089:0x35bff7fe44048df2',
+    mapsUrl: 'https://maps.app.goo.gl/LsqVfPhH8BdnHfS27'
+  },
+  {
+    name: "RAPIKOL Pickleball Court",
+    address: "Odi Street, General Santos City, South Cotabato, Philippines",
+    label: "RAPIKOL Pickleball Court, Odi Street, General Santos City, South Cotabato, Philippines",
+    lat: 6.1294375,
+    lon: 125.1933125,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1294375,125.1933125'
+  },
+  {
+    name: "RGR Pickleball Courtside",
+    address: "Pancubila Street, General Santos City, South Cotabato, Philippines",
+    label: "RGR Pickleball Courtside, Pancubila Street, General Santos City, South Cotabato, Philippines",
+    lat: 6.1457025,
+    lon: 125.17841015625,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1457025,125.17841015625'
+  },
+  {
+    name: "Robinson Pickleball",
+    address: "Robinsons Place GenSan, J. Catolico Sr. Avenue, General Santos City, South Cotabato, Philippines",
+    label: "Robinson Pickleball, Robinsons Place GenSan, J. Catolico Sr. Avenue, General Santos City, South Cotabato, Philippines",
+    lat: 6.1202669,
+    lon: 125.1897059,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79f000f19fa1f:0x4ea148efa1bfdb7d',
+    mapsUrl: 'https://maps.app.goo.gl/C2J2Fth5ZbtQd1gX7'
+  },
+  {
+    name: "Sanman Pickle Punch GenSan",
+    address: "Sanman Boxing Gym Compound, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    label: "Sanman Pickle Punch GenSan, Sanman Boxing Gym Compound, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    lat: 6.138551,
+    lon: 125.1803825,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79f9c72b79b19:0x88c31ee2fcca06de',
+    mapsUrl: 'https://maps.app.goo.gl/hhxMtkQqs3rmMHbd8'
+  },
+  {
+    name: "Serve & Volley Pickleball Courts",
+    address: "Mabuhay Road, General Santos City, South Cotabato, Philippines",
+    label: "Serve & Volley Pickleball Courts, Mabuhay Road, General Santos City, South Cotabato, Philippines",
+    lat: 6.1449375,
+    lon: 125.1605625,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1449375,125.1605625'
+  },
+  {
+    name: "SideOut GenSan – Exclusive",
+    address: "Solomon Subdivision, Purok 15, Lagao, General Santos City, South Cotabato, Philippines",
+    label: "SideOut GenSan – Exclusive, Solomon Subdivision, Purok 15, Lagao, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "SideOut Pickleball Court GenSan – Main",
+    address: "National Highway, Lagao, opposite La Mirada Inn, General Santos City, South Cotabato, Philippines",
+    label: "SideOut Pickleball Court GenSan – Main, National Highway, Lagao, opposite La Mirada Inn, General Santos City, South Cotabato, Philippines",
+    lat: 6.131947517,
+    lon: 125.201087952,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.131947517,125.201087952'
+  },
+  {
+    name: "T-James Sporty Bar",
+    address: "Purok 14-D, Katangawan, General Santos City, South Cotabato, Philippines",
+    label: "T-James Sporty Bar, Purok 14-D, Katangawan, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "The Compound Courts",
+    address: "5568+6WR, General Santos City Circumferential Road, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    label: "The Compound Courts, 5568+6WR, General Santos City Circumferential Road, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+    lat: 6.1606025,
+    lon: 125.16725390625,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1606025,125.16725390625'
+  },
+  {
+    name: "The Loom & The Leaf Weekend Market",
+    address: "Nopo-Conel, Mabuhay Road, General Santos City, South Cotabato, Philippines",
+    label: "The Loom & The Leaf Weekend Market, Nopo-Conel, Mabuhay Road, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "The Paddle Club Pickleball",
+    address: "Tiongson Street, Lagao, General Santos City, South Cotabato, Philippines",
+    label: "The Paddle Club Pickleball, Tiongson Street, Lagao, General Santos City, South Cotabato, Philippines",
+    lat: 6.1272035,
+    lon: 125.192598,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79f0077b50255:0xa504247b5cbf36ae',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1271875,125.1925625'
+  },
+  {
+    name: "The Palm Court",
+    address: "Del Carmen Street, Lagao, General Santos City, South Cotabato, Philippines",
+    label: "The Palm Court, Del Carmen Street, Lagao, General Santos City, South Cotabato, Philippines",
+    lat: 6.131737232,
+    lon: 125.189704895,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.131737232,125.189704895'
+  },
+  {
+    name: "The Pickle Cafe",
+    address: "Purok 3, Labu, Katangawan, General Santos City, South Cotabato, Philippines",
+    label: "The Pickle Cafe, Purok 3, Labu, Katangawan, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "The Pickle Neighbour",
+    address: "Romana Estate, Dacera Street, Barangay City Heights, General Santos City, South Cotabato, Philippines",
+    label: "The Pickle Neighbour, Romana Estate, Dacera Street, Barangay City Heights, General Santos City, South Cotabato, Philippines",
+    lat: 6.1243525,
+    lon: 125.15603515625,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1243525,125.15603515625'
+  },
+  {
+    name: "Third Shot Pickleground Gensan",
+    address: "Sunshine Compound, Arradaza Street, Lagao, General Santos City, South Cotabato, Philippines",
+    label: "Third Shot Pickleground Gensan, Sunshine Compound, Arradaza Street, Lagao, General Santos City, South Cotabato, Philippines",
+    lat: 6.1173896,
+    lon: 125.1937748,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79f0011f697bf:0x9884c43134ddb9cf',
+    mapsUrl: 'https://maps.app.goo.gl/FxksNtumf1rp1Nvz6'
+  },
+  {
+    name: "Tranquil Bounce Pickleball Club",
+    address: "Greenfield Residences, Nursery Road, Lagao, General Santos City, South Cotabato, Philippines",
+    label: "Tranquil Bounce Pickleball Club, Greenfield Residences, Nursery Road, Lagao, General Santos City, South Cotabato, Philippines",
+    lat: 6.1438433,
+    lon: 125.2027057,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79fc4204c719d:0x23387cdeecc58f81',
+    mapsUrl: 'https://maps.app.goo.gl/LvKprZ9k6M7SQ4Ff9'
+  },
+  {
+    name: "Triangle Centre Court",
+    address: "Bula, General Santos City, South Cotabato, Philippines",
+    label: "Triangle Centre Court, Bula, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "V-Park",
+    address: "Circumferential Road, Velayo Farm, General Santos City, South Cotabato, Philippines",
+    label: "V-Park, Circumferential Road, Velayo Farm, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Verde Pickle Courts",
+    address: "Purok Maunlad Phase 2, General Santos City, South Cotabato, Philippines",
+    label: "Verde Pickle Courts, Purok Maunlad Phase 2, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "ZZ Pickle Court",
+    address: "Dadiangas Heights Subdivision, Block 6, General Santos City, South Cotabato, Philippines",
+    label: "ZZ Pickle Court, Dadiangas Heights Subdivision, Block 6, General Santos City, South Cotabato, Philippines",
+    lat: 6.1258314,
+    lon: 125.174884,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    placeId: 'google:0x32f79f7e1143e47b:0xb16c43e998c7c238',
+    mapsUrl: 'https://maps.app.goo.gl/QfpTRyEofVtriTuo8'
+  },
+  {
+    name: "4th Road Picklehub & Cafe",
+    address: "35H3+J56, Fourth Road, General Santos City (Dadiangas), South Cotabato, Philippines",
+    label: "4th Road Picklehub & Cafe, 35H3+J56, Fourth Road, General Santos City (Dadiangas), South Cotabato, Philippines",
+    lat: 6.0790275,
+    lon: 125.15287890625,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.0790275,125.15287890625',
+    status: "coming-soon"
+  },
+  {
+    name: "Cross Court Gensan",
+    address: "Mercado Street, Barangay San Isidro, General Santos City (Dadiangas), South Cotabato, Philippines",
+    label: "Cross Court Gensan, Mercado Street, Barangay San Isidro, General Santos City (Dadiangas), South Cotabato, Philippines",
+    lat: 6.1488376,
+    lon: 125.16542,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1488376,125.16542'
+  },
+  {
+    name: "SHAO Pickle Court",
+    address: "Zone 1, Barangay Buayan Townsite, General Santos City, South Cotabato, Philippines",
+    label: "SHAO Pickle Court, Zone 1, Barangay Buayan Townsite, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Picklepals - San Miguel",
+    address: "San Miguel Street, General Santos City (Dadiangas), 9500 South Cotabato, Philippines",
+    label: "Picklepals - San Miguel, San Miguel Street, General Santos City (Dadiangas), 9500 South Cotabato, Philippines",
+    lat: 6.1163125,
+    lon: 125.1833125,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1163125,125.1833125'
+  },
+  {
+    name: "RALLÉ Sports Center",
+    address: "543W+JRH, General Santos City Circumferential Road, General Santos City (Dadiangas), South Cotabato, Philippines",
+    label: "RALLÉ Sports Center, 543W+JRH, General Santos City Circumferential Road, General Santos City (Dadiangas), South Cotabato, Philippines",
+    lat: 6.1540525,
+    lon: 125.14709765625,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1540525,125.14709765625',
+    status: "coming-soon"
+  },
+  {
+    name: "The Pickle Field",
+    address: "Purok 28, Barangay San Jose Road, General Santos City (Dadiangas), South Cotabato, Philippines",
+    label: "The Pickle Field, Purok 28, Barangay San Jose Road, General Santos City (Dadiangas), South Cotabato, Philippines",
+    lat: 6.0781555,
+    lon: 125.10362,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.0781555,125.10362'
+  },
+  {
+    name: "PickleBelle",
+    address: "Savemore, Nuñez Street, Purok Malakas, General Santos City (Dadiangas), South Cotabato, Philippines",
+    label: "PickleBelle, Savemore, Nuñez Street, Purok Malakas, General Santos City (Dadiangas), South Cotabato, Philippines",
+    lat: 6.138061047,
+    lon: 125.1614151,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.138061047,125.1614151'
+  },
+  {
+    name: "The Pickle Yard",
+    address: "Catalino Cabe Street, Bula, General Santos City (Dadiangas), South Cotabato, Philippines",
+    label: "The Pickle Yard, Catalino Cabe Street, Bula, General Santos City (Dadiangas), South Cotabato, Philippines",
+    lat: 6.111452,
+    lon: 125.18355,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.111452,125.18355'
+  },
+  {
+    name: "The Dirty Kitchen Pickleball Court",
+    address: "Mabuhay Road, Agan Homes, Phase 1, Purok Perez, General Santos City (Dadiangas), 9500 South Cotabato, Philippines",
+    label: "The Dirty Kitchen Pickleball Court, Mabuhay Road, Agan Homes, Phase 1, Purok Perez, General Santos City (Dadiangas), 9500 South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Dink Yard Gensan Inc",
+    address: "Purok Bagong Silang, Upper Molok Bridge, National Highway, Barangay Labangal, General Santos City, South Cotabato, Philippines",
+    label: "Dink Yard Gensan Inc, Purok Bagong Silang, Upper Molok Bridge, National Highway, Barangay Labangal, General Santos City, South Cotabato, Philippines",
+    lat: 6.1019683,
+    lon: 125.1518,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1019683,125.1518'
+  },
+  {
+    name: "PaddlePals Recreational Hub",
+    address: "Yumang Extension, General Santos City, South Cotabato, Philippines",
+    label: "PaddlePals Recreational Hub, Yumang Extension, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "PogzGen Pickleball Court",
+    address: "Phase 3, Block 7, Lot 24, Galatians Street, Purok Placida, Barangay Calumpang, General Santos City, South Cotabato, Philippines",
+    label: "PogzGen Pickleball Court, Phase 3, Block 7, Lot 24, Galatians Street, Purok Placida, Barangay Calumpang, General Santos City, South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Pikolbol Couples",
+    address: "Block 7, Purok 3, Barangay Conel, General Santos City (Dadiangas), South Cotabato, 9500, Philippines",
+    label: "Pikolbol Couples, Block 7, Purok 3, Barangay Conel, General Santos City (Dadiangas), South Cotabato, 9500, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Vast Grounds - Pickleball Hub",
+    address: "JFR Commercial Complex Leasing, Purok 24, Mabuhay Road, Barangay Mabuhay, General Santos City (Dadiangas), South Cotabato, 9500, Philippines",
+    label: "Vast Grounds - Pickleball Hub, JFR Commercial Complex Leasing, Purok 24, Mabuhay Road, Barangay Mabuhay, General Santos City (Dadiangas), South Cotabato, 9500, Philippines",
+    lat: 6.1524506,
+    lon: 125.16048,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1524506,125.16048'
+  },
+  {
+    name: "P16 Dink Yard",
+    address: "Purok 16, Block 1, Barangay Fatima, General Santos City (Dadiangas), South Cotabato, 9500, Philippines",
+    label: "P16 Dink Yard, Purok 16, Block 1, Barangay Fatima, General Santos City (Dadiangas), South Cotabato, 9500, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  },
+  {
+    name: "Gensan Commandos Sports Center",
+    address: "Purok Pantay-Pantay, Barangay Baluan, General Santos City (Dadiangas), South Cotabato, Philippines",
+    label: "Gensan Commandos Sports Center, Purok Pantay-Pantay, Barangay Baluan, General Santos City (Dadiangas), South Cotabato, Philippines",
+    lat: 6.1269625,
+    lon: 125.21873437500001,
+    countrycode: 'PH',
+    source: 'verified-venue-listing',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1269625,125.21873437500001'
+  },
+  {
+    name: "Pickle Vista",
+    address: "Purok Vista, Alilaya Village, Barangay Sinawal, General Santos City (Dadiangas), South Cotabato, Philippines",
+    label: "Pickle Vista, Purok Vista, Alilaya Village, Barangay Sinawal, General Santos City (Dadiangas), South Cotabato, Philippines",
+    lat: null,
+    lon: null,
+    countrycode: 'PH',
+    source: 'gensan-court-directory'
+  }
+];
+
+function normalizeCourtLocationSearchText(value) {
+  return String(value || '').normalize('NFKD').toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+}
+
+function photonPlaceId(properties = {}) {
+  const osmType = String(properties.osm_type || '').trim();
+  const osmId = String(properties.osm_id || '').trim();
+  return osmType && osmId ? `osm:${osmType}:${osmId}` : '';
+}
+
+function searchPhilippineLocations(query) {
+  const trimmed = String(query || '').trim();
+  if (trimmed.length < 3) return Promise.resolve([]);
+  const cacheKey = normalizeName(trimmed);
+  if (courtLocationSearchCache.has(cacheKey)) return Promise.resolve(courtLocationSearchCache.get(cacheKey));
+
+  const terms = normalizeCourtLocationSearchText(trimmed).split(' ')
+    .filter(term => term.length > 2 && !['the', 'and', 'for', 'philippines', 'pickleball', 'court', 'courts', 'venue', 'venues', 'club', 'clubs'].includes(term));
+  const requiredMatches = terms.length <= 1 ? 1 : Math.max(1, Math.ceil(terms.length * 0.5));
+  const curatedMatches = terms.length ? VERIFIED_PH_COURT_LOCATIONS.filter(feature => {
+    const searchable = normalizeCourtLocationSearchText(`${feature.name} ${feature.address} ${/general\s+santos/i.test(feature.address) ? 'GenSan' : ''}`);
+    const matches = terms.filter(term => searchable.includes(term)).length;
+    return matches >= requiredMatches;
+  }).map(feature => ({ ...feature })) : [];
+
+  const params = new URLSearchParams({
+    q: trimmed,
+    limit: '10',
+    lang: 'en',
+    countrycode: 'PH',
+    bbox: '115.5,4.0,128.6,22.4',
+    lat: String(PH_MAP_CENTER[0]),
+    lon: String(PH_MAP_CENTER[1]),
+    zoom: '5'
+  });
+
+  const request = async () => {
+    const wait = Math.max(0, 900 - (Date.now() - photonLastRequestAt));
+    if (wait) await new Promise(resolve => window.setTimeout(resolve, wait));
+    photonLastRequestAt = Date.now();
+
+    const response = await fetch(`https://photon.komoot.io/api/?${params.toString()}`, {
+      headers: { Accept: 'application/geo+json, application/json' },
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error('Philippines location search is temporarily unavailable.');
+    const payload = await response.json();
+    const unique = new Map();
+
+    curatedMatches.forEach(feature => {
+      const lat = Number(feature.lat);
+      const lon = Number(feature.lon);
+      const hasVerifiedCoordinates = isPhilippinesCoordinate(lat, lon);
+      const key = hasVerifiedCoordinates
+        ? `${normalizeCourtLocationSearchText(feature.name)}|${lat.toFixed(5)}|${lon.toFixed(5)}`
+        : `directory:${normalizeCourtLocationSearchText(feature.name)}`;
+      unique.set(key, {
+        ...feature,
+        lat: hasVerifiedCoordinates ? lat : '',
+        lon: hasVerifiedCoordinates ? lon : '',
+        primary: feature.name,
+        secondary: feature.address
+      });
+    });
+
+    (Array.isArray(payload.features) ? payload.features : []).forEach(feature => {
+      const properties = feature?.properties || {};
+      const coordinates = feature?.geometry?.coordinates || [];
+      const lon = Number(coordinates[0]);
+      const lat = Number(coordinates[1]);
+      const countrycode = String(properties.countrycode || properties.countryCode || '').toUpperCase();
+      if (countrycode !== 'PH' || !isPhilippinesCoordinate(lat, lon)) return;
+
+      const name = String(properties.name || properties.street || properties.city || 'Philippines location').trim();
+      const street = [properties.housenumber, properties.street].filter(Boolean).join(' ').trim();
+      const addressParts = [
+        street && normalizeCourtLocationSearchText(street) !== normalizeCourtLocationSearchText(name) ? street : '',
+        properties.district,
+        properties.suburb,
+        properties.city,
+        properties.county,
+        properties.state,
+        properties.postcode,
+        'Philippines'
+      ].filter(Boolean);
+      const address = [...new Set(addressParts.map(value => String(value).trim()).filter(Boolean))].join(', ');
+      const label = [...new Set([name, ...addressParts].filter(Boolean))].join(', ');
+      const searchable = normalizeCourtLocationSearchText([
+        name, address, properties.osm_key, properties.osm_value
+      ].filter(Boolean).join(' '));
+      const matches = terms.filter(term => searchable.includes(term)).length;
+      if (terms.length && matches < requiredMatches) return;
+
+      const osmId = photonPlaceId(properties);
+      const result = {
+        name,
+        address,
+        label,
+        primary: name,
+        secondary: address,
+        lat,
+        lon,
+        countrycode: 'PH',
+        source: 'photon',
+        placeId: osmId,
+        osmId
+      };
+      const key = `${normalizeCourtLocationSearchText(name)}|${lat.toFixed(5)}|${lon.toFixed(5)}`;
+      if (!unique.has(key)) unique.set(key, result);
+    });
+
+    const results = [...unique.values()].slice(0, 8);
+    courtLocationSearchCache.set(cacheKey, results);
+    if (courtLocationSearchCache.size > 40) {
+      courtLocationSearchCache.delete(courtLocationSearchCache.keys().next().value);
+    }
+    return results;
+  };
+
+  const lookup = photonQueue.then(request, request);
+  photonQueue = lookup.catch(() => []);
+  return lookup.catch(() => {
+    if (curatedMatches.length) return curatedMatches;
+    throw new Error('Philippines location search is temporarily unavailable.');
+  });
+}
+function renderCourtLocationSuggestions(form, results, query) {
+  const list = form?.querySelector('[data-court-location-suggestions]');
+  if (!list) return;
+  const input = form.querySelector('[data-court-location-input]');
+  courtLocationActiveIndex = -1;
+  if (!results.length) {
+    list.innerHTML = `<div class="court-location-no-results">No matching Philippine pickleball court or map place found. Try a court name, barangay, city or province.</div>`;
+    list.hidden = false;
+    if (input) input.setAttribute('aria-expanded', 'true');
+    return;
+  }
+  list.innerHTML = results.map(result => {
+    const sourceLabel = result.source === 'gensan-court-directory'
+      ? 'GenSan court directory · Exact map pin required'
+      : result.source === 'verified-venue-listing'
+        ? 'Verified court venue · Philippines'
+        : 'Philippines · Map search';
+    const statusLabel = result.status === 'coming-soon' ? 'Coming soon · ' : '';
+    return `<button type="button" class="court-location-option" role="option" aria-selected="false" data-court-location-option data-kind="map-place" data-label="${escapeHTML(result.label)}" data-lat="${escapeHTML(result.lat ?? '')}" data-lon="${escapeHTML(result.lon ?? '')}" data-place-id="${escapeHTML(result.placeId || result.osmId || '')}" data-source="${escapeHTML(result.source || 'photon')}"><strong>${escapeHTML(result.primary || result.name)}</strong><small>${escapeHTML(result.secondary || result.address || result.label)}</small><small>${statusLabel}${sourceLabel}</small></button>`;
+  }).join('');
+  list.hidden = false;
+  if (input) input.setAttribute('aria-expanded', 'true');
+}
+
+function updateCourtPinFields(form, coordinates, { confirmed = true, source = 'manual-map-pin', label = '', placeId = '', pinId = '', osmId = '' } = {}) {
+  if (!form || !coordinates) return false;
+  const lat = Number(coordinates.lat);
+  const lon = Number(coordinates.lon);
+  if (!isPhilippinesCoordinate(lat, lon)) return false;
+  const latField = form.querySelector('[data-court-location-lat]');
+  const lonField = form.querySelector('[data-court-location-lon]');
+  const labelField = form.querySelector('[data-court-location-label]');
+  const confirmedField = form.querySelector('[data-court-location-pin-confirmed]');
+  const sourceField = form.querySelector('[data-court-location-pin-source]');
+  const placeIdField = form.querySelector('[data-court-location-place-id]');
+  const pinIdField = form.querySelector('[data-court-location-pin-id]');
+  const input = form.querySelector('[data-court-location-input]');
+  const resolvedPlaceId = String(placeId || coordinates.placeId || coordinates.osmId || '').trim();
+  const resolvedOsmId = String(osmId || coordinates.osmId || (resolvedPlaceId.startsWith('osm:') ? resolvedPlaceId : '')).trim();
+  const resolvedPinId = String(pinId || coordinates.pinId || `pin:${lat.toFixed(7)},${lon.toFixed(7)}`).trim();
+
+  if (latField) latField.value = lat.toFixed(7);
+  if (lonField) lonField.value = lon.toFixed(7);
+  if (labelField) labelField.value = label || coordinates.label || `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+  if (confirmedField) confirmedField.value = confirmed ? 'true' : 'false';
+  if (sourceField) sourceField.value = source || '';
+  if (placeIdField) placeIdField.value = resolvedPlaceId;
+  if (pinIdField) pinIdField.value = resolvedPinId;
+  if (input) {
+    input.dataset.placeId = resolvedPlaceId;
+    input.dataset.pinId = resolvedPinId;
+    input.dataset.osmId = resolvedOsmId;
+  }
+
+  const status = form.querySelector('#registerCourtLocationStatus');
+  if (status) status.textContent = confirmed
+    ? `Pin location confirmed · ${lat.toFixed(5)}, ${lon.toFixed(5)}. Drag the pin again or tap the map to adjust it.`
+    : 'Approximate city preview only. Drag the pin or tap the exact court location before saving.';
+  return true;
+}
+
+function clearCourtLocationPinForDirectorySelection(form) {
+  if (!form) return;
+  form._courtPinRevision = Number(form._courtPinRevision || 0) + 1;
+  [
+    '[data-court-location-lat]', '[data-court-location-lon]',
+    '[data-court-location-label]', '[data-court-location-place-id]',
+    '[data-court-location-pin-id]', '[data-court-location-pin-confirmed]',
+    '[data-court-location-pin-source]'
+  ].forEach(selector => {
+    const field = form.querySelector(selector);
+    if (field) field.value = selector === '[data-court-location-pin-confirmed]' ? 'false' : '';
+  });
+  const input = form.querySelector('[data-court-location-input]');
+  if (input) {
+    delete input.dataset.placeId;
+    delete input.dataset.pinId;
+    delete input.dataset.osmId;
+    input.dataset.selectedLocation = 'true';
+  }
+  const pinMap = form._courtPinMap;
+  if (pinMap?.marker) pinMap.marker.getElement().style.display = 'none';
+  if (pinMap?.map) {
+    // A city-level view is only a navigation aid; it is never saved as a court pin.
+    pinMap.map.flyTo({ center: [125.1716, 6.1164], zoom: 12, pitch: 0, bearing: 0, duration: 650 });
+  }
+  const status = form.querySelector('#registerCourtLocationStatus');
+  if (status) status.textContent = 'GenSan venue selected. This directory entry has no verified GPS pin yet. Tap the exact court entrance on the map (or place the pin there) before saving.';
+  return Number(form._courtPinRevision || 0);
+}
+
+async function previewGensanDirectoryVenueOnMap(form, venue) {
+  const revision = clearCourtLocationPinForDirectorySelection(form);
+  if (!form?.isConnected) return;
+  const query = `${venue?.name || ''}, General Santos City, South Cotabato, Philippines`;
+  const match = await photonLookup(query);
+  if (!match || Number(match.confidence || 0) < 0.55 || !form.isConnected || Number(form._courtPinRevision || 0) !== revision) return;
+  const mapReady = await form._courtPinMapReady;
+  if (!mapReady || !form.isConnected || Number(form._courtPinRevision || 0) !== revision) return;
+  if (!isPhilippinesCoordinate(Number(match.lat), Number(match.lon))) return;
+  moveCourtLocationPin(form, match, {
+    confirmed: false,
+    source: 'gensan-directory-geocoder-preview',
+    label: `Map suggestion · ${match.label || query}`,
+    zoom: 16,
+    placeId: match.placeId || match.osmId || '',
+    osmId: match.osmId || ''
+  });
+  const status = form.querySelector('#registerCourtLocationStatus');
+  if (status) status.textContent = 'Approximate GenSan map suggestion shown. Confirm the exact court entrance by dragging the pin or tapping the correct spot before saving.';
+}
+
+function moveCourtLocationPin(form, coordinates, { confirmed = true, source = 'map-search', label = '', zoom = 16, placeId = '', pinId = '', osmId = '' } = {}) {
+  const lat = Number(coordinates?.lat);
+  const lon = Number(coordinates?.lon);
+  const resolvedPlaceId = placeId || coordinates?.placeId || coordinates?.osmId || '';
+  const resolvedPinId = pinId || coordinates?.pinId || (isPhilippinesCoordinate(lat, lon) ? `pin:${lat.toFixed(7)},${lon.toFixed(7)}` : '');
+  if (!updateCourtPinFields(form, coordinates, { confirmed, source, label, placeId: resolvedPlaceId, pinId: resolvedPinId, osmId: osmId || coordinates?.osmId || '' })) return false;
+  const pinMap = form?._courtPinMap;
+  if (pinMap?.marker && pinMap?.map) {
+    pinMap.marker.getElement()?.style.removeProperty('display');
+    pinMap.marker.setLngLat([Number(coordinates.lon), Number(coordinates.lat)]);
+    pinMap.map.flyTo({ center: [Number(coordinates.lon), Number(coordinates.lat)], zoom, pitch: 0, bearing: 0, duration: 650 });
+  }
+  return true;
+}
+
+async function resolveCourtPinPlaceId(form, coordinates, pinRevision) {
+  const lat = Number(coordinates?.lat);
+  const lon = Number(coordinates?.lon);
+  if (!form?.isConnected || !isPhilippinesCoordinate(lat, lon)) return null;
+  const params = new URLSearchParams({ lat: String(lat), lon: String(lon), lang: 'en', limit: '1' });
+  try {
+    const response = await fetch(`https://photon.komoot.io/reverse/?${params.toString()}`, {
+      headers: { Accept: 'application/geo+json, application/json' },
+      cache: 'no-store'
+    });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const feature = Array.isArray(payload.features) ? payload.features[0] : null;
+    if (!feature || Number(form._courtPinRevision || 0) !== Number(pinRevision || 0) || !form.isConnected) return null;
+    const properties = feature.properties || {};
+    const osmId = photonPlaceId(properties);
+    if (!osmId) return null;
+    const currentLat = Number(form.querySelector('[data-court-location-lat]')?.value);
+    const currentLon = Number(form.querySelector('[data-court-location-lon]')?.value);
+    if (!Number.isFinite(currentLat) || !Number.isFinite(currentLon) ||
+        Math.abs(currentLat - lat) > 0.000001 || Math.abs(currentLon - lon) > 0.000001) return null;
+    const placeLabel = [
+      properties.name,
+      properties.street,
+      properties.city,
+      properties.state,
+      properties.country || 'Philippines'
+    ].filter(Boolean).join(', ');
+    const pinId = `pin:${lat.toFixed(7)},${lon.toFixed(7)}`;
+    updateCourtPinFields(form, { lat, lon, placeId: osmId, osmId, pinId, label: placeLabel }, {
+      confirmed: true,
+      source: 'manual-map-pin',
+      label: placeLabel || `Manually placed map pin · ${lat.toFixed(6)}, ${lon.toFixed(6)}`,
+      placeId: osmId,
+      pinId,
+      osmId
+    });
+    const status = form.querySelector('#registerCourtLocationStatus');
+    if (status) status.textContent = `Pin confirmed and linked to map place ${osmId}.`;
+    return { placeId: osmId, osmId, pinId, label: placeLabel };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function initializeCourtLocationPinMap(form, initialCoordinates = null) {
+  const node = form?.querySelector('[data-court-location-map]');
+  if (!node) return;
+  let resolveMapReady;
+  form._courtPinMapReady = new Promise(resolve => { resolveMapReady = resolve; });
+  const prior = state.mapInstances.get('courtLocationPinMap');
+  if (prior) { try { prior.remove(); } catch (_) {} state.mapInstances.delete('courtLocationPinMap'); }
+  node.innerHTML = '<div class="map-loading">Loading court pin map…</div>';
+  try {
+    const maplibre = await ensureMapLibreLoaded();
+    if (!node.isConnected || !form.isConnected) return;
+    node.innerHTML = '';
+    const coords = normalizeMapLocationCoordinates(initialCoordinates);
+    const center = coords ? [coords.lon, coords.lat] : [PH_MAP_CENTER[1], PH_MAP_CENTER[0]];
+    const map = new maplibre.Map({
+      container: node,
+      style: 'https://tiles.openfreemap.org/styles/liberty',
+      center,
+      zoom: coords ? 15 : 4.6,
+      minZoom: 4,
+      maxZoom: 19,
+      maxBounds: [[115.5, 4.0], [128.6, 22.4]],
+      renderWorldCopies: false,
+      pitch: 0,
+      bearing: 0,
+      dragRotate: false,
+      pitchWithRotate: false,
+      attributionControl: { compact: true }
+    });
+    state.mapInstances.set('courtLocationPinMap', map);
+    const pin = document.createElement('div');
+    pin.className = 'court-location-draggable-pin';
+    pin.setAttribute('aria-label', 'Drag to set the exact court location');
+    // Keep the location editor's draggable marker as the plain red pin shown
+    // in the reference image; unlike registered-court map pins, it has no logo.
+    pin.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="50" viewBox="0 0 24 34" aria-hidden="true"><defs><linearGradient id="court-location-pin-red" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff0046"/><stop offset=".5" stop-color="#ff0046"/><stop offset=".5" stop-color="#e60035"/><stop offset="1" stop-color="#e60035"/></linearGradient></defs><path d="M21 10a9 9 0 0 0-18 0c0 6.8 6.8 15.7 8.2 17.9a1 1 0 0 0 1.6 0C14.2 25.7 21 16.8 21 10Z" fill="url(#court-location-pin-red)"/><circle cx="12" cy="10" r="4.5" fill="#fff"/></svg>';
+    map.on('load', () => {
+      if (!form.isConnected || !node.isConnected) { resolveMapReady(false); return; }
+      map.addControl(new maplibre.NavigationControl({ showCompass: false, visualizePitch: false }), 'top-right');
+      const marker = new maplibre.Marker({ element: pin, anchor: 'bottom', draggable: true }).setLngLat(center).addTo(map);
+      form._courtPinMap = { map, marker };
+      const commitManual = lngLat => {
+        pin.style.display = '';
+        const coordinates = { lat: lngLat.lat, lon: lngLat.lng };
+        const pinId = `pin:${lngLat.lat.toFixed(7)},${lngLat.lng.toFixed(7)}`;
+        const pinRevision = Number(form._courtPinRevision || 0) + 1;
+        form._courtPinRevision = pinRevision;
+        updateCourtPinFields(form, { ...coordinates, pinId }, {
+          confirmed: true,
+          source: 'manual-map-pin',
+          label: `Manually placed map pin · ${lngLat.lat.toFixed(6)}, ${lngLat.lng.toFixed(6)}`,
+          pinId
+        });
+        resolveCourtPinPlaceId(form, coordinates, pinRevision);
+      };
+      marker.on('dragend', () => commitManual(marker.getLngLat()));
+      map.on('click', event => {
+        if (event.originalEvent?.target?.closest?.('.maplibregl-ctrl, .maplibregl-marker, .maplibregl-popup')) return;
+        marker.setLngLat(event.lngLat);
+        commitManual(event.lngLat);
+      });
+      if (coords) {
+        updateCourtPinFields(form, coords, { confirmed: coords.verified === true, source: coords.source || 'saved-map-pin', label: coords.label || 'Saved court pin', placeId: coords.placeId || '', pinId: coords.pinId || '', osmId: coords.osmId || '' });
+        if (coords.verified !== true) {
+          const status = form.querySelector('#registerCourtLocationStatus');
+          if (status) status.textContent = 'Previous pin loaded as a preview. Drag it to the correct venue entrance/court or tap the exact location to confirm before saving.';
+        }
+      }
+      window.setTimeout(() => { if (node.isConnected) map.resize(); }, 90);
+      resolveMapReady(true);
+    });
+    map.on('error', () => {
+      if (node.isConnected && !form._courtPinMap) node.innerHTML = '<div class="map-loading map-error">The court pin map could not load. Check your internet connection and try again.</div>';
+      resolveMapReady(false);
+    });
+  } catch (_) {
+    if (node.isConnected) node.innerHTML = '<div class="map-loading map-error">The court pin map could not load. Check your internet connection and try again.</div>';
+    resolveMapReady(false);
+  }
+}
+
+async function prepareExistingCourtPinPreview(form, court) {
+  const current = normalizeMapLocationCoordinates(court?.locationCoordinates);
+  if (current?.verified === true || !form?.isConnected) return;
+  const pinRevision = Number(form._courtPinRevision || 0);
+  const status = form.querySelector('#registerCourtLocationStatus');
+  if (status) status.textContent = 'Checking the court name against the map to improve the old pin…';
+  const query = [court?.name, court?.location, 'Philippines'].filter(Boolean).join(', ');
+  const match = await photonLookup(query);
+  if (!form?.isConnected || Number(form._courtPinRevision || 0) !== pinRevision) return;
+  if (!match || Number(match.confidence || 0) < 0.55) {
+    if (status) status.textContent = 'Could not find a reliable automatic venue match. Drag the pin to the correct court or tap the exact location to confirm it.';
+    return;
+  }
+  const mapReady = await form._courtPinMapReady;
+  if (!mapReady || !form.isConnected || Number(form._courtPinRevision || 0) !== pinRevision) return;
+  moveCourtLocationPin(form, match, {
+    confirmed: false,
+    source: 'venue-geocoder-preview',
+    label: `Map suggestion · ${match.label || query}`,
+    zoom: 16
+  });
+  if (status) status.textContent = 'A closer map match is shown as a preview. Confirm the exact court by dragging the pin or tapping the map before saving.';
+}
+
+function dashboardMapPinMarkup(logo = '') {
+  const logoUrl = String(logo || '').trim();
+  if (logoUrl) {
+    return `<span class="dashboard-map-pin-art dashboard-map-pin-art-logo" aria-hidden="true"><img class="dashboard-map-pin-logo" src="${escapeHTML(logoUrl)}" alt="" aria-hidden="true"></span>`;
+  }
+  return `<span class="dashboard-map-pin-art" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" stroke="#e53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="4.6" fill="#fff"/></svg></span>`;
+}
+
 function mapPopupMarkup(item, coords) {
-  const sessionButtons = item.sessions.map(entry => `<button type="button" class="map-popup-session" data-map-session-select="${escapeHTML(entry.id)}"><strong>${escapeHTML(entry.title)}</strong><small>${entry.date ? `${escapeHTML(fmtDate(entry.date))} · ` : ''}${entry.isLive ? 'LIVE' : 'Completed'} · ${entry.matchCount} matches</small></button>`).join('');
-  return `<div class="map-popup"><strong class="map-popup-location">${escapeHTML(item.location)}</strong>${coords.label ? `<small class="map-popup-resolved">${escapeHTML(coords.label)}</small>` : ''}<div class="map-popup-sessions">${sessionButtons}</div></div>`;
+  const courtCards = asArray(item.courts).map(court => `<div class="map-popup-court">${court.logo ? `<img src="${escapeHTML(court.logo)}" alt="">` : ''}<span><strong>${escapeHTML(court.name)}</strong><small>${court.isLive ? 'LIVE NOW · Registered court' : 'Registered court'}</small><button type="button" class="map-popup-correct-pin" data-map-edit-court-id="${escapeHTML(court.id)}">Correct pin / edit court</button></span></div>`).join('');
+  const sessionButtons = asArray(item.sessions).map(entry => `<button type="button" class="map-popup-session" data-map-session-select="${escapeHTML(entry.id)}"><strong>${escapeHTML(entry.title)}</strong><small>${entry.date ? `${escapeHTML(fmtDate(entry.date))} · ` : ''}${entry.isLive ? 'LIVE' : 'Completed'} · ${entry.matchCount} matches</small></button>`).join('');
+  return `<div class="map-popup"><strong class="map-popup-location">${escapeHTML(item.location)}</strong>${coords.label ? `<small class="map-popup-resolved">${escapeHTML(coords.label)}</small>` : ''}${courtCards ? `<div class="map-popup-courts">${courtCards}</div>` : ''}${sessionButtons ? `<div class="map-popup-sessions">${sessionButtons}</div>` : ''}</div>`;
 }
 async function populateMapMarkers(map, node, locations) {
   const status = document.querySelector(`[data-map-status="${node.id}"]`);
   if (!locations.length) {
-    if (status) status.textContent = 'No session location has been saved yet. Add a venue and city in Session Setup to place a court pin.';
+    if (status) status.textContent = 'No session or registered court location has been saved yet.';
     return;
   }
-  if (status) status.textContent = `Finding map pins for ${locations.length} saved session location${locations.length === 1 ? '' : 's'}…`;
+  if (status) status.textContent = `Finding map pins for ${locations.length} saved location${locations.length === 1 ? '' : 's'}…`;
   let pinned = 0;
-  let unresolved = 0;
+  const unresolvedLocations = [];
   for (const item of locations) {
     if (!node.isConnected || !map || !map.getStyle()) return;
     const savedLocation = String(item.location || '').trim();
-    if (!savedLocation) { unresolved += 1; continue; }
-    const savedCoordinates = normalizeMapLocationCoordinates(item.coordinates || item.sessions.find(entry => entry.locationCoordinates)?.locationCoordinates);
-    const direct = savedCoordinates || coordinatesFromText(savedLocation);
-    const coords = direct || await photonLookup(savedLocation);
+    if (!savedLocation) { unresolvedLocations.push('Unnamed location'); continue; }
+    const primaryCourt = asArray(item.courts)[0] || null;
+    const courtCoordinates = asArray(item.courts)
+      .map(court => normalizeMapLocationCoordinates(court.locationCoordinates))
+      .find(Boolean);
+    const sessionCoordinates = asArray(item.sessions)
+      .map(entry => normalizeMapLocationCoordinates(entry.locationCoordinates))
+      .find(Boolean);
+
+    // A saved court pin is the authoritative location. Do not ask Photon to
+    // replace it with a broad venue-name result just because it was created by
+    // the map search instead of a manual drag.
+    let coords = normalizeMapLocationCoordinates(courtCoordinates || item.coordinates || sessionCoordinates);
+    if (!coords) coords = coordinatesFromText(savedLocation);
+    if (!coords) coords = await photonLookup(savedLocation);
+    // Older registered courts may have only a court name and address saved.
+    // Try the combined query only after the address-only lookup has failed.
+    if (!coords && primaryCourt) {
+      coords = await photonLookup(`${primaryCourt.name}, ${savedLocation}, Philippines`);
+    }
     if (!node.isConnected || !map) return;
-    if (!coords || !isPhilippinesCoordinate(coords.lat, coords.lon)) { unresolved += 1; continue; }
+    if (!coords || !isPhilippinesCoordinate(Number(coords.lat), Number(coords.lon))) {
+      unresolvedLocations.push(primaryCourt?.name || savedLocation);
+      continue;
+    }
+
     state.mapResolvedLocations.set(normalizeName(item.location), coords);
     const markerElement = document.createElement('button');
     markerElement.type = 'button';
-    markerElement.className = 'dashboard-map-pin';
-    markerElement.setAttribute('aria-label', `Court location: ${item.location}`);
-    markerElement.innerHTML = '<span></span>';
-    const marker = new window.maplibregl.Marker({ element: markerElement, anchor: 'bottom' }).setLngLat([coords.lon, coords.lat]);
+    const isRegisteredCourt = asArray(item.courts).length > 0;
+    const registeredCourt = asArray(item.courts)[0] || null;
+    const isLiveLocation = item.isLive === true || asArray(item.sessions).some(entry => entry.isLive === true);
+    // Keep MapLibre's outer marker element free of CSS transforms. MapLibre
+    // positions this element at the GPS coordinate; only the nested artwork
+    // receives visual styling or a live-state glow.
+    const markerLogo = registeredCourtLogo(registeredCourt);
+    const registeredAt = String(registeredCourt?.registeredAt || '').trim();
+    const registeredMarkerStatus = isRegisteredCourt
+      ? registeredCourtMapMarkerStatus(registeredAt, isLiveLocation)
+      : (isLiveLocation ? 'live' : 'idle');
+    markerElement.className = `dashboard-map-pin${isRegisteredCourt ? ' dashboard-map-pin-court' : ''}${registeredMarkerStatus === 'live' ? ' is-live' : ''}${registeredMarkerStatus === 'new' ? ' is-new' : ''}${markerLogo ? ' has-logo' : ''}`;
+    if (isRegisteredCourt) {
+      markerElement.dataset.registeredCourtMarker = 'true';
+      markerElement.dataset.registeredAt = registeredAt;
+      markerElement.dataset.registeredCourtLive = isLiveLocation ? 'true' : 'false';
+    }
+    markerElement.setAttribute('aria-label', isRegisteredCourt
+      ? `${isLiveLocation ? 'Live registered court' : 'Registered court'}: ${registeredCourt.name} at ${item.location}`
+      : `${isLiveLocation ? 'Live session location' : 'Court location'}: ${item.location}`);
+    markerElement.title = `${isRegisteredCourt ? registeredCourt.name : item.location}${isLiveLocation ? ' · LIVE NOW' : ''} · ${item.location}`;
+    // Registered courts with a saved logo show only the compact logo image.
+    // Center its image on the saved coordinate; other location markers keep
+    // their original bottom-anchored red SVG pin.
+    markerElement.innerHTML = dashboardMapPinMarkup(markerLogo);
+    const markerLogoImage = markerElement.querySelector('.dashboard-map-pin-logo');
+    if (markerLogoImage) {
+      markerLogoImage.addEventListener('error', () => {
+        // Fall back to the plain red map pin if the court logo is unavailable.
+        markerElement.innerHTML = dashboardMapPinMarkup();
+        markerElement.classList.remove('has-logo');
+      }, { once: true });
+    }
+    const marker = new window.maplibregl.Marker({ element: markerElement, anchor: markerLogo ? 'center' : 'bottom' })
+      .setLngLat([Number(coords.lon), Number(coords.lat)]);
     if (node.dataset.mapModal === 'true') {
       const popup = new window.maplibregl.Popup({ offset: 22, closeButton: true, maxWidth: '290px' }).setHTML(mapPopupMarkup(item, coords));
       marker.setPopup(popup);
     } else {
-      markerElement.addEventListener('click', () => openMapModal(item.sessions[0]?.id || ''));
+      markerElement.addEventListener('click', () => openMapModal(item.sessions?.[0]?.id || '', node.dataset.mapIncludeRegistered === 'true'));
     }
     marker.addTo(map);
     pinned += 1;
   }
   if (status) {
+    const unresolvedSummary = unresolvedLocations.length
+      ? ` · ${unresolvedLocations.length} could not be placed: ${unresolvedLocations.slice(0, 4).join(', ')}${unresolvedLocations.length > 4 ? ', …' : ''}`
+      : '';
     status.textContent = pinned
-      ? `${pinned} saved court location${pinned === 1 ? '' : 's'} pinned on the Philippines map${unresolved ? ` · ${unresolved} location${unresolved === 1 ? '' : 's'} could not be matched` : ''}.`
-      : 'The map is ready, but the saved venue text could not be matched accurately. Check the Location field in Session Setup.';
+      ? `${pinned} map pin${pinned === 1 ? '' : 's'} displayed${unresolvedSummary}.`
+      : `No map pins could be placed. The saved court records need valid Philippines pin coordinates or a recognizable address.${unresolvedSummary}`;
   }
   const focusedSessionId = String(node.dataset.mapFocusSession || '');
   if (focusedSessionId) focusMapSession(focusedSessionId, node.id);
@@ -953,24 +2465,30 @@ function mapSessionDetailsMarkup(session) {
   const location = String(session.location || '').trim();
   return `<div class="map-session-detail"><div class="map-session-status"><span class="status-pill ${session.isLive ? 'live' : 'ended'}">${session.isLive ? 'LIVE NOW' : 'COMPLETED'}</span><span>${escapeHTML(sessionDateLabel(session))}</span></div><h3>${escapeHTML(session.title)}</h3><div class="map-session-facts"><div><span>Session time</span><strong>${escapeHTML(sessionTimeLabel(session))}</strong></div><div><span>Created / started</span><strong>${escapeHTML(created)}</strong></div><div><span>Location</span><strong>${escapeHTML(location || 'Location not saved')}</strong></div><div><span>Courts</span><strong>${escapeHTML(courts)}</strong></div><div class="map-session-metrics"><span><strong>${(session.attendees || []).length}</strong> players</span><span><strong>${matches}</strong> matches</span></div></div><p class="map-pin-note">${location ? 'The pin on the map is matched from this session’s saved Location field.' : 'This session has no saved location, so it cannot have a map pin yet.'}</p><button type="button" class="btn btn-sm btn-primary" data-map-open-session="${escapeHTML(session.id)}">View full session details</button></div>`;
 }
-function mapModalMarkup(selectedSessionId) {
+function mapModalMarkup(selectedSessionId, includeRegisteredCourts = false) {
   const sessions = state.data?.sessions || [];
   const selected = sessions.find(session => String(session.id) === String(selectedSessionId)) || sessions[0] || null;
-  const locations = mapSessionsForPins();
+  const locations = mapSessionsForPins(includeRegisteredCourts);
   const payload = JSON.stringify(locations).replace(/</g, '\\u003c');
   const sessionOptions = sessions.map(session => `<option value="${escapeHTML(session.id)}" ${selected && String(selected.id) === String(session.id) ? 'selected' : ''}>${escapeHTML(session.title)}${session.date ? ` · ${escapeHTML(fmtDate(session.date, { month: 'short', day: 'numeric' }))}` : ''}${session.isLive ? ' · LIVE' : ''}</option>`).join('');
   const savedLocations = locations.length ? locations.map(item => {
-    const recent = item.sessions[0];
-    return `<button type="button" class="map-location-row" data-map-session-select="${escapeHTML(recent.id)}"><span class="map-location-pin">${icon('pin')}</span><span><strong>${escapeHTML(item.location)}</strong><small>${item.sessions.length} session${item.sessions.length === 1 ? '' : 's'} · ${escapeHTML(recent.title)}</small></span><span class="map-location-arrow">${icon('arrow')}</span></button>`;
-  }).join('') : '<p class="map-detail-empty">No saved session location yet. Add the court venue and city in Session Setup to create a map pin.</p>';
+    const recent = item.sessions?.[0];
+    const courtNames = asArray(item.courts).map(court => court.name).join(', ');
+    const courtSummary = courtNames ? `${asArray(item.courts).length} registered court${item.courts.length === 1 ? '' : 's'} · ${courtNames}` : '';
+    const sessionSummary = recent ? `${item.sessions.length} session${item.sessions.length === 1 ? '' : 's'} · ${recent.title}` : '';
+    const summary = [courtSummary, sessionSummary].filter(Boolean).join(' · ');
+    const pinContent = `<span class="map-location-pin">${asArray(item.courts).length && item.courts[0].logo ? `<img src="${escapeHTML(item.courts[0].logo)}" alt="">` : icon('pin')}</span><span><strong>${escapeHTML(item.location)}</strong><small>${escapeHTML(summary || 'Saved court location')}</small></span>${recent ? `<span class="map-location-arrow">${icon('arrow')}</span>` : ''}`;
+    return recent ? `<button type="button" class="map-location-row" data-map-session-select="${escapeHTML(recent.id)}">${pinContent}</button>` : `<div class="map-location-row is-static">${pinContent}</div>`;
+  }).join('') : '<p class="map-detail-empty">No saved court locations yet. Register a court or save a location in Session Setup to create a map pin.</p>';
   const liveFocusSessionId = selected?.isLive ? String(selected.id || '') : '';
-  return `<div class="map-modal-layout"><aside class="map-modal-details"><div class="map-modal-intro"><span class="eyebrow">${escapeHTML(organizerClubName())} · COURT MAP</span><h3>Open-play locations</h3><p>Session pins are based on the exact Location field saved when each session was created.</p></div><div class="map-session-picker"><label for="mapModalSessionSelect">Session details</label><select id="mapModalSessionSelect" class="select-control" ${sessions.length ? '' : 'disabled'}>${sessionOptions || '<option>No saved sessions</option>'}</select></div><div id="mapModalSessionInfo">${mapSessionDetailsMarkup(selected)}</div><div class="map-saved-location-list"><div class="map-list-heading">Saved court locations <span>${locations.length}</span></div>${savedLocations}</div></aside><section class="map-modal-view"><div class="map-modal-toolbar"><span><strong>3D Philippines map</strong><small>Drag to move · scroll or + / − to zoom</small></span><div class="map-modal-actions"><button type="button" class="btn btn-sm" data-map-show-philippines>Philippines view</button><button type="button" class="btn btn-sm btn-primary" data-map-focus-selected>Focus session</button></div></div><div id="sessionMapModal" class="interactive-map map-modal-canvas" data-map-variant="modal" data-map-modal="true" data-map-focus-session="${escapeHTML(liveFocusSessionId)}" data-map-locations="${escapeHTML(payload)}" role="application" aria-label="Draggable and zoomable 3D Philippines map with open-play court pins"><div class="map-loading">Loading 3D Philippines map…</div></div><p class="map-status" data-map-status="sessionMapModal">Loading session court pins…</p></section></div>`;
+  return `<div class="map-modal-layout"><aside class="map-modal-details"><div class="map-modal-intro"><span class="eyebrow">${escapeHTML(organizerClubName())} · COURT MAP</span><h3>Open-play locations</h3><p>Session locations and registered court locations are shown as map pins.</p></div><div class="map-session-picker"><label for="mapModalSessionSelect">Session details</label><select id="mapModalSessionSelect" class="select-control" ${sessions.length ? '' : 'disabled'}>${sessionOptions || '<option>No saved sessions</option>'}</select></div><div id="mapModalSessionInfo">${mapSessionDetailsMarkup(selected)}</div><div class="map-saved-location-list"><div class="map-list-heading">Saved court locations <span>${locations.length}</span></div>${savedLocations}</div></aside><section class="map-modal-view"><div class="map-modal-toolbar"><span><strong>3D Philippines map</strong><small>Drag to move · scroll or + / − to zoom</small></span><div class="map-modal-actions"><button type="button" class="btn btn-sm" data-map-show-philippines>Philippines view</button><button type="button" class="btn btn-sm btn-primary" data-map-focus-selected ${selected ? '' : 'disabled'}>Focus session</button></div></div><div id="sessionMapModal" class="interactive-map map-modal-canvas" data-map-variant="modal" data-map-modal="true" data-map-include-registered="${includeRegisteredCourts ? 'true' : 'false'}" data-map-focus-session="${escapeHTML(liveFocusSessionId)}" data-map-locations="${escapeHTML(payload)}" role="application" aria-label="Draggable and zoomable 3D Philippines map with open-play court pins"><div class="map-loading">Loading 3D Philippines map…</div></div><p class="map-status" data-map-status="sessionMapModal">Loading session court pins…</p></section></div>`;
 }
-function openMapModal(sessionId = '') {
+function openMapModal(sessionId = '', includeRegisteredCourts = false) {
   const sessions = state.data?.sessions || [];
   const initial = sessions.find(session => String(session.id) === String(sessionId)) || getLiveSession() || sessions[0] || null;
   state.mapModalSessionId = initial?.id || '';
-  modal('Philippines 3D Court Map & Session Details', mapModalMarkup(state.mapModalSessionId), { wide: true, className: 'map-modal-card' });
+  state.mapIncludeRegisteredCourts = Boolean(includeRegisteredCourts);
+  modal('Philippines 3D Court Map & Session Details', mapModalMarkup(state.mapModalSessionId, state.mapIncludeRegisteredCourts), { wide: true, className: 'map-modal-card' });
   initializeInteractiveMaps();
   window.setTimeout(() => state.mapInstances.get('sessionMapModal')?.resize(), 50);
 }
@@ -989,7 +2507,7 @@ function setMapModalSession(sessionId) {
 function focusMapSession(sessionId, mapId = 'sessionMapModal') {
   const map = state.mapInstances.get(mapId);
   if (!map) return false;
-  const item = mapSessionsForPins().find(location => location.sessions.some(entry => String(entry.id) === String(sessionId)));
+  const item = mapSessionsForPins(state.mapIncludeRegisteredCourts).find(location => location.sessions.some(entry => String(entry.id) === String(sessionId)));
   if (!item) return false;
   const coords = state.mapResolvedLocations.get(normalizeName(item.location));
   if (!coords) {
@@ -1137,19 +2655,18 @@ function renderDashboard() {
     : '<span class="latest-session-label">Latest session</span>';
   const courtsMarkup = courtStatusMarkup(live);
   const recentMarkup = recentMatches.length
-    ? `<div class="table-wrap"><table class="compact-table"><thead><tr><th>Court</th><th>Players</th><th>Result</th></tr></thead><tbody>${recentMatches.map(match => `<tr><td>${escapeHTML(match.courtName)}</td><td class="primary-cell">${escapeHTML(match.teamANames.join(' / '))} <span class="page-note">vs</span> ${escapeHTML(match.teamBNames.join(' / '))}</td><td><span class="score-pill">${escapeHTML(match.scoreLabel)}</span></td></tr>`).join('')}</tbody></table></div>`
+    ? `<div class="table-wrap"><table class="compact-table"><thead><tr><th>Court</th><th>Players</th><th>Result</th></tr></thead><tbody>${recentMatches.map(match => `<tr><td>${escapeHTML(match.courtName)}</td><td class="primary-cell">${escapeHTML(match.teamANames.join(' / '))} <span>vs</span> ${escapeHTML(match.teamBNames.join(' / '))}</td><td><span class="score-pill">${escapeHTML(match.scoreLabel)}</span></td></tr>`).join('')}</tbody></table></div>`
     : emptyState('No matches in the latest session', lastSession ? 'Matches from this session will appear here after they are recorded in Queueing.' : 'Completed matches recorded in Queueing will appear here.');
   return `<div class="page-dashboard">
-    ${pageHeading('HUSAY DINKERS / OVERVIEW', 'Pickleball Dashboard', 'Your existing queueing records, open-play attendance and match results in one place.', `<button class="btn" data-action="refresh">${icon('refresh')} Refresh</button><a class="btn btn-primary" href="/session" target="_blank" rel="noopener">${icon('plus')} Start Open Play</a>`)}
+    ${pageHeading('HUSAY DINKERS / OVERVIEW', 'Pickleball Dashboard', 'Your existing queueing records, open-play attendance and match results in one place.', `<button class="btn dashboard-refresh-button${state.refreshingDashboard ? ' is-refreshing' : ''}" type="button" data-action="refresh" aria-label="Refresh dashboard" aria-busy="${state.refreshingDashboard ? 'true' : 'false'}" ${state.refreshingDashboard ? 'disabled' : ''}>${refreshIcon()}<span>Refresh</span></button><a class="btn btn-primary" href="/session" target="_blank" rel="noopener">${icon('plus')} Start Open Play</a>`)}
     ${liveBanner()}
     <div class="stats-grid">${statCard('Registered Players', String(players.filter(player => !player.historicalOnly).length), 'Registered Player Cloud', 'users')}${statCard('Recorded Matches', String(matches.length), 'From queueing match logs', 'trophy', true)}${statCard('Attendance Records', String(attendanceCount), 'Saved session check-ins', 'users', true)}${statCard('Active Courts', String(live ? activeCourts.filter(court => court.status === 'Active').length : 0), live ? `${activeCourts.length} courts in current session` : 'No live session', 'court')}</div>
     <div class="dashboard-grid">
-      <section class="panel panel-pad trend-panel">${panelTitle('Attendance Trend', 'chart', '<span class="page-note">Completed sessions · bar chart</span>')}<div class="chart-meta"><strong>${attendanceCount}</strong><span>attendance entries loaded from queueing history</span></div><div class="chart-box">${chartMarkup(sessions)}</div></section>
+      <section class="panel panel-pad trend-panel">${panelTitle('Attendance Trend', 'chart')}<div class="chart-meta"><strong data-count-target="${attendanceCount}" data-count-key="attendance-total">0</strong><span>attendance entries loaded from queueing history</span></div><div class="chart-box">${chartMarkup(sessions)}</div></section>
       <section class="panel panel-pad ranking-panel">${panelTitle('Overall Player Rankings', 'trophy', '<button class="text-link" data-page="rankings">View all →</button>')}<div class="ranking-list" id="dashboardTopRankings"><div class="ranking-loading">Preparing player rankings…</div></div></section>
       <div class="side-stack">${mapCard(live || lastSession, 'dashboardCourtMap')}<section class="panel panel-pad court-panel">${panelTitle('Court Status', 'court', '<a class="text-link" href="/queueing" target="_blank" rel="noopener">Open Queueing →</a>')}<div class="court-status-grid" role="region" aria-label="Court status. Swipe horizontally to view each court"><div class="court-status-track ${live && activeCourts.length ? '' : 'is-empty'}">${courtsMarkup}</div></div></section></div>
       <section class="panel panel-pad recent-panel">${panelTitle('Recent Matches', 'trophy', recentAction)}${recentMarkup}</section>
     </div>
-    <p class="data-note">Connected to your existing Pickle Point Match data. Rankings combine saved player totals with match results across all sessions.</p>
   </div>`;
 }
 function sessionCard(session) {
@@ -1263,10 +2780,14 @@ function scheduleDashboardRankings() {
     const target = $('#dashboardTopRankings');
     if (state.page !== 'dashboard' || token !== state.dashboardRankingToken || !target?.isConnected) return;
     const top = topRankedPlayers(20);
+    target.classList.remove('is-entering');
     target.innerHTML = top.length ? top.map((player, index) => {
       const stats = playerStats(player);
-      return `<div class="ranking-row"><span class="rank-index ${index < 3 ? 'top' : ''}">${index + 1}</span><span class="player-avatar">${initials(player.name)}</span><span class="ranking-name">${escapeHTML(player.name)}</span><span class="ranking-rating">${stats.wins}W - ${stats.losses}L (${stats.matches} Matches)</span></div>`;
+      return `<div class="ranking-row" style="--ranking-order:${index}"><span class="rank-index ${index < 3 ? 'top' : ''}">${index + 1}</span><span class="player-avatar">${initials(player.name)}</span><span class="ranking-name">${escapeHTML(player.name)}</span><span class="ranking-rating">${stats.wins}W - ${stats.losses}L (${stats.matches} Matches)</span></div>`;
     }).join('') : emptyState('No player records yet', 'Players registered through the existing queueing system will appear here.');
+    if (top.length) requestAnimationFrame(() => {
+      if (target.isConnected) target.classList.add('is-entering');
+    });
   });
 }
 function currentRankingSessionId() {
@@ -1351,11 +2872,17 @@ function renderRankings() {
 function renderCourts() {
   const session = getLiveSession();
   const courts = state.data.courts;
-  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / VENUES', 'Courts & Locations', 'Current court activity is read directly from the live queueing session.', `<a class="btn btn-primary" href="/queueing" target="_blank" rel="noopener">Manage in Queueing ${icon('external')}</a>`)}
+  const registeredCourts = asArray(state.data.registeredCourts);
+  const registeredCourtCards = registeredCourts.length ? `<div class="registered-court-grid">${registeredCourts.map(court => `<article class="registered-court-card"><span class="registered-court-logo">${court.logo ? `<img src="${escapeHTML(court.logo)}" alt="${escapeHTML(court.name)} logo">` : icon('court')}</span><span class="registered-court-copy"><strong>${escapeHTML(court.name)}</strong><small>${escapeHTML(court.location)}</small><span class="registered-court-actions"><button type="button" class="registered-court-edit" data-action="edit-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('edit')} Edit</button><button type="button" class="registered-court-delete" data-action="delete-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('trash')} Delete</button></span></span></article>`).join('')}</div>` : emptyState('No registered courts yet', 'Register a court to add its logo and location to the CourtMap.');
+  const courtPageActions = `<div class="court-page-actions"><button type="button" class="btn btn-sm btn-primary court-action-pill" data-action="register-court">${icon('plus')} Register Court</button><a class="btn btn-primary court-action-pill" href="/queueing" target="_blank" rel="noopener">Manage in Queueing ${icon('external')}</a></div>`;
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / VENUES', 'Courts & Locations', 'Current court activity is read directly from the live queueing session.', courtPageActions)}
     <div class="metric-grid"><div class="metric-tile"><span>Total courts</span><strong>${courts.length}</strong></div><div class="metric-tile"><span>In play</span><strong>${courts.filter(court => court.status === 'Active').length}</strong></div><div class="metric-tile"><span>Ready / assigned</span><strong>${courts.filter(court => court.status === 'Ready').length}</strong></div><div class="metric-tile"><span>Waiting courts</span><strong>${courts.filter(court => court.status === 'Waiting').length}</strong></div></div>
     <section class="panel panel-pad">${panelTitle('Live Court Status', 'court')}<div class="court-cards">${courts.length ? courts.map(court => `<article class="court-card"><div class="court-card-head"><h3>${escapeHTML(court.name)}</h3>${sessionStatusBadge(court.status === 'Active' ? 'Live' : court.status)}</div><p>${court.players ? `${court.players} player positions assigned` : 'No players assigned at the moment'}<br>Pickleball court</p><a class="btn btn-sm" href="/queueing" target="_blank" rel="noopener">Open court controls</a></article>`).join('') : emptyState('No live court data', 'Start an open-play session and configure courts in the original Queueing page.')}</div></section>
-    ${mapCard(session, 'venuesCourtMap')}
-    <p class="page-note">Court creation, court numbering and match assignments remain in Queueing to keep both screens synchronized.</p></div>`;
+    <div class="registered-courts-map-layout">
+      ${mapCard(session, 'venuesCourtMap')}
+      <section class="panel panel-pad registered-courts-panel">${panelTitle('Registered Court List', 'court')}${registeredCourtCards}</section>
+    </div>
+    <p class="page-note">Registered courts are saved to this organizer workspace and their locations are added to CourtMap automatically.</p></div>`;
 }
 function renderSchedule() {
   const sessions = visibleRows(sortedSessions());
@@ -1514,10 +3041,17 @@ function interactiveMapSignature(node) {
     return JSON.stringify({
       variant,
       focusSession,
+      includeRegisteredCourts: node.dataset.mapIncludeRegistered === 'true',
       locations: asArray(locations).map(item => ({
         location: item.location,
         coordinates: item.coordinates,
-        sessionIds: asArray(item.sessions).map(session => session.id)
+        sessionIds: asArray(item.sessions).map(session => session.id),
+        courts: asArray(item.courts).map(court => ({
+          id: court.id,
+          name: court.name,
+          logo: court.logo,
+          locationCoordinates: court.locationCoordinates
+        }))
       }))
     });
   } catch (_) {
@@ -1627,6 +3161,7 @@ function renderDashboardInPlace() {
     state.pendingRender = true;
     return;
   }
+  const previousCountValues = captureDashboardCountValues();
   const currentRoot = container?.firstElementChild;
   if (!container || !currentRoot?.classList.contains('page-dashboard')) {
     renderPage(true);
@@ -1639,6 +3174,8 @@ function renderDashboardInPlace() {
   if (!nextRoot) return;
 
   patchDashboardNode(currentRoot, nextRoot);
+  animateDashboardCountValues(previousCountValues);
+  animateDashboardAttendanceBars();
   state.pendingRender = false;
   updateNavigation();
   scheduleDashboardRankings();
@@ -1648,6 +3185,7 @@ function renderDashboardInPlace() {
 function renderPage(preserveScroll = true) {
   if (!state.data) return;
   const container = $('#pageContent');
+  const previousCountValues = state.page === 'dashboard' ? captureDashboardCountValues() : new Map();
   const oldScroll = preserveScroll ? container.scrollTop : 0;
   const activeElement = preserveScroll && container.contains(document.activeElement) ? document.activeElement : null;
   const activeId = activeElement?.id || '';
@@ -1665,6 +3203,10 @@ function renderPage(preserveScroll = true) {
   if (!preserveScroll) state.mapInstances.clear();
   const renderers = { dashboard: renderDashboard, sessions: renderSessions, players: renderPlayers, matches: renderMatches, rankings: renderRankings, courts: renderCourts, schedule: renderSchedule, reports: renderReports, settings: renderSettings };
   container.innerHTML = (renderers[state.page] || renderDashboard)();
+  if (state.page === 'dashboard') {
+    animateDashboardCountValues(previousCountValues);
+    animateDashboardAttendanceBars();
+  }
   if (state.page === 'rankings') {
     scheduleRankingsPage();
     state.dashboardRankingToken += 1;
@@ -1776,8 +3318,10 @@ function toast(message, type = 'success') {
   window.setTimeout(() => node.remove(), 3400);
 }
 function modal(title, body, options = {}) {
-  const existingMap = state.mapInstances.get('sessionMapModal');
-  if (existingMap) { try { existingMap.remove(); } catch (_) {} state.mapInstances.delete('sessionMapModal'); }
+  for (const mapId of ['sessionMapModal', 'courtLocationPinMap']) {
+    const existingMap = state.mapInstances.get(mapId);
+    if (existingMap) { try { existingMap.remove(); } catch (_) {} state.mapInstances.delete(mapId); }
+  }
   const root = $('#modalRoot');
   root.innerHTML = `<div class="modal-backdrop" data-action="close-modal"></div><section class="modal-card ${options.wide ? 'wide' : ''} ${escapeHTML(options.className || '')}" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><header class="modal-header"><h2 id="modalTitle">${escapeHTML(title)}</h2><button type="button" class="icon-action" data-action="close-modal" aria-label="Close">${icon('close')}</button></header><div class="modal-body">${body}</div></section>`;
   state.modal = title;
@@ -1785,8 +3329,10 @@ function modal(title, body, options = {}) {
   if (focusable) window.setTimeout(() => focusable.focus(), 20);
 }
 function closeModal() {
-  const map = state.mapInstances.get('sessionMapModal');
-  if (map) { try { map.remove(); } catch (_) {} state.mapInstances.delete('sessionMapModal'); }
+  for (const mapId of ['sessionMapModal', 'courtLocationPinMap']) {
+    const map = state.mapInstances.get(mapId);
+    if (map) { try { map.remove(); } catch (_) {} state.mapInstances.delete(mapId); }
+  }
   $('#modalRoot').innerHTML = '';
   state.modal = null;
   flushPendingDashboardRender();
@@ -1865,6 +3411,60 @@ async function openOrganizerSettings() {
     modal('Edit Workspace Profile', `<form id="organizerSettingsForm"><div class="form-grid"><div class="field full"><label for="workspaceDisplayName">Club / organizer name</label><input id="workspaceDisplayName" name="displayName" maxlength="80" required value="${escapeHTML(organizer.displayName || '')}"></div><div class="field"><label for="workspaceDuprId">Organizer DUPR ID</label><input id="workspaceDuprId" name="duprId" maxlength="6" minlength="6" pattern="[A-Za-z0-9]{6}" value="${escapeHTML(organizer.duprId || '')}" placeholder="6 characters"><small class="field-help">Exactly 6 letters or numbers.</small></div><div class="field"><label for="workspaceLogo">Club logo (optional)</label><input id="workspaceLogo" name="profileImage" type="file" accept="image/png,image/jpeg,image/webp"><small class="field-help">PNG, JPG or WebP, maximum 2 MB.</small></div><div class="field full"><label class="checkbox-field"><input type="checkbox" name="showOnLeaderboard" ${organizer.showOnLeaderboard !== false ? 'checked' : ''}> Show this club on organizer leaderboard</label></div><div class="field full"><div class="notice-box">Password change is optional. Leave password fields blank to keep your current password.</div></div><div class="field"><label for="workspaceCurrentPassword">Current password</label><input id="workspaceCurrentPassword" name="currentPassword" type="password" autocomplete="current-password"></div><div class="field"><label for="workspaceNewPassword">New password</label><input id="workspaceNewPassword" name="newPassword" type="password" minlength="8" maxlength="200" autocomplete="new-password"></div><div class="field full"><label for="workspaceConfirmPassword">Confirm new password</label><input id="workspaceConfirmPassword" name="confirmPassword" type="password" minlength="8" maxlength="200" autocomplete="new-password"></div></div><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save profile</button></div></form>`, { wide: true });
   } catch (error) { toast(error.message || 'Unable to load workspace settings.', 'error'); }
 }
+function courtLocationFieldMarkup(value = '', coordinates = null) {
+  const saved = normalizeMapLocationCoordinates(coordinates);
+  const lat = saved?.lat ?? '';
+  const lon = saved?.lon ?? '';
+  const label = saved?.label || '';
+  return `<div class="field full court-location-field"><label for="registerCourtLocation">Court location</label><div class="court-location-input-wrap"><input id="registerCourtLocation" name="courtLocation" data-court-location-input maxlength="250" autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="registerCourtLocationSuggestions" aria-expanded="false" required value="${escapeHTML(value)}" placeholder="Search a court, venue, street, barangay, or city in the Philippines"><div id="registerCourtLocationSuggestions" class="court-location-suggestions" data-court-location-suggestions role="listbox" aria-label="Philippines location search results" hidden></div></div><input type="hidden" data-court-location-lat value="${escapeHTML(lat)}"><input type="hidden" data-court-location-lon value="${escapeHTML(lon)}"><input type="hidden" data-court-location-label value="${escapeHTML(label)}"><input type="hidden" data-court-location-place-id value="${escapeHTML(saved?.placeId || saved?.osmId || '')}"><input type="hidden" data-court-location-pin-id value="${escapeHTML(saved?.pinId || '')}"><input type="hidden" data-court-location-pin-confirmed value="${saved?.verified === true ? 'true' : 'false'}"><input type="hidden" data-court-location-pin-source value="${escapeHTML(saved?.source || '')}"><small class="field-help">Search a court, venue, or address in the Philippines, then choose the correct result. Drag the red pin or tap the map to set the exact court entrance; the selected place ID or generated pin ID is saved with the location.</small><div class="court-location-map-heading"><strong>Pin the exact court location</strong><span>Drag pin or tap map</span></div><div class="court-location-pin-map" data-court-location-map role="application" aria-label="Map for placing the exact pickleball court pin"><div class="map-loading">Loading court pin map…</div></div><span class="field-help" id="registerCourtLocationStatus" aria-live="polite">${saved ? 'Saved court pin loaded. Drag it or tap the map to correct the exact location.' : 'Search a place first, or zoom in and tap the exact court location on the map.'}</span></div>`;
+}
+
+function courtLogoFieldMarkup(existingLogo = '', edit = false) {
+  return `<div class="field full"><label for="registerCourtLogo">Court logo</label><input id="registerCourtLogo" name="courtLogo" type="file" accept="image/png,image/jpeg,image/webp" ${edit ? '' : 'required'}><small class="field-help">PNG, JPG or WebP. ${edit ? 'Choose a new file only if you want to replace the current logo.' : 'This logo will appear inside the court pin on CourtMap.'}</small><div class="court-logo-preview" id="registerCourtLogoPreview" ${existingLogo ? '' : 'hidden'}>${existingLogo ? `<img src="${escapeHTML(existingLogo)}" alt="Current court logo preview">` : ''}</div></div>`;
+}
+function openRegisterCourtModal() {
+  modal('Register a Court on a Session', `<form id="registerCourtForm"><div class="form-grid">${courtLogoFieldMarkup()}<div class="field full"><label for="registerCourtName">Court name</label><input id="registerCourtName" name="courtName" maxlength="100" required placeholder="Enter court name"></div>${courtLocationFieldMarkup()}</div><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">${icon('plus')} Register Court</button></div></form>`, { wide: true });
+  initializeCourtLocationPinMap($('#registerCourtForm'));
+}
+function openEditRegisteredCourtModal(courtId) {
+  const court = asArray(state.data?.registeredCourts).find(item => String(item.id) === String(courtId));
+  if (!court) { toast('Registered court not found. Refresh the page and try again.', 'error'); return; }
+  modal('Edit Registered Court', `<form id="editRegisteredCourtForm" data-court-id="${escapeHTML(court.id)}"><div class="form-grid">${courtLogoFieldMarkup(court.logo, true)}<div class="field full"><label for="registerCourtName">Court name</label><input id="registerCourtName" name="courtName" maxlength="100" required value="${escapeHTML(court.name)}" placeholder="Enter court name"></div>${courtLocationFieldMarkup(court.location, court.locationCoordinates)}</div><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div></form>`, { wide: true });
+  const form = $('#editRegisteredCourtForm');
+  initializeCourtLocationPinMap(form, court.locationCoordinates);
+  prepareExistingCourtPinPreview(form, court);
+}
+function readCourtLogoFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+      reject(new Error('Choose a PNG, JPG or WebP court logo no larger than 2 MB.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('The selected court logo could not be read.'));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error('The selected court logo is not a valid image.'));
+      image.onload = () => {
+        const maxDimension = 320;
+        const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const context = canvas.getContext('2d');
+        if (!context) { reject(new Error('The court logo could not be prepared.')); return; }
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        let result = canvas.toDataURL('image/webp', 0.82);
+        if (!result.startsWith('data:image/webp;base64,')) result = canvas.toDataURL('image/png');
+        if (result.length > 450000) { reject(new Error('The court logo is still too large after resizing. Choose a smaller image.')); return; }
+        resolve(result);
+      };
+      image.src = String(reader.result || '');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function readImageFile(file) {
   return new Promise((resolve, reject) => {
     if (!file) return resolve('');
@@ -1942,6 +3542,46 @@ document.addEventListener('pointercancel', finishDashboardPointerInteraction);
 window.addEventListener('blur', finishDashboardPointerInteraction);
 
 document.addEventListener('click', async event => {
+  const courtLocationOption = event.target.closest('[data-court-location-option]');
+  if (courtLocationOption) {
+    const form = courtLocationOption.closest('form');
+    const input = form?.querySelector('[data-court-location-input]');
+    if (form && input) {
+      form._courtPinRevision = Number(form._courtPinRevision || 0) + 1;
+      const label = courtLocationOption.dataset.label || '';
+      courtLocationSearchToken += 1;
+      if (courtLocationSearchTimer) window.clearTimeout(courtLocationSearchTimer);
+      input.value = label;
+      const suggestions = form.querySelector('[data-court-location-suggestions]');
+      if (suggestions) { suggestions.hidden = true; suggestions.innerHTML = ''; }
+      input.setAttribute('aria-expanded', 'false');
+      courtLocationActiveIndex = -1;
+      const lat = Number(courtLocationOption.dataset.lat);
+      const lon = Number(courtLocationOption.dataset.lon);
+      const placeId = String(courtLocationOption.dataset.placeId || '').trim();
+      const selectedSource = String(courtLocationOption.dataset.source || '').trim();
+      input.dataset.selectedLocation = 'true';
+      if (isPhilippinesCoordinate(lat, lon)) {
+        moveCourtLocationPin(form, { lat, lon, placeId, osmId: placeId.startsWith('osm:') ? placeId : '' }, {
+          confirmed: true,
+          source: selectedSource || 'map-search',
+          label,
+          zoom: 16,
+          placeId,
+          osmId: placeId.startsWith('osm:') ? placeId : ''
+        });
+      } else if (selectedSource === 'gensan-court-directory') {
+        previewGensanDirectoryVenueOnMap(form, {
+          name: courtLocationOption.querySelector('strong')?.textContent || label,
+          address: courtLocationOption.querySelector('small')?.textContent || ''
+        });
+      } else {
+        const status = form.querySelector('#registerCourtLocationStatus');
+        if (status) status.textContent = 'This map result has no usable GPS coordinates. Tap the exact court location on the map before saving.';
+      }
+    }
+    return;
+  }
   const matchTypeButton = event.target.closest('[data-match-type-filter]');
   if (matchTypeButton) {
     const nextMatchType = matchTypeButton.dataset.matchTypeFilter;
@@ -1977,11 +3617,41 @@ document.addEventListener('click', async event => {
     }
     if (action === 'record-match' || action === 'open-queue' || action === 'manage-courts') { openToolTab('/queueing'); return; }
     if (action === 'open-live') { window.open('/live', '_blank', 'noopener'); return; }
-    if (action === 'refresh') { const ok = await refreshData({ silent: true }); if (ok) toast('Queueing data refreshed.'); return; }
+    if (action === 'refresh') {
+      if (state.refreshingDashboard) return;
+      state.refreshingDashboard = true;
+      actionButton.classList.add('is-refreshing');
+      actionButton.setAttribute('aria-busy', 'true');
+      actionButton.disabled = true;
+      try {
+        const ok = await refreshData({ silent: true });
+        if (ok) toast('Queueing data refreshed.');
+      } finally {
+        state.refreshingDashboard = false;
+        const refreshButton = $('[data-action="refresh"]');
+        if (refreshButton) {
+          refreshButton.classList.remove('is-refreshing');
+          refreshButton.setAttribute('aria-busy', 'false');
+          refreshButton.disabled = false;
+        }
+      }
+      return;
+    }
     if (action === 'export-players') { exportPlayers(); return; }
     if (action === 'export-matches') { exportMatches(); return; }
     if (action === 'export-dupr') { exportDuprMatches(); return; }
     if (action === 'edit-settings') { openOrganizerSettings(); return; }
+    if (action === 'register-court') { openRegisterCourtModal(); return; }
+    if (action === 'edit-registered-court') { openEditRegisteredCourtModal(actionButton.dataset.courtId || ''); return; }
+    if (action === 'delete-registered-court') {
+      const courtId = String(actionButton.dataset.courtId || '');
+      const court = asArray(state.data?.registeredCourts).find(item => String(item.id) === courtId);
+      if (!court) { toast('Registered court not found. Refresh the page and try again.', 'error'); return; }
+      if (window.confirm(`Delete ${court.name} from your Registered Court List? Its map pin will also be removed.`)) {
+        await withRefresh('Registered court deleted.', () => api(`/api/organizer-dashboard/courts/${encodeURIComponent(courtId)}`, { method: 'DELETE' }), 'courts');
+      }
+      return;
+    }
     if (action === 'export-rankings') { exportRankings(); return; }
     if (action === 'export-report') { exportReport(); return; }
     if (action === 'export-backup') { exportBackup(); return; }
@@ -1992,12 +3662,14 @@ document.addEventListener('click', async event => {
   }
 
   const openMap = event.target.closest('[data-open-map-modal]');
-  if (openMap) { openMapModal(openMap.dataset.openMapModal || ''); return; }
+  if (openMap) { openMapModal(openMap.dataset.openMapModal || '', openMap.dataset.mapIncludeRegistered === 'true'); return; }
+  const mapEditCourt = event.target.closest('[data-map-edit-court-id]');
+  if (mapEditCourt) { openEditRegisteredCourtModal(mapEditCourt.dataset.mapEditCourtId || ''); return; }
   const mapSessionSelect = event.target.closest('[data-map-session-select]');
   if (mapSessionSelect) {
     const selectedId = mapSessionSelect.dataset.mapSessionSelect;
     if ($('#sessionMapModal')) setMapModalSession(selectedId);
-    else openMapModal(selectedId);
+    else openMapModal(selectedId, false);
     return;
   }
   const mapOpenSession = event.target.closest('[data-map-open-session]');
@@ -2052,8 +3724,85 @@ document.addEventListener('click', async event => {
   }
 });
 
+document.addEventListener('change', event => {
+  if (event.target?.id !== 'registerCourtLogo') return;
+  const file = event.target.files?.[0];
+  const preview = event.target.closest('form')?.querySelector('#registerCourtLogoPreview');
+  if (!preview) return;
+  if (!file) return;
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+    toast('Choose a PNG, JPG or WebP court logo no larger than 2 MB.', 'error');
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (!preview.isConnected) return;
+    preview.innerHTML = `<img src="${escapeHTML(String(reader.result || ''))}" alt="Court logo preview">`;
+    preview.hidden = false;
+  };
+  reader.readAsDataURL(file);
+});
+
 document.addEventListener('submit', async event => {
   const form = event.target;
+  if (form.id === 'registerCourtForm' || form.id === 'editRegisteredCourtForm') {
+    event.preventDefault();
+    const editing = form.id === 'editRegisteredCourtForm';
+    const fd = new FormData(form);
+    const name = String(fd.get('courtName') || '').trim();
+    const location = String(fd.get('courtLocation') || '').trim();
+    const logoFile = form.querySelector('[name="courtLogo"]')?.files?.[0];
+    const existingCourt = editing ? asArray(state.data?.registeredCourts).find(item => String(item.id) === String(form.dataset.courtId || '')) : null;
+    const submitButton = form.querySelector('button[type="submit"]');
+    const locationStatus = form.querySelector('#registerCourtLocationStatus');
+    if (!name || !location || (!editing && !logoFile) || (editing && !existingCourt)) { toast('Enter the court name and location, then choose a court logo.', 'error'); return; }
+    if (submitButton) { submitButton.disabled = true; submitButton.textContent = editing ? 'Saving…' : 'Registering…'; }
+    if (locationStatus) locationStatus.textContent = 'Checking the selected Philippines map location…';
+    try {
+      const logo = logoFile ? await readCourtLogoFile(logoFile) : String(existingCourt?.logo || '');
+      const selectedLat = Number(form.querySelector('[data-court-location-lat]')?.value);
+      const selectedLon = Number(form.querySelector('[data-court-location-lon]')?.value);
+      const selectedLabel = String(form.querySelector('[data-court-location-label]')?.value || '').trim();
+      const pinConfirmed = form.querySelector('[data-court-location-pin-confirmed]')?.value === 'true';
+      const pinSource = String(form.querySelector('[data-court-location-pin-source]')?.value || '').trim();
+      let selectedPlaceId = String(form.querySelector('[data-court-location-place-id]')?.value || '').trim();
+      let selectedPinId = String(form.querySelector('[data-court-location-pin-id]')?.value || '').trim();
+      if (pinConfirmed && Number.isFinite(selectedLat) && Number.isFinite(selectedLon) &&
+          isPhilippinesCoordinate(selectedLat, selectedLon) && !selectedPlaceId) {
+        const pinRevision = Number(form._courtPinRevision || 0);
+        await resolveCourtPinPlaceId(form, { lat: selectedLat, lon: selectedLon }, pinRevision);
+        selectedPlaceId = String(form.querySelector('[data-court-location-place-id]')?.value || '').trim();
+        selectedPinId = String(form.querySelector('[data-court-location-pin-id]')?.value || '').trim();
+      }
+      const selectedCoordinates = pinConfirmed && Number.isFinite(selectedLat) && Number.isFinite(selectedLon) && isPhilippinesCoordinate(selectedLat, selectedLon)
+        ? { lat: selectedLat, lon: selectedLon, label: selectedLabel || location, source: pinSource || (selectedLabel.includes('Manually placed') ? 'manual-map-pin' : 'map-search'), verified: true, placeId: selectedPlaceId, pinId: selectedPinId || `pin:${selectedLat.toFixed(7)},${selectedLon.toFixed(7)}` }
+        : null;
+      const coordinates = selectedCoordinates || null;
+      if (!coordinates) {
+        const pinHelp = 'This GenSan court listing does not have a verified GPS pin yet. On the map, tap the exact court entrance or drag the red pin onto it, then register again.';
+        if (locationStatus) locationStatus.textContent = pinHelp;
+        throw new Error('Exact court pin not confirmed. Tap the court entrance on the map or drag the red pin to the correct spot before registering.');
+      }
+      if (!logo) throw new Error('Choose a valid court logo before saving.');
+      const requestUrl = editing ? `/api/organizer-dashboard/courts/${encodeURIComponent(existingCourt.id)}` : '/api/organizer-dashboard/courts';
+      await api(requestUrl, {
+        method: editing ? 'PATCH' : 'POST',
+        body: JSON.stringify({ name, location, logo, locationCoordinates: { lat: coordinates.lat, lon: coordinates.lon, label: coordinates.label || selectedLabel || location, countrycode: 'PH', source: coordinates.source || 'manual-map-pin', verified: true, placeId: coordinates.placeId || '', pinId: coordinates.pinId || `pin:${coordinates.lat.toFixed(7)},${coordinates.lon.toFixed(7)}`, osmId: String(coordinates.placeId || '').startsWith('osm:') ? coordinates.placeId : '' } })
+      });
+      closeModal();
+      await refreshData({ silent: false });
+      toast(editing ? 'Registered court updated.' : 'Court registered and added to CourtMap.');
+    } catch (error) {
+      toast(error.message || (editing ? 'The court could not be updated.' : 'The court could not be registered.'), 'error');
+      if (submitButton && submitButton.isConnected) {
+        submitButton.disabled = false;
+        if (editing) submitButton.textContent = 'Save Changes';
+        else submitButton.innerHTML = `${icon('plus')} Register Court`;
+      }
+    }
+    return;
+  }
   if (form.id === 'sessionRenameForm') {
     event.preventDefault();
     const sessionId = form.dataset.sessionId;
@@ -2147,6 +3896,109 @@ document.addEventListener('pointerover', event => {
 }, { passive: true });
 document.addEventListener('focusin', event => {
   if (event.target.closest('[data-action="register-player"]')) prefetchRegistrationPage();
+});
+
+document.addEventListener('input', event => {
+  const input = event.target.closest('[data-court-location-input]');
+  if (!input) return;
+  const form = input.closest('form');
+  if (!form) return;
+  const latField = form.querySelector('[data-court-location-lat]');
+  const lonField = form.querySelector('[data-court-location-lon]');
+  const labelField = form.querySelector('[data-court-location-label]');
+  const confirmedField = form.querySelector('[data-court-location-pin-confirmed]');
+  const sourceField = form.querySelector('[data-court-location-pin-source]');
+  const placeIdField = form.querySelector('[data-court-location-place-id]');
+  const pinIdField = form.querySelector('[data-court-location-pin-id]');
+  if (latField) latField.value = '';
+  if (lonField) lonField.value = '';
+  if (labelField) labelField.value = '';
+  if (confirmedField) confirmedField.value = 'false';
+  if (sourceField) sourceField.value = '';
+  if (placeIdField) placeIdField.value = '';
+  if (pinIdField) pinIdField.value = '';
+  delete input.dataset.placeId;
+  delete input.dataset.pinId;
+  delete input.dataset.osmId;
+  input.dataset.selectedLocation = 'false';
+  const status = form.querySelector('#registerCourtLocationStatus');
+  form._courtPinRevision = Number(form._courtPinRevision || 0) + 1;
+  const query = input.value.trim();
+  const token = ++courtLocationSearchToken;
+  if (courtLocationSearchTimer) window.clearTimeout(courtLocationSearchTimer);
+  const list = form.querySelector('[data-court-location-suggestions]');
+  if (list) { list.hidden = true; list.innerHTML = ''; }
+  input.setAttribute('aria-expanded', 'false');
+  courtLocationActiveIndex = -1;
+  if (query.length < 3) {
+    if (list) { list.hidden = true; list.innerHTML = ''; }
+    if (status) status.textContent = 'Type at least 3 characters to search Philippine locations.';
+    return;
+  }
+  if (status) status.textContent = 'Searching Philippine map locations…';
+  courtLocationSearchTimer = window.setTimeout(async () => {
+    try {
+      const places = await searchPhilippineLocations(query);
+      if (token !== courtLocationSearchToken || !input.isConnected || input.value.trim() !== query) return;
+      const mapPlaces = places.map(item => ({ ...item, kind: 'map-place' }));
+      renderCourtLocationSuggestions(form, mapPlaces.slice(0, 8), query);
+      if (status) status.textContent = mapPlaces.length
+        ? 'Select a Philippines map location, then verify the exact pin.'
+        : 'No exact match yet. Try another court name, barangay, city or province, or place the pin manually.';
+    } catch (error) {
+      if (token !== courtLocationSearchToken || !input.isConnected) return;
+      if (list) { list.innerHTML = `<div class="court-location-no-results">${escapeHTML(error.message || 'Location search is unavailable.')}</div>`; list.hidden = false; }
+      if (status) status.textContent = 'Location search is temporarily unavailable. You can try again.';
+    }
+  }, 320);
+});
+
+document.addEventListener('focusin', event => {
+  const input = event.target.closest('[data-court-location-input]');
+  if (!input) return;
+  const list = input.closest('form')?.querySelector('[data-court-location-suggestions]');
+  if (list && list.children.length) { list.hidden = false; input.setAttribute('aria-expanded', 'true'); }
+});
+document.addEventListener('click', event => {
+  if (event.target.closest('.court-location-field')) return;
+  document.querySelectorAll('[data-court-location-suggestions]').forEach(list => {
+    list.hidden = true;
+    const input = list.closest('form')?.querySelector('[data-court-location-input]');
+    if (input) input.setAttribute('aria-expanded', 'false');
+  });
+});
+document.addEventListener('pointerdown', event => {
+  if (event.target.closest('[data-court-location-option]')) event.preventDefault();
+});
+document.addEventListener('keydown', event => {
+  const input = event.target.closest('[data-court-location-input]');
+  if (!input) return;
+  const list = input.closest('form')?.querySelector('[data-court-location-suggestions]');
+  if (!list || list.hidden) return;
+  const options = [...list.querySelectorAll('[data-court-location-option]')];
+  if (event.key === 'ArrowDown' && options.length) {
+    event.preventDefault();
+    courtLocationActiveIndex = Math.min(options.length - 1, courtLocationActiveIndex + 1);
+  } else if (event.key === 'ArrowUp' && options.length) {
+    event.preventDefault();
+    courtLocationActiveIndex = Math.max(0, courtLocationActiveIndex - 1);
+  } else if (event.key === 'Enter' && courtLocationActiveIndex >= 0) {
+    event.preventDefault();
+    options[courtLocationActiveIndex]?.click();
+    return;
+  } else if (event.key === 'Escape') {
+    list.hidden = true;
+    input.setAttribute('aria-expanded', 'false');
+    courtLocationActiveIndex = -1;
+    return;
+  } else {
+    return;
+  }
+  options.forEach((option, index) => {
+    const active = index === courtLocationActiveIndex;
+    option.setAttribute('aria-selected', String(active));
+    if (active) option.scrollIntoView({ block: 'nearest' });
+  });
 });
 
 $('#globalSearch').addEventListener('input', event => { state.query = event.target.value.trim(); renderPage(true); });

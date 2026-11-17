@@ -74,7 +74,7 @@ svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColo
 .profile-copy small { color: #8b958d; font-size: 9px; }
 .profile-chevron svg { width: 13px; height: 13px; color: #879188; }
 .mobile-menu { display: none; }
-.page-content { flex: 1 1 auto; min-width: 0; min-height: 0; overflow: auto; overflow-anchor: none; overscroll-behavior: contain; scrollbar-gutter: stable; scroll-behavior: auto; padding: 20px 23px 21px; scrollbar-width: thin; scrollbar-color: #ccd9ca transparent; }
+.page-content { flex: 1 1 auto; min-width: 0; min-height: 0; overflow: auto; overflow-anchor: none; overscroll-behavior: contain; scrollbar-gutter: stable; scroll-behavior: auto; padding: 5px 15px 25px; scrollbar-width: thin; scrollbar-color: #ccd9ca transparent; }
 .page-content::-webkit-scrollbar, .table-wrap::-webkit-scrollbar { width: 7px; height: 7px; }
 .page-content::-webkit-scrollbar-thumb, .table-wrap::-webkit-scrollbar-thumb { background: #d5e0d3; border-radius: 99px; }
 .loading-state { display: flex; align-items: center; gap: 10px; padding: 30px; color: var(--muted); }
@@ -91,6 +91,10 @@ h1 { margin: 4px 0 3px; color: #13281d; font-size: clamp(22px, 2vw, 28px); line-
 .btn { min-height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 12px; border: 1px solid #e3ebe1; border-radius: 9px; color: #46534a; background: #fff; font-size: 11px; font-weight: 700; text-decoration: none; white-space: nowrap; transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease, color .16s ease; }
 .btn:hover { border-color: #c6e3bd; color: var(--green-900); background: #fbfef9; box-shadow: 0 3px 9px rgba(25,70,37,.06); }
 .btn:active { background: #edf7e9; }
+.dashboard-refresh-button .dashboard-refresh-icon { width: 16px; height: 16px; flex: 0 0 16px; }
+.dashboard-refresh-button.is-refreshing { cursor: wait; opacity: .82; }
+.dashboard-refresh-button.is-refreshing .dashboard-refresh-icon { animation: dashboard-refresh-spin .85s linear infinite; transform-origin: center; }
+@keyframes dashboard-refresh-spin { to { transform: rotate(360deg); } }
 .btn svg { width: 14px; height: 14px; }
 .btn-primary { border-color: var(--green-800); color: #fff; background: var(--green-800); }
 .btn-primary:hover { border-color: var(--green-900); color: #fff; background: var(--green-900); }
@@ -350,7 +354,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .global-search { width: min(175px,38vw); height: 32px; }
   .profile-copy, .profile-chevron { display: none; }
   .profile-button { padding: 0; }
-  .page-content { padding: 15px 12px 18px; }
+  .page-content { padding: 5px 15px 25px; }
   .page-dashboard { min-height: 0; display: flex; flex-direction: column; overflow: visible; }
   .page-dashboard > .page-heading { margin-bottom: 12px; }
   .heading-actions { flex-wrap: wrap; justify-content: flex-end; }
@@ -436,7 +440,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .live-session-banner strong{display:block;font-size:14px;color:#183c25}
 .live-session-banner p{margin:4px 0 0;font-size:12px;color:#62746a}
 .live-session-actions{display:flex;flex-wrap:wrap;gap:8px}
-.data-note{font-size:11px;color:var(--muted,#718078);margin-top:8px}
 .status-pill.live{background:#e6f7ec;color:#176c38}
 .status-pill.ended{background:#eef1ef;color:#68736c}
 .status-pill.dupr{background:#e7f1ff;color:#1d5fae}
@@ -466,7 +469,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .dashboard-grid .recent-panel { grid-column: 1; grid-row: 2; }
 .side-stack { grid-column: 3; grid-row: 1 / span 2; }
 .page-dashboard .live-session-banner { margin: 0; }
-.page-dashboard .data-note { margin: 0; }
 @media (max-width: 980px) {
   .dashboard-grid .recent-panel { grid-column: 1 / -1; grid-row: 3; }
   .side-stack { grid-column: 1; grid-row: 2; }
@@ -519,20 +521,21 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 }
 
 
-/* Dashboard trend chart: responsive bar layout with stable height and spacing. */
-.trend-panel { min-height: 218px; }
-.trend-panel .chart-box { width: 100%; min-height: 126px; max-height: 190px; flex: 1 1 auto; margin-top: 8px; overflow: hidden; }
+/* Dashboard trend chart: predictable height with the plot stretching to fill its chart box. */
+.trend-panel { min-width: 0; min-height: 218px; display: flex; flex-direction: column; }
+.trend-panel .chart-box { width: 100%; min-width: 0; height: 160px; min-height: 160px; max-height: 160px; flex: 0 0 160px; display: flex; align-items: stretch; margin-top: 8px; overflow: visible; }
+.trend-panel .chart-box .attendance-chart { width: 100%; height: 100%; min-height: 160px; flex: 1 1 auto; }
 .attendance-chart { width: 100%; height: 100%; min-height: 126px; display: grid; grid-template-columns: 24px minmax(0,1fr); gap: 5px; }
 .attendance-y-axis { display: flex; flex-direction: column; justify-content: space-between; padding: 5px 0 21px; color: #98a49b; font-size: 8px; line-height: 1; text-align: right; }
-.attendance-plot { position: relative; min-width: 0; min-height: 0; display: flex; }
+.attendance-plot { position: relative; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; align-self: stretch; }
 .attendance-grid-line { position: absolute; left: 0; right: 0; z-index: 0; border-top: 1px solid #edf2eb; pointer-events: none; }
 .attendance-grid-line.grid-top { top: 4px; }
 .attendance-grid-line.grid-middle { top: 50%; }
 .attendance-grid-line.grid-bottom { bottom: 21px; }
-.attendance-bars { position: relative; z-index: 1; width: 100%; min-width: 0; display: grid; grid-template-columns: repeat(var(--bar-count,6),minmax(0,1fr)); align-items: stretch; gap: clamp(4px,1.2vw,14px); padding: 3px 4px 0; }
+.attendance-bars { position: relative; z-index: 1; width: 100%; height: 100%; min-width: 0; min-height: 0; flex: 1 1 auto; display: grid; grid-template-columns: repeat(var(--bar-count,6),minmax(0,1fr)); align-items: stretch; gap: clamp(4px,1.2vw,14px); padding: 3px 4px 0; }
 .attendance-bar-item { min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
 .attendance-bar-visual { position: relative; width: 100%; min-height: 0; flex: 1 1 auto; display: flex; align-items: flex-end; justify-content: center; }
-.attendance-bar-fill { display: block; width: min(34px,70%); height: var(--bar-height); min-height: 0; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg,#78c957 0%,#248448 100%); box-shadow: 0 2px 5px rgba(33,125,66,.13); transition: none; }
+.attendance-bar-fill { display: block; width: min(34px,70%); height: var(--bar-height); min-height: 0; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg,#78c957 0%,#248448 100%); box-shadow: 0 2px 5px rgba(33,125,66,.13); transform: scaleY(var(--bar-scale, 1)); transform-origin: center bottom; transition: transform 780ms cubic-bezier(.2, .72, .22, 1); will-change: transform; }
 .attendance-bar-value { position: absolute; bottom: calc(var(--bar-height) + 3px); color: #3e5145; font-size: 9px; font-weight: 800; line-height: 1; }
 .attendance-bar-date { width: 100%; margin-top: 6px; color: #7f8b82; font-size: 8px; line-height: 1.1; text-align: center; white-space: nowrap; }
 .chart-empty { min-height: 126px; padding: 8px; text-align: center; line-height: 1.5; }
@@ -557,8 +560,33 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .map-preview-footer { display: flex; justify-content: space-between; gap: 8px; margin-top: 7px; color: #89958c; font-size: 8px; }
 .map-preview-footer .map-count { color: #4d7457; font-weight: 800; }
 .map-status { min-height: 12px; margin: 5px 0 0; color: #8b978e; font-size: 8px; line-height: 1.35; }
-.dashboard-map-pin { width: 25px; height: 25px; display: grid; place-items: center; padding: 0; border: 2px solid #fff; border-radius: 50% 50% 50% 2px; transform: rotate(-45deg); background: #176d3c; box-shadow: 0 3px 10px rgba(18,54,31,.35); cursor: pointer; }
-.dashboard-map-pin span { width: 7px; height: 7px; border-radius: 50%; background: #d6ff9b; }
+/* Dashboard map markers. MapLibre owns the outer marker transform/anchor.
+   Registered court logos are compact circles centered on their saved GPS point.
+   Their border communicates live / newly registered / inactive status. */
+.dashboard-map-pin, .dashboard-map-pin-court { position: relative; display: block; padding: 0; border: 0; border-radius: 0; background: transparent; cursor: pointer; line-height: 0; }
+.dashboard-map-pin { width: 36px; height: 42px; }
+.dashboard-map-pin-court { width: 42px; height: 46px; z-index: 2; }
+.dashboard-map-pin-art { position: relative; display: block; width: 100%; height: 100%; }
+.dashboard-map-pin-art svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 2px 3px rgba(55,25,20,.35)); pointer-events: none; }
+.dashboard-map-pin-logo { display: block; width: 100%; height: 100%; max-width: none; max-height: none; padding: 0; border: 0; border-radius: 50%; background: #fff; object-fit: cover; object-position: center; filter: none; box-shadow: none; pointer-events: none; }
+.dashboard-map-pin-court.has-logo { width: 34px; height: 34px; }
+.dashboard-map-pin-art-logo { display: grid; width: 34px; height: 34px; padding: 2px; place-items: center; overflow: hidden; border: 2px solid #fff; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.28); }
+.dashboard-map-pin-court.has-logo.is-live .dashboard-map-pin-art-logo { border-color: #22c55e; }
+.dashboard-map-pin-court.has-logo.is-new:not(.is-live) .dashboard-map-pin-art-logo { border-color: #ef4444; }
+.dashboard-map-pin-court.has-logo:not(.is-live):not(.is-new) .dashboard-map-pin-art-logo { border-color: #fff; }
+.dashboard-map-pin:hover .dashboard-map-pin-art, .dashboard-map-pin-court:hover .dashboard-map-pin-art,
+.dashboard-map-pin:focus-visible .dashboard-map-pin-art, .dashboard-map-pin-court:focus-visible .dashboard-map-pin-art { filter: drop-shadow(0 3px 5px rgba(55,25,20,.42)); }
+.dashboard-map-pin:focus-visible, .dashboard-map-pin-court:focus-visible { outline: 0; }
+/* Keep the existing live halo on session-only pins; registered logo pins use
+   a steady green border instead of a glow so their exact map point stays clear. */
+.dashboard-map-pin.is-live:not(.has-logo) .dashboard-map-pin-art, .dashboard-map-pin-court.is-live:not(.has-logo) .dashboard-map-pin-art { animation: dashboard-map-pin-live-edge 1.9s ease-in-out infinite; }
+@keyframes dashboard-map-pin-live-edge {
+  0%, 100% { filter: drop-shadow(0 2px 3px rgba(55,25,20,.32)) drop-shadow(0 0 2px rgba(37,190,91,.34)); }
+  50% { filter: drop-shadow(0 2px 3px rgba(55,25,20,.32)) drop-shadow(0 0 9px rgba(37,190,91,.9)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-map-pin.is-live:not(.has-logo) .dashboard-map-pin-art, .dashboard-map-pin-court.is-live:not(.has-logo) .dashboard-map-pin-art { animation: none; filter: drop-shadow(0 0 6px rgba(37,190,91,.75)); }
+}
 .map-popup { min-width: 190px; color: #2c3c31; font: inherit; }
 .map-popup-location { display: block; margin-bottom: 4px; font-size: 12px; }
 .map-popup-resolved { display: block; margin-bottom: 7px; color: #849087; font-size: 9px; }
@@ -1400,5 +1428,423 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
     padding: 4px 5px;
     font-size: 7px;
     letter-spacing: 0;
+  }
+}
+
+/* Dashboard refresh stability: keep the Attendance Trend panel and its header controls in fixed positions. */
+.page-dashboard > .page-heading .heading-actions {
+  min-height: 34px;
+  align-items: center;
+}
+.page-dashboard > .page-heading .dashboard-refresh-button {
+  box-sizing: border-box;
+  height: 34px;
+  min-height: 34px;
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.trend-panel {
+  box-sizing: border-box;
+  height: 262px;
+  min-height: 262px;
+  max-height: 262px;
+  align-self: start;
+  overflow: hidden;
+}
+.trend-panel > .panel-heading {
+  box-sizing: border-box;
+  height: 23px;
+  min-height: 23px;
+  flex: 0 0 23px;
+  margin-bottom: 11px;
+}
+.trend-panel > .panel-heading .mini-icon {
+  width: 23px;
+  height: 23px;
+  min-width: 23px;
+  min-height: 23px;
+  flex: 0 0 23px;
+}
+.trend-panel .chart-meta {
+  box-sizing: border-box;
+  height: 29px;
+  min-height: 29px;
+  flex: 0 0 29px;
+  align-items: center;
+}
+.trend-panel > .chart-box {
+  box-sizing: border-box;
+  width: 100%;
+  height: 160px;
+  min-height: 160px;
+  max-height: 160px;
+  flex: 0 0 160px;
+  margin-top: 8px;
+}
+
+/* Desktop: use fixed grid tracks instead of fractional tracks that can reflow on refresh. */
+@media (min-width: 981px) {
+  .dashboard-grid {
+    box-sizing: border-box;
+    width: 100%;
+    height: 478px;
+    min-height: 478px;
+    max-height: 478px;
+    flex: 0 0 478px;
+    grid-template-rows: 262px 205px;
+    align-content: start;
+  }
+  .dashboard-grid > .trend-panel {
+    height: 262px;
+    min-height: 262px;
+    max-height: 262px;
+  }
+  .side-stack {
+    height: 478px;
+    grid-template-rows: 262px 205px;
+    align-content: start;
+  }
+}
+
+/* Tablet landscape: keep the chart row fixed while retaining the existing multi-row layout. */
+@media (min-width: 841px) and (max-width: 980px) {
+  .dashboard-grid {
+    grid-template-rows: 262px 250px minmax(155px, 1fr);
+  }
+  .dashboard-grid > .trend-panel {
+    height: 262px;
+    min-height: 262px;
+    max-height: 262px;
+  }
+  .side-stack {
+    grid-template-rows: 250px;
+  }
+}
+
+/* Mobile layouts remain stacked and scroll naturally, but the trend panel stays the same height. */
+@media (max-width: 840px) {
+  .trend-panel {
+    height: 262px;
+    min-height: 262px;
+    max-height: 262px;
+  }
+}
+
+
+/* Dashboard-only motion: count-up, rising attendance bars, and ranking entrance. */
+.page-dashboard .chart-meta strong,
+.page-dashboard .stat-value,
+.page-dashboard .attendance-bar-value {
+  font-variant-numeric: tabular-nums;
+}
+.page-dashboard .ranking-list.is-entering .ranking-row {
+  animation: dashboard-ranking-slide-fade-down 480ms cubic-bezier(.2, .7, .2, 1) both;
+  animation-delay: calc(var(--ranking-order, 0) * 26ms);
+}
+@keyframes dashboard-ranking-slide-fade-down {
+  from { opacity: 0; transform: translateY(-9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-dashboard .attendance-bar-fill {
+    transition: none;
+    transform: scaleY(1);
+    will-change: auto;
+  }
+  .page-dashboard .ranking-list.is-entering .ranking-row {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Dashboard map panel: let the card and its map canvas share available height at every breakpoint. */
+.page-dashboard .side-stack > .map-panel {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+.page-dashboard .side-stack > .map-panel > .panel-heading,
+.page-dashboard .side-stack > .map-panel > .map-preview-footer,
+.page-dashboard .side-stack > .map-panel > .map-status {
+  flex: 0 0 auto;
+}
+.page-dashboard .side-stack > .map-panel > .interactive-map {
+  box-sizing: border-box;
+  width: 100%;
+  height: auto;
+  min-height: 128px;
+  flex: 1 1 0;
+}
+
+/* On tablet portrait and phones the dashboard stack grows naturally with the page. */
+@media (max-width: 840px) {
+  .page-dashboard .side-stack > .map-panel {
+    height: auto;
+    min-height: clamp(270px, 34vh, 330px);
+  }
+  .page-dashboard .side-stack > .map-panel > .interactive-map {
+    min-height: clamp(155px, 22vh, 210px);
+    flex: 1 1 180px;
+  }
+}
+
+/* Dashboard bottom-space fix: let the desktop grid fill the remaining page height.
+   Tablet and phone layouts keep their natural content height and scrolling. */
+@media (min-width: 981px) {
+  .page-dashboard > .dashboard-grid {
+    box-sizing: border-box;
+    width: 100%;
+    height: auto;
+    min-height: 478px;
+    max-height: none;
+    flex: 1 0 478px;
+    grid-template-rows: minmax(262px, 1.12fr) minmax(205px, .88fr);
+    align-content: stretch;
+  }
+  .page-dashboard > .dashboard-grid > .trend-panel {
+    height: auto;
+    min-height: 262px;
+    max-height: none;
+    align-self: stretch;
+  }
+  .page-dashboard > .dashboard-grid > .side-stack {
+    height: 100%;
+    grid-template-rows: minmax(250px, 1.12fr) minmax(205px, .88fr);
+    align-content: stretch;
+  }
+}
+
+@media (max-width: 840px) {
+  .page-dashboard > .dashboard-grid {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    flex: 0 0 auto;
+  }
+}
+
+/* Dashboard panel balance: make the map panel taller and the Court Status panel shorter.
+   Keep the dashboard grid and unrelated panels unchanged at every breakpoint. */
+.page-dashboard #dashboardCourtMap {
+  box-sizing: border-box;
+  min-height: 175px;
+}
+
+@media (min-width: 981px) {
+  .page-dashboard > .dashboard-grid > .side-stack {
+    grid-template-rows: minmax(300px, 1.12fr) minmax(188px, .88fr);
+  }
+  .page-dashboard > .dashboard-grid > .side-stack > .panel.panel-pad.map-panel {
+    min-height: 300px;
+  }
+  .page-dashboard > .dashboard-grid > .side-stack > .panel.panel-pad.court-panel {
+    min-height: 188px;
+  }
+}
+
+@media (min-width: 841px) and (max-width: 980px) {
+  .page-dashboard > .dashboard-grid > .side-stack > .panel.panel-pad.map-panel {
+    min-height: 290px;
+  }
+  .page-dashboard > .dashboard-grid > .side-stack > .panel.panel-pad.court-panel {
+    min-height: 190px;
+    align-self: start;
+  }
+  .page-dashboard #dashboardCourtMap {
+    min-height: 185px;
+  }
+}
+
+@media (max-width: 840px) {
+  .page-dashboard .side-stack > .panel.panel-pad.map-panel {
+    height: auto;
+    min-height: clamp(310px, 38vh, 370px);
+  }
+  .page-dashboard .side-stack > .panel.panel-pad.court-panel {
+    min-height: 190px;
+  }
+  .page-dashboard #dashboardCourtMap {
+    min-height: clamp(190px, 26vh, 235px);
+  }
+}
+
+@media (min-width: 601px) and (max-width: 840px) {
+  .page-dashboard .side-stack > .panel.panel-pad.court-panel {
+    align-self: start;
+  }
+}
+
+
+/* Dashboard map panel/status visibility refinement across desktop, tablet and mobile. */
+.page-dashboard .side-stack > .panel.panel-pad.map-panel { box-sizing:border-box; min-width:0; display:flex; flex-direction:column; }
+.page-dashboard .side-stack > .panel.panel-pad.map-panel > .panel-heading,
+.page-dashboard .side-stack > .panel.panel-pad.map-panel > .map-preview-footer,
+.page-dashboard .side-stack > .panel.panel-pad.map-panel > .map-status { flex:0 0 auto; }
+.page-dashboard .side-stack > .panel.panel-pad.map-panel > .map-status { display:block; min-height:12px; margin-top:5px; }
+.page-dashboard #dashboardCourtMap { min-height:150px; flex:1 1 auto; }
+@media (min-width:981px) {
+ .page-dashboard > .dashboard-grid { min-height:518px; grid-template-rows:minmax(262px,1.02fr) minmax(256px,.98fr); }
+ .page-dashboard > .dashboard-grid > .side-stack { grid-template-rows:minmax(330px,1.2fr) minmax(188px,.8fr); }
+ .page-dashboard > .dashboard-grid > .side-stack > .panel.panel-pad.map-panel { min-height:330px; }
+ .page-dashboard > .dashboard-grid > .side-stack > .panel.panel-pad.court-panel { min-height:188px; }
+ .page-dashboard #dashboardCourtMap { min-height:150px; }
+}
+@media (min-width:841px) and (max-width:980px) {
+ .page-dashboard .side-stack > .panel.panel-pad.map-panel { min-height:320px; }
+ .page-dashboard .side-stack > .panel.panel-pad.court-panel { min-height:190px; }
+ .page-dashboard #dashboardCourtMap { min-height:150px; }
+}
+@media (max-width:840px) {
+ .page-dashboard .side-stack > .panel.panel-pad.map-panel { height:auto; min-height:clamp(330px,42vh,390px); }
+ .page-dashboard .side-stack > .panel.panel-pad.map-panel > .interactive-map { min-height:clamp(165px,22vh,205px); flex:1 1 165px; }
+ .page-dashboard .side-stack > .panel.panel-pad.court-panel { min-height:190px; }
+ .page-dashboard #dashboardCourtMap { min-height:clamp(165px,22vh,205px); }
+}
+@media (max-width:600px) {
+ .page-dashboard .side-stack > .panel.panel-pad.map-panel { min-height:340px; }
+ .page-dashboard .side-stack > .panel.panel-pad.map-panel > .interactive-map { min-height:170px; }
+ .page-dashboard #dashboardCourtMap { min-height:170px; }
+}
+
+/* Registered court list, Philippine location picker and upright branded CourtMap markers. */
+.registered-courts-panel .panel-heading { margin-bottom: 12px; }
+.court-page-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.court-page-actions .court-action-pill { border-radius: 99px !important; }
+.registered-court-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.registered-court-card { min-width: 0; display: flex; align-items: flex-start; gap: 10px; padding: 12px 10px; border: 0 !important; border-radius: 12px; background: #f8faf7; box-shadow: none !important; }
+.registered-court-logo { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; overflow: hidden; border: 0; border-radius: 10px; color: var(--green-800); background: #edf4e9; }
+.registered-court-logo img { width: 100%; height: 100%; object-fit: contain; }
+.registered-court-logo svg { width: 22px; height: 22px; }
+.registered-court-copy { min-width: 0; flex: 1 1 auto; display: grid; gap: 5px; }
+.registered-court-copy strong { overflow-wrap: anywhere; color: #293b30; font-size: 11px; }
+.registered-court-copy small { overflow-wrap: anywhere; color: #849087; font-size: 9px; line-height: 1.4; }
+.registered-court-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 3px; }
+.registered-court-actions button { display: inline-flex; align-items: center; gap: 4px; padding: 3px 0; border: 0; color: #57705d; background: transparent; font: inherit; font-size: 9px; font-weight: 700; cursor: pointer; }
+.registered-court-actions button:hover { color: #176d3c; }
+.registered-court-actions .registered-court-delete { color: #a65a55; }
+.registered-court-actions .registered-court-delete:hover { color: #c43e39; }
+.registered-court-actions svg { width: 11px; height: 11px; }
+.court-logo-preview { margin-top: 8px; }
+.court-logo-preview[hidden] { display: none; }
+.court-logo-preview img { width: 66px; height: 66px; padding: 5px; border: 1px solid #e6eee3; border-radius: 10px; background: #f8fbf6; object-fit: contain; }
+.court-location-input-wrap { position: relative; }
+.court-location-input-wrap input { width: 100%; }
+.court-location-suggestions { position: absolute; top: calc(100% + 5px); left: 0; right: 0; z-index: 30; max-height: 230px; overflow-y: auto; padding: 5px; border: 1px solid #e1e9df; border-radius: 11px; background: #fff; box-shadow: 0 12px 28px rgba(24,49,30,.16); }
+.court-location-suggestions[hidden] { display: none; }
+.court-location-option { width: 100%; display: grid; gap: 3px; padding: 9px 10px; border: 0; border-radius: 7px; color: #2c3c31; background: #fff; text-align: left; cursor: pointer; }
+.court-location-option:hover, .court-location-option:focus-visible { outline: 0; background: #f0f6ee; }
+.court-location-option strong { font-size: 10px; }
+.court-location-option small, .court-location-no-results { color: #7f8b82; font-size: 9px; line-height: 1.4; }
+.court-location-no-results { padding: 10px; }
+/* Both live and non-live court markers use the same GPS-anchored Lucide pin.
+   The logo overlays the SVG center; if no logo exists, the SVG stays visible. */
+.map-popup-courts { display: grid; gap: 6px; margin: 3px 0 8px; }
+.map-popup-court { display: flex; align-items: center; gap: 8px; padding: 6px 7px; border: 1px solid #e8eee7; border-radius: 8px; background: #f9fcf8; }
+.map-popup-court img { width: 30px; height: 30px; flex: 0 0 30px; border: 1px solid #e5ece2; border-radius: 7px; background: #fff; object-fit: contain; }
+.map-popup-court span { min-width: 0; display: grid; gap: 2px; }
+.map-popup-court strong { overflow-wrap: anywhere; font-size: 10px; }
+.map-popup-court small { color: #77847a; font-size: 8px; }
+.map-location-pin img { width: 22px; height: 22px; border-radius: 6px; object-fit: contain; }
+.map-location-row.is-static { cursor: default; }
+@media (max-width: 1100px) {
+  .registered-court-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 820px) {
+  .registered-court-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .registered-court-grid { grid-template-columns: minmax(0, 1fr); }
+  .registered-court-card { padding: 10px; }
+  .court-page-actions { justify-content: flex-start; }
+}
+
+
+/* Exact court pin placement and matched action-pill heights. */
+.court-page-actions .court-action-pill,
+.court-page-actions .btn-sm.btn-primary.court-action-pill,
+.court-page-actions .btn.btn-primary.court-action-pill {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 16px !important;
+  line-height: 1 !important;
+  border-radius: 99px !important;
+}
+.court-page-actions .court-action-pill svg { width: 13px; height: 13px; flex: 0 0 13px; }
+.court-location-field { min-width: 0; }
+.court-location-map-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.court-location-map-heading strong { color: #304637; font-size: 11px; }
+.court-location-map-heading span { color: #77877a; font-size: 9px; font-weight: 700; }
+.court-location-pin-map { position: relative; width: 100%; height: 270px; margin-top: 7px; overflow: hidden; border: 1px solid #dce7db; border-radius: 12px; background: #edf3ea; }
+.court-location-pin-map .maplibregl-canvas { outline: 0; }
+.court-location-pin-map .maplibregl-marker.maplibregl-marker-anchor-bottom { transform-origin: 50% 100%; }
+.court-location-draggable-pin { position: relative; width: 36px; height: 50px; display: block; padding: 0; border: 0; background: transparent; box-shadow: none; cursor: grab; user-select: none; -webkit-user-drag: none; }
+.court-location-draggable-pin:active { cursor: grabbing; }
+.court-location-draggable-pin svg { display: block; width: 36px; height: 50px; overflow: visible; filter: drop-shadow(0 2px 3px rgba(55, 25, 20, .35)); pointer-events: none; }
+.court-location-draggable-pin:hover svg { filter: drop-shadow(0 3px 5px rgba(55, 25, 20, .42)); }
+.map-popup-correct-pin { display: inline-flex; width: max-content; margin-top: 4px; padding: 0; border: 0; color: #176d3c; background: transparent; font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
+.map-popup-correct-pin:hover { text-decoration: underline; }
+@media (max-width: 640px) {
+  .court-location-pin-map { height: 235px; }
+  .court-location-map-heading { align-items: flex-start; }
+}
+
+/* Court location autocomplete list sizing. */
+.court-location-suggestions { max-height: 280px; }
+.court-page-actions .court-action-pill,
+.court-page-actions .btn-sm.btn-primary.court-action-pill,
+.court-page-actions .btn.btn-primary.court-action-pill {
+  height: 38px !important;
+  min-height: 38px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+
+
+/* Courts & Locations: show the map beside the registered court list. */
+.registered-courts-map-layout {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+  align-items: stretch;
+  gap: 14px;
+}
+.registered-courts-map-layout > .map-panel,
+.registered-courts-map-layout > .registered-courts-panel {
+  min-width: 0;
+  min-height: 0;
+}
+.registered-courts-map-layout > .map-panel {
+  display: flex;
+  flex-direction: column;
+}
+.registered-courts-map-layout > .map-panel .interactive-map {
+  height: clamp(260px, 30vw, 350px);
+  min-height: 240px;
+}
+.registered-courts-map-layout .registered-court-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 900px) {
+  .registered-courts-map-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .registered-courts-map-layout > .map-panel .interactive-map {
+    height: 260px;
+    min-height: 220px;
   }
 }

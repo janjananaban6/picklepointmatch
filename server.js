@@ -2024,13 +2024,110 @@ async function handle(req, res) {
     if (attendanceChanged) await saveOrganizerAttendance(organizerId,attendance);
     return sendJson(res,200,{
       ok:true,
-      organizer:{id:organizerId,slug:String(account?.slug || ''),username:auth.username || account?.username || '',displayName:account?.displayName || auth.displayName || auth.username || 'Organizer',logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account?.showOnLeaderboard !== false},
+      organizer:{id:organizerId,slug:String(account?.slug || ''),username:auth.username || account?.username || '',displayName:account?.displayName || auth.displayName || auth.username || 'Organizer',logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account?.showOnLeaderboard !== false,registeredCourts:Array.isArray(account?.registeredCourts) ? account.registeredCourts : []},
       appState:appEntry.state || null,
       appRevision:appEntry.revision || 0,
       records:{players,sessions,logs,attendanceBySession},
       updatedAt:sharedCloudUpdatedAt
     });
   }
+  if (url.pathname === '/api/organizer-dashboard/courts' && req.method === 'POST') {
+    try {
+      const auth = getAuthSession(req);
+      if (auth?.role !== 'organizer' || !auth.organizerId) return sendJson(res,401,{ok:false,error:'Organizer login required.'});
+      const account = accountById(auth.organizerId);
+      if (!account) return sendJson(res,404,{ok:false,error:'Organizer account not found.'});
+      const body = await readBody(req,2 * 1024 * 1024);
+      const name = String(body?.name || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,100);
+      const location = String(body?.location || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,250);
+      const logo = String(body?.logo || '').trim();
+      if (!name) return sendJson(res,400,{ok:false,error:'Court name cannot be blank.'});
+      if (!location) return sendJson(res,400,{ok:false,error:'Court location cannot be blank.'});
+      if (!logo || logo.length > 450000 || !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/i.test(logo)) {
+        return sendJson(res,400,{ok:false,error:'Choose a valid PNG, JPG, or WebP court logo.'});
+      }
+      const coordinates = body?.locationCoordinates || body?.coordinates || {};
+      const lat = Number(coordinates.lat ?? coordinates.latitude);
+      const lon = Number(coordinates.lon ?? coordinates.lng ?? coordinates.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < 4.0 || lat > 22.4 || lon < 115.5 || lon > 128.6) {
+        return sendJson(res,400,{ok:false,error:'Court location must resolve to a location in the Philippines.'});
+      }
+      const registeredCourts = Array.isArray(account.registeredCourts) ? account.registeredCourts : [];
+      if (registeredCourts.length >= 50) return sendJson(res,400,{ok:false,error:'This workspace has reached the 50 registered court limit.'});
+      const duplicate = registeredCourts.some(court =>
+        String(court?.name || '').trim().toLocaleLowerCase() === name.toLocaleLowerCase() &&
+        String(court?.location || '').trim().toLocaleLowerCase() === location.toLocaleLowerCase()
+      );
+      if (duplicate) return sendJson(res,409,{ok:false,error:'This court is already registered at that location.'});
+      const registeredCourt = {
+        id:`court-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+        name,
+        location,
+        logo,
+        locationCoordinates:{lat,lon,label:String(coordinates.label || location).slice(0,180),countrycode:'PH',source:String(coordinates.source || 'manual-map-pin').slice(0,40),verified:coordinates.verified === true,placeId:String(coordinates.placeId || '').slice(0,180),pinId:String(coordinates.pinId || '').slice(0,180),osmId:String(coordinates.osmId || '').slice(0,120)},
+        registeredAt:new Date().toISOString()
+      };
+      account.registeredCourts = [...registeredCourts, registeredCourt];
+      await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
+      return sendJson(res,201,{ok:true,registeredCourt,registeredCourts:account.registeredCourts});
+    } catch (err) {
+      return sendJson(res,err.statusCode || 500,{ok:false,error:err.statusCode===413?'Court logo file is too large.':err.message||'Unable to register this court.'});
+    }
+  }
+
+  const registeredCourtRoute = url.pathname.match(/^\/api\/organizer-dashboard\/courts\/([^/]+)$/);
+  if (registeredCourtRoute && (req.method === 'PATCH' || req.method === 'DELETE')) {
+    try {
+      const auth = getAuthSession(req);
+      if (auth?.role !== 'organizer' || !auth.organizerId) return sendJson(res,401,{ok:false,error:'Organizer login required.'});
+      const account = accountById(auth.organizerId);
+      if (!account) return sendJson(res,404,{ok:false,error:'Organizer account not found.'});
+      const courtId = decodeURIComponent(registeredCourtRoute[1]);
+      const registeredCourts = Array.isArray(account.registeredCourts) ? account.registeredCourts : [];
+      const existingIndex = registeredCourts.findIndex(court => String(court?.id || '') === courtId);
+      if (existingIndex < 0) return sendJson(res,404,{ok:false,error:'Registered court not found.'});
+      if (req.method === 'DELETE') {
+        account.registeredCourts = registeredCourts.filter((court, index) => index !== existingIndex);
+        await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
+        return sendJson(res,200,{ok:true,deletedCourtId:courtId,registeredCourts:account.registeredCourts});
+      }
+      const body = await readBody(req,2 * 1024 * 1024);
+      const existingCourt = registeredCourts[existingIndex];
+      const name = String(body?.name || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,100);
+      const location = String(body?.location || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,250);
+      const logo = String(body?.logo || existingCourt?.logo || '').trim();
+      if (!name) return sendJson(res,400,{ok:false,error:'Court name cannot be blank.'});
+      if (!location) return sendJson(res,400,{ok:false,error:'Court location cannot be blank.'});
+      if (!logo || logo.length > 450000 || !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/i.test(logo)) {
+        return sendJson(res,400,{ok:false,error:'Choose a valid PNG, JPG, or WebP court logo.'});
+      }
+      const coordinates = body?.locationCoordinates || body?.coordinates || {};
+      const lat = Number(coordinates.lat ?? coordinates.latitude);
+      const lon = Number(coordinates.lon ?? coordinates.lng ?? coordinates.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < 4.0 || lat > 22.4 || lon < 115.5 || lon > 128.6) {
+        return sendJson(res,400,{ok:false,error:'Court location must resolve to a location in the Philippines.'});
+      }
+      const duplicate = registeredCourts.some((court, index) => index !== existingIndex &&
+        String(court?.name || '').trim().toLocaleLowerCase() === name.toLocaleLowerCase() &&
+        String(court?.location || '').trim().toLocaleLowerCase() === location.toLocaleLowerCase()
+      );
+      if (duplicate) return sendJson(res,409,{ok:false,error:'Another court is already registered with that name at that location.'});
+      const updatedCourt = {
+        ...existingCourt,
+        name,
+        location,
+        logo,
+        locationCoordinates:{lat,lon,label:String(coordinates.label || location).slice(0,180),countrycode:'PH',source:String(coordinates.source || 'manual-map-pin').slice(0,40),verified:coordinates.verified === true,placeId:String(coordinates.placeId || '').slice(0,180),pinId:String(coordinates.pinId || '').slice(0,180),osmId:String(coordinates.osmId || '').slice(0,120)},
+        updatedAt:new Date().toISOString()
+      };
+      account.registeredCourts = registeredCourts.map((court, index) => index === existingIndex ? updatedCourt : court);
+      await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
+      return sendJson(res,200,{ok:true,registeredCourt:updatedCourt,registeredCourts:account.registeredCourts});
+    } catch (err) {
+      return sendJson(res,err.statusCode || 500,{ok:false,error:err.statusCode===413?'Court logo file is too large.':err.message||'Unable to update registered court.'});
+    }
+  }
+
   if (url.pathname === '/api/organizer-dashboard/cleanup-empty-sessions' && req.method === 'POST') {
     // Keep the endpoint for compatibility with older dashboard clients, but
     // never auto-delete completed sessions. Organizers may remove a session

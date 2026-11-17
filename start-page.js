@@ -25,26 +25,803 @@
   const PH_LOCATION_CENTER = { lat: 12.8797, lon: 121.7740 };
   // Verified court entries are included alongside the live Philippines geocoder
   // so venues that are not yet indexed in OpenStreetMap can still be selected.
-  const VERIFIED_PH_COURT_LOCATIONS = [
-    {
-      name: 'Summer Pickle and Perks (Alabel)',
-      address: 'Pecolados Compound, Purok Centro, Poblacion, Alabel, Sarangani 9501, Philippines',
-      label: 'Summer Pickle and Perks, Pecolados Compound, Purok Centro, Poblacion, Alabel, Sarangani 9501, Philippines',
-      lat: 6.1114236,
-      lon: 125.2934115,
-      countrycode: 'PH',
-      source: 'verified-venue-listing'
-    },
-    {
-      name: 'Summer Pickle and Perks-Bula',
-      address: 'Zone 9, Bula, General Santos City, South Cotabato, Philippines',
-      label: 'Summer Pickle and Perks-Bula, Zone 9, Bula, General Santos City, South Cotabato, Philippines',
-      lat: 6.106678009,
-      lon: 125.192527771,
-      countrycode: 'PH',
-      source: 'verified-venue-listing'
-    }
-  ];
+            const VERIFIED_PH_COURT_LOCATIONS = [
+      {
+        name: 'Summer Pickle and Perks (Alabel)',
+        address: 'Pecolados Compound, Purok Centro, Poblacion, Alabel, Sarangani 9501, Philippines',
+        label: 'Summer Pickle and Perks, Pecolados Compound, Purok Centro, Poblacion, Alabel, Sarangani 9501, Philippines',
+        lat: 6.1114236,
+        lon: 125.2934115,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1114236,125.2934115',
+        placeId: 'venue:summer-pickle-and-perks-alabel'
+      },
+      {
+        name: 'Summer Pickle and Perks-Bula',
+        address: 'Zone 9, Bula, General Santos City, South Cotabato, Philippines',
+        label: 'Summer Pickle and Perks-Bula, Zone 9, Bula, General Santos City, South Cotabato, Philippines',
+        lat: 6.106678009,
+        lon: 125.192527771,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.106678009,125.192527771',
+        placeId: 'venue:summer-pickle-and-perks-bula'
+      },
+      {
+        name: 'Pickle World Gensan - Downtown',
+        address: 'NCCC Compound, National Highway, General Santos City (Dadiangas), 9500 South Cotabato, Philippines',
+        label: 'Pickle World Gensan - Downtown, NCCC Compound, National Highway, General Santos City (Dadiangas), 9500 South Cotabato, Philippines',
+        lat: 6.121556,
+        lon: 125.1754212,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79ffa312fcc13:0x530972c55c9f7c3b',
+        mapsUrl: 'https://maps.app.goo.gl/i2oK4WniREN33NAv7'
+      },
+      {
+        name: 'Pickle World Gensan - Lagao',
+        address: '114L, Purok 12 Arradaza St, General Santos City (Dadiangas), 9500 South Cotabato, Philippines',
+        label: 'Pickle World Gensan - Lagao, 114L, Purok 12 Arradaza St, General Santos City (Dadiangas), 9500 South Cotabato, Philippines',
+        lat: 6.1187434,
+        lon: 125.2048218,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79fcbfb8ef755:0x9f1ebf6d818c1463',
+        mapsUrl: 'https://maps.app.goo.gl/3U1eqL1KNjto2i1BA'
+      },
+      {
+        name: "965 Pickleball Court",
+        address: "Barangay Conel, General Santos City, South Cotabato, Philippines",
+        label: "965 Pickleball Court, Barangay Conel, General Santos City, South Cotabato, Philippines",
+        lat: 6.1926129,
+        lon: 125.1603689,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79d00738e2791:0xfc636a0255966313',
+        mapsUrl: 'https://maps.app.goo.gl/FCgyGVzSB4tPWtyu6'
+      },
+      {
+        name: "AFA Paddle & Events Place",
+        address: "NLSA Extension, Barangay Mabuhay, General Santos City, South Cotabato, Philippines",
+        label: "AFA Paddle & Events Place, NLSA Extension, Barangay Mabuhay, General Santos City, South Cotabato, Philippines",
+        lat: 6.155658,
+        lon: 125.157001,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.155658,125.157001'
+      },
+      {
+        name: "Altori Park Pickleball",
+        address: "Matatag Park Square, Nuñez Extension Street, General Santos City, South Cotabato, Philippines",
+        label: "Altori Park Pickleball, Matatag Park Square, Nuñez Extension Street, General Santos City, South Cotabato, Philippines",
+        lat: 6.139041,
+        lon: 125.156759,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.139041,125.156759'
+      },
+      {
+        name: "Bayview Pickleball Court",
+        address: "Zone 8, Upper Banualan, Barangay Tambler, General Santos City, South Cotabato, Philippines",
+        label: "Bayview Pickleball Court, Zone 8, Upper Banualan, Barangay Tambler, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Brigada Golf Range",
+        address: "Brigada Business Hub, National Highway, Barangay Mabuhay, General Santos City, South Cotabato, Philippines",
+        label: "Brigada Golf Range, Brigada Business Hub, National Highway, Barangay Mabuhay, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Cabin Pickle Club",
+        address: "Diversion Road, Barangay Apopong, The Cabin Brewery, General Santos City, South Cotabato, Philippines",
+        label: "Cabin Pickle Club, Diversion Road, Barangay Apopong, The Cabin Brewery, General Santos City, South Cotabato, Philippines",
+        lat: 6.1014193,
+        lon: 125.1056464,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f7995021542b5f:0x251e594250baa8bd',
+        mapsUrl: 'https://maps.app.goo.gl/gUMpR2Pi1fxcDYSX9'
+      },
+      {
+        name: "CCM Pickleball Court",
+        address: "CCM Sports Center, Purok Masagana, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        label: "CCM Pickleball Court, CCM Sports Center, Purok Masagana, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        lat: 6.153997,
+        lon: 125.165505,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.153997,125.165505'
+      },
+      {
+        name: "Central PickleHub",
+        address: "Manansala Street, Dadiangas North, General Santos City, South Cotabato, Philippines",
+        label: "Central PickleHub, Manansala Street, Dadiangas North, General Santos City, South Cotabato, Philippines",
+        lat: 6.1177125,
+        lon: 125.1677942,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://maps.app.goo.gl/YesBChcUndWDdpU19'
+      },
+      {
+        name: "City Smash Pickleball",
+        address: "PG Building, National Highway, Queens Love Village, General Santos City, South Cotabato, Philippines",
+        label: "City Smash Pickleball, PG Building, National Highway, Queens Love Village, General Santos City, South Cotabato, Philippines",
+        lat: 6.11925,
+        lon: 125.17311,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.11925,125.17311'
+      },
+      {
+        name: "Conel Courts Pickle and Brew",
+        address: "Purok 1B, Santos Compound, Barangay Conel, General Santos City, South Cotabato, Philippines",
+        label: "Conel Courts Pickle and Brew, Purok 1B, Santos Compound, Barangay Conel, General Santos City, South Cotabato, Philippines",
+        lat: 6.202036,
+        lon: 125.1913919,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79d5b00c3cb07:0xca57c964e897db52',
+        mapsUrl: 'https://maps.app.goo.gl/ZZGukqXUMLqj2BSW8'
+      },
+      {
+        name: "Court Zero Racquet Club",
+        address: "Sampaguita Street, Barangay City Heights, General Santos City, South Cotabato, Philippines",
+        label: "Court Zero Racquet Club, Sampaguita Street, Barangay City Heights, General Santos City, South Cotabato, Philippines",
+        lat: 6.1265535,
+        lon: 125.1692548,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1265535,125.1692548'
+      },
+      {
+        name: "D'Lotte Picklepark",
+        address: "44QW+5H6, Nuñez Street, Purok Riverside, General Santos City, South Cotabato, Philippines",
+        label: "D'Lotte Picklepark, 44QW+5H6, Nuñez Street, Purok Riverside, General Santos City, South Cotabato, Philippines",
+        lat: 6.1379025,
+        lon: 125.14637890625,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1379025,125.14637890625'
+      },
+      {
+        name: "Dink O'Clock",
+        address: "Big Wide, National Highway, Palen, Barangay Labangal, General Santos City, South Cotabato, Philippines",
+        label: "Dink O'Clock, Big Wide, National Highway, Palen, Barangay Labangal, General Santos City, South Cotabato, Philippines",
+        lat: 6.1184025,
+        lon: 125.15416015625,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1184025,125.15416015625'
+      },
+      {
+        name: "Dinkwondo",
+        address: "NLSA Road, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        label: "Dinkwondo, NLSA Road, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        lat: 6.1330625,
+        lon: 125.1849375,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79f78e3b51ad3:0x3c8131512958b7e0',
+        mapsUrl: 'https://maps.app.goo.gl/knc8wHTtfVqWfEKW6'
+      },
+      {
+        name: "Frasssati Outdoor Recreation Area (FORA)",
+        address: "Our Lady Manaog Compound, Nuñez Street, General Santos City, South Cotabato, Philippines",
+        label: "Frasssati Outdoor Recreation Area (FORA), Our Lady Manaog Compound, Nuñez Street, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "FRNDZONE Playhub",
+        address: "Purok Ricvill, San Jose, near General Santos Airport, General Santos City, South Cotabato, Philippines",
+        label: "FRNDZONE Playhub, Purok Ricvill, San Jose, near General Santos Airport, General Santos City, South Cotabato, Philippines",
+        lat: 6.0799663,
+        lon: 125.0856893,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f7a38886b31997:0x9cd39d23155e9a79',
+        mapsUrl: 'https://maps.app.goo.gl/133whi3br3dRnUZk9'
+      },
+      {
+        name: "Game Yard",
+        address: "Purok Amadeo, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        label: "Game Yard, Purok Amadeo, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        lat: 6.136615,
+        lon: 125.1843838,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79ffd6b407bbb:0x426ab1e8ad1acaef',
+        mapsUrl: 'https://maps.app.goo.gl/tFvJpUeVwXwjkLaXA'
+      },
+      {
+        name: "Game-On Picklehaus",
+        address: "National Highway, General Santos City, South Cotabato, Philippines",
+        label: "Game-On Picklehaus, National Highway, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Gensan Rackets Pickleball Club",
+        address: "Nursery Road, near EmJake Aquawave, General Santos City, South Cotabato, Philippines",
+        label: "Gensan Rackets Pickleball Club, Nursery Road, near EmJake Aquawave, General Santos City, South Cotabato, Philippines",
+        lat: 6.144005,
+        lon: 125.1932769,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79f003b725e2b:0x579b49a5b16cc6b8',
+        mapsUrl: 'https://maps.app.goo.gl/n2rLaDc14oLnfzgn9'
+      },
+      {
+        name: "Gmall Pickleball Gensan",
+        address: "Gaisano Mall, J. Catolico Sr. Avenue, General Santos City, South Cotabato, Philippines",
+        label: "Gmall Pickleball Gensan, Gaisano Mall, J. Catolico Sr. Avenue, General Santos City, South Cotabato, Philippines",
+        lat: 6.1183134,
+        lon: 125.1845544,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79fb078fccdab:0x99982f61dbc955e9',
+        mapsUrl: 'https://maps.app.goo.gl/YZ7vCmUtkmo2uacG9'
+      },
+      {
+        name: "J&P Pickleball Academy",
+        address: "45VH+PGR, Pancubila Street, General Santos City, South Cotabato, Philippines",
+        label: "J&P Pickleball Academy, 45VH+PGR, Pancubila Street, General Santos City, South Cotabato, Philippines",
+        lat: 6.1443525,
+        lon: 125.17875390625,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1443525,125.17875390625'
+      },
+      {
+        name: "JCO Pickleball Hub",
+        address: "46R5+FJR, Davao Road, Lagao, beside VSM Estate, General Santos City, South Cotabato, Philippines",
+        label: "JCO Pickleball Hub, 46R5+FJR, Davao Road, Lagao, beside VSM Estate, General Santos City, South Cotabato, Philippines",
+        lat: 6.1412275,
+        lon: 125.20900390625,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1412275,125.20900390625'
+      },
+      {
+        name: "JG Oranza Sports Arena",
+        address: "Buayan, General Santos City, South Cotabato, Philippines",
+        label: "JG Oranza Sports Arena, Buayan, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Laureto Pickleball Court",
+        address: "44QW+4MR, Nuñez Street, General Santos City, South Cotabato, Philippines",
+        label: "Laureto Pickleball Court, 44QW+4MR, Nuñez Street, General Santos City, South Cotabato, Philippines",
+        lat: 6.1378525,
+        lon: 125.14662890625,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1378525,125.14662890625'
+      },
+      {
+        name: "Lim Spring Garden",
+        address: "Near Lagao Barangay Hall, General Santos City, South Cotabato, Philippines",
+        label: "Lim Spring Garden, Near Lagao Barangay Hall, General Santos City, South Cotabato, Philippines",
+        lat: 6.1296466,
+        lon: 125.1971456,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79f00008990e3:0x2203e1d9ca535f51',
+        mapsUrl: 'https://maps.app.goo.gl/E9LEPzc89yrsLkB9A'
+      },
+      {
+        name: "LPS Homecourt",
+        address: "Fil-Am Road, Barangay Calumpang, General Santos City, South Cotabato, Philippines",
+        label: "LPS Homecourt, Fil-Am Road, Barangay Calumpang, General Santos City, South Cotabato, Philippines",
+        lat: 6.0718022,
+        lon: 125.1345484,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f7a100608cffb7:0x368e6dd81ffebb80',
+        mapsUrl: 'https://maps.app.goo.gl/JcRmkEGerEz8uzSn9'
+      },
+      {
+        name: "Mamikilay",
+        address: "Lower Cabuay Road, Barangay Sinawal, General Santos City, South Cotabato, Philippines",
+        label: "Mamikilay, Lower Cabuay Road, Barangay Sinawal, General Santos City, South Cotabato, Philippines",
+        lat: 6.1406545,
+        lon: 125.1127992,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f799005c95f7a1:0x405b75587d671514',
+        mapsUrl: 'https://maps.app.goo.gl/P4wZLTpFNFDp41p28'
+      },
+      {
+        name: "NRT Events Center",
+        address: "Purok Cañas, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        label: "NRT Events Center, Purok Cañas, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        lat: 6.16112,
+        lon: 125.167273,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79f0a7dae8fff:0x7cece8854e054ecf',
+        mapsUrl: 'https://maps.app.goo.gl/FXhF1UMMhe4HNMeG9'
+      },
+      {
+        name: "Paddle King Court",
+        address: "MC Village, Block 3, Barangay Fatima, General Santos City, South Cotabato, Philippines",
+        label: "Paddle King Court, MC Village, Block 3, Barangay Fatima, General Santos City, South Cotabato, Philippines",
+        lat: 6.071332,
+        lon: 125.1049725,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f7a3003b360a19:0x5714df713af06d75',
+        mapsUrl: 'https://maps.app.goo.gl/pkbQEafHmRQacJDu8'
+      },
+      {
+        name: "Pickle Barn",
+        address: "Upper Villegas, beside Imperial Bodega, General Santos City, South Cotabato, Philippines",
+        label: "Pickle Barn, Upper Villegas, beside Imperial Bodega, General Santos City, South Cotabato, Philippines",
+        lat: 6.1431454,
+        lon: 125.1741914,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79f07cdfc0831:0xc59a7ab7af150b84',
+        mapsUrl: 'https://maps.app.goo.gl/uDNzGxhK6ERNzHrn7'
+      },
+      {
+        name: "Pickle Bull by Kwiky Mart",
+        address: "National Highway, General Santos City, South Cotabato, Philippines",
+        label: "Pickle Bull by Kwiky Mart, National Highway, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Pickle Court Co.",
+        address: "Golden Village, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        label: "Pickle Court Co., Golden Village, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Pickle Panic Recreational Park",
+        address: "Lagare Farms & Parks, General Santos City, South Cotabato, Philippines",
+        label: "Pickle Panic Recreational Park, Lagare Farms & Parks, General Santos City, South Cotabato, Philippines",
+        lat: 6.131262,
+        lon: 125.149036,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79f13956fcd9b:0x30c3dc62dbe93cf5',
+        mapsUrl: 'https://maps.app.goo.gl/T3Wn9TvPYwyN5JXP8'
+      },
+      {
+        name: "Pickleholics",
+        address: "Purok Soriano, Barangay Sinawal, General Santos City, South Cotabato, Philippines",
+        label: "Pickleholics, Purok Soriano, Barangay Sinawal, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Picklehub & Cafe",
+        address: "Velasquez Street, Dadiangas North, General Santos City, South Cotabato, Philippines",
+        label: "Picklehub & Cafe, Velasquez Street, Dadiangas North, General Santos City, South Cotabato, Philippines",
+        lat: 6.118462563,
+        lon: 125.165641785,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.118462563,125.165641785'
+      },
+      {
+        name: "Picklepals – SM City GenSan",
+        address: "Parking Lot E, SM City General Santos, J. Catolico Sr. Avenue, General Santos City, South Cotabato, Philippines",
+        label: "Picklepals – SM City GenSan, Parking Lot E, SM City General Santos, J. Catolico Sr. Avenue, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Pickleyard & Co",
+        address: "Fernandez Street, near Lagao Barangay Hall, General Santos City, South Cotabato, Philippines",
+        label: "Pickleyard & Co, Fernandez Street, near Lagao Barangay Hall, General Santos City, South Cotabato, Philippines",
+        lat: 6.1235625,
+        lon: 125.1845625,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1235625,125.1845625'
+      },
+      {
+        name: "Rally Point GenSan (RPG-GUPC) Pickleball Courts",
+        address: "45CM+6J5, behind GSIS Office, National Highway, General Santos City, South Cotabato, Philippines",
+        label: "Rally Point GenSan (RPG-GUPC) Pickleball Courts, 45CM+6J5, behind GSIS Office, National Highway, General Santos City, South Cotabato, Philippines",
+        lat: 6.1205169,
+        lon: 125.1841202,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79f0012e2b089:0x35bff7fe44048df2',
+        mapsUrl: 'https://maps.app.goo.gl/LsqVfPhH8BdnHfS27'
+      },
+      {
+        name: "RAPIKOL Pickleball Court",
+        address: "Odi Street, General Santos City, South Cotabato, Philippines",
+        label: "RAPIKOL Pickleball Court, Odi Street, General Santos City, South Cotabato, Philippines",
+        lat: 6.1294375,
+        lon: 125.1933125,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1294375,125.1933125'
+      },
+      {
+        name: "RGR Pickleball Courtside",
+        address: "Pancubila Street, General Santos City, South Cotabato, Philippines",
+        label: "RGR Pickleball Courtside, Pancubila Street, General Santos City, South Cotabato, Philippines",
+        lat: 6.1457025,
+        lon: 125.17841015625,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1457025,125.17841015625'
+      },
+      {
+        name: "Robinson Pickleball",
+        address: "Robinsons Place GenSan, J. Catolico Sr. Avenue, General Santos City, South Cotabato, Philippines",
+        label: "Robinson Pickleball, Robinsons Place GenSan, J. Catolico Sr. Avenue, General Santos City, South Cotabato, Philippines",
+        lat: 6.1202669,
+        lon: 125.1897059,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79f000f19fa1f:0x4ea148efa1bfdb7d',
+        mapsUrl: 'https://maps.app.goo.gl/C2J2Fth5ZbtQd1gX7'
+      },
+      {
+        name: "Sanman Pickle Punch GenSan",
+        address: "Sanman Boxing Gym Compound, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        label: "Sanman Pickle Punch GenSan, Sanman Boxing Gym Compound, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        lat: 6.138551,
+        lon: 125.1803825,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79f9c72b79b19:0x88c31ee2fcca06de',
+        mapsUrl: 'https://maps.app.goo.gl/hhxMtkQqs3rmMHbd8'
+      },
+      {
+        name: "Serve & Volley Pickleball Courts",
+        address: "Mabuhay Road, General Santos City, South Cotabato, Philippines",
+        label: "Serve & Volley Pickleball Courts, Mabuhay Road, General Santos City, South Cotabato, Philippines",
+        lat: 6.1449375,
+        lon: 125.1605625,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1449375,125.1605625'
+      },
+      {
+        name: "SideOut GenSan – Exclusive",
+        address: "Solomon Subdivision, Purok 15, Lagao, General Santos City, South Cotabato, Philippines",
+        label: "SideOut GenSan – Exclusive, Solomon Subdivision, Purok 15, Lagao, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "SideOut Pickleball Court GenSan – Main",
+        address: "National Highway, Lagao, opposite La Mirada Inn, General Santos City, South Cotabato, Philippines",
+        label: "SideOut Pickleball Court GenSan – Main, National Highway, Lagao, opposite La Mirada Inn, General Santos City, South Cotabato, Philippines",
+        lat: 6.131947517,
+        lon: 125.201087952,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.131947517,125.201087952'
+      },
+      {
+        name: "T-James Sporty Bar",
+        address: "Purok 14-D, Katangawan, General Santos City, South Cotabato, Philippines",
+        label: "T-James Sporty Bar, Purok 14-D, Katangawan, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "The Compound Courts",
+        address: "5568+6WR, General Santos City Circumferential Road, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        label: "The Compound Courts, 5568+6WR, General Santos City Circumferential Road, Barangay San Isidro, General Santos City, South Cotabato, Philippines",
+        lat: 6.1606025,
+        lon: 125.16725390625,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1606025,125.16725390625'
+      },
+      {
+        name: "The Loom & The Leaf Weekend Market",
+        address: "Nopo-Conel, Mabuhay Road, General Santos City, South Cotabato, Philippines",
+        label: "The Loom & The Leaf Weekend Market, Nopo-Conel, Mabuhay Road, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "The Paddle Club Pickleball",
+        address: "Tiongson Street, Lagao, General Santos City, South Cotabato, Philippines",
+        label: "The Paddle Club Pickleball, Tiongson Street, Lagao, General Santos City, South Cotabato, Philippines",
+        lat: 6.1272035,
+        lon: 125.192598,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79f0077b50255:0xa504247b5cbf36ae',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1271875,125.1925625'
+      },
+      {
+        name: "The Palm Court",
+        address: "Del Carmen Street, Lagao, General Santos City, South Cotabato, Philippines",
+        label: "The Palm Court, Del Carmen Street, Lagao, General Santos City, South Cotabato, Philippines",
+        lat: 6.131737232,
+        lon: 125.189704895,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.131737232,125.189704895'
+      },
+      {
+        name: "The Pickle Cafe",
+        address: "Purok 3, Labu, Katangawan, General Santos City, South Cotabato, Philippines",
+        label: "The Pickle Cafe, Purok 3, Labu, Katangawan, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "The Pickle Neighbour",
+        address: "Romana Estate, Dacera Street, Barangay City Heights, General Santos City, South Cotabato, Philippines",
+        label: "The Pickle Neighbour, Romana Estate, Dacera Street, Barangay City Heights, General Santos City, South Cotabato, Philippines",
+        lat: 6.1243525,
+        lon: 125.15603515625,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1243525,125.15603515625'
+      },
+      {
+        name: "Third Shot Pickleground Gensan",
+        address: "Sunshine Compound, Arradaza Street, Lagao, General Santos City, South Cotabato, Philippines",
+        label: "Third Shot Pickleground Gensan, Sunshine Compound, Arradaza Street, Lagao, General Santos City, South Cotabato, Philippines",
+        lat: 6.1173896,
+        lon: 125.1937748,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79f0011f697bf:0x9884c43134ddb9cf',
+        mapsUrl: 'https://maps.app.goo.gl/FxksNtumf1rp1Nvz6'
+      },
+      {
+        name: "Tranquil Bounce Pickleball Club",
+        address: "Greenfield Residences, Nursery Road, Lagao, General Santos City, South Cotabato, Philippines",
+        label: "Tranquil Bounce Pickleball Club, Greenfield Residences, Nursery Road, Lagao, General Santos City, South Cotabato, Philippines",
+        lat: 6.1438433,
+        lon: 125.2027057,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79fc4204c719d:0x23387cdeecc58f81',
+        mapsUrl: 'https://maps.app.goo.gl/LvKprZ9k6M7SQ4Ff9'
+      },
+      {
+        name: "Triangle Centre Court",
+        address: "Bula, General Santos City, South Cotabato, Philippines",
+        label: "Triangle Centre Court, Bula, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "V-Park",
+        address: "Circumferential Road, Velayo Farm, General Santos City, South Cotabato, Philippines",
+        label: "V-Park, Circumferential Road, Velayo Farm, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Verde Pickle Courts",
+        address: "Purok Maunlad Phase 2, General Santos City, South Cotabato, Philippines",
+        label: "Verde Pickle Courts, Purok Maunlad Phase 2, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "ZZ Pickle Court",
+        address: "Dadiangas Heights Subdivision, Block 6, General Santos City, South Cotabato, Philippines",
+        label: "ZZ Pickle Court, Dadiangas Heights Subdivision, Block 6, General Santos City, South Cotabato, Philippines",
+        lat: 6.1258314,
+        lon: 125.174884,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        placeId: 'google:0x32f79f7e1143e47b:0xb16c43e998c7c238',
+        mapsUrl: 'https://maps.app.goo.gl/QfpTRyEofVtriTuo8'
+      },
+      {
+        name: "4th Road Picklehub & Cafe",
+        address: "35H3+J56, Fourth Road, General Santos City (Dadiangas), South Cotabato, Philippines",
+        label: "4th Road Picklehub & Cafe, 35H3+J56, Fourth Road, General Santos City (Dadiangas), South Cotabato, Philippines",
+        lat: 6.0790275,
+        lon: 125.15287890625,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.0790275,125.15287890625',
+        status: "coming-soon"
+      },
+      {
+        name: "Cross Court Gensan",
+        address: "Mercado Street, Barangay San Isidro, General Santos City (Dadiangas), South Cotabato, Philippines",
+        label: "Cross Court Gensan, Mercado Street, Barangay San Isidro, General Santos City (Dadiangas), South Cotabato, Philippines",
+        lat: 6.1488376,
+        lon: 125.16542,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1488376,125.16542'
+      },
+      {
+        name: "SHAO Pickle Court",
+        address: "Zone 1, Barangay Buayan Townsite, General Santos City, South Cotabato, Philippines",
+        label: "SHAO Pickle Court, Zone 1, Barangay Buayan Townsite, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Picklepals - San Miguel",
+        address: "San Miguel Street, General Santos City (Dadiangas), 9500 South Cotabato, Philippines",
+        label: "Picklepals - San Miguel, San Miguel Street, General Santos City (Dadiangas), 9500 South Cotabato, Philippines",
+        lat: 6.1163125,
+        lon: 125.1833125,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1163125,125.1833125'
+      },
+      {
+        name: "RALLÉ Sports Center",
+        address: "543W+JRH, General Santos City Circumferential Road, General Santos City (Dadiangas), South Cotabato, Philippines",
+        label: "RALLÉ Sports Center, 543W+JRH, General Santos City Circumferential Road, General Santos City (Dadiangas), South Cotabato, Philippines",
+        lat: 6.1540525,
+        lon: 125.14709765625,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1540525,125.14709765625',
+        status: "coming-soon"
+      },
+      {
+        name: "The Pickle Field",
+        address: "Purok 28, Barangay San Jose Road, General Santos City (Dadiangas), South Cotabato, Philippines",
+        label: "The Pickle Field, Purok 28, Barangay San Jose Road, General Santos City (Dadiangas), South Cotabato, Philippines",
+        lat: 6.0781555,
+        lon: 125.10362,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.0781555,125.10362'
+      },
+      {
+        name: "PickleBelle",
+        address: "Savemore, Nuñez Street, Purok Malakas, General Santos City (Dadiangas), South Cotabato, Philippines",
+        label: "PickleBelle, Savemore, Nuñez Street, Purok Malakas, General Santos City (Dadiangas), South Cotabato, Philippines",
+        lat: 6.138061047,
+        lon: 125.1614151,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.138061047,125.1614151'
+      },
+      {
+        name: "The Pickle Yard",
+        address: "Catalino Cabe Street, Bula, General Santos City (Dadiangas), South Cotabato, Philippines",
+        label: "The Pickle Yard, Catalino Cabe Street, Bula, General Santos City (Dadiangas), South Cotabato, Philippines",
+        lat: 6.111452,
+        lon: 125.18355,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.111452,125.18355'
+      },
+      {
+        name: "The Dirty Kitchen Pickleball Court",
+        address: "Mabuhay Road, Agan Homes, Phase 1, Purok Perez, General Santos City (Dadiangas), 9500 South Cotabato, Philippines",
+        label: "The Dirty Kitchen Pickleball Court, Mabuhay Road, Agan Homes, Phase 1, Purok Perez, General Santos City (Dadiangas), 9500 South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Dink Yard Gensan Inc",
+        address: "Purok Bagong Silang, Upper Molok Bridge, National Highway, Barangay Labangal, General Santos City, South Cotabato, Philippines",
+        label: "Dink Yard Gensan Inc, Purok Bagong Silang, Upper Molok Bridge, National Highway, Barangay Labangal, General Santos City, South Cotabato, Philippines",
+        lat: 6.1019683,
+        lon: 125.1518,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1019683,125.1518'
+      },
+      {
+        name: "PaddlePals Recreational Hub",
+        address: "Yumang Extension, General Santos City, South Cotabato, Philippines",
+        label: "PaddlePals Recreational Hub, Yumang Extension, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "PogzGen Pickleball Court",
+        address: "Phase 3, Block 7, Lot 24, Galatians Street, Purok Placida, Barangay Calumpang, General Santos City, South Cotabato, Philippines",
+        label: "PogzGen Pickleball Court, Phase 3, Block 7, Lot 24, Galatians Street, Purok Placida, Barangay Calumpang, General Santos City, South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Pikolbol Couples",
+        address: "Block 7, Purok 3, Barangay Conel, General Santos City (Dadiangas), South Cotabato, 9500, Philippines",
+        label: "Pikolbol Couples, Block 7, Purok 3, Barangay Conel, General Santos City (Dadiangas), South Cotabato, 9500, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Vast Grounds - Pickleball Hub",
+        address: "JFR Commercial Complex Leasing, Purok 24, Mabuhay Road, Barangay Mabuhay, General Santos City (Dadiangas), South Cotabato, 9500, Philippines",
+        label: "Vast Grounds - Pickleball Hub, JFR Commercial Complex Leasing, Purok 24, Mabuhay Road, Barangay Mabuhay, General Santos City (Dadiangas), South Cotabato, 9500, Philippines",
+        lat: 6.1524506,
+        lon: 125.16048,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1524506,125.16048'
+      },
+      {
+        name: "P16 Dink Yard",
+        address: "Purok 16, Block 1, Barangay Fatima, General Santos City (Dadiangas), South Cotabato, 9500, Philippines",
+        label: "P16 Dink Yard, Purok 16, Block 1, Barangay Fatima, General Santos City (Dadiangas), South Cotabato, 9500, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      },
+      {
+        name: "Gensan Commandos Sports Center",
+        address: "Purok Pantay-Pantay, Barangay Baluan, General Santos City (Dadiangas), South Cotabato, Philippines",
+        label: "Gensan Commandos Sports Center, Purok Pantay-Pantay, Barangay Baluan, General Santos City (Dadiangas), South Cotabato, Philippines",
+        lat: 6.1269625,
+        lon: 125.21873437500001,
+        countrycode: 'PH',
+        source: 'verified-venue-listing',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=6.1269625,125.21873437500001'
+      },
+      {
+        name: "Pickle Vista",
+        address: "Purok Vista, Alilaya Village, Barangay Sinawal, General Santos City (Dadiangas), South Cotabato, Philippines",
+        label: "Pickle Vista, Purok Vista, Alilaya Village, Barangay Sinawal, General Santos City (Dadiangas), South Cotabato, Philippines",
+        lat: null,
+        lon: null,
+        countrycode: 'PH',
+        source: 'gensan-court-directory'
+      }
+    ];
 
   function readLocalState() {
     for (const key of [STATE_KEY, ...LEGACY_STATE_KEYS]) {
@@ -284,7 +1061,7 @@
       <button type="button" class="live-queue-location-option" role="option" aria-selected="false" data-location-option="${index}">
         <strong>${escapeLocationText(feature.name)}</strong>
         <small>${escapeLocationText(feature.address || feature.label)}</small>
-        <em>${feature.source === 'verified-venue-listing' ? 'Verified court venue · Philippines' : 'Philippines · Map search'}</em>
+        <em>${feature.status === 'coming-soon' ? 'Coming soon · ' : ''}${feature.source === 'gensan-court-directory' ? 'GenSan court directory · location listing' : feature.source === 'verified-venue-listing' ? 'Verified court venue · Philippines' : 'Philippines · Map search'}</em>
       </button>`).join('');
     list.hidden = false;
     input.setAttribute('aria-expanded', 'true');
@@ -300,13 +1077,13 @@
     if (delay) await new Promise(resolve => window.setTimeout(resolve, delay));
     if (controller.signal.aborted || requestId !== locationSuggestRequestId || String(input.value || '').trim() !== query) return;
 
-    const terms = normalizeLocationSearchText(query).split(' ').filter(term => term.length > 2 && !['the', 'and', 'for', 'philippines'].includes(term));
+    const terms = normalizeLocationSearchText(query).split(' ').filter(term => term.length > 2 && !['the', 'and', 'for', 'philippines', 'pickleball', 'court', 'courts', 'venue', 'venues', 'club', 'clubs'].includes(term));
     const requiredMatches = terms.length <= 1 ? 1 : Math.max(1, Math.ceil(terms.length * 0.5));
-    const curatedMatches = VERIFIED_PH_COURT_LOCATIONS.filter(feature => {
-      const searchable = normalizeLocationSearchText(`${feature.name} ${feature.address}`);
+    const curatedMatches = terms.length ? VERIFIED_PH_COURT_LOCATIONS.filter(feature => {
+      const searchable = normalizeLocationSearchText(`${feature.name} ${feature.address} ${/general\s+santos/i.test(feature.address) ? 'GenSan' : ''}`);
       const matches = terms.filter(term => searchable.includes(term)).length;
-      return !terms.length || matches >= requiredMatches;
-    }).map(feature => ({ ...feature }));
+      return matches >= requiredMatches;
+    }).map(feature => ({ ...feature })) : [];
     if (curatedMatches.length) renderLocationSuggestions(curatedMatches);
     else showLocationMessage('Searching Philippines locations…', 'Looking for matching courts, venues, and addresses.');
     const params = new URLSearchParams({
@@ -333,8 +1110,15 @@
       const unique = new Map();
       // Add verified Philippine pickleball venues first when the search matches.
       curatedMatches.forEach(feature => {
-        const key = `${normalizeLocationSearchText(feature.name)}|${feature.lat.toFixed(5)}|${feature.lon.toFixed(5)}`;
-        unique.set(key, feature);
+        const lat = Number(feature.lat);
+        const lon = Number(feature.lon);
+        const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lon) &&
+          lat >= PH_LOCATION_BOUNDS.minLat && lat <= PH_LOCATION_BOUNDS.maxLat &&
+          lon >= PH_LOCATION_BOUNDS.minLon && lon <= PH_LOCATION_BOUNDS.maxLon;
+        const key = hasCoordinates
+          ? `${normalizeLocationSearchText(feature.name)}|${lat.toFixed(5)}|${lon.toFixed(5)}`
+          : `directory:${normalizeLocationSearchText(feature.name)}`;
+        unique.set(key, { ...feature, ...(hasCoordinates ? { lat, lon } : {}) });
       });
       (Array.isArray(payload.features) ? payload.features : []).forEach(feature => {
         const parts = locationFeatureParts(feature);
