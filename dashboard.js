@@ -2355,15 +2355,24 @@ function dashboardMapPinMarkup(logo = '') {
   return `<span class="dashboard-map-pin-art" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" stroke="#e53935" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="4.6" fill="#fff"/></svg></span>`;
 }
 
-function mapPopupMarkup(item, coords) {
-  const courtCards = asArray(item.courts).map(court => `<div class="map-popup-court">${court.logo ? `<img src="${escapeHTML(court.logo)}" alt="">` : ''}<span><strong>${escapeHTML(court.name)}</strong><small>${court.isLive ? 'LIVE NOW · Registered court' : 'Registered court'}</small><button type="button" class="map-popup-correct-pin" data-map-edit-court-id="${escapeHTML(court.id)}">Correct pin / edit court</button></span></div>`).join('');
-  const sessionButtons = asArray(item.sessions).map(entry => `<button type="button" class="map-popup-session" data-map-session-select="${escapeHTML(entry.id)}"><strong>${escapeHTML(entry.title)}</strong><small>${entry.date ? `${escapeHTML(fmtDate(entry.date))} · ` : ''}${entry.isLive ? 'LIVE' : 'Completed'} · ${entry.matchCount} matches</small></button>`).join('');
-  return `<div class="map-popup"><strong class="map-popup-location">${escapeHTML(item.location)}</strong>${coords.label ? `<small class="map-popup-resolved">${escapeHTML(coords.label)}</small>` : ''}${courtCards ? `<div class="map-popup-courts">${courtCards}</div>` : ''}${sessionButtons ? `<div class="map-popup-sessions">${sessionButtons}</div>` : ''}</div>`;
+function mapPopupMarkup(item) {
+  const courts = asArray(item.courts);
+  const sessions = asArray(item.sessions);
+  const primaryCourt = courts[0] || null;
+  const liveCount = sessions.filter(entry => entry.isLive === true).length;
+  const heading = primaryCourt?.name || item.location;
+  const sessionSummary = sessions.length
+    ? `${sessions.length} session${sessions.length === 1 ? '' : 's'} · ${liveCount} live · ${sessions.length - liveCount} completed`
+    : 'Registered court';
+  const courtActions = courts.map(court => `<button type="button" class="map-popup-correct-pin" data-map-edit-court-id="${escapeHTML(court.id)}">Edit ${escapeHTML(court.name || 'court')} pin</button>`).join('');
+  const sessionButtons = sessions.map(entry => `<button type="button" class="map-popup-session" data-map-session-select="${escapeHTML(entry.id)}"><strong>${escapeHTML(entry.title)}</strong><small>${entry.date ? `${escapeHTML(fmtDate(entry.date))} · ` : ''}${entry.isLive ? 'LIVE' : 'Completed'}</small></button>`).join('');
+  return `<div class="map-popup"><div class="map-popup-heading">${primaryCourt?.logo ? `<img src="${escapeHTML(primaryCourt.logo)}" alt="" aria-hidden="true">` : ''}<span><strong class="map-popup-location">${escapeHTML(heading)}</strong><small class="map-popup-summary">${escapeHTML(item.location)} · ${escapeHTML(sessionSummary)}</small></span></div>${courtActions ? `<div class="map-popup-court-actions">${courtActions}</div>` : ''}${sessionButtons ? `<div class="map-popup-sessions">${sessionButtons}</div>` : ''}</div>`;
 }
 async function populateMapMarkers(map, node, locations) {
   const status = document.querySelector(`[data-map-status="${node.id}"]`);
   if (!locations.length) {
     if (status) status.textContent = 'No session or registered court location has been saved yet.';
+    focusGeneralSantosMap(node.id);
     return;
   }
   if (status) status.textContent = `Finding map pins for ${locations.length} saved location${locations.length === 1 ? '' : 's'}…`;
@@ -2437,8 +2446,11 @@ async function populateMapMarkers(map, node, locations) {
     const marker = new window.maplibregl.Marker({ element: markerElement, anchor: markerLogo ? 'center' : 'bottom' })
       .setLngLat([Number(coords.lon), Number(coords.lat)]);
     if (node.dataset.mapModal === 'true') {
-      const popup = new window.maplibregl.Popup({ offset: 22, closeButton: true, maxWidth: '290px' }).setHTML(mapPopupMarkup(item, coords));
+      const popup = new window.maplibregl.Popup({ offset: 16, closeButton: true, maxWidth: '210px' }).setHTML(mapPopupMarkup(item));
       marker.setPopup(popup);
+    } else if (markerLogo) {
+      // A registered court logo pin acts as a direct map-focus control.
+      markerElement.addEventListener('click', () => focusMapCoordinates(node.id, coords, registeredCourt?.name || item.location));
     } else {
       markerElement.addEventListener('click', () => openMapModal(item.sessions?.[0]?.id || '', node.dataset.mapIncludeRegistered === 'true'));
     }
@@ -2453,9 +2465,18 @@ async function populateMapMarkers(map, node, locations) {
       ? `${pinned} map pin${pinned === 1 ? '' : 's'} displayed${unresolvedSummary}.`
       : `No map pins could be placed. The saved court records need valid Philippines pin coordinates or a recognizable address.${unresolvedSummary}`;
   }
+  const focusedLocation = String(node.dataset.mapFocusLocation || '').trim();
   const focusedSessionId = String(node.dataset.mapFocusSession || '');
-  if (focusedSessionId) focusMapSession(focusedSessionId, node.id);
-  else showPhilippinesMap(node.id);
+  if (focusedLocation) {
+    const focusedCoordinates = state.mapResolvedLocations.get(normalizeName(focusedLocation));
+    if (focusedCoordinates) focusMapCoordinates(node.id, focusedCoordinates, focusedLocation);
+    else focusGeneralSantosMap(node.id);
+  } else if (focusedSessionId) {
+    if (!focusMapSession(focusedSessionId, node.id)) focusGeneralSantosMap(node.id);
+  } else {
+    // Keep the map useful even when there is no active live session.
+    focusGeneralSantosMap(node.id);
+  }
 }
 function mapSessionDetailsMarkup(session) {
   if (!session) return '<div class="map-detail-empty"><strong>No session selected</strong><span>Choose a saved open-play session to see its details beside the map.</span></div>';
@@ -2470,18 +2491,32 @@ function mapModalMarkup(selectedSessionId, includeRegisteredCourts = false) {
   const selected = sessions.find(session => String(session.id) === String(selectedSessionId)) || sessions[0] || null;
   const locations = mapSessionsForPins(includeRegisteredCourts);
   const payload = JSON.stringify(locations).replace(/</g, '\\u003c');
+  // On the Dashboard, keep the saved-location list limited to actual open-play
+  // sessions. Registered-court-only pins remain on the map, but not in this list.
+  const dashboardSessionLocationsOnly = state.page === 'dashboard';
+  const sidebarLocations = dashboardSessionLocationsOnly
+    ? mapSessionsForPins(true).filter(item => asArray(item.sessions).some(entry => typeof entry.isLive === 'boolean'))
+    : locations;
   const sessionOptions = sessions.map(session => `<option value="${escapeHTML(session.id)}" ${selected && String(selected.id) === String(session.id) ? 'selected' : ''}>${escapeHTML(session.title)}${session.date ? ` · ${escapeHTML(fmtDate(session.date, { month: 'short', day: 'numeric' }))}` : ''}${session.isLive ? ' · LIVE' : ''}</option>`).join('');
-  const savedLocations = locations.length ? locations.map(item => {
+  const savedLocations = sidebarLocations.length ? sidebarLocations.map(item => {
     const recent = item.sessions?.[0];
     const courtNames = asArray(item.courts).map(court => court.name).join(', ');
     const courtSummary = courtNames ? `${asArray(item.courts).length} registered court${item.courts.length === 1 ? '' : 's'} · ${courtNames}` : '';
-    const sessionSummary = recent ? `${item.sessions.length} session${item.sessions.length === 1 ? '' : 's'} · ${recent.title}` : '';
-    const summary = [courtSummary, sessionSummary].filter(Boolean).join(' · ');
-    const pinContent = `<span class="map-location-pin">${asArray(item.courts).length && item.courts[0].logo ? `<img src="${escapeHTML(item.courts[0].logo)}" alt="">` : icon('pin')}</span><span><strong>${escapeHTML(item.location)}</strong><small>${escapeHTML(summary || 'Saved court location')}</small></span>${recent ? `<span class="map-location-arrow">${icon('arrow')}</span>` : ''}`;
-    return recent ? `<button type="button" class="map-location-row" data-map-session-select="${escapeHTML(recent.id)}">${pinContent}</button>` : `<div class="map-location-row is-static">${pinContent}</div>`;
-  }).join('') : '<p class="map-detail-empty">No saved court locations yet. Register a court or save a location in Session Setup to create a map pin.</p>';
+    const liveCount = asArray(item.sessions).filter(entry => entry.isLive === true).length;
+    const completedCount = asArray(item.sessions).filter(entry => entry.isLive === false).length;
+    const sessionSummary = recent
+      ? `${item.sessions.length} session${item.sessions.length === 1 ? '' : 's'} · ${liveCount} live · ${completedCount} completed · ${recent.title}`
+      : '';
+    const summary = dashboardSessionLocationsOnly ? sessionSummary : [courtSummary, sessionSummary].filter(Boolean).join(' · ');
+    const pinContent = `<span class="map-location-pin">${asArray(item.courts).length && item.courts[0].logo ? `<img src="${escapeHTML(item.courts[0].logo)}" alt="">` : icon('pin')}</span><span><strong>${escapeHTML(item.location)}</strong><small>${escapeHTML(summary || 'Saved court location')}</small></span><span class="map-location-arrow">${icon('arrow')}</span>`;
+    if (recent) {
+      return `<button type="button" class="map-location-row" data-map-session-select="${escapeHTML(recent.id)}" aria-label="Focus map on ${escapeHTML(item.location)}">${pinContent}</button>`;
+    }
+    return `<button type="button" class="map-location-row is-static" data-map-location-focus="${escapeHTML(item.location)}" aria-label="Focus map on ${escapeHTML(item.location)}">${pinContent}</button>`;
+  }).join('') : `<p class="map-detail-empty">${dashboardSessionLocationsOnly ? 'No live or completed session locations have been saved yet. Save a location in Session Setup or edit a session to add one.' : 'No saved court locations yet. Register a court or save a location in Session Setup to create a map pin.'}</p>`;
   const liveFocusSessionId = selected?.isLive ? String(selected.id || '') : '';
-  return `<div class="map-modal-layout"><aside class="map-modal-details"><div class="map-modal-intro"><span class="eyebrow">${escapeHTML(organizerClubName())} · COURT MAP</span><h3>Open-play locations</h3><p>Session locations and registered court locations are shown as map pins.</p></div><div class="map-session-picker"><label for="mapModalSessionSelect">Session details</label><select id="mapModalSessionSelect" class="select-control" ${sessions.length ? '' : 'disabled'}>${sessionOptions || '<option>No saved sessions</option>'}</select></div><div id="mapModalSessionInfo">${mapSessionDetailsMarkup(selected)}</div><div class="map-saved-location-list"><div class="map-list-heading">Saved court locations <span>${locations.length}</span></div>${savedLocations}</div></aside><section class="map-modal-view"><div class="map-modal-toolbar"><span><strong>3D Philippines map</strong><small>Drag to move · scroll or + / − to zoom</small></span><div class="map-modal-actions"><button type="button" class="btn btn-sm" data-map-show-philippines>Philippines view</button><button type="button" class="btn btn-sm btn-primary" data-map-focus-selected ${selected ? '' : 'disabled'}>Focus session</button></div></div><div id="sessionMapModal" class="interactive-map map-modal-canvas" data-map-variant="modal" data-map-modal="true" data-map-include-registered="${includeRegisteredCourts ? 'true' : 'false'}" data-map-focus-session="${escapeHTML(liveFocusSessionId)}" data-map-locations="${escapeHTML(payload)}" role="application" aria-label="Draggable and zoomable 3D Philippines map with open-play court pins"><div class="map-loading">Loading 3D Philippines map…</div></div><p class="map-status" data-map-status="sessionMapModal">Loading session court pins…</p></section></div>`;
+  const listHeading = dashboardSessionLocationsOnly ? 'Live & completed session locations' : 'Saved court locations';
+  return `<div class="map-modal-layout"><aside class="map-modal-details"><div class="map-modal-intro"><span class="eyebrow">${escapeHTML(organizerClubName())} · COURT MAP</span><h3>Open-play locations</h3><p>Session locations and registered court locations are shown as map pins.</p></div><div class="map-session-picker"><label for="mapModalSessionSelect">Session details</label><select id="mapModalSessionSelect" class="select-control" ${sessions.length ? '' : 'disabled'}>${sessionOptions || '<option>No saved sessions</option>'}</select></div><div id="mapModalSessionInfo">${mapSessionDetailsMarkup(selected)}</div><div class="map-saved-location-list"><div class="map-list-heading">${listHeading} <span>${sidebarLocations.length}</span></div>${savedLocations}</div></aside><section class="map-modal-view"><div class="map-modal-toolbar"><span><strong>3D Philippines map</strong><small>Drag to move · scroll or + / − to zoom</small></span><div class="map-modal-actions"><button type="button" class="btn btn-sm" data-map-show-philippines>Philippines view</button><button type="button" class="btn btn-sm btn-primary" data-map-focus-selected ${selected ? '' : 'disabled'}>Focus session</button></div></div><div id="sessionMapModal" class="interactive-map map-modal-canvas" data-map-variant="modal" data-map-modal="true" data-map-include-registered="${includeRegisteredCourts ? 'true' : 'false'}" data-map-focus-session="${escapeHTML(liveFocusSessionId)}" data-map-locations="${escapeHTML(payload)}" role="application" aria-label="Draggable and zoomable 3D Philippines map with open-play court pins"><div class="map-loading">Loading 3D Philippines map…</div></div><p class="map-status" data-map-status="sessionMapModal">Loading session court pins…</p></section></div>`;
 }
 function openMapModal(sessionId = '', includeRegisteredCourts = false) {
   const sessions = state.data?.sessions || [];
@@ -2499,14 +2534,22 @@ function setMapModalSession(sessionId) {
   const select = $('#mapModalSessionSelect');
   if (select) select.value = session.id;
   const modalMapNode = $('#sessionMapModal');
-  if (modalMapNode) modalMapNode.dataset.mapFocusSession = session.id;
+  if (modalMapNode) {
+    modalMapNode.dataset.mapFocusSession = session.id;
+    modalMapNode.dataset.mapFocusLocation = '';
+  }
   const details = $('#mapModalSessionInfo');
   if (details) details.innerHTML = mapSessionDetailsMarkup(session);
   focusMapSession(session.id, 'sessionMapModal');
 }
-function focusMapSession(sessionId, mapId = 'sessionMapModal') {
+function focusMapCoordinates(mapId, coordinates, label = '') {
   const map = state.mapInstances.get(mapId);
-  if (!map) return false;
+  const coords = normalizeMapLocationCoordinates(coordinates);
+  if (!map || !coords) return false;
+  map.flyTo({ center: [Number(coords.lon), Number(coords.lat)], zoom: 15, pitch: 54, bearing: -16, duration: 1250, essential: true });
+  return true;
+}
+function focusMapSession(sessionId, mapId = 'sessionMapModal') {
   const item = mapSessionsForPins(state.mapIncludeRegisteredCourts).find(location => location.sessions.some(entry => String(entry.id) === String(sessionId)));
   if (!item) return false;
   const coords = state.mapResolvedLocations.get(normalizeName(item.location));
@@ -2515,7 +2558,26 @@ function focusMapSession(sessionId, mapId = 'sessionMapModal') {
     if (status) status.textContent = `Finding the saved venue “${item.location}”…`;
     return false;
   }
-  map.flyTo({ center: [coords.lon, coords.lat], zoom: 15, pitch: 54, bearing: -16, duration: 1250, essential: true });
+  return focusMapCoordinates(mapId, coords, item.location);
+}
+async function focusRegisteredCourtOnMap(courtId) {
+  const court = asArray(state.data?.registeredCourts).find(item => String(item?.id || '') === String(courtId));
+  if (!court) return false;
+  const location = String(court.location || '').trim();
+  let coords = normalizeMapLocationCoordinates(court.locationCoordinates || court.coordinates || court);
+  if (!coords && location) coords = state.mapResolvedLocations.get(normalizeName(location)) || null;
+  if (!coords && location) coords = await photonLookup(location);
+  const mapId = ['venuesCourtMap', 'dashboardCourtMap'].find(id => state.mapInstances.has(id));
+  if (!coords || !mapId || !focusMapCoordinates(mapId, coords, court.name || location || 'registered court')) {
+    toast(`The map location for ${court.name || 'this court'} is not available yet.`, 'error');
+    return false;
+  }
+  return true;
+}
+function focusGeneralSantosMap(mapId) {
+  const map = state.mapInstances.get(mapId);
+  if (!map) return false;
+  map.flyTo({ center: [125.1716, 6.1164], zoom: 11.5, pitch: 34, bearing: -8, duration: 950, essential: true });
   return true;
 }
 function showPhilippinesMap(mapId = 'sessionMapModal') {
@@ -2873,7 +2935,7 @@ function renderCourts() {
   const session = getLiveSession();
   const courts = state.data.courts;
   const registeredCourts = asArray(state.data.registeredCourts);
-  const registeredCourtCards = registeredCourts.length ? `<div class="registered-court-grid">${registeredCourts.map(court => `<article class="registered-court-card"><span class="registered-court-logo">${court.logo ? `<img src="${escapeHTML(court.logo)}" alt="${escapeHTML(court.name)} logo">` : icon('court')}</span><span class="registered-court-copy"><strong>${escapeHTML(court.name)}</strong><small>${escapeHTML(court.location)}</small><span class="registered-court-actions"><button type="button" class="registered-court-edit" data-action="edit-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('edit')} Edit</button><button type="button" class="registered-court-delete" data-action="delete-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('trash')} Delete</button></span></span></article>`).join('')}</div>` : emptyState('No registered courts yet', 'Register a court to add its logo and location to the CourtMap.');
+  const registeredCourtCards = registeredCourts.length ? `<div class="registered-court-grid">${registeredCourts.map(court => `<article class="registered-court-card"><button type="button" class="registered-court-logo" data-map-focus-court-id="${escapeHTML(court.id)}" aria-label="Focus map on ${escapeHTML(court.name)}" title="Show ${escapeHTML(court.name)} on map">${court.logo ? `<img src="${escapeHTML(court.logo)}" alt="">` : icon('court')}</button><span class="registered-court-copy"><strong>${escapeHTML(court.name)}</strong><small>${escapeHTML(court.location)}</small><span class="registered-court-actions"><button type="button" class="registered-court-edit" data-action="edit-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('edit')} Edit</button><button type="button" class="registered-court-delete" data-action="delete-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('trash')} Delete</button></span></span></article>`).join('')}</div>` : emptyState('No registered courts yet', 'Register a court to add its logo and location to the CourtMap.');
   const courtPageActions = `<div class="court-page-actions"><button type="button" class="btn btn-sm btn-primary court-action-pill" data-action="register-court">${icon('plus')} Register Court</button><a class="btn btn-primary court-action-pill" href="/queueing" target="_blank" rel="noopener">Manage in Queueing ${icon('external')}</a></div>`;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / VENUES', 'Courts & Locations', 'Current court activity is read directly from the live queueing session.', courtPageActions)}
     <div class="metric-grid"><div class="metric-tile"><span>Total courts</span><strong>${courts.length}</strong></div><div class="metric-tile"><span>In play</span><strong>${courts.filter(court => court.status === 'Active').length}</strong></div><div class="metric-tile"><span>Ready / assigned</span><strong>${courts.filter(court => court.status === 'Ready').length}</strong></div><div class="metric-tile"><span>Waiting courts</span><strong>${courts.filter(court => court.status === 'Waiting').length}</strong></div></div>
@@ -3389,7 +3451,11 @@ function openSessionRename(sessionId) {
   const session = state.data.sessions.find(item => item.id === sessionId);
   if (!session || session.isLive) return;
   const endValue = datetimeLocalValue(session.endedAt);
-  modal('Edit Open Play Session', `<form id="sessionRenameForm" data-session-id="${escapeHTML(session.id)}"><div class="form-grid"><div class="field full"><label for="renameSession">Session name</label><input id="renameSession" name="sessionName" maxlength="200" required value="${escapeHTML(session.title)}"></div><div class="field full"><label for="renameSessionEnd">Session end date and time</label><input id="renameSessionEnd" name="endedAt" type="datetime-local" value="${escapeHTML(endValue)}"><small class="field-help">Changing the end time also adjusts the saved start time and match timestamps in the original records.</small></div><div class="field full"><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save changes</button></div></div></div></form>`);
+  const coordinates = normalizeMapLocationCoordinates(session.locationCoordinates || session.raw?.duprLocationCoordinates || session.raw?.locationCoordinates);
+  modal('Edit Open Play Session', `<form id="sessionRenameForm" data-session-id="${escapeHTML(session.id)}"><div class="form-grid"><div class="field full"><label for="renameSession">Session name</label><input id="renameSession" name="sessionName" maxlength="200" required value="${escapeHTML(session.title)}"></div>${courtLocationFieldMarkup(session.location || '', coordinates, false)}<div class="field full"><label for="renameSessionEnd">Session end date and time</label><input id="renameSessionEnd" name="endedAt" type="datetime-local" value="${escapeHTML(endValue)}"><small class="field-help">Changing the end time also adjusts the saved start time and match timestamps in the original records.</small></div><div class="field full"><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save changes</button></div></div></div></form>`, { wide: true });
+  const form = $('#sessionRenameForm');
+  initializeCourtLocationPinMap(form, coordinates);
+  if (session.location) prepareExistingCourtPinPreview(form, { name: '', location: session.location, locationCoordinates: coordinates });
 }
 function openParticipantEdit(sessionId, index) {
   const session = state.data.sessions.find(item => item.id === sessionId);
@@ -3411,12 +3477,12 @@ async function openOrganizerSettings() {
     modal('Edit Workspace Profile', `<form id="organizerSettingsForm"><div class="form-grid"><div class="field full"><label for="workspaceDisplayName">Club / organizer name</label><input id="workspaceDisplayName" name="displayName" maxlength="80" required value="${escapeHTML(organizer.displayName || '')}"></div><div class="field"><label for="workspaceDuprId">Organizer DUPR ID</label><input id="workspaceDuprId" name="duprId" maxlength="6" minlength="6" pattern="[A-Za-z0-9]{6}" value="${escapeHTML(organizer.duprId || '')}" placeholder="6 characters"><small class="field-help">Exactly 6 letters or numbers.</small></div><div class="field"><label for="workspaceLogo">Club logo (optional)</label><input id="workspaceLogo" name="profileImage" type="file" accept="image/png,image/jpeg,image/webp"><small class="field-help">PNG, JPG or WebP, maximum 2 MB.</small></div><div class="field full"><label class="checkbox-field"><input type="checkbox" name="showOnLeaderboard" ${organizer.showOnLeaderboard !== false ? 'checked' : ''}> Show this club on organizer leaderboard</label></div><div class="field full"><div class="notice-box">Password change is optional. Leave password fields blank to keep your current password.</div></div><div class="field"><label for="workspaceCurrentPassword">Current password</label><input id="workspaceCurrentPassword" name="currentPassword" type="password" autocomplete="current-password"></div><div class="field"><label for="workspaceNewPassword">New password</label><input id="workspaceNewPassword" name="newPassword" type="password" minlength="8" maxlength="200" autocomplete="new-password"></div><div class="field full"><label for="workspaceConfirmPassword">Confirm new password</label><input id="workspaceConfirmPassword" name="confirmPassword" type="password" minlength="8" maxlength="200" autocomplete="new-password"></div></div><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save profile</button></div></form>`, { wide: true });
   } catch (error) { toast(error.message || 'Unable to load workspace settings.', 'error'); }
 }
-function courtLocationFieldMarkup(value = '', coordinates = null) {
+function courtLocationFieldMarkup(value = '', coordinates = null, required = true) {
   const saved = normalizeMapLocationCoordinates(coordinates);
   const lat = saved?.lat ?? '';
   const lon = saved?.lon ?? '';
   const label = saved?.label || '';
-  return `<div class="field full court-location-field"><label for="registerCourtLocation">Court location</label><div class="court-location-input-wrap"><input id="registerCourtLocation" name="courtLocation" data-court-location-input maxlength="250" autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="registerCourtLocationSuggestions" aria-expanded="false" required value="${escapeHTML(value)}" placeholder="Search a court, venue, street, barangay, or city in the Philippines"><div id="registerCourtLocationSuggestions" class="court-location-suggestions" data-court-location-suggestions role="listbox" aria-label="Philippines location search results" hidden></div></div><input type="hidden" data-court-location-lat value="${escapeHTML(lat)}"><input type="hidden" data-court-location-lon value="${escapeHTML(lon)}"><input type="hidden" data-court-location-label value="${escapeHTML(label)}"><input type="hidden" data-court-location-place-id value="${escapeHTML(saved?.placeId || saved?.osmId || '')}"><input type="hidden" data-court-location-pin-id value="${escapeHTML(saved?.pinId || '')}"><input type="hidden" data-court-location-pin-confirmed value="${saved?.verified === true ? 'true' : 'false'}"><input type="hidden" data-court-location-pin-source value="${escapeHTML(saved?.source || '')}"><small class="field-help">Search a court, venue, or address in the Philippines, then choose the correct result. Drag the red pin or tap the map to set the exact court entrance; the selected place ID or generated pin ID is saved with the location.</small><div class="court-location-map-heading"><strong>Pin the exact court location</strong><span>Drag pin or tap map</span></div><div class="court-location-pin-map" data-court-location-map role="application" aria-label="Map for placing the exact pickleball court pin"><div class="map-loading">Loading court pin map…</div></div><span class="field-help" id="registerCourtLocationStatus" aria-live="polite">${saved ? 'Saved court pin loaded. Drag it or tap the map to correct the exact location.' : 'Search a place first, or zoom in and tap the exact court location on the map.'}</span></div>`;
+  return `<div class="field full court-location-field"><label for="registerCourtLocation">Court location</label><div class="court-location-input-wrap"><input id="registerCourtLocation" name="courtLocation" data-court-location-input maxlength="250" autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="registerCourtLocationSuggestions" aria-expanded="false" ${required ? 'required' : ''} value="${escapeHTML(value)}" placeholder="Search a court, venue, street, barangay, or city in the Philippines"><div id="registerCourtLocationSuggestions" class="court-location-suggestions" data-court-location-suggestions role="listbox" aria-label="Philippines location search results" hidden></div></div><input type="hidden" data-court-location-lat value="${escapeHTML(lat)}"><input type="hidden" data-court-location-lon value="${escapeHTML(lon)}"><input type="hidden" data-court-location-label value="${escapeHTML(label)}"><input type="hidden" data-court-location-place-id value="${escapeHTML(saved?.placeId || saved?.osmId || '')}"><input type="hidden" data-court-location-pin-id value="${escapeHTML(saved?.pinId || '')}"><input type="hidden" data-court-location-pin-confirmed value="${saved?.verified === true ? 'true' : 'false'}"><input type="hidden" data-court-location-pin-source value="${escapeHTML(saved?.source || '')}"><small class="field-help">Search a court, venue, or address in the Philippines, then choose the correct result. Drag the red pin or tap the map to set the exact court entrance; the selected place ID or generated pin ID is saved with the location.</small><div class="court-location-map-heading"><strong>Pin the exact court location</strong><span>Drag pin or tap map</span></div><div class="court-location-pin-map" data-court-location-map role="application" aria-label="Map for placing the exact pickleball court pin"><div class="map-loading">Loading court pin map…</div></div><span class="field-help" id="registerCourtLocationStatus" aria-live="polite">${saved ? 'Saved court pin loaded. Drag it or tap the map to correct the exact location.' : 'Search a place first, or zoom in and tap the exact court location on the map.'}</span></div>`;
 }
 
 function courtLogoFieldMarkup(existingLogo = '', edit = false) {
@@ -3542,6 +3608,11 @@ document.addEventListener('pointercancel', finishDashboardPointerInteraction);
 window.addEventListener('blur', finishDashboardPointerInteraction);
 
 document.addEventListener('click', async event => {
+  const registeredCourtMapFocus = event.target.closest('[data-map-focus-court-id]');
+  if (registeredCourtMapFocus) {
+    await focusRegisteredCourtOnMap(registeredCourtMapFocus.dataset.mapFocusCourtId || '');
+    return;
+  }
   const courtLocationOption = event.target.closest('[data-court-location-option]');
   if (courtLocationOption) {
     const form = courtLocationOption.closest('form');
@@ -3669,7 +3740,26 @@ document.addEventListener('click', async event => {
   if (mapSessionSelect) {
     const selectedId = mapSessionSelect.dataset.mapSessionSelect;
     if ($('#sessionMapModal')) setMapModalSession(selectedId);
-    else openMapModal(selectedId, false);
+    else openMapModal(selectedId, state.page === 'dashboard');
+    return;
+  }
+  const mapLocationFocus = event.target.closest('[data-map-location-focus]');
+  if (mapLocationFocus) {
+    const location = String(mapLocationFocus.dataset.mapLocationFocus || '').trim();
+    const mapNode = $('#sessionMapModal');
+    if (mapNode) {
+      mapNode.dataset.mapFocusLocation = location;
+      mapNode.dataset.mapFocusSession = '';
+    }
+    let coordinates = state.mapResolvedLocations.get(normalizeName(location)) || coordinatesFromText(location);
+    if (!coordinates && location) coordinates = await photonLookup(location);
+    if (coordinates) {
+      state.mapResolvedLocations.set(normalizeName(location), coordinates);
+      if (mapNode) focusMapCoordinates('sessionMapModal', coordinates, location);
+    } else if (location) {
+      const status = $('[data-map-status="sessionMapModal"]');
+      if (status) status.textContent = `The map location for “${location}” could not be resolved.`;
+    }
     return;
   }
   const mapOpenSession = event.target.closest('[data-map-open-session]');
@@ -3808,9 +3898,43 @@ document.addEventListener('submit', async event => {
     const sessionId = form.dataset.sessionId;
     const fd = new FormData(form);
     const sessionName = String(fd.get('sessionName') || '').trim();
+    const location = String(fd.get('courtLocation') || '').trim();
     const endValue = String(fd.get('endedAt') || '').trim();
     const session = state.data.sessions.find(item => item.id === sessionId);
+    const previousLocation = String(session?.location || '').trim();
+    const locationChanged = location !== previousLocation;
+    const lat = Number(form.querySelector('[data-court-location-lat]')?.value);
+    const lon = Number(form.querySelector('[data-court-location-lon]')?.value);
+    const pinConfirmed = form.querySelector('[data-court-location-pin-confirmed]')?.value === 'true';
+    const hasConfirmedPin = pinConfirmed && isPhilippinesCoordinate(lat, lon);
+    const locationLabel = String(form.querySelector('[data-court-location-label]')?.value || location).trim();
+    const placeId = String(form.querySelector('[data-court-location-place-id]')?.value || '').trim();
+    const pinId = String(form.querySelector('[data-court-location-pin-id]')?.value || '').trim();
+    const pinSource = String(form.querySelector('[data-court-location-pin-source]')?.value || '').trim();
+    if (!sessionName) { toast('Session name cannot be blank.', 'error'); return; }
+    if (previousLocation && !location) { toast('Please enter a session location. To change it, select a new place or confirm its map pin.', 'error'); return; }
+    if (locationChanged && location && !hasConfirmedPin) {
+      toast('Select the new location from the suggestions, or drag/tap the map pin to confirm its exact location before saving.', 'error');
+      return;
+    }
     const body = { sessionName };
+    // Preserve the previous rename-only behavior when an older session has no
+    // GPS pin or when its location has not been changed. Save a location only
+    // when the user has confirmed a pin or entered a new location.
+    if (location && hasConfirmedPin) {
+      body.location = location;
+      body.locationCoordinates = {
+        lat,
+        lon,
+        label: locationLabel || location,
+        countrycode: 'PH',
+        source: pinSource || 'manual-map-pin',
+        verified: true,
+        placeId,
+        pinId: pinId || `pin:${lat.toFixed(7)},${lon.toFixed(7)}`,
+        osmId: placeId.startsWith('osm:') ? placeId : ''
+      };
+    }
     if (endValue) {
       const endDate = new Date(endValue);
       if (!Number.isFinite(endDate.getTime())) { toast('Please enter a valid session end date and time.', 'error'); return; }

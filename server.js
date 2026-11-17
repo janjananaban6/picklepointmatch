@@ -2474,6 +2474,28 @@ async function handle(req, res) {
         if (!sessionName) return sendJson(res,400,{ok:false,error:'Session name cannot be blank.'});
         const session = records.sessions[sessionIndex];
         session.sessionName = sessionName;
+        if (body?.location !== undefined) {
+          const location = String(body.location || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,250);
+          if (!location) return sendJson(res,400,{ok:false,error:'Session location cannot be blank.'});
+          const coordinates = body?.locationCoordinates || {};
+          const lat = Number(coordinates.lat ?? coordinates.latitude);
+          const lon = Number(coordinates.lon ?? coordinates.lng ?? coordinates.longitude);
+          if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < 4.0 || lat > 22.4 || lon < 115.5 || lon > 128.6) {
+            return sendJson(res,400,{ok:false,error:'Session location must resolve to a location in the Philippines.'});
+          }
+          session.duprLocation = location;
+          session.duprLocationCoordinates = {
+            lat,
+            lon,
+            label: String(coordinates.label || location).slice(0,180),
+            countrycode: 'PH',
+            source: String(coordinates.source || 'manual-map-pin').slice(0,40),
+            verified: coordinates.verified === true,
+            placeId: String(coordinates.placeId || '').slice(0,180),
+            pinId: String(coordinates.pinId || '').slice(0,180),
+            osmId: String(coordinates.osmId || '').slice(0,120)
+          };
+        }
         let shiftedByMs = 0;
         if (body?.endedAt !== undefined && String(body.endedAt || '').trim()) {
           const requestedEnd = new Date(String(body.endedAt));

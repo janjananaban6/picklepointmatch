@@ -587,13 +587,19 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 @media (prefers-reduced-motion: reduce) {
   .dashboard-map-pin.is-live:not(.has-logo) .dashboard-map-pin-art, .dashboard-map-pin-court.is-live:not(.has-logo) .dashboard-map-pin-art { animation: none; filter: drop-shadow(0 0 6px rgba(37,190,91,.75)); }
 }
-.map-popup { min-width: 190px; color: #2c3c31; font: inherit; }
-.map-popup-location { display: block; margin-bottom: 4px; font-size: 12px; }
-.map-popup-resolved { display: block; margin-bottom: 7px; color: #849087; font-size: 9px; }
-.map-popup-sessions { display: grid; gap: 5px; }
-.map-popup-session { display: grid; gap: 2px; padding: 6px 7px; border: 1px solid #e8eee7; border-radius: 7px; color: #314237; background: #f9fcf8; text-align: left; cursor: pointer; }
-.map-popup-session strong { font-size: 10px; }
-.map-popup-session small { color: #77847a; font-size: 8px; }
+.map-popup { width: 176px; max-width: 100%; max-height: 166px; overflow-y: auto; color: #2c3c31; font: inherit; scrollbar-width: thin; }
+.map-popup-heading { display: flex; min-width: 0; align-items: center; gap: 6px; margin-bottom: 5px; }
+.map-popup-heading > img { width: 24px; height: 24px; flex: 0 0 24px; border: 1px solid #e5ece2; border-radius: 6px; background: #fff; object-fit: contain; }
+.map-popup-heading > span { min-width: 0; display: grid; gap: 2px; }
+.map-popup-location { display: block; overflow: hidden; margin: 0; color: #23362a; font-size: 10px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.map-popup-summary { display: block; overflow: hidden; margin: 0; color: #849087; font-size: 8px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.map-popup-court-actions { display: flex; flex-wrap: wrap; gap: 3px; margin: 2px 0 5px; }
+.map-popup-sessions { display: grid; gap: 3px; max-height: 88px; overflow-y: auto; }
+.map-popup-session { display: grid; min-width: 0; gap: 1px; padding: 4px 5px; border: 1px solid #e8eee7; border-radius: 6px; color: #314237; background: #f9fcf8; text-align: left; cursor: pointer; }
+.map-popup-session strong { overflow: hidden; margin: 0; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.map-popup-session small { overflow: hidden; margin: 0; color: #77847a; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
+.interactive-map .maplibregl-popup-content { padding: 7px 8px; border-radius: 9px; }
+.interactive-map .maplibregl-popup-close-button { width: 19px; height: 19px; padding: 0; color: #718076; font-size: 14px; line-height: 18px; }
 .map-panel .panel-heading { flex-wrap: wrap; }
 
 /* Full map modal with selected session information beside the 3D map. */
@@ -1721,7 +1727,8 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .court-page-actions .court-action-pill { border-radius: 99px !important; }
 .registered-court-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .registered-court-card { min-width: 0; display: flex; align-items: flex-start; gap: 10px; padding: 12px 10px; border: 0 !important; border-radius: 12px; background: #f8faf7; box-shadow: none !important; }
-.registered-court-logo { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; overflow: hidden; border: 0; border-radius: 10px; color: var(--green-800); background: #edf4e9; }
+.registered-court-logo { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; overflow: hidden; padding: 0; border: 0; border-radius: 10px; color: var(--green-800); background: #edf4e9; appearance: none; cursor: pointer; }
+.registered-court-logo:focus-visible { outline: 2px solid var(--green-600); outline-offset: 2px; }
 .registered-court-logo img { width: 100%; height: 100%; object-fit: contain; }
 .registered-court-logo svg { width: 22px; height: 22px; }
 .registered-court-copy { min-width: 0; flex: 1 1 auto; display: grid; gap: 5px; }
@@ -1745,16 +1752,17 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .court-location-option strong { font-size: 10px; }
 .court-location-option small, .court-location-no-results { color: #7f8b82; font-size: 9px; line-height: 1.4; }
 .court-location-no-results { padding: 10px; }
-/* Both live and non-live court markers use the same GPS-anchored Lucide pin.
-   The logo overlays the SVG center; if no logo exists, the SVG stays visible. */
-.map-popup-courts { display: grid; gap: 6px; margin: 3px 0 8px; }
-.map-popup-court { display: flex; align-items: center; gap: 8px; padding: 6px 7px; border: 1px solid #e8eee7; border-radius: 8px; background: #f9fcf8; }
-.map-popup-court img { width: 30px; height: 30px; flex: 0 0 30px; border: 1px solid #e5ece2; border-radius: 7px; background: #fff; object-fit: contain; }
-.map-popup-court span { min-width: 0; display: grid; gap: 2px; }
-.map-popup-court strong { overflow-wrap: anywhere; font-size: 10px; }
-.map-popup-court small { color: #77847a; font-size: 8px; }
+/* Keep registered court imagery compact in the location rows and map popup. */
+.map-popup-courts { display: grid; gap: 4px; margin: 2px 0 5px; }
+.map-popup-court { display: flex; align-items: center; gap: 5px; padding: 4px 5px; border: 1px solid #e8eee7; border-radius: 6px; background: #f9fcf8; }
+.map-popup-court img { width: 22px; height: 22px; flex: 0 0 22px; border: 1px solid #e5ece2; border-radius: 5px; background: #fff; object-fit: contain; }
+.map-popup-court span { min-width: 0; display: grid; gap: 1px; }
+.map-popup-court strong { overflow-wrap: anywhere; font-size: 9px; }
+.map-popup-court small { color: #77847a; font-size: 7px; }
+.map-popup-correct-pin { display: inline-flex; width: max-content; max-width: 100%; padding: 0; border: 0; color: #176d3c; background: transparent; font: inherit; font-size: 8px; font-weight: 800; cursor: pointer; }
+.map-popup-correct-pin:hover { text-decoration: underline; }
 .map-location-pin img { width: 22px; height: 22px; border-radius: 6px; object-fit: contain; }
-.map-location-row.is-static { cursor: default; }
+.map-location-row.is-static { cursor: pointer; }
 @media (max-width: 1100px) {
   .registered-court-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
@@ -1794,7 +1802,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .court-location-draggable-pin:active { cursor: grabbing; }
 .court-location-draggable-pin svg { display: block; width: 36px; height: 50px; overflow: visible; filter: drop-shadow(0 2px 3px rgba(55, 25, 20, .35)); pointer-events: none; }
 .court-location-draggable-pin:hover svg { filter: drop-shadow(0 3px 5px rgba(55, 25, 20, .42)); }
-.map-popup-correct-pin { display: inline-flex; width: max-content; margin-top: 4px; padding: 0; border: 0; color: #176d3c; background: transparent; font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; }
+.map-popup-correct-pin { display: inline-flex; width: max-content; max-width: 100%; margin: 0; padding: 0; border: 0; color: #176d3c; background: transparent; font: inherit; font-size: 8px; font-weight: 800; cursor: pointer; }
 .map-popup-correct-pin:hover { text-decoration: underline; }
 @media (max-width: 640px) {
   .court-location-pin-map { height: 235px; }
@@ -1838,6 +1846,17 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .registered-courts-map-layout .registered-court-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  max-height: clamp(260px, 30vw, 350px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.registered-courts-map-layout .registered-court-grid::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 @media (max-width: 900px) {
   .registered-courts-map-layout {
@@ -1846,5 +1865,8 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .registered-courts-map-layout > .map-panel .interactive-map {
     height: 260px;
     min-height: 220px;
+  }
+  .registered-courts-map-layout .registered-court-grid {
+    max-height: 260px;
   }
 }
