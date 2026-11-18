@@ -1916,10 +1916,10 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
     var(--podium-deep)
   );
   /* Keep the center cut out so only the narrow outer ring rotates. */
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
-  filter: drop-shadow(0 0 2px var(--podium-glow));
-  animation: dashboard-podium-avatar-spin 2.8s linear infinite;
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2.5px));
+  filter: drop-shadow(0 0 5px var(--podium-glow));
+  animation: dashboard-podium-avatar-spin 2s linear infinite;
   pointer-events: none;
   will-change: transform;
 }
