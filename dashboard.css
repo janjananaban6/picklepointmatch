@@ -1966,3 +1966,12 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 #pageContent [data-count-target][data-count-key] {
   font-variant-numeric: tabular-nums;
 }
+
+/* Compact DUPR / Non-DUPR breakdowns inside metric tiles */
+.metric-tile.metric-breakdown-tile > .metric-breakdown { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.metric-tile .metric-breakdown-item { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border: 1px solid #e5ebe6; border-radius: 7px; background: #fff; color: #68756c; font-size: 9px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.metric-tile .metric-breakdown-item.dupr { color: #247eae; border-color: #d5e9f5; background: #f1f8fc; }
+.metric-tile.player-dupr-breakdown .metric-breakdown-item.dupr > span:first-child { color: #1d5fae; }
+.metric-tile.player-match-records-breakdown .metric-breakdown-item.dupr > span:first-child { color: #1d5fae; }
+.metric-tile .metric-breakdown-item.non-dupr { color: #68756c; border-color: #e5ebe6; background: #fff; }
+.metric-tile .metric-breakdown-item strong { display: inline; margin: 0; color: inherit; font-size: 9px; font-weight: 800; letter-spacing: 0; line-height: inherit; font-variant-numeric: tabular-nums; }
