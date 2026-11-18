@@ -56,7 +56,7 @@ const state = {
   dashboardRankingToken: 0,
   mapModalSessionId: '',
   mapIncludeRegisteredCourts: false,
-  filters: { sessionStatus: 'all', playerCategory: 'all', rankingCategory: 'all', rankingSession: 'all', matchCourt: 'all', matchType: 'all' }
+  filters: { sessionStatus: 'all', playerCategory: 'all', rankingCategory: 'all', rankingSession: 'all', matchType: 'all' }
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -678,7 +678,6 @@ function captureDashboardCountValues() {
   return values;
 }
 function animateDashboardCountValues(previousValues = new Map()) {
-  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   $$('#pageContent [data-count-target][data-count-key]').forEach(node => {
     const target = Number(node.dataset.countTarget);
     if (!Number.isFinite(target)) return;
@@ -692,7 +691,7 @@ function animateDashboardCountValues(previousValues = new Map()) {
     const display = value => String(Math.round(value));
     node.textContent = display(start);
 
-    if (reducedMotion || start === target) {
+    if (start === target) {
       node.textContent = display(target);
       dashboardCountFrames.delete(node);
       return;
@@ -2784,11 +2783,12 @@ function matchesTable(matches) {
   return `<div class="table-wrap match-records-wrap"><table class="data-table match-records-table"><colgroup><col style="width:15%"><col style="width:9%"><col style="width:13%"><col style="width:16%"><col style="width:16%"><col style="width:9%"><col style="width:10%"><col style="width:12%"></colgroup><thead><tr><th scope="col">Date</th><th scope="col">Court</th><th scope="col">Duration</th><th scope="col">Team 1</th><th scope="col">Team 2</th><th scope="col">Result</th><th scope="col">Type</th><th scope="col">Action</th></tr></thead><tbody>${matches.map(match => `<tr><td class="match-date-cell"><strong>${escapeHTML(fmtDate(match.date))}</strong><span class="muted-cell match-time">${escapeHTML(match.timeLabel || match.time || '—')}</span></td><td>${escapeHTML(match.courtName || '—')}</td><td class="match-duration-cell">${escapeHTML(match.durationLabel || '—')}</td><td class="primary-cell match-team-cell">${escapeHTML(match.teamANames.join(' / ') || '—')}</td><td class="primary-cell match-team-cell">${escapeHTML(match.teamBNames.join(' / ') || '—')}</td><td><span class="score-pill">${escapeHTML(match.scoreLabel || '—')}</span></td><td>${match.duprMatch ? '<span class="status-pill dupr">DUPR</span>' : '<span class="status-pill gray">NON-DUPR</span>'}</td><td><div class="table-actions">${match.isScored ? `<button class="btn btn-sm" data-match-edit="${escapeHTML(match.key)}">Edit</button>` : '<button class="btn btn-sm" type="button" disabled title="Only matches with a recorded score can be edited">Edit</button>'}<button class="btn btn-sm btn-danger" type="button" title="Delete match" data-match-delete="${escapeHTML(match.key)}">${icon('trash')} Delete</button></div></td></tr>`).join('')}</tbody></table></div>`;
 }
 function filteredMatchRecords() {
+  const selectedSessionId = currentRankingSessionId();
   const matchType = state.filters.matchType || 'all';
   return visibleRows([...state.data.matches]).filter(match => {
-    const matchesCourt = state.filters.matchCourt === 'all' || match.courtId === state.filters.matchCourt;
+    const matchesSession = selectedSessionId === 'all' || String(match.sessionId || '') === selectedSessionId;
     const matchesType = matchType === 'all' || (matchType === 'dupr' ? match.duprMatch === true : match.duprMatch !== true);
-    return matchesCourt && matchesType;
+    return matchesSession && matchesType;
   });
 }
 function renderMatches() {
@@ -2797,7 +2797,7 @@ function renderMatches() {
   const playersInMatches = new Set(state.data.matches.flatMap(match => [...match.teamANames, ...match.teamBNames].map(normalizeName))).size;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / MATCH HISTORY', 'Match Records', 'Results recorded from Court Queueing, including scored and win/loss matches.', `<button class="btn" data-action="export-matches">${icon('download')} Export</button><button class="btn" data-action="export-dupr">${icon('download')} Export DUPR CSV</button><a class="btn btn-primary" href="/queueing" target="_blank" rel="noopener">${icon('plus')} Record in Queue</a>`)}
     <div class="metric-grid"><div class="metric-tile"><span>Recorded matches</span>${metricCount('matches', 'recorded-matches', state.data.matches.length)}</div><div class="metric-tile"><span>Players involved</span>${metricCount('matches', 'players-involved', playersInMatches)}</div><div class="metric-tile"><span>Courts used</span>${metricCount('matches', 'courts-used', new Set(state.data.matches.map(match => match.courtId)).size)}</div><div class="metric-tile"><span>DUPR matches</span>${metricCount('matches', 'dupr-matches', state.data.matches.filter(match => match.duprMatch).length)}</div></div>
-    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('All Match Records', 'trophy')}<div class="toolbar"><select class="select-control" id="matchCourtFilter"><option value="all">All courts</option>${[...new Map(state.data.matches.map(match => [match.courtId, match.courtName])).entries()].map(([id, name]) => `<option value="${escapeHTML(id)}" ${state.filters.matchCourt === id ? 'selected' : ''}>${escapeHTML(name)}</option>`).join('')}</select><div class="match-type-filter" data-active="${escapeHTML(matchType)}" role="group" aria-label="Filter match records by type"><button class="match-type-option" type="button" data-match-type-filter="all" aria-pressed="${matchType === 'all'}">ALL</button><button class="match-type-option" type="button" data-match-type-filter="dupr" aria-pressed="${matchType === 'dupr'}">DUPR</button><button class="match-type-option" type="button" data-match-type-filter="non-dupr" aria-pressed="${matchType === 'non-dupr'}">NON-DUPR</button></div></div></div><div id="matchRecordsTableWrap">${matchesTable(matches)}</div></section>
+    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('All Match Records', 'trophy')}<div class="toolbar">${rankingSessionFilterMarkup(currentRankingSessionId())}<div class="match-type-filter" data-active="${escapeHTML(matchType)}" role="group" aria-label="Filter match records by type"><button class="match-type-option" type="button" data-match-type-filter="all" aria-pressed="${matchType === 'all'}">ALL</button><button class="match-type-option" type="button" data-match-type-filter="dupr" aria-pressed="${matchType === 'dupr'}">DUPR</button><button class="match-type-option" type="button" data-match-type-filter="non-dupr" aria-pressed="${matchType === 'non-dupr'}">NON-DUPR</button></div></div></div><div id="matchRecordsTableWrap">${matchesTable(matches)}</div></section>
     <p class="page-note">Match creation and player lineups remain in the original Queueing page, which updates this history automatically.</p></div>`;
 }
 function rankingRowMarkup(player, index) {
@@ -2892,6 +2892,14 @@ function rankingSessionTitle(session) {
   return String(session?.title || session?.sessionName || 'Open Play Session')
     .replace(/^\((?:NON[\s-]+)?DUPR\s+MATCH\)\s*/i, '').trim() || 'Open Play Session';
 }
+function rankingSessionFilterMarkup(selectedSessionId = currentRankingSessionId()) {
+  const sessionOptions = sortedSessions().map(session => {
+    const sessionType = rankingSessionType(session);
+    const optionLabel = `(${sessionType}) ${rankingSessionTitle(session)} — ${sessionDateLabel(session)} · ${sessionStatus(session)}`;
+    return `<option value="${escapeHTML(session.id)}" ${selectedSessionId === String(session.id) ? 'selected' : ''}>${escapeHTML(optionLabel)}</option>`;
+  }).join('');
+  return `<select class="select-control ranking-session-filter" id="rankingSessionFilter"><option value="all" ${selectedSessionId === 'all' ? 'selected' : ''}>All Sessions</option>${sessionOptions}</select>`;
+}
 function getRankingPlayersForCurrentView() {
   const selectedSessionId = currentRankingSessionId();
   let players;
@@ -2938,14 +2946,9 @@ function scheduleRankingsPage() {
 function renderRankings() {
   state.rankingRenderPlayers = [];
   const selectedSessionId = currentRankingSessionId();
-  const sessionOptions = sortedSessions().map(session => {
-    const sessionType = rankingSessionType(session);
-    const optionLabel = `(${sessionType}) ${rankingSessionTitle(session)} — ${sessionDateLabel(session)} · ${sessionStatus(session)}`;
-    return `<option value="${escapeHTML(session.id)}" ${selectedSessionId === String(session.id) ? 'selected' : ''}>${escapeHTML(optionLabel)}</option>`;
-  }).join('');
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / LEADERBOARD', 'Player Rankings', 'Rank players using their wins, losses, total matches and win rate from the existing system.', `<button class="btn" data-action="export-rankings">${icon('download')} Export</button>`)}
     <div class="metric-grid"><div class="metric-tile"><span>Players ranked</span>${metricCount('rankings', 'players-ranked', state.data.players.filter(player => !player.historicalOnly).length, 'rankingPlayerCount')}</div><div class="metric-tile"><span>Matches recorded</span>${metricCount('rankings', 'matches-recorded', state.data.matches.length)}</div><div class="metric-tile"><span>Attendance entries</span>${metricCount('rankings', 'attendance-entries', countAttendanceEntries())}</div><div class="metric-tile"><span>DUPR IDs recorded</span>${metricCount('rankings', 'dupr-ids-recorded', state.data.players.filter(player => player.duprId).length)}</div></div>
-    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Community Leaderboard', 'trophy')}<div class="toolbar"><select class="select-control ranking-session-filter" id="rankingSessionFilter"><option value="all" ${selectedSessionId === 'all' ? 'selected' : ''}>All Sessions</option>${sessionOptions}</select><select class="select-control" id="rankingCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.rankingCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div class="table-wrap rankings-table-wrap" id="rankingsTableWrap" aria-busy="true"><table class="data-table rankings-table"><colgroup><col style="width:8%"><col style="width:25%"><col style="width:15%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:11%"><col style="width:16%"></colgroup><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Category</th><th scope="col">Wins</th><th scope="col">Losses</th><th scope="col">Matches</th><th scope="col">Win rate</th><th scope="col">DUPR ID</th></tr></thead><tbody id="rankingTableBody"><tr><td colspan="8" class="ranking-loading-row">Preparing player rankings…</td></tr></tbody></table></div></section>
+    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Community Leaderboard', 'trophy')}<div class="toolbar">${rankingSessionFilterMarkup(selectedSessionId)}<select class="select-control" id="rankingCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.rankingCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div class="table-wrap rankings-table-wrap" id="rankingsTableWrap" aria-busy="true"><table class="data-table rankings-table"><colgroup><col style="width:8%"><col style="width:25%"><col style="width:15%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:11%"><col style="width:16%"></colgroup><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Category</th><th scope="col">Wins</th><th scope="col">Losses</th><th scope="col">Matches</th><th scope="col">Win rate</th><th scope="col">DUPR ID</th></tr></thead><tbody id="rankingTableBody"><tr><td colspan="8" class="ranking-loading-row">Preparing player rankings…</td></tr></tbody></table></div></section>
     <p class="page-note">DUPR ID is shown as an identifier only. This dashboard does not treat a DUPR ID as a numeric DUPR rating.</p></div>`;
 }
 function renderCourts() {
@@ -4169,8 +4172,14 @@ document.addEventListener('change', event => {
   if (target.id === 'sessionStatusFilter') { state.filters.sessionStatus = target.value; renderPage(true); }
   if (target.id === 'playerCategoryFilter') { state.filters.playerCategory = target.value; const filtered = visibleRows(state.data.players.filter(player => !player.historicalOnly).sort((a,b)=>a.name.localeCompare(b.name))).filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory); $('#playersTableWrap').innerHTML = playersTable(filtered); }
   if (target.id === 'rankingCategoryFilter') { state.filters.rankingCategory = target.value; scheduleRankingsPage(); }
-  if (target.id === 'rankingSessionFilter') { state.filters.rankingSession = target.value; scheduleRankingsPage(); }
-  if (target.id === 'matchCourtFilter') { state.filters.matchCourt = target.value; renderPage(true); }
+  if (target.id === 'rankingSessionFilter') {
+    state.filters.rankingSession = target.value;
+    if (state.page === 'rankings') scheduleRankingsPage();
+    else if (state.page === 'matches') {
+      const recordsWrap = $('#matchRecordsTableWrap');
+      if (recordsWrap) recordsWrap.innerHTML = matchesTable(filteredMatchRecords());
+    }
+  }
 });
 
 let dashboardRefreshTimer = null;
