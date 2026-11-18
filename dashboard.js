@@ -2807,12 +2807,53 @@ function filteredMatchRecords() {
     return matchesSession && matchesType;
   });
 }
+function updateFilteredMatchRecordsMetric() {
+  if (state.page !== 'matches') return;
+  const metric = $('#pageContent [data-count-key="metric:matches:recorded-matches"]');
+  if (!metric) return;
+
+  const target = filteredMatchRecords().length;
+  const previousFrame = dashboardCountFrames.get(metric);
+  if (previousFrame) cancelAnimationFrame(previousFrame);
+  const currentValue = Number(String(metric.textContent || '').replace(/,/g, '').trim());
+  const start = Number.isFinite(currentValue) ? currentValue : 0;
+  metric.dataset.countTarget = String(target);
+  metric.textContent = String(Math.round(start));
+
+  if (start === target) {
+    metric.textContent = String(target);
+    dashboardCountFrames.delete(metric);
+    return;
+  }
+
+  let startedAt = 0;
+  const tick = timestamp => {
+    if (!metric.isConnected) {
+      dashboardCountFrames.delete(metric);
+      return;
+    }
+    if (!startedAt) startedAt = timestamp;
+    const progress = Math.min(1, (timestamp - startedAt) / 760);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    metric.textContent = String(Math.round(start + (target - start) * eased));
+    if (progress < 1) {
+      dashboardCountFrames.set(metric, requestAnimationFrame(tick));
+    } else {
+      metric.textContent = String(target);
+      dashboardCountFrames.delete(metric);
+    }
+  };
+  dashboardCountFrames.set(metric, requestAnimationFrame(tick));
+}
 function renderMatches() {
   const matches = filteredMatchRecords();
   const matchType = state.filters.matchType || 'all';
   const playersInMatches = new Set(state.data.matches.flatMap(match => [...match.teamANames, ...match.teamBNames].map(normalizeName))).size;
-  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / MATCH HISTORY', 'Match Records', 'Results recorded from Court Queueing, including scored and win/loss matches.', `<button class="btn" data-action="export-matches">${icon('download')} Export</button><button class="btn" data-action="export-dupr">${icon('download')} Export DUPR CSV</button><a class="btn btn-primary" href="/queueing" target="_blank" rel="noopener">${icon('plus')} Record in Queue</a>`)}
-    <div class="metric-grid"><div class="metric-tile"><span>Match records</span>${metricCount('matches', 'recorded-matches', state.data.matches.length)}</div><div class="metric-tile"><span>Players involved</span>${metricCount('matches', 'players-involved', playersInMatches)}</div><div class="metric-tile"><span>Courts used</span>${metricCount('matches', 'courts-used', new Set(state.data.matches.map(match => match.courtId)).size)}</div><div class="metric-tile"><span>DUPR matches</span>${metricCount('matches', 'dupr-matches', state.data.matches.filter(match => match.duprMatch).length)}</div></div>
+  const sessionsById = new Map(state.data.sessions.map(session => [String(session.id), session]));
+  const duprMatchesCount = state.data.matches.filter(match => matchIsDupr(match, sessionsById.get(String(match.sessionId || '')))).length;
+  const nonDuprMatchesCount = state.data.matches.length - duprMatchesCount;
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / MATCH HISTORY', 'Match Records', 'Results recorded from Court Queueing, including scored and win/loss matches.', `<button class="btn" data-action="export-dupr">${icon('download')} Export DUPR CSV</button><a class="btn btn-primary" href="/queueing" target="_blank" rel="noopener">${icon('plus')} Record in Queue</a>`)}
+    <div class="metric-grid"><div class="metric-tile"><span>Match records</span>${metricCount('matches', 'recorded-matches', matches.length)}</div><div class="metric-tile"><span>Players involved</span>${metricCount('matches', 'players-involved', playersInMatches)}</div><div class="metric-tile"><span>DUPR matches</span>${metricCount('matches', 'dupr-matches', duprMatchesCount)}</div><div class="metric-tile"><span>Non DUPR matches</span>${metricCount('matches', 'non-dupr-matches', nonDuprMatchesCount)}</div></div>
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('All Match Records', 'trophy')}<div class="toolbar">${rankingSessionFilterMarkup(currentRankingSessionId())}<div class="match-type-filter" data-active="${escapeHTML(matchType)}" role="group" aria-label="Filter match records by type"><button class="match-type-option" type="button" data-match-type-filter="all" aria-pressed="${matchType === 'all'}">ALL</button><button class="match-type-option" type="button" data-match-type-filter="dupr" aria-pressed="${matchType === 'dupr'}">DUPR</button><button class="match-type-option" type="button" data-match-type-filter="non-dupr" aria-pressed="${matchType === 'non-dupr'}">NON-DUPR</button></div></div></div><div id="matchRecordsTableWrap">${matchesTable(matches)}</div></section>
     <p class="page-note">Match creation and player lineups remain in the original Queueing page, which updates this history automatically.</p></div>`;
 }
@@ -2974,8 +3015,7 @@ function renderCourts() {
   const registeredCourtCards = registeredCourts.length ? `<div class="registered-court-grid">${registeredCourts.map(court => `<article class="registered-court-card"><button type="button" class="registered-court-logo" data-map-focus-court-id="${escapeHTML(court.id)}" aria-label="Focus map on ${escapeHTML(court.name)}" title="Show ${escapeHTML(court.name)} on map">${court.logo ? `<img src="${escapeHTML(court.logo)}" alt="">` : icon('court')}</button><span class="registered-court-copy"><strong>${escapeHTML(court.name)}</strong><small>${escapeHTML(court.location)}</small><span class="registered-court-actions"><button type="button" class="registered-court-edit" data-action="edit-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('edit')} Edit</button><button type="button" class="registered-court-delete" data-action="delete-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('trash')} Delete</button></span></span></article>`).join('')}</div>` : emptyState('No registered courts yet', 'Register a court to add its logo and location to the CourtMap.');
   const courtPageActions = `<div class="court-page-actions"><button type="button" class="btn btn-sm btn-primary court-action-pill" data-action="register-court">${icon('plus')} Register Court</button><a class="btn btn-primary court-action-pill" href="/queueing" target="_blank" rel="noopener">Manage in Queueing ${icon('external')}</a></div>`;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / VENUES', 'Courts & Locations', 'Current court activity is read directly from the live queueing session.', courtPageActions)}
-    <div class="metric-grid"><div class="metric-tile"><span>Total courts</span>${metricCount('courts', 'total-courts', courts.length)}</div><div class="metric-tile"><span>In play</span>${metricCount('courts', 'in-play', courts.filter(court => court.status === 'Active').length)}</div><div class="metric-tile"><span>Ready / assigned</span>${metricCount('courts', 'ready-assigned', courts.filter(court => court.status === 'Ready').length)}</div><div class="metric-tile"><span>Waiting courts</span>${metricCount('courts', 'waiting-courts', courts.filter(court => court.status === 'Waiting').length)}</div></div>
-    <section class="panel panel-pad">${panelTitle('Live Court Status', 'court')}<div class="court-cards">${courts.length ? courts.map(court => `<article class="court-card"><div class="court-card-head"><h3>${escapeHTML(court.name)}</h3>${sessionStatusBadge(court.status === 'Active' ? 'Live' : court.status)}</div><p>${court.players ? `${court.players} player positions assigned` : 'No players assigned at the moment'}<br>Pickleball court</p><a class="btn btn-sm" href="/queueing" target="_blank" rel="noopener">Open court controls</a></article>`).join('') : emptyState('No live court data', 'Start an open-play session and configure courts in the original Queueing page.')}</div></section>
+    <div class="metric-grid"><div class="metric-tile"><span>Total courts</span>${metricCount('courts', 'total-courts', registeredCourts.length)}</div><div class="metric-tile"><span>In play</span>${metricCount('courts', 'in-play', courts.filter(court => court.status === 'Active').length)}</div><div class="metric-tile"><span>Ready / assigned</span>${metricCount('courts', 'ready-assigned', courts.filter(court => court.status === 'Ready').length)}</div><div class="metric-tile"><span>Waiting courts</span>${metricCount('courts', 'waiting-courts', courts.filter(court => court.status === 'Waiting').length)}</div></div>
     <div class="registered-courts-map-layout">
       ${mapCard(session, 'venuesCourtMap')}
       <section class="panel panel-pad registered-courts-panel">${panelTitle('Registered Court List', 'court')}${registeredCourtCards}</section>
@@ -2995,10 +3035,6 @@ function downloadCSV(filename, headers, rows) {
 function exportPlayers() {
   downloadCSV('husay-dinkers-players.csv', ['Name', 'Nickname', 'Category', 'Gender', 'DUPR ID', 'Self Rating', 'Matches', 'Wins', 'Losses', 'Attendance'], state.data.players.filter(p => !p.historicalOnly).map(player => { const s = playerStats(player); return [player.name, player.nickname, player.category, player.gender, player.duprId, player.selfRating, s.matches, s.wins, s.losses, s.attendance]; }));
 }
-function exportMatches() {
-  downloadCSV('husay-dinkers-match-records.csv', ['Date', 'Time', 'Session', 'Court', 'Team 1', 'Team 2', 'Result', 'Winner', 'DUPR Match'], state.data.matches.map(match => [match.date, match.time, match.sessionName, match.courtName, match.teamANames.join(' / '), match.teamBNames.join(' / '), match.scoreLabel, match.winner === 'A' ? 'Team 1' : match.winner === 'B' ? 'Team 2' : match.winnerText, match.duprMatch ? 'Yes' : 'No']));
-}
-
 const DUPR_EXPORT_COLUMNS = ['matchType','event','date','playerA1','playerA1DuprId','playerA1ExternalId','playerA2','playerA2DuprId','playerA2ExternalId','playerB1','playerB1DuprId','playerB1ExternalId','playerB2','playerB2DuprId','playerB2ExternalId','teamAGame1','teamBGame1','teamAGame2','teamBGame2','teamAGame3','teamBGame3','teamAGame4','teamBGame4','teamAGame5','teamBGame5','scoreType','location'];
 function matchIsDupr(match, session) {
   const log = match.raw || {};
@@ -3703,6 +3739,7 @@ document.addEventListener('click', async event => {
     }
     const recordsWrap = $('#matchRecordsTableWrap');
     if (recordsWrap) recordsWrap.innerHTML = matchesTable(filteredMatchRecords());
+    updateFilteredMatchRecordsMetric();
     return;
   }
 
@@ -3745,7 +3782,6 @@ document.addEventListener('click', async event => {
       return;
     }
     if (action === 'export-players') { exportPlayers(); return; }
-    if (action === 'export-matches') { exportMatches(); return; }
     if (action === 'export-dupr') { exportDuprMatches(); return; }
     if (action === 'edit-settings') { openOrganizerSettings(); return; }
     if (action === 'register-court') { openRegisterCourtModal(); return; }
@@ -4194,6 +4230,7 @@ document.addEventListener('change', event => {
     else if (state.page === 'matches') {
       const recordsWrap = $('#matchRecordsTableWrap');
       if (recordsWrap) recordsWrap.innerHTML = matchesTable(filteredMatchRecords());
+      updateFilteredMatchRecordsMetric();
     }
   }
 });

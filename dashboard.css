@@ -1975,3 +1975,17 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .metric-tile.player-match-records-breakdown .metric-breakdown-item.dupr > span:first-child { color: #1d5fae; }
 .metric-tile .metric-breakdown-item.non-dupr { color: #68756c; border-color: #e5ebe6; background: #fff; }
 .metric-tile .metric-breakdown-item strong { display: inline; margin: 0; color: inherit; font-size: 9px; font-weight: 800; letter-spacing: 0; line-height: inherit; font-variant-numeric: tabular-nums; }
+
+/* Courts & Locations: match Dashboard heading action height across devices. */
+.court-page-actions {
+  min-height: 34px;
+  align-items: center;
+}
+.court-page-actions .court-action-pill,
+.court-page-actions .btn-sm.btn-primary.court-action-pill,
+.court-page-actions .btn.btn-primary.court-action-pill {
+  box-sizing: border-box;
+  height: 34px !important;
+  min-height: 34px !important;
+  line-height: 1 !important;
+}
