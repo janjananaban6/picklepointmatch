@@ -264,6 +264,16 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .metric-tile { padding: 12px 13px; border: 1px solid #eaf0e8; border-radius: 11px; background: #fff; }
 .metric-tile span { display: block; color: #7d8980; font-size: 9px; }
 .metric-tile strong { display: block; margin-top: 5px; color: #26362c; font-size: 20px; letter-spacing: -.5px; }
+.registered-player-skill-counts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 8px; }
+.metric-tile .registered-player-skill-count { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 4px; padding: 4px 6px; border: 1px solid transparent; border-radius: 7px; font-size: 8px; font-weight: 800; line-height: 1.1; white-space: nowrap; }
+.metric-tile .registered-player-skill-code,
+.metric-tile .registered-player-skill-value { display: inline; color: inherit; font-size: inherit; font-weight: inherit; line-height: inherit; }
+.metric-tile .registered-player-skill-value { font-variant-numeric: tabular-nums; }
+.metric-tile .registered-player-skill-count.category-beg { color: #247eae; border-color: #d5e9f5; background: #f1f8fc; }
+.metric-tile .registered-player-skill-count.category-nov { color: #258673; border-color: #d0eee6; background: #f0faf7; }
+.metric-tile .registered-player-skill-count.category-int { color: #a27a25; border-color: #f0e5c4; background: #fcf8ed; }
+.metric-tile .registered-player-skill-count.category-adv { color: #b87837; border-color: #f4e1cd; background: #fcf6ef; }
+.metric-tile .registered-player-skill-count.category-exp { color: #bd6268; border-color: #f2dadd; background: #fcf4f5; }
 .court-cards { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 11px; }
 .court-card { padding: 13px; border: 1px solid #e9efe7; border-radius: 12px; background: #fff; }
 .court-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

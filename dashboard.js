@@ -2770,11 +2770,24 @@ function playersTable(players) {
   }).join('')}</tbody></table></div>`;
 }
 function renderPlayers() {
-  const players = visibleRows([...state.data.players].filter(player => !player.historicalOnly).sort((a, b) => a.name.localeCompare(b.name)));
+  const registeredPlayers = state.data.players.filter(player => !player.historicalOnly);
+  const players = visibleRows([...registeredPlayers].sort((a, b) => a.name.localeCompare(b.name)));
   const attendanceCount = countAttendanceEntries();
   const rated = state.data.players.filter(player => player.duprId).length;
+  const skillCategories = [
+    { code: 'BEG', match: ['BEG'], className: 'category-beg' },
+    { code: 'NOV', match: ['NOV'], className: 'category-nov' },
+    { code: 'INT', match: ['INT'], className: 'category-int' },
+    { code: 'ADV', match: ['ADV'], className: 'category-adv' },
+    { code: 'EXT', match: ['EXP', 'EXT'], className: 'category-exp' }
+  ];
+  const skillCounts = skillCategories.map(category => ({
+    ...category,
+    count: registeredPlayers.filter(player => category.match.includes(categoryCode(player.category))).length
+  }));
+  const skillCountMarkup = `<div class="registered-player-skill-counts" aria-label="Registered player skill category counts">${skillCounts.map(category => `<span class="registered-player-skill-count ${category.className}"><span class="registered-player-skill-code">${category.code}</span><span class="registered-player-skill-value" data-count-target="${category.count}" data-count-key="metric:players:registered-skill-${category.code.toLowerCase()}" aria-live="off">0</span></span>`).join('')}</div>`;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / COMMUNITY', 'Players', 'Registered Player Cloud profiles used by queueing, player registration and match history.', `<button class="btn" data-action="export-players">${icon('download')} Export CSV</button><button class="btn btn-primary" data-action="register-player">${icon('plus')} Register Player</button>`)}
-    <div class="metric-grid"><div class="metric-tile"><span>Registered players</span>${metricCount('players', 'registered-players', state.data.players.filter(player => !player.historicalOnly).length)}</div><div class="metric-tile"><span>With DUPR ID</span>${metricCount('players', 'with-dupr-id', rated)}</div><div class="metric-tile"><span>Attendance entries</span>${metricCount('players', 'attendance-entries', attendanceCount)}</div><div class="metric-tile"><span>Match records</span>${metricCount('players', 'match-records', state.data.matches.length)}</div></div>
+    <div class="metric-grid"><div class="metric-tile registered-players-metric"><span>Registered players</span>${metricCount('players', 'registered-players', registeredPlayers.length)}${skillCountMarkup}</div><div class="metric-tile"><span>With DUPR ID</span>${metricCount('players', 'with-dupr-id', rated)}</div><div class="metric-tile"><span>Attendance entries</span>${metricCount('players', 'attendance-entries', attendanceCount)}</div><div class="metric-tile"><span>Match records</span>${metricCount('players', 'match-records', state.data.matches.length)}</div></div>
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Registered Player Cloud', 'users')}<div class="toolbar"><select class="select-control" id="playerCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.playerCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div id="playersTableWrap">${playersTable(players.filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory))}</div></section>
     <p class="page-note">Player profiles are stored in the existing Registered Player Cloud. Register new players through the live session registration page so they enter the real queue.</p></div>`;
 }
