@@ -1872,7 +1872,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 }
 
 
-/* Dashboard ranking podium: animated avatar rings for ranks 1, 2 and 3 only. */
+/* Dashboard ranking podium: rotate only the colored outer edge on ranks 1, 2 and 3. */
 .page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-gold,
 .page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-silver,
 .page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-bronze {
@@ -1885,16 +1885,19 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   --podium-deep: #8a6200;
   --podium-main: #d8a514;
   --podium-light: #fff0a6;
+  --podium-glow: rgba(216, 165, 20, .28);
 }
 .page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-silver {
   --podium-deep: #64717e;
   --podium-main: #b9c3cd;
   --podium-light: #f8fafc;
+  --podium-glow: rgba(185, 195, 205, .30);
 }
 .page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-bronze {
   --podium-deep: #7c3f16;
   --podium-main: #b87333;
   --podium-light: #f3c39a;
+  --podium-glow: rgba(184, 115, 51, .28);
 }
 .page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-gold::before,
 .page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-silver::before,
@@ -1912,8 +1915,13 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
     var(--podium-main) 72%,
     var(--podium-deep)
   );
+  /* Keep the center cut out so only the narrow outer ring rotates. */
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  filter: drop-shadow(0 0 2px var(--podium-glow));
   animation: dashboard-podium-avatar-spin 2.8s linear infinite;
   pointer-events: none;
+  will-change: transform;
 }
 .page-dashboard .ranking-panel .ranking-list .podium-avatar-initials {
   position: relative;
