@@ -1938,3 +1938,21 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 @keyframes dashboard-podium-avatar-spin {
   to { transform: rotate(1turn); }
 }
+
+/* Dashboard ranking labels: use medal emojis for the podium and shorten match text on touch devices. */
+.rank-index.top {
+  font-size: 15px;
+  line-height: 1;
+}
+.ranking-match-label-short {
+  display: none;
+}
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .ranking-match-label-long { display: none; }
+  .ranking-match-label-short { display: inline; }
+}
+
+/* Keep animated metric digits steady while they count up. */
+#pageContent [data-count-target][data-count-key] {
+  font-variant-numeric: tabular-nums;
+}

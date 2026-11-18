@@ -655,12 +655,22 @@ function statCard(label, value, foot, iconName, dark = false) {
   const countKey = `stat:${String(label).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   return `<article class="stat-card ${dark ? 'dark' : 'light'}"><div><p class="stat-label">${escapeHTML(label)}</p><p class="stat-value" aria-live="off"${isCount ? ` data-count-target="${target}" data-count-key="${escapeHTML(countKey)}"` : ''}>${escapeHTML(initialValue)}</p><div class="stat-foot">${escapeHTML(foot)}</div></div><span class="stat-icon">${icon(iconName)}</span></article>`;
 }
+function metricCount(pageKey, metricKey, value, id = '') {
+  const rawValue = String(value ?? 0);
+  const target = Number(rawValue);
+  const isCount = rawValue.trim() !== '' && Number.isFinite(target);
+  const idAttribute = id ? ` id="${escapeHTML(id)}"` : '';
+  const countAttributes = isCount
+    ? ` data-count-target="${target}" data-count-key="metric:${escapeHTML(pageKey)}:${escapeHTML(metricKey)}"`
+    : '';
+  return `<strong${idAttribute} aria-live="off"${countAttributes}>${isCount ? '0' : escapeHTML(rawValue)}</strong>`;
+}
 
-// All dashboard numeric readouts share one counter so refreshed values animate consistently.
+// Dashboard and page metric readouts share one counter so values animate consistently.
 const dashboardCountFrames = new WeakMap();
 function captureDashboardCountValues() {
   const values = new Map();
-  $$('.page-dashboard [data-count-target][data-count-key]').forEach(node => {
+  $$('#pageContent [data-count-target][data-count-key]').forEach(node => {
     const key = node.dataset.countKey;
     const value = Number(String(node.textContent || '').replace(/,/g, '').trim());
     if (key && Number.isFinite(value)) values.set(key, value);
@@ -669,7 +679,7 @@ function captureDashboardCountValues() {
 }
 function animateDashboardCountValues(previousValues = new Map()) {
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-  $$('.page-dashboard [data-count-target][data-count-key]').forEach(node => {
+  $$('#pageContent [data-count-target][data-count-key]').forEach(node => {
     const target = Number(node.dataset.countTarget);
     if (!Number.isFinite(target)) return;
 
@@ -2741,7 +2751,7 @@ function renderSessions() {
   const completedCount = state.data.sessions.filter(session => !session.isLive).length;
   const attendanceCount = countAttendanceEntries();
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / OPEN PLAY', 'Open Play Sessions', 'Session history and live attendance synced from your original queueing system.', `<a class="btn btn-primary" href="/session" target="_blank" rel="noopener">${icon('plus')} Start Open Play</a>`)}
-    <div class="metric-grid"><div class="metric-tile"><span>Live sessions</span><strong>${liveCount}</strong></div><div class="metric-tile"><span>Completed sessions</span><strong>${completedCount}</strong></div><div class="metric-tile"><span>Total attendance</span><strong>${attendanceCount}</strong></div><div class="metric-tile"><span>Recorded matches</span><strong>${state.data.matches.length}</strong></div></div>
+    <div class="metric-grid"><div class="metric-tile"><span>Live sessions</span>${metricCount('sessions', 'live-sessions', liveCount)}</div><div class="metric-tile"><span>Completed sessions</span>${metricCount('sessions', 'completed-sessions', completedCount)}</div><div class="metric-tile"><span>Total attendance</span>${metricCount('sessions', 'total-attendance', attendanceCount)}</div><div class="metric-tile"><span>Recorded matches</span>${metricCount('sessions', 'recorded-matches', state.data.matches.length)}</div></div>
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Session History', 'calendar')}<div class="toolbar"><select class="select-control" id="sessionStatusFilter" aria-label="Filter sessions"><option value="all" ${state.filters.sessionStatus === 'all' ? 'selected' : ''}>All sessions</option><option value="Live" ${state.filters.sessionStatus === 'Live' ? 'selected' : ''}>Live</option><option value="Completed" ${state.filters.sessionStatus === 'Completed' ? 'selected' : ''}>Completed</option></select></div></div><div class="session-list">${all.length ? all.map(sessionCard).join('') : emptyState('No sessions found', 'Start an open-play session in the existing Session Setup page.')}</div></section>
     <p class="page-note">The original queueing system creates a session when an organizer starts Open Play. This dashboard does not create a separate, duplicate session record.</p></div>`;
 }
@@ -2765,7 +2775,7 @@ function renderPlayers() {
   const attendanceCount = countAttendanceEntries();
   const rated = state.data.players.filter(player => player.duprId).length;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / COMMUNITY', 'Players', 'Registered Player Cloud profiles used by queueing, player registration and match history.', `<button class="btn" data-action="export-players">${icon('download')} Export CSV</button><button class="btn btn-primary" data-action="register-player">${icon('plus')} Register Player</button>`)}
-    <div class="metric-grid"><div class="metric-tile"><span>Registered players</span><strong>${state.data.players.filter(player => !player.historicalOnly).length}</strong></div><div class="metric-tile"><span>With DUPR ID</span><strong>${rated}</strong></div><div class="metric-tile"><span>Attendance entries</span><strong>${attendanceCount}</strong></div><div class="metric-tile"><span>Match records</span><strong>${state.data.matches.length}</strong></div></div>
+    <div class="metric-grid"><div class="metric-tile"><span>Registered players</span>${metricCount('players', 'registered-players', state.data.players.filter(player => !player.historicalOnly).length)}</div><div class="metric-tile"><span>With DUPR ID</span>${metricCount('players', 'with-dupr-id', rated)}</div><div class="metric-tile"><span>Attendance entries</span>${metricCount('players', 'attendance-entries', attendanceCount)}</div><div class="metric-tile"><span>Match records</span>${metricCount('players', 'match-records', state.data.matches.length)}</div></div>
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Registered Player Cloud', 'users')}<div class="toolbar"><select class="select-control" id="playerCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.playerCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div id="playersTableWrap">${playersTable(players.filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory))}</div></section>
     <p class="page-note">Player profiles are stored in the existing Registered Player Cloud. Register new players through the live session registration page so they enter the real queue.</p></div>`;
 }
@@ -2786,7 +2796,7 @@ function renderMatches() {
   const matchType = state.filters.matchType || 'all';
   const playersInMatches = new Set(state.data.matches.flatMap(match => [...match.teamANames, ...match.teamBNames].map(normalizeName))).size;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / MATCH HISTORY', 'Match Records', 'Results recorded from Court Queueing, including scored and win/loss matches.', `<button class="btn" data-action="export-matches">${icon('download')} Export</button><button class="btn" data-action="export-dupr">${icon('download')} Export DUPR CSV</button><a class="btn btn-primary" href="/queueing" target="_blank" rel="noopener">${icon('plus')} Record in Queue</a>`)}
-    <div class="metric-grid"><div class="metric-tile"><span>Recorded matches</span><strong>${state.data.matches.length}</strong></div><div class="metric-tile"><span>Players involved</span><strong>${playersInMatches}</strong></div><div class="metric-tile"><span>Courts used</span><strong>${new Set(state.data.matches.map(match => match.courtId)).size}</strong></div><div class="metric-tile"><span>DUPR matches</span><strong>${state.data.matches.filter(match => match.duprMatch).length}</strong></div></div>
+    <div class="metric-grid"><div class="metric-tile"><span>Recorded matches</span>${metricCount('matches', 'recorded-matches', state.data.matches.length)}</div><div class="metric-tile"><span>Players involved</span>${metricCount('matches', 'players-involved', playersInMatches)}</div><div class="metric-tile"><span>Courts used</span>${metricCount('matches', 'courts-used', new Set(state.data.matches.map(match => match.courtId)).size)}</div><div class="metric-tile"><span>DUPR matches</span>${metricCount('matches', 'dupr-matches', state.data.matches.filter(match => match.duprMatch).length)}</div></div>
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('All Match Records', 'trophy')}<div class="toolbar"><select class="select-control" id="matchCourtFilter"><option value="all">All courts</option>${[...new Map(state.data.matches.map(match => [match.courtId, match.courtName])).entries()].map(([id, name]) => `<option value="${escapeHTML(id)}" ${state.filters.matchCourt === id ? 'selected' : ''}>${escapeHTML(name)}</option>`).join('')}</select><div class="match-type-filter" data-active="${escapeHTML(matchType)}" role="group" aria-label="Filter match records by type"><button class="match-type-option" type="button" data-match-type-filter="all" aria-pressed="${matchType === 'all'}">ALL</button><button class="match-type-option" type="button" data-match-type-filter="dupr" aria-pressed="${matchType === 'dupr'}">DUPR</button><button class="match-type-option" type="button" data-match-type-filter="non-dupr" aria-pressed="${matchType === 'non-dupr'}">NON-DUPR</button></div></div></div><div id="matchRecordsTableWrap">${matchesTable(matches)}</div></section>
     <p class="page-note">Match creation and player lineups remain in the original Queueing page, which updates this history automatically.</p></div>`;
 }
@@ -2847,7 +2857,8 @@ function scheduleDashboardRankings() {
       const stats = playerStats(player);
       const podiumClass = ['podium-rank-gold', 'podium-rank-silver', 'podium-rank-bronze'][index] || '';
       const avatarClass = podiumClass ? `player-avatar ${podiumClass}` : 'player-avatar';
-      return `<div class="ranking-row" style="--ranking-order:${index}"><span class="rank-index ${index < 3 ? 'top' : ''}">${index + 1}</span><span class="${avatarClass}"><span class="podium-avatar-initials">${initials(player.name)}</span></span><span class="ranking-name">${escapeHTML(player.name)}</span><span class="ranking-rating">${stats.wins}W - ${stats.losses}L (${stats.matches} Matches)</span></div>`;
+      const rankLabel = ['🥇', '🥈', '🥉'][index] || String(index + 1);
+      return `<div class="ranking-row" style="--ranking-order:${index}"><span class="rank-index ${index < 3 ? 'top' : ''}" aria-label="Rank ${index + 1}">${rankLabel}</span><span class="${avatarClass}"><span class="podium-avatar-initials">${initials(player.name)}</span></span><span class="ranking-name">${escapeHTML(player.name)}</span><span class="ranking-rating">${stats.wins}W - ${stats.losses}L (${stats.matches} <span class="ranking-match-label-long">Matches</span><span class="ranking-match-label-short">Match</span>)</span></div>`;
     }).join('') : emptyState('No player records yet', 'Players registered through the existing queueing system will appear here.');
     if (top.length) requestAnimationFrame(() => {
       if (target.isConnected) target.classList.add('is-entering');
@@ -2915,7 +2926,11 @@ function scheduleRankingsPage() {
     const players = getRankingPlayersForCurrentView();
     state.rankingRenderPlayers = players;
     const count = $('#rankingPlayerCount');
-    if (count) count.textContent = String(players.length);
+    if (count) {
+      const previousCountValues = captureDashboardCountValues();
+      count.dataset.countTarget = String(players.length);
+      animateDashboardCountValues(previousCountValues);
+    }
     if (!$('#rankingTableBody')?.isConnected) return;
     appendRankingRowsInChunks(token);
   });
@@ -2929,7 +2944,7 @@ function renderRankings() {
     return `<option value="${escapeHTML(session.id)}" ${selectedSessionId === String(session.id) ? 'selected' : ''}>${escapeHTML(optionLabel)}</option>`;
   }).join('');
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / LEADERBOARD', 'Player Rankings', 'Rank players using their wins, losses, total matches and win rate from the existing system.', `<button class="btn" data-action="export-rankings">${icon('download')} Export</button>`)}
-    <div class="metric-grid"><div class="metric-tile"><span>Players ranked</span><strong id="rankingPlayerCount">${state.data.players.filter(player => !player.historicalOnly).length}</strong></div><div class="metric-tile"><span>Matches recorded</span><strong>${state.data.matches.length}</strong></div><div class="metric-tile"><span>Attendance entries</span><strong>${countAttendanceEntries()}</strong></div><div class="metric-tile"><span>DUPR IDs recorded</span><strong>${state.data.players.filter(player => player.duprId).length}</strong></div></div>
+    <div class="metric-grid"><div class="metric-tile"><span>Players ranked</span>${metricCount('rankings', 'players-ranked', state.data.players.filter(player => !player.historicalOnly).length, 'rankingPlayerCount')}</div><div class="metric-tile"><span>Matches recorded</span>${metricCount('rankings', 'matches-recorded', state.data.matches.length)}</div><div class="metric-tile"><span>Attendance entries</span>${metricCount('rankings', 'attendance-entries', countAttendanceEntries())}</div><div class="metric-tile"><span>DUPR IDs recorded</span>${metricCount('rankings', 'dupr-ids-recorded', state.data.players.filter(player => player.duprId).length)}</div></div>
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Community Leaderboard', 'trophy')}<div class="toolbar"><select class="select-control ranking-session-filter" id="rankingSessionFilter"><option value="all" ${selectedSessionId === 'all' ? 'selected' : ''}>All Sessions</option>${sessionOptions}</select><select class="select-control" id="rankingCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.rankingCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div class="table-wrap rankings-table-wrap" id="rankingsTableWrap" aria-busy="true"><table class="data-table rankings-table"><colgroup><col style="width:8%"><col style="width:25%"><col style="width:15%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:11%"><col style="width:16%"></colgroup><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Category</th><th scope="col">Wins</th><th scope="col">Losses</th><th scope="col">Matches</th><th scope="col">Win rate</th><th scope="col">DUPR ID</th></tr></thead><tbody id="rankingTableBody"><tr><td colspan="8" class="ranking-loading-row">Preparing player rankings…</td></tr></tbody></table></div></section>
     <p class="page-note">DUPR ID is shown as an identifier only. This dashboard does not treat a DUPR ID as a numeric DUPR rating.</p></div>`;
 }
@@ -2940,7 +2955,7 @@ function renderCourts() {
   const registeredCourtCards = registeredCourts.length ? `<div class="registered-court-grid">${registeredCourts.map(court => `<article class="registered-court-card"><button type="button" class="registered-court-logo" data-map-focus-court-id="${escapeHTML(court.id)}" aria-label="Focus map on ${escapeHTML(court.name)}" title="Show ${escapeHTML(court.name)} on map">${court.logo ? `<img src="${escapeHTML(court.logo)}" alt="">` : icon('court')}</button><span class="registered-court-copy"><strong>${escapeHTML(court.name)}</strong><small>${escapeHTML(court.location)}</small><span class="registered-court-actions"><button type="button" class="registered-court-edit" data-action="edit-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('edit')} Edit</button><button type="button" class="registered-court-delete" data-action="delete-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('trash')} Delete</button></span></span></article>`).join('')}</div>` : emptyState('No registered courts yet', 'Register a court to add its logo and location to the CourtMap.');
   const courtPageActions = `<div class="court-page-actions"><button type="button" class="btn btn-sm btn-primary court-action-pill" data-action="register-court">${icon('plus')} Register Court</button><a class="btn btn-primary court-action-pill" href="/queueing" target="_blank" rel="noopener">Manage in Queueing ${icon('external')}</a></div>`;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / VENUES', 'Courts & Locations', 'Current court activity is read directly from the live queueing session.', courtPageActions)}
-    <div class="metric-grid"><div class="metric-tile"><span>Total courts</span><strong>${courts.length}</strong></div><div class="metric-tile"><span>In play</span><strong>${courts.filter(court => court.status === 'Active').length}</strong></div><div class="metric-tile"><span>Ready / assigned</span><strong>${courts.filter(court => court.status === 'Ready').length}</strong></div><div class="metric-tile"><span>Waiting courts</span><strong>${courts.filter(court => court.status === 'Waiting').length}</strong></div></div>
+    <div class="metric-grid"><div class="metric-tile"><span>Total courts</span>${metricCount('courts', 'total-courts', courts.length)}</div><div class="metric-tile"><span>In play</span>${metricCount('courts', 'in-play', courts.filter(court => court.status === 'Active').length)}</div><div class="metric-tile"><span>Ready / assigned</span>${metricCount('courts', 'ready-assigned', courts.filter(court => court.status === 'Ready').length)}</div><div class="metric-tile"><span>Waiting courts</span>${metricCount('courts', 'waiting-courts', courts.filter(court => court.status === 'Waiting').length)}</div></div>
     <section class="panel panel-pad">${panelTitle('Live Court Status', 'court')}<div class="court-cards">${courts.length ? courts.map(court => `<article class="court-card"><div class="court-card-head"><h3>${escapeHTML(court.name)}</h3>${sessionStatusBadge(court.status === 'Active' ? 'Live' : court.status)}</div><p>${court.players ? `${court.players} player positions assigned` : 'No players assigned at the moment'}<br>Pickleball court</p><a class="btn btn-sm" href="/queueing" target="_blank" rel="noopener">Open court controls</a></article>`).join('') : emptyState('No live court data', 'Start an open-play session and configure courts in the original Queueing page.')}</div></section>
     <div class="registered-courts-map-layout">
       ${mapCard(session, 'venuesCourtMap')}
@@ -3062,7 +3077,7 @@ function renderReports() {
   attendance.forEach(row => byPlayer.set(normalizeName(row.name), (byPlayer.get(normalizeName(row.name)) || { name: row.name, count: 0 }).count + 1));
   const topAttendance = [...byPlayer.values()].sort((a, b) => b.count - a.count).slice(0, 8);
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / ANALYTICS', 'Reports', 'Attendance and match activity calculated from your existing queueing records.', `<button class="btn" data-action="export-backup">${icon('download')} Full Backup</button><button class="btn btn-primary" data-action="export-report">${icon('download')} Export Attendance</button>`)}
-    <div class="metric-grid"><div class="metric-tile"><span>Players registered</span><strong>${state.data.players.filter(p => !p.historicalOnly).length}</strong></div><div class="metric-tile"><span>Sessions saved</span><strong>${state.data.sessions.length}</strong></div><div class="metric-tile"><span>Attendance entries</span><strong>${attendance.length}</strong></div><div class="metric-tile"><span>Matches saved</span><strong>${state.data.matches.length}</strong></div></div>
+    <div class="metric-grid"><div class="metric-tile"><span>Players registered</span>${metricCount('reports', 'players-registered', state.data.players.filter(p => !p.historicalOnly).length)}</div><div class="metric-tile"><span>Sessions saved</span>${metricCount('reports', 'sessions-saved', state.data.sessions.length)}</div><div class="metric-tile"><span>Attendance entries</span>${metricCount('reports', 'attendance-entries', attendance.length)}</div><div class="metric-tile"><span>Matches saved</span>${metricCount('reports', 'matches-saved', state.data.matches.length)}</div></div>
     <section class="panel panel-pad">${panelTitle('Most Frequent Attendees', 'users')}<div class="table-wrap">${topAttendance.length ? `<table class="data-table"><thead><tr><th>Player</th><th>Attendance</th></tr></thead><tbody>${topAttendance.map(item => `<tr><td class="primary-cell">${escapeHTML(item.name)}</td><td>${item.count}</td></tr>`).join('')}</tbody></table>` : emptyState('No attendance data', 'Completed or live session attendance will appear here.')}</div></section>
     <div class="notice-box">This report reads saved sessions and player records from the existing Pickle Point Match server. The dashboard does not store a second copy of your attendance.</div></div>`;
 }
@@ -3249,7 +3264,7 @@ function renderDashboardInPlace() {
 function renderPage(preserveScroll = true) {
   if (!state.data) return;
   const container = $('#pageContent');
-  const previousCountValues = state.page === 'dashboard' ? captureDashboardCountValues() : new Map();
+  const previousCountValues = captureDashboardCountValues();
   const oldScroll = preserveScroll ? container.scrollTop : 0;
   const activeElement = preserveScroll && container.contains(document.activeElement) ? document.activeElement : null;
   const activeId = activeElement?.id || '';
@@ -3267,8 +3282,8 @@ function renderPage(preserveScroll = true) {
   if (!preserveScroll) state.mapInstances.clear();
   const renderers = { dashboard: renderDashboard, sessions: renderSessions, players: renderPlayers, matches: renderMatches, rankings: renderRankings, courts: renderCourts, schedule: renderSchedule, reports: renderReports, settings: renderSettings };
   container.innerHTML = (renderers[state.page] || renderDashboard)();
+  animateDashboardCountValues(previousCountValues);
   if (state.page === 'dashboard') {
-    animateDashboardCountValues(previousCountValues);
     animateDashboardAttendanceBars();
   }
   if (state.page === 'rankings') {
