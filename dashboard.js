@@ -2845,7 +2845,9 @@ function scheduleDashboardRankings() {
     target.classList.remove('is-entering');
     target.innerHTML = top.length ? top.map((player, index) => {
       const stats = playerStats(player);
-      return `<div class="ranking-row" style="--ranking-order:${index}"><span class="rank-index ${index < 3 ? 'top' : ''}">${index + 1}</span><span class="player-avatar">${initials(player.name)}</span><span class="ranking-name">${escapeHTML(player.name)}</span><span class="ranking-rating">${stats.wins}W - ${stats.losses}L (${stats.matches} Matches)</span></div>`;
+      const podiumClass = ['podium-rank-gold', 'podium-rank-silver', 'podium-rank-bronze'][index] || '';
+      const avatarClass = podiumClass ? `player-avatar ${podiumClass}` : 'player-avatar';
+      return `<div class="ranking-row" style="--ranking-order:${index}"><span class="rank-index ${index < 3 ? 'top' : ''}">${index + 1}</span><span class="${avatarClass}"><span class="podium-avatar-initials">${initials(player.name)}</span></span><span class="ranking-name">${escapeHTML(player.name)}</span><span class="ranking-rating">${stats.wins}W - ${stats.losses}L (${stats.matches} Matches)</span></div>`;
     }).join('') : emptyState('No player records yet', 'Players registered through the existing queueing system will appear here.');
     if (top.length) requestAnimationFrame(() => {
       if (target.isConnected) target.classList.add('is-entering');

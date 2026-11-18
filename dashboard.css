@@ -1870,3 +1870,63 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
     max-height: 260px;
   }
 }
+
+
+/* Dashboard ranking podium: animated avatar rings for ranks 1, 2 and 3 only. */
+.page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-gold,
+.page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-silver,
+.page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-bronze {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  background: transparent;
+}
+.page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-gold {
+  --podium-deep: #8a6200;
+  --podium-main: #d8a514;
+  --podium-light: #fff0a6;
+}
+.page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-silver {
+  --podium-deep: #64717e;
+  --podium-main: #b9c3cd;
+  --podium-light: #f8fafc;
+}
+.page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-bronze {
+  --podium-deep: #7c3f16;
+  --podium-main: #b87333;
+  --podium-light: #f3c39a;
+}
+.page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-gold::before,
+.page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-silver::before,
+.page-dashboard .ranking-panel .ranking-list .player-avatar.podium-rank-bronze::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: -2px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    var(--podium-deep),
+    var(--podium-main) 24%,
+    var(--podium-light) 48%,
+    var(--podium-main) 72%,
+    var(--podium-deep)
+  );
+  animation: dashboard-podium-avatar-spin 2.8s linear infinite;
+  pointer-events: none;
+}
+.page-dashboard .ranking-panel .ranking-list .podium-avatar-initials {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  border-radius: 50%;
+  color: #286338;
+  background: #e7f5df;
+  line-height: 1;
+}
+@keyframes dashboard-podium-avatar-spin {
+  to { transform: rotate(1turn); }
+}
