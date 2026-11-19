@@ -530,6 +530,8 @@ function normalizeLegacyDashboard(payload) {
       name: String(court?.name || 'Registered Court'),
       location: String(court?.location || '').trim(),
       logo: registeredCourtLogo(court),
+      ownerName: String(court?.ownerName || 'Organizer'),
+      isOwner: court?.isOwner === true,
       locationCoordinates: normalizeMapLocationCoordinates(court?.locationCoordinates || court?.coordinates || court),
       registeredAt: court?.registeredAt || null
     })).filter(court => court.id && court.location),
@@ -621,6 +623,17 @@ async function refreshData({ silent = false } = {}) {
 function sortedSessions() { return [...(state.data?.sessions || [])]; }
 function allAttendance() { return (state.data?.sessions || []).flatMap(session => (session.attendees || []).map(person => ({ ...person, session }))); }
 function countAttendanceEntries() { return (state.data?.sessions || []).reduce((total, session) => total + (session.attendees?.length || 0), 0); }
+function countAttendanceEntriesByGender() {
+  const counts = { male: 0, female: 0 };
+  for (const session of state.data?.sessions || []) {
+    for (const person of session.attendees || []) {
+      const gender = String(person?.gender || '').trim().toLowerCase();
+      if (gender === 'male' || gender === 'm') counts.male += 1;
+      else if (gender === 'female' || gender === 'f') counts.female += 1;
+    }
+  }
+  return counts;
+}
 function findPlayer(id) { return state.data?.players.find(player => String(player.id) === String(id)); }
 function playerName(id) { return findPlayer(id)?.name || 'Player'; }
 let playerStatsIndex = null;
@@ -2895,7 +2908,7 @@ function renderSessions() {
 }
 function playersTable(players) {
   if (!players.length) return emptyState('No registered players yet', 'Players added through the player registration page will appear here.', 'Open registration', 'register-player');
-  return `<div class="table-wrap players-table-wrap"><table class="data-table players-table"><colgroup><col style="width:5%"><col style="width:30%"><col style="width:16%"><col style="width:11%"><col style="width:14%"><col style="width:11%"><col style="width:13%"></colgroup><thead><tr><th scope="col">#</th><th scope="col">Player's Fullname (Nickname)</th><th scope="col">Category</th><th scope="col">Gender</th><th scope="col">DUPR ID</th><th scope="col">Attendance</th><th scope="col">Match Records</th></tr></thead><tbody>${players.map((player, index) => {
+  return `<div class="table-wrap players-table-wrap"><table class="data-table players-table"><colgroup><col style="width:4%"><col style="width:27%"><col style="width:14%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col style="width:10%"><col style="width:13%"></colgroup><thead><tr><th scope="col">#</th><th scope="col">Player's Fullname (Nickname)</th><th scope="col">Category</th><th scope="col">Gender</th><th scope="col">DUPR ID</th><th scope="col">Attendance</th><th scope="col">Match Records</th><th scope="col">Action</th></tr></thead><tbody>${players.map((player, index) => {
     const stats = playerStats(player);
     const category = categoryName(player.category);
     const categoryClass = `category-${categoryCode(player.category).toLowerCase()}`;
@@ -2906,13 +2919,15 @@ function playersTable(players) {
       : escapeHTML(gender || '—');
     const fullDisplayName = `${player.name || 'Unnamed Player'}${player.nickname ? ` (${player.nickname})` : ''}`;
     const registeredOn = formatPlayerRegisteredOn(player);
-    return `<tr><td class="player-number">${index + 1}</td><td class="primary-cell"><span class="table-player"><span class="player-avatar">${initials(player.name)}</span><span class="player-name-copy"><span class="player-name-text">${escapeHTML(fullDisplayName)}</span>${registeredOn ? `<span class="player-registered-date">${escapeHTML(registeredOn)}</span>` : ''}</span></span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td>${genderCell}</td><td><strong>${escapeHTML(player.duprId || '—')}</strong></td><td class="player-count-cell">${stats.attendance}</td><td class="player-count-cell">${stats.matches}</td></tr>`;
+    const playerId = String(player.cloudId || player.id || '');
+    return `<tr><td class="player-number">${index + 1}</td><td class="primary-cell"><span class="table-player"><span class="player-avatar">${initials(player.name)}</span><span class="player-name-copy"><span class="player-name-text">${escapeHTML(fullDisplayName)}</span>${registeredOn ? `<span class="player-registered-date">${escapeHTML(registeredOn)}</span>` : ''}</span></span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td>${genderCell}</td><td><strong>${escapeHTML(player.duprId || '—')}</strong></td><td class="player-count-cell">${stats.attendance}</td><td class="player-count-cell">${stats.matches}</td><td><div class="table-actions"><button class="btn btn-sm" type="button" data-player-edit="${escapeHTML(playerId)}">Edit</button><button class="btn btn-sm btn-danger" type="button" title="Delete player" data-player-delete="${escapeHTML(playerId)}">${icon('trash')} Delete</button></div></td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 function renderPlayers() {
   const registeredPlayers = state.data.players.filter(player => !player.historicalOnly);
   const players = visibleRows([...registeredPlayers].sort((a, b) => a.name.localeCompare(b.name)));
   const attendanceCount = countAttendanceEntries();
+  const attendanceGenderCounts = countAttendanceEntriesByGender();
   const rated = registeredPlayers.filter(player => String(player.duprId || '').trim()).length;
   const nonDuprPlayers = registeredPlayers.length - rated;
   const duprPlayerMatchCount = state.data.matches.filter(match => matchIsDupr(match, state.data.sessions.find(session => session.id === match.sessionId))).length;
@@ -2930,7 +2945,7 @@ function renderPlayers() {
   }));
   const skillCountMarkup = `<div class="registered-player-skill-counts" aria-label="Registered player skill category counts">${skillCounts.map(category => `<span class="registered-player-skill-count ${category.className}"><span class="registered-player-skill-code">${category.code}</span><span class="registered-player-skill-value" data-count-target="${category.count}" data-count-key="metric:players:registered-skill-${category.code.toLowerCase()}" aria-live="off">0</span></span>`).join('')}</div>`;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / COMMUNITY', 'Players', 'Registered Player Cloud profiles used by queueing, player registration and match history.', `<button class="btn" data-action="import-players">${icon('upload')} Import CSV</button><button class="btn" data-action="export-players">${icon('download')} Export CSV</button><button class="btn btn-primary" data-action="register-player">${icon('plus')} Register Player</button><input id="playerCsvImportFile" type="file" accept=".csv,text/csv" hidden>`)}
-    <div class="metric-grid"><div class="metric-tile registered-players-metric"><span>Registered players</span>${metricCount('players', 'registered-players', registeredPlayers.length)}${skillCountMarkup}</div><div class="metric-tile metric-breakdown-tile player-dupr-breakdown"><span>With DUPR ID</span>${metricCount('players', 'with-dupr-id', registeredPlayers.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR player counts"><span class="metric-breakdown-item dupr"><span>DUPR</span><strong data-count-target="${rated}" data-count-key="metric:players:with-dupr-id-dupr" aria-live="off">0</strong></span><span class="metric-breakdown-item non-dupr"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayers}" data-count-key="metric:players:with-dupr-id-non-dupr" aria-live="off">0</strong></span></div></div><div class="metric-tile"><span>Attendance entries</span>${metricCount('players', 'attendance-entries', attendanceCount)}</div><div class="metric-tile metric-breakdown-tile player-match-records-breakdown"><span>Match records</span>${metricCount('players', 'match-records', state.data.matches.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR match counts"><span class="metric-breakdown-item dupr"><span>DUPR</span><strong data-count-target="${duprPlayerMatchCount}" data-count-key="metric:players:match-records-dupr" aria-live="off">0</strong></span><span class="metric-breakdown-item non-dupr"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayerMatchCount}" data-count-key="metric:players:match-records-non-dupr" aria-live="off">0</strong></span></div></div></div>
+    <div class="metric-grid"><div class="metric-tile registered-players-metric"><span>Registered players</span>${metricCount('players', 'registered-players', registeredPlayers.length)}${skillCountMarkup}</div><div class="metric-tile metric-breakdown-tile player-dupr-breakdown"><span>With DUPR ID</span>${metricCount('players', 'with-dupr-id', registeredPlayers.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR player counts"><span class="metric-breakdown-item dupr"><span>DUPR</span><strong data-count-target="${rated}" data-count-key="metric:players:with-dupr-id-dupr" aria-live="off">0</strong></span><span class="metric-breakdown-item non-dupr"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayers}" data-count-key="metric:players:with-dupr-id-non-dupr" aria-live="off">0</strong></span></div></div><div class="metric-tile metric-breakdown-tile player-attendance-breakdown"><span>Attendance entries</span>${metricCount('players', 'attendance-entries', attendanceCount)}<div class="metric-breakdown" aria-label="Attendance entries by gender"><span class="metric-breakdown-item male"><span>MALE</span><strong data-count-target="${attendanceGenderCounts.male}" data-count-key="metric:players:attendance-entries-male" aria-live="off">0</strong></span><span class="metric-breakdown-item female"><span>FEMALE</span><strong data-count-target="${attendanceGenderCounts.female}" data-count-key="metric:players:attendance-entries-female" aria-live="off">0</strong></span></div></div><div class="metric-tile metric-breakdown-tile player-match-records-breakdown"><span>Match records</span>${metricCount('players', 'match-records', state.data.matches.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR match counts"><span class="metric-breakdown-item dupr"><span>DUPR</span><strong data-count-target="${duprPlayerMatchCount}" data-count-key="metric:players:match-records-dupr" aria-live="off">0</strong></span><span class="metric-breakdown-item non-dupr"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayerMatchCount}" data-count-key="metric:players:match-records-non-dupr" aria-live="off">0</strong></span></div></div></div>
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Registered Player Cloud', 'users')}<div class="toolbar"><select class="select-control" id="playerCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.playerCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div id="playersTableWrap">${playersTable(players.filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory))}</div></section>
     <p class="page-note">Player profiles are stored in the existing Registered Player Cloud. Register new players through the live session registration page so they enter the real queue.</p></div>`;
 }
@@ -3170,7 +3185,7 @@ function renderCourts() {
   const session = getLiveSession();
   const courts = state.data.courts;
   const registeredCourts = asArray(state.data.registeredCourts);
-  const registeredCourtCards = registeredCourts.length ? `<div class="registered-court-grid">${registeredCourts.map(court => `<article class="registered-court-card"><button type="button" class="registered-court-logo" data-map-focus-court-id="${escapeHTML(court.id)}" aria-label="Focus map on ${escapeHTML(court.name)}" title="Show ${escapeHTML(court.name)} on map">${court.logo ? `<img src="${escapeHTML(court.logo)}" alt="">` : icon('court')}</button><span class="registered-court-copy"><strong>${escapeHTML(court.name)}</strong><small>${escapeHTML(court.location)}</small><span class="registered-court-actions"><button type="button" class="registered-court-edit" data-action="edit-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('edit')} Edit</button><button type="button" class="registered-court-delete" data-action="delete-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('trash')} Delete</button></span></span></article>`).join('')}</div>` : emptyState('No registered courts yet', 'Register a court to add its logo and location to the CourtMap.');
+  const registeredCourtCards = registeredCourts.length ? `<div class="registered-court-grid">${registeredCourts.map(court => `<article class="registered-court-card"><button type="button" class="registered-court-logo" data-map-focus-court-id="${escapeHTML(court.id)}" aria-label="Focus map on ${escapeHTML(court.name)}" title="Show ${escapeHTML(court.name)} on map">${court.logo ? `<img src="${escapeHTML(court.logo)}" alt="">` : icon('court')}</button><span class="registered-court-copy"><strong>${escapeHTML(court.name)}</strong><small>${escapeHTML(court.location)}</small><small class="registered-court-owner">${court.isOwner ? 'Your registered court' : `Registered by ${escapeHTML(court.ownerName)}`}</small>${court.isOwner ? `<span class="registered-court-actions"><button type="button" class="registered-court-edit" data-action="edit-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('edit')} Edit</button><button type="button" class="registered-court-delete" data-action="delete-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('trash')} Delete</button></span>` : `<span class="registered-court-readonly">Shared listing · View only</span>`}</span></article>`).join('')}</div>` : emptyState('No registered courts yet', 'Registered courts shared by organizers will appear here and on the CourtMap.');
   const courtPageActions = `<div class="court-page-actions"><button type="button" class="btn btn-sm btn-primary court-action-pill" data-action="register-court">${icon('plus')} Register Court</button><a class="btn btn-primary court-action-pill" href="/queueing" target="_blank" rel="noopener">Manage in Queueing ${icon('external')}</a></div>`;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / VENUES', 'Courts & Locations', 'Current court activity is read directly from the live queueing session.', courtPageActions)}
     <div class="metric-grid"><div class="metric-tile"><span>Total courts</span>${metricCount('courts', 'total-courts', registeredCourts.length)}</div><div class="metric-tile"><span>In play</span>${metricCount('courts', 'in-play', courts.filter(court => court.status === 'Active').length)}</div><div class="metric-tile"><span>Ready / assigned</span>${metricCount('courts', 'ready-assigned', courts.filter(court => court.status === 'Ready').length)}</div><div class="metric-tile"><span>Waiting courts</span>${metricCount('courts', 'waiting-courts', courts.filter(court => court.status === 'Waiting').length)}</div></div>
@@ -3178,7 +3193,7 @@ function renderCourts() {
       ${mapCard(session, 'venuesCourtMap')}
       <section class="panel panel-pad registered-courts-panel">${panelTitle('Registered Court List', 'court')}${registeredCourtCards}</section>
     </div>
-    <p class="page-note">Registered courts are saved to this organizer workspace and their locations are added to CourtMap automatically.</p></div>`;
+    <p class="page-note">The Registered Court List and Philippines 3D Court Map are shared with all organizers. Only the organizer who registered a court can edit or delete its listing.</p></div>`;
 }
 function renderSchedule() {
   const sessions = visibleRows(sortedSessions());
@@ -4318,6 +4333,22 @@ function openParticipantEdit(sessionId, index) {
   const categories = ['BEG', 'NOV', 'INT', 'ADV', 'EXP'];
   modal('Edit Attendance Record', `<form id="participantEditForm" data-session-id="${escapeHTML(sessionId)}" data-index="${index}"><div class="participant-edit-grid"><div class="field full"><label for="participantName">Full name</label><input id="participantName" name="name" maxlength="100" required value="${escapeHTML(person.name)}"></div><div class="field"><label for="participantNickname">Nickname</label><input id="participantNickname" name="nickname" maxlength="60" value="${escapeHTML(person.nickname)}"></div><div class="field"><label for="participantGender">Gender</label><select id="participantGender" name="gender"><option value="">Not specified</option><option ${person.gender === 'Male' ? 'selected' : ''}>Male</option><option ${person.gender === 'Female' ? 'selected' : ''}>Female</option></select></div><div class="field full"><label for="participantCategory">Category</label><select id="participantCategory" name="category"><option value="">Not specified</option>${categories.map(code => `<option value="${code}" ${person.categoryCode === code ? 'selected' : ''}>${CATEGORY_NAMES[code]}</option>`).join('')}</select></div></div><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save attendance</button></div></form>`);
 }
+function openPlayerEdit(playerId) {
+  const player = state.data.players.find(item => !item.historicalOnly && String(item.cloudId || item.id) === String(playerId));
+  if (!player) { toast('This player is no longer in Registered Player Cloud. Refresh the page and try again.', 'error'); return; }
+  const currentCategory = String(player.categoryCode || categoryCode(player.category) || '').trim();
+  const categoryOptions = [
+    ['BEG', 'Beginner'], ['NOV', 'Novice'], ['INT', 'Intermediate'],
+    ['ADV', 'Advanced'], ['EXP', 'Expert']
+  ];
+  if (currentCategory && !categoryOptions.some(([value]) => value === currentCategory)) {
+    categoryOptions.push([currentCategory, categoryName(player.category)]);
+  }
+  const categoryMarkup = `<option value="">Unspecified</option>${categoryOptions.map(([value,label]) => `<option value="${escapeHTML(value)}" ${currentCategory === value ? 'selected' : ''}>${escapeHTML(label)}</option>`).join('')}`;
+  const gender = String(player.gender || '').trim();
+  modal('Edit Player', `<form id="playerEditForm" data-player-id="${escapeHTML(player.cloudId || player.id)}"><div class="form-grid"><div class="field full"><label for="playerEditName">Player's full name</label><input id="playerEditName" name="name" maxlength="120" required value="${escapeHTML(player.name)}"></div><div class="field"><label for="playerEditNickname">Nickname</label><input id="playerEditNickname" name="nickname" maxlength="80" value="${escapeHTML(player.nickname)}"></div><div class="field"><label for="playerEditGender">Gender</label><select id="playerEditGender" name="gender"><option value="" ${!gender ? 'selected' : ''}>Not specified</option><option value="Male" ${gender === 'Male' ? 'selected' : ''}>Male</option><option value="Female" ${gender === 'Female' ? 'selected' : ''}>Female</option></select></div><div class="field"><label for="playerEditCategory">Category</label><select id="playerEditCategory" name="category">${categoryMarkup}</select></div><div class="field"><label for="playerEditDuprId">DUPR ID</label><input id="playerEditDuprId" name="duprId" maxlength="40" value="${escapeHTML(player.duprId)}" placeholder="DUPR ID"></div><div class="field full"><label for="playerEditSelfRating">Self Rating</label><input id="playerEditSelfRating" name="selfRating" maxlength="40" value="${escapeHTML(player.selfRating)}" placeholder="Optional"></div><div class="field full"><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save changes</button></div></div></div></form>`);
+}
+
 function openMatchEdit(matchKey) {
   const match = state.data.matches.find(item => item.key === matchKey);
   if (!match || !match.isScored) return;
@@ -4349,6 +4380,7 @@ function openRegisterCourtModal() {
 function openEditRegisteredCourtModal(courtId) {
   const court = asArray(state.data?.registeredCourts).find(item => String(item.id) === String(courtId));
   if (!court) { toast('Registered court not found. Refresh the page and try again.', 'error'); return; }
+  if (court.isOwner !== true) { toast('Only the organizer who registered this court can edit it.', 'error'); return; }
   modal('Edit Registered Court', `<form id="editRegisteredCourtForm" data-court-id="${escapeHTML(court.id)}"><div class="form-grid">${courtLogoFieldMarkup(court.logo, true)}<div class="field full"><label for="registerCourtName">Court name</label><input id="registerCourtName" name="courtName" maxlength="100" required value="${escapeHTML(court.name)}" placeholder="Enter court name"></div>${courtLocationFieldMarkup(court.location, court.locationCoordinates)}</div><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div></form>`, { wide: true });
   const form = $('#editRegisteredCourtForm');
   initializeCourtLocationPinMap(form, court.locationCoordinates);
@@ -4601,7 +4633,8 @@ document.addEventListener('click', async event => {
       const courtId = String(actionButton.dataset.courtId || '');
       const court = asArray(state.data?.registeredCourts).find(item => String(item.id) === courtId);
       if (!court) { toast('Registered court not found. Refresh the page and try again.', 'error'); return; }
-      if (window.confirm(`Delete ${court.name} from your Registered Court List? Its map pin will also be removed.`)) {
+      if (court.isOwner !== true) { toast('Only the organizer who registered this court can delete it.', 'error'); return; }
+      if (window.confirm(`Delete ${court.name} from the shared Registered Court List? Its map pin will also be removed for all organizers.`)) {
         await withRefresh('Registered court deleted.', () => api(`/api/organizer-dashboard/courts/${encodeURIComponent(courtId)}`, { method: 'DELETE' }), 'courts');
       }
       return;
@@ -4682,6 +4715,16 @@ document.addEventListener('click', async event => {
     if (person && window.confirm(`Remove ${person.name} from this session's attendance only? The player profile and queue history remain unchanged.`)) {
       await withRefresh('Attendance record removed.', () => api(`/api/organizer-dashboard/sessions/${encodeURIComponent(sessionId)}/participants/${index}`, { method: 'DELETE' }));
       if (state.data) openSessionDetails(sessionId);
+    }
+    return;
+  }
+  const playerEdit = event.target.closest('[data-player-edit]');
+  if (playerEdit) { openPlayerEdit(playerEdit.dataset.playerEdit); return; }
+  const playerDelete = event.target.closest('[data-player-delete]');
+  if (playerDelete) {
+    const player = state.data.players.find(item => !item.historicalOnly && String(item.cloudId || item.id) === String(playerDelete.dataset.playerDelete));
+    if (player && window.confirm(`Delete ${player.name} from Registered Player Cloud? This removes the shared player profile from all devices. Existing match history will remain.`)) {
+      await withRefresh('Player deleted from Registered Player Cloud.', () => api(`/api/organizer-dashboard/players/${encodeURIComponent(player.cloudId || player.id)}`, { method: 'DELETE' }), 'players');
     }
     return;
   }
@@ -4858,6 +4901,20 @@ document.addEventListener('submit', async event => {
     const body = { name: fd.get('name'), nickname: fd.get('nickname'), gender: fd.get('gender'), category: fd.get('category') };
     await withRefresh('Attendance participant updated.', () => api(`/api/organizer-dashboard/sessions/${encodeURIComponent(sessionId)}/participants/${index}`, { method: 'PATCH', body: JSON.stringify(body) }));
     openSessionDetails(sessionId);
+  }
+  if (form.id === 'playerEditForm') {
+    event.preventDefault();
+    const fd = new FormData(form);
+    const playerId = form.dataset.playerId;
+    const body = {
+      name: fd.get('name'),
+      nickname: fd.get('nickname'),
+      gender: fd.get('gender'),
+      category: fd.get('category'),
+      duprId: fd.get('duprId'),
+      selfRating: fd.get('selfRating')
+    };
+    await withRefresh('Player profile updated across Registered Player Cloud.', () => api(`/api/organizer-dashboard/players/${encodeURIComponent(playerId)}`, { method: 'PATCH', body: JSON.stringify(body) }), 'players');
   }
   if (form.id === 'matchEditForm') {
     event.preventDefault();
@@ -5081,6 +5138,7 @@ function initEventStream() {
   const refresh = () => scheduleDashboardRefresh();
   stream.addEventListener('app-state', refresh);
   stream.addEventListener('cloud-records', refresh);
+  stream.addEventListener('registered-courts', refresh);
   stream.addEventListener('error', () => { /* EventSource retries automatically. */ });
 }
 

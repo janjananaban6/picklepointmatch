@@ -1080,6 +1080,15 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
+.data-table.players-table:not(.player-import-table) .table-actions {
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.data-table.players-table:not(.player-import-table) .table-actions .btn {
+  padding: 6px 8px;
+  font-size: 9px;
+}
 
 .data-table.players-table .player-gender-badge {
   display: inline;
@@ -1118,13 +1127,14 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
     table-layout: fixed;
   }
 
-  .data-table.players-table col:nth-child(1) { width: 5% !important; }
-  .data-table.players-table col:nth-child(2) { width: 29% !important; }
-  .data-table.players-table col:nth-child(3) { width: 15% !important; }
-  .data-table.players-table col:nth-child(4) { width: 9% !important; }
-  .data-table.players-table col:nth-child(5) { width: 14% !important; }
-  .data-table.players-table col:nth-child(6) { width: 13% !important; }
-  .data-table.players-table col:nth-child(7) { width: 15% !important; }
+  .data-table.players-table:not(.player-import-table) col:nth-child(1) { width: 4% !important; }
+  .data-table.players-table:not(.player-import-table) col:nth-child(2) { width: 25% !important; }
+  .data-table.players-table:not(.player-import-table) col:nth-child(3) { width: 14% !important; }
+  .data-table.players-table:not(.player-import-table) col:nth-child(4) { width: 8% !important; }
+  .data-table.players-table:not(.player-import-table) col:nth-child(5) { width: 12% !important; }
+  .data-table.players-table:not(.player-import-table) col:nth-child(6) { width: 9% !important; }
+  .data-table.players-table:not(.player-import-table) col:nth-child(7) { width: 10% !important; }
+  .data-table.players-table:not(.player-import-table) col:nth-child(8) { width: 18% !important; }
 
   .data-table.players-table th,
   .data-table.players-table td {
@@ -1951,6 +1961,10 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .metric-tile.player-dupr-breakdown .metric-breakdown-item.dupr > span:first-child { color: #1d5fae; }
 .metric-tile.player-match-records-breakdown .metric-breakdown-item.dupr > span:first-child { color: #1d5fae; }
 .metric-tile .metric-breakdown-item.non-dupr { color: #68756c; border-color: #e5ebe6; background: #fff; }
+.metric-tile.player-attendance-breakdown .metric-breakdown-item.male { color: #1d64b5; border-color: #d5e5f7; background: #f1f7fe; }
+.metric-tile.player-attendance-breakdown .metric-breakdown-item.female { color: #c13b78; border-color: #f2d8e4; background: #fff4f8; }
+.metric-tile.player-attendance-breakdown .metric-breakdown-item.male > span:first-child { color: #1d64b5; }
+.metric-tile.player-attendance-breakdown .metric-breakdown-item.female > span:first-child { color: #c13b78; }
 .metric-tile .metric-breakdown-item strong { display: inline; margin: 0; color: inherit; font-size: 9px; font-weight: 800; letter-spacing: 0; line-height: inherit; font-variant-numeric: tabular-nums; }
 
 /* Courts & Locations: match Dashboard heading action height across devices. */
@@ -3631,3 +3645,21 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   }
 }
 
+
+/* Shared Registered Court directory ownership labels. */
+.registered-court-copy .registered-court-owner {
+  color: #6e8172;
+  font-size: 8px;
+}
+.registered-court-readonly {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 3px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: #617568;
+  background: #edf3ed;
+  font-size: 8px;
+  font-weight: 700;
+}

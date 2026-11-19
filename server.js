@@ -5,7 +5,7 @@ const { URL } = require('node:url');
 const crypto = require('node:crypto');
 
 const ROOT = __dirname;
-const APP_BUILD_VERSION = 'ppm-session-import-20261119-v4';
+const APP_BUILD_VERSION = 'ppm-shared-registered-courts-20261119-v1';
 const SESSION_IMPORT_API_PATH = '/api/organizer-dashboard/sessions/import';
 const DATA_DIR = process.env.PICKLE_DATA_DIR ? path.resolve(process.env.PICKLE_DATA_DIR) : path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'live-state.json');
@@ -14,6 +14,7 @@ const APP_STATE_FILE = path.join(DATA_DIR, 'app-state.json');
 const CLOUD_RECORDS_FILE = path.join(DATA_DIR, 'registered-player-cloud.json');
 const REGISTERED_PLAYERS_CSV_FILE = path.join(DATA_DIR, 'registered-players.csv');
 const ORGANIZERS_FILE = path.join(DATA_DIR, 'organizer-accounts.json');
+const REGISTERED_COURTS_FILE = path.join(DATA_DIR, 'registered-courts-directory.json');
 const CLUB_ID_SEQUENCE_FILE = path.join(DATA_DIR, 'club-id-sequence.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -39,6 +40,7 @@ const requestRateBuckets = new Map();
 let rateLimiterOperations = 0;
 let dbPool = null;
 let organizerAccounts = [];
+let registeredCourtsDirectory = [];
 let nextClubIdSequence = 1;
 const organizerAppStates = new Map();
 const organizerLiveStates = new Map();
@@ -140,6 +142,25 @@ function getCookieValue(req, name) {
 }
 function accountById(id) {
   return organizerAccounts.find(account => account && account.id === String(id || '') && account.active === true && effectiveApprovalStatus(account) === 'approved') || null;
+}
+function publicRegisteredCourtsFor(organizerId) {
+  return registeredCourtsDirectory
+    .filter(court => court && court.id && court.name && court.location)
+    .map(court => {
+      const ownerId = String(court.ownerId || '');
+      const owner = organizerAccounts.find(account => account && String(account.id) === ownerId) || null;
+      const { ownerId: _privateOwnerId, ...publicCourt } = court;
+      return {
+        ...publicCourt,
+        ownerName: String(court.ownerName || owner?.displayName || owner?.username || 'Organizer'),
+        ownerSlug: String(owner?.slug || court.ownerSlug || ''),
+        isOwner: !!organizerId && ownerId === String(organizerId)
+      };
+    })
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')) || String(a.location || '').localeCompare(String(b.location || '')));
+}
+async function persistRegisteredCourtsDirectory() {
+  await saveStoredBatch([{key:'registered-courts-directory',filePath:REGISTERED_COURTS_FILE,value:registeredCourtsDirectory}]);
 }
 function accountByUsername(username) {
   const normalized = String(username || '').trim().toLocaleLowerCase();
@@ -2061,7 +2082,7 @@ async function handle(req, res) {
     if (attendanceChanged) await saveOrganizerAttendance(organizerId,attendance);
     return sendJson(res,200,{
       ok:true,
-      organizer:{id:organizerId,slug:String(account?.slug || ''),username:auth.username || account?.username || '',displayName:account?.displayName || auth.displayName || auth.username || 'Organizer',logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account?.showOnLeaderboard !== false,registeredCourts:Array.isArray(account?.registeredCourts) ? account.registeredCourts : []},
+      organizer:{id:organizerId,slug:String(account?.slug || ''),username:auth.username || account?.username || '',displayName:account?.displayName || auth.displayName || auth.username || 'Organizer',logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account?.showOnLeaderboard !== false,registeredCourts:publicRegisteredCourtsFor(organizerId)},
       appState:appEntry.state || null,
       appRevision:appEntry.revision || 0,
       records:{players,sessions,logs,attendanceBySession},
@@ -2212,6 +2233,146 @@ async function handle(req, res) {
         error:statusCode === 413
           ? 'The CSV file is too large. Please upload a file smaller than 8 MB.'
           : (statusCode === 400 ? (err.message || 'The player import data could not be read.') : 'Unable to import players. Please check the database connection and try again.')
+      });
+    }
+  }
+
+
+  const organizerPlayerMutationMatch = url.pathname.match(/^\/api\/organizer-dashboard\/players\/([^/]+)$/);
+  if (organizerPlayerMutationMatch && (req.method === 'PATCH' || req.method === 'DELETE')) {
+    const auth = getAuthSession(req);
+    if (auth?.role !== 'organizer' || !auth.organizerId) {
+      return sendJson(res,401,{ok:false,error:'Organizer login required.'});
+    }
+
+    let cloudId;
+    let body = {};
+    try {
+      cloudId = decodeURIComponent(organizerPlayerMutationMatch[1]);
+    } catch (_) {
+      return sendJson(res,400,{ok:false,error:'Invalid player reference.'});
+    }
+    if (!cloudId || cloudId.length > 100) {
+      return sendJson(res,400,{ok:false,error:'Invalid player reference.'});
+    }
+
+    try {
+      if (req.method === 'PATCH') body = await readBody(req,32 * 1024);
+      return await withRegisteredPlayerCommitLock(async () => {
+        const savedPlayers = await loadRegisteredPlayersCsv();
+        const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
+        const currentPlayers = Array.isArray(savedPlayers)
+          ? savedPlayers
+          : (Array.isArray(currentRecords.players) ? currentRecords.players : []);
+        const playerIndex = currentPlayers.findIndex(player =>
+          String(player?.cloudId ?? player?.id ?? '').trim() === cloudId
+        );
+        if (playerIndex < 0) return sendJson(res,404,{ok:false,error:'This player is no longer in Registered Player Cloud. Refresh the page and try again.'});
+
+        const nextPlayers = currentPlayers.slice();
+        let changedPlayer = null;
+        if (req.method === 'PATCH') {
+          const existing = currentPlayers[playerIndex];
+          const name = String(body?.name || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,120);
+          const nickname = String(body?.nickname || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,80);
+          const genderValue = String(body?.gender || '').trim();
+          const gender = ['Male','Female'].includes(genderValue) ? genderValue : (genderValue ? null : '');
+          const categoryInput = String(body?.category || '').trim();
+          const categoryKey = categoryInput.toUpperCase();
+          const categoryCodes = {
+            BEG:'BEG', BEGINNER:'BEG',
+            NOV:'NOV', NOVICE:'NOV',
+            INT:'INT', INTERMEDIATE:'INT',
+            ADV:'ADV', ADVANCED:'ADV',
+            EXP:'EXP', EXPERT:'EXP'
+          };
+          const category = categoryInput ? (categoryCodes[categoryKey] || categoryInput.slice(0,30)) : 'Unspecified';
+          const duprId = String(body?.duprId || '').trim().replace(/^DUPR\s*:\s*/i,'').replace(/\s+/g,'').toUpperCase().slice(0,40);
+          const selfRating = String(body?.selfRating || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,40);
+
+          if (!name) return sendJson(res,400,{ok:false,error:'Player full name is required.'});
+          if (gender === null) return sendJson(res,400,{ok:false,error:'Choose Male, Female, or Not specified for gender.'});
+          if (categoryInput.length > 30) return sendJson(res,400,{ok:false,error:'Player category must be 30 characters or fewer.'});
+
+          for (let index = 0; index < currentPlayers.length; index += 1) {
+            if (index === playerIndex) continue;
+            const other = currentPlayers[index];
+            if (registeredPlayerNameMatches(other,{name})) {
+              return sendJson(res,409,{ok:false,error:`Another registered player already uses the name “${name}”.`});
+            }
+            if (duprId && registeredCloudDuprId(other) === registeredCloudDuprId({duprId})) {
+              return sendJson(res,409,{ok:false,error:'That DUPR ID is already assigned to another registered player.'});
+            }
+          }
+
+          changedPlayer = {...existing};
+          addRegisteredPlayerNameAlias(changedPlayer,existing?.name);
+          changedPlayer.name = name;
+          changedPlayer.nickname = nickname;
+          changedPlayer.gender = gender;
+          changedPlayer.category = category;
+          changedPlayer.duprId = duprId;
+          changedPlayer.selfRating = selfRating;
+          nextPlayers[playerIndex] = withoutOpgFields(changedPlayer);
+        } else {
+          changedPlayer = nextPlayers[playerIndex];
+          nextPlayers.splice(playerIndex,1);
+        }
+
+        const previousRecords = sharedCloudRecords;
+        const previousRevision = sharedCloudRevision;
+        const previousUpdatedAt = sharedCloudUpdatedAt;
+        const previousClientId = sharedCloudClientId;
+        sharedCloudRecords = {
+          ...currentRecords,
+          players:nextPlayers,
+          logs:Array.isArray(currentRecords.logs) ? currentRecords.logs : [],
+          sessions:Array.isArray(currentRecords.sessions) ? currentRecords.sessions : []
+        };
+        sharedCloudRevision += 1;
+        sharedCloudUpdatedAt = new Date().toISOString();
+        sharedCloudClientId = req.method === 'PATCH' ? 'organizer-dashboard-player-edit' : 'organizer-dashboard-player-delete';
+        try {
+          await persistSharedCloudRecords();
+        } catch (error) {
+          sharedCloudRecords = previousRecords;
+          sharedCloudRevision = previousRevision;
+          sharedCloudUpdatedAt = previousUpdatedAt;
+          sharedCloudClientId = previousClientId;
+          throw error;
+        }
+        broadcastNamedEvent('cloud-records',{
+          revision:sharedCloudRevision,
+          updatedAt:sharedCloudUpdatedAt,
+          clientId:sharedCloudClientId,
+          records:sharedCloudRecords
+        });
+
+        return sendJson(res,200,{
+          ok:true,
+          action:req.method === 'PATCH' ? 'updated' : 'deleted',
+          cloudId,
+          player:req.method === 'PATCH' ? {
+            cloudId:changedPlayer.cloudId ?? changedPlayer.id ?? cloudId,
+            name:changedPlayer.name,
+            nickname:changedPlayer.nickname,
+            gender:changedPlayer.gender,
+            category:changedPlayer.category,
+            duprId:changedPlayer.duprId,
+            selfRating:changedPlayer.selfRating
+          } : undefined,
+          count:nextPlayers.length,
+          updatedAt:sharedCloudUpdatedAt
+        });
+      });
+    } catch (err) {
+      const statusCode = err.statusCode || 500;
+      if (statusCode >= 500) console.error('Unable to update Registered Player Cloud player:',err.message);
+      return sendJson(res,statusCode,{
+        ok:false,
+        error:statusCode === 413
+          ? 'The player update is too large.'
+          : (statusCode === 400 ? (err.message || 'The player update could not be read.') : 'Unable to save this player in Registered Player Cloud. Please check the database connection and try again.')
       });
     }
   }
@@ -2372,6 +2533,12 @@ async function handle(req, res) {
     }
   }
 
+  if (url.pathname === '/api/organizer-dashboard/courts' && req.method === 'GET') {
+    const auth = getAuthSession(req);
+    if (auth?.role !== 'organizer' || !auth.organizerId) return sendJson(res,401,{ok:false,error:'Organizer login required.'});
+    return sendJson(res,200,{ok:true,registeredCourts:publicRegisteredCourtsFor(auth.organizerId)});
+  }
+
   if (url.pathname === '/api/organizer-dashboard/courts' && req.method === 'POST') {
     try {
       const auth = getAuthSession(req);
@@ -2393,24 +2560,32 @@ async function handle(req, res) {
       if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < 4.0 || lat > 22.4 || lon < 115.5 || lon > 128.6) {
         return sendJson(res,400,{ok:false,error:'Court location must resolve to a location in the Philippines.'});
       }
-      const registeredCourts = Array.isArray(account.registeredCourts) ? account.registeredCourts : [];
-      if (registeredCourts.length >= 50) return sendJson(res,400,{ok:false,error:'This workspace has reached the 50 registered court limit.'});
-      const duplicate = registeredCourts.some(court =>
+      const ownRegisteredCourts = Array.isArray(account.registeredCourts) ? account.registeredCourts : [];
+      if (ownRegisteredCourts.length >= 50) return sendJson(res,400,{ok:false,error:'This workspace has reached the 50 registered court limit.'});
+      const duplicate = registeredCourtsDirectory.some(court =>
         String(court?.name || '').trim().toLocaleLowerCase() === name.toLocaleLowerCase() &&
         String(court?.location || '').trim().toLocaleLowerCase() === location.toLocaleLowerCase()
       );
-      if (duplicate) return sendJson(res,409,{ok:false,error:'This court is already registered at that location.'});
+      if (duplicate) return sendJson(res,409,{ok:false,error:'This court is already registered in the shared directory at that location.'});
       const registeredCourt = {
         id:`court-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+        ownerId:String(auth.organizerId),
+        ownerName:String(account.displayName || account.username || 'Organizer'),
+        ownerSlug:String(account.slug || ''),
         name,
         location,
         logo,
         locationCoordinates:{lat,lon,label:String(coordinates.label || location).slice(0,180),countrycode:'PH',source:String(coordinates.source || 'manual-map-pin').slice(0,40),verified:coordinates.verified === true,placeId:String(coordinates.placeId || '').slice(0,180),pinId:String(coordinates.pinId || '').slice(0,180),osmId:String(coordinates.osmId || '').slice(0,120)},
         registeredAt:new Date().toISOString()
       };
-      account.registeredCourts = [...registeredCourts, registeredCourt];
-      await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
-      return sendJson(res,201,{ok:true,registeredCourt,registeredCourts:account.registeredCourts});
+      registeredCourtsDirectory = [...registeredCourtsDirectory, registeredCourt];
+      account.registeredCourts = [...ownRegisteredCourts, registeredCourt];
+      await saveStoredBatch([
+        {key:'registered-courts-directory',filePath:REGISTERED_COURTS_FILE,value:registeredCourtsDirectory},
+        {key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}
+      ]);
+      broadcastNamedEvent('registered-courts',{updatedAt:new Date().toISOString()});
+      return sendJson(res,201,{ok:true,registeredCourt:{...registeredCourt,isOwner:true},registeredCourts:publicRegisteredCourtsFor(auth.organizerId)});
     } catch (err) {
       return sendJson(res,err.statusCode || 500,{ok:false,error:err.statusCode===413?'Court logo file is too large.':err.message||'Unable to register this court.'});
     }
@@ -2424,16 +2599,23 @@ async function handle(req, res) {
       const account = accountById(auth.organizerId);
       if (!account) return sendJson(res,404,{ok:false,error:'Organizer account not found.'});
       const courtId = decodeURIComponent(registeredCourtRoute[1]);
-      const registeredCourts = Array.isArray(account.registeredCourts) ? account.registeredCourts : [];
-      const existingIndex = registeredCourts.findIndex(court => String(court?.id || '') === courtId);
+      const existingIndex = registeredCourtsDirectory.findIndex(court => String(court?.id || '') === courtId);
       if (existingIndex < 0) return sendJson(res,404,{ok:false,error:'Registered court not found.'});
+      const existingCourt = registeredCourtsDirectory[existingIndex];
+      if (String(existingCourt.ownerId || '') !== String(auth.organizerId)) {
+        return sendJson(res,403,{ok:false,error:'Only the organizer who registered this court can edit or delete it.'});
+      }
       if (req.method === 'DELETE') {
-        account.registeredCourts = registeredCourts.filter((court, index) => index !== existingIndex);
-        await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
-        return sendJson(res,200,{ok:true,deletedCourtId:courtId,registeredCourts:account.registeredCourts});
+        registeredCourtsDirectory = registeredCourtsDirectory.filter((court, index) => index !== existingIndex);
+        account.registeredCourts = (Array.isArray(account.registeredCourts) ? account.registeredCourts : []).filter(court => String(court?.id || '') !== courtId);
+        await saveStoredBatch([
+          {key:'registered-courts-directory',filePath:REGISTERED_COURTS_FILE,value:registeredCourtsDirectory},
+          {key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}
+        ]);
+        broadcastNamedEvent('registered-courts',{updatedAt:new Date().toISOString()});
+        return sendJson(res,200,{ok:true,deletedCourtId:courtId,registeredCourts:publicRegisteredCourtsFor(auth.organizerId)});
       }
       const body = await readBody(req,2 * 1024 * 1024);
-      const existingCourt = registeredCourts[existingIndex];
       const name = String(body?.name || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,100);
       const location = String(body?.location || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,250);
       const logo = String(body?.logo || existingCourt?.logo || '').trim();
@@ -2448,22 +2630,32 @@ async function handle(req, res) {
       if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < 4.0 || lat > 22.4 || lon < 115.5 || lon > 128.6) {
         return sendJson(res,400,{ok:false,error:'Court location must resolve to a location in the Philippines.'});
       }
-      const duplicate = registeredCourts.some((court, index) => index !== existingIndex &&
+      const duplicate = registeredCourtsDirectory.some((court, index) => index !== existingIndex &&
         String(court?.name || '').trim().toLocaleLowerCase() === name.toLocaleLowerCase() &&
         String(court?.location || '').trim().toLocaleLowerCase() === location.toLocaleLowerCase()
       );
-      if (duplicate) return sendJson(res,409,{ok:false,error:'Another court is already registered with that name at that location.'});
+      if (duplicate) return sendJson(res,409,{ok:false,error:'Another court is already registered in the shared directory with that name at that location.'});
       const updatedCourt = {
         ...existingCourt,
+        ownerName:String(account.displayName || account.username || existingCourt.ownerName || 'Organizer'),
+        ownerSlug:String(account.slug || existingCourt.ownerSlug || ''),
         name,
         location,
         logo,
         locationCoordinates:{lat,lon,label:String(coordinates.label || location).slice(0,180),countrycode:'PH',source:String(coordinates.source || 'manual-map-pin').slice(0,40),verified:coordinates.verified === true,placeId:String(coordinates.placeId || '').slice(0,180),pinId:String(coordinates.pinId || '').slice(0,180),osmId:String(coordinates.osmId || '').slice(0,120)},
         updatedAt:new Date().toISOString()
       };
-      account.registeredCourts = registeredCourts.map((court, index) => index === existingIndex ? updatedCourt : court);
-      await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
-      return sendJson(res,200,{ok:true,registeredCourt:updatedCourt,registeredCourts:account.registeredCourts});
+      registeredCourtsDirectory = registeredCourtsDirectory.map((court, index) => index === existingIndex ? updatedCourt : court);
+      const ownRegisteredCourts = Array.isArray(account.registeredCourts) ? account.registeredCourts : [];
+      const ownIndex = ownRegisteredCourts.findIndex(court => String(court?.id || '') === courtId);
+      if (ownIndex >= 0) account.registeredCourts = ownRegisteredCourts.map((court, index) => index === ownIndex ? updatedCourt : court);
+      else account.registeredCourts = [...ownRegisteredCourts, updatedCourt];
+      await saveStoredBatch([
+        {key:'registered-courts-directory',filePath:REGISTERED_COURTS_FILE,value:registeredCourtsDirectory},
+        {key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}
+      ]);
+      broadcastNamedEvent('registered-courts',{updatedAt:new Date().toISOString()});
+      return sendJson(res,200,{ok:true,registeredCourt:{...updatedCourt,isOwner:true},registeredCourts:publicRegisteredCourtsFor(auth.organizerId)});
     } catch (err) {
       return sendJson(res,err.statusCode || 500,{ok:false,error:err.statusCode===413?'Court logo file is too large.':err.message||'Unable to update registered court.'});
     }
@@ -3508,6 +3700,40 @@ async function handle(req, res) {
       accountEntries.push({key:'club-id-sequence',filePath:CLUB_ID_SEQUENCE_FILE,value:clubIdSequenceRecord()});
     }
     if (accountEntries.length) await saveStoredBatch(accountEntries);
+
+    const savedRegisteredCourtsDirectory = await loadStored('registered-courts-directory', REGISTERED_COURTS_FILE);
+    registeredCourtsDirectory = Array.isArray(savedRegisteredCourtsDirectory)
+      ? savedRegisteredCourtsDirectory.filter(court => court && typeof court === 'object' && court.id)
+      : [];
+    let registeredCourtsChanged = !Array.isArray(savedRegisteredCourtsDirectory);
+    for (const account of organizerAccounts) {
+      const legacyCourts = Array.isArray(account.registeredCourts) ? account.registeredCourts : [];
+      for (const legacyCourt of legacyCourts) {
+        if (!legacyCourt || typeof legacyCourt !== 'object' || !legacyCourt.id) continue;
+        const existingIndex = registeredCourtsDirectory.findIndex(court => String(court.id) === String(legacyCourt.id));
+        if (existingIndex < 0) {
+          registeredCourtsDirectory.push({
+            ...legacyCourt,
+            ownerId:String(account.id),
+            ownerName:String(account.displayName || account.username || 'Organizer'),
+            ownerSlug:String(account.slug || '')
+          });
+          registeredCourtsChanged = true;
+          continue;
+        }
+        const existing = registeredCourtsDirectory[existingIndex];
+        if (!existing.ownerId) {
+          registeredCourtsDirectory[existingIndex] = {
+            ...existing,
+            ownerId:String(account.id),
+            ownerName:String(account.displayName || account.username || 'Organizer'),
+            ownerSlug:String(account.slug || '')
+          };
+          registeredCourtsChanged = true;
+        }
+      }
+    }
+    if (registeredCourtsChanged) await persistRegisteredCourtsDirectory();
 
     const loadedLiveState = await loadStored('live-state', DATA_FILE);
     latestState = withoutOpgFields(loadedLiveState);

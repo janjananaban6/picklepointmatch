@@ -60,3 +60,19 @@ Reviewed `dashboard.html` and its linked `dashboard.css` and `dashboard.js`. Cha
 - `node --check` passed for `server.js`, `script.js`, `dashboard.js`, `registration-app.js`, `panel.js`, and `queueing-app-loader.js`.
 - Regression tests passed for rename-to-expanded-name, matching by both old and current names, case/whitespace/invisible-character normalization, not merging an unrelated same-first-name profile, CSV alias round-trip, and ranking deduplication using explicit alias links.
 - The live Render database and real browser/device workflow were not directly exercised from the supplied archive; deploy the package and verify the actual hosted records on desktop/tablet/mobile.
+
+## Follow-up update — shared Registered Court directory
+
+### Behavior
+- Registered courts are now read from a shared server-side directory rather than only from the currently signed-in organizer's account list.
+- All authenticated, approved organizers receive the same registered-court records in the dashboard and Philippines 3D Court Map.
+- Each listing retains its original organizer owner ID. Edit and delete controls are shown only to that owner, and the server independently rejects non-owner PATCH/DELETE requests with HTTP 403.
+- Existing account-local registered court entries are migrated automatically into the shared directory on server startup. Their original account records are retained for compatibility.
+- Register, edit, and delete actions broadcast a `registered-courts` event so connected dashboard pages refresh their shared list and map.
+
+### Validation
+- `node --check server.js` and `node --check dashboard.js` passed.
+- Dashboard CSS parsed successfully.
+- API integration test passed: Organizer B could view Organizer A's court; Organizer B's edit and delete attempts were rejected with HTTP 403; Organizer A's edit succeeded.
+- Legacy migration test passed: all five registered courts in the supplied organizer-account data were copied into the global directory with the correct owner ID.
+- Final visual verification should be performed on the deployed Render dashboard and 3D map after deployment.
