@@ -72,7 +72,7 @@ function registeredCourtLogo(court = {}) {
 }
 const icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ICONS.info}</svg>`;
 const refreshIcon = () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-ccw preview-icon dashboard-refresh-icon" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>';
-const normalizeName = value => String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+const normalizeName = value => String(value || '').normalize('NFC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
 const normalizeDuprId = value => String(value || '').trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toLocaleUpperCase();
 const CATEGORY_NAMES = { BEG: 'Beginner', NOV: 'Novice', INT: 'Intermediate', ADV: 'Advanced', EXP: 'Expert', BEGINNER: 'Beginner', NOVICE: 'Novice', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced', EXPERT: 'Expert' };
 const CATEGORY_CODES = { Beginner: 'BEG', Novice: 'NOV', Intermediate: 'INT', Advanced: 'ADV', Expert: 'EXP' };
@@ -454,6 +454,7 @@ function normalizeLegacyDashboard(payload) {
     id: String(player?.cloudId ?? player?.id ?? `player-${normalizeName(player?.name)}`),
     cloudId: String(player?.cloudId ?? ''),
     name: String(player?.name || 'Unnamed player'),
+    nameAliases: Array.isArray(player?.nameAliases) ? player.nameAliases.map(name => String(name || '')).filter(Boolean) : [],
     nickname: String(player?.nickname || ''),
     category: categoryName(player?.category),
     categoryCode: categoryCode(player?.category),
@@ -473,7 +474,7 @@ function normalizeLegacyDashboard(payload) {
 
   // Older queue logs may contain participants that have since been removed from
   // Registered Player Cloud. Keep those names visible in historical match rows.
-  const knownNames = new Set(players.map(player => normalizeName(player.name)));
+  const knownNames = new Set(players.flatMap(player => [player.name, ...(player.nameAliases || [])]).map(normalizeName).filter(Boolean));
   for (const match of logs) {
     for (const name of [...match.teamANames, ...match.teamBNames]) {
       const key = normalizeName(name);
@@ -652,16 +653,23 @@ function getPlayerStatsIndex() {
 }
 function playerStats(player) {
   const index = getPlayerStatsIndex();
-  const nameKey = normalizeName(player.name);
+  const nameKeys = [...new Set([player?.name, ...(Array.isArray(player?.nameAliases) ? player.nameAliases : [])].map(normalizeName).filter(Boolean))];
+  const nameKey = nameKeys.join('~');
   const cacheKey = `${nameKey}|${Number(player.wins) || 0}|${Number(player.losses) || 0}|${Number(player.matches) || 0}`;
   if (index.cache.has(cacheKey)) return index.cache.get(cacheKey);
 
-  const logged = index.matchStatsByName.get(nameKey) || { matches: 0, wins: 0 };
+  const logged = nameKeys.reduce((total, key) => {
+    const current = index.matchStatsByName.get(key) || { matches: 0, wins: 0 };
+    total.matches += current.matches;
+    total.wins += current.wins;
+    return total;
+  }, { matches: 0, wins: 0 });
+  const attendance = nameKeys.reduce((total, key) => total + (index.attendanceByName.get(key) || 0), 0);
   const wins = Math.max(Number(player.wins) || 0, logged.wins);
   const lossesFromLogs = Math.max(0, logged.matches - logged.wins);
   const losses = Math.max(Number(player.losses) || 0, lossesFromLogs);
   const matches = Math.max(Number(player.matches) || 0, logged.matches, wins + losses);
-  const result = { wins, losses, matches, attendance: index.attendanceByName.get(nameKey) || 0 };
+  const result = { wins, losses, matches, attendance };
   index.cache.set(cacheKey, result);
   return result;
 }
@@ -853,21 +861,82 @@ function compareRankedPlayers(a, b) {
   const rateB = sb.matches ? sb.wins / sb.matches : 0;
   return sb.wins - sa.wins || rateB - rateA || sb.matches - sa.matches || a.name.localeCompare(b.name);
 }
+function rankProfileQuality(player) {
+  // Prefer the more complete name after an organizer has expanded a player's
+  // name, while still preserving the more complete profile details.
+  return [
+    player?.duprId, player?.nickname, player?.category && player.category !== 'Unspecified' ? player.category : '',
+    player?.gender, player?.selfRating, player?.avatarId, player?.registeredAt
+  ].filter(value => String(value || '').trim()).length + Math.min(2, String(player?.name || '').trim().length / 60);
+}
+function mergeDuplicateRankProfiles(current, incoming) {
+  const currentName = normalizeName(current?.name);
+  const incomingName = normalizeName(incoming?.name);
+  const currentAliases = (Array.isArray(current?.nameAliases) ? current.nameAliases : []).map(normalizeName);
+  const incomingAliases = (Array.isArray(incoming?.nameAliases) ? incoming.nameAliases : []).map(normalizeName);
+  const linkedByPreviousName = currentName !== incomingName && (
+    currentAliases.includes(incomingName) || incomingAliases.includes(currentName)
+  );
+  const preferred = linkedByPreviousName
+    ? (String(incoming?.name || '').trim().length > String(current?.name || '').trim().length ? incoming : current)
+    : (rankProfileQuality(incoming) > rankProfileQuality(current) ? incoming : current);
+  const fallback = preferred === current ? incoming : current;
+  const merged = { ...fallback, ...preferred };
+  // Never let an incomplete duplicate erase details from the better profile.
+  for (const field of ['duprId', 'nickname', 'gender', 'selfRating', 'avatarId', 'registeredAt']) {
+    if (!String(merged[field] || '').trim() && String(fallback[field] || '').trim()) merged[field] = fallback[field];
+  }
+  if (!merged.category || merged.category === 'Unspecified') merged.category = fallback.category || 'Unspecified';
+  merged.matches = Math.max(Number(current.matches) || 0, Number(incoming.matches) || 0);
+  merged.wins = Math.max(Number(current.wins) || 0, Number(incoming.wins) || 0);
+  merged.losses = Math.max(Number(current.losses) || 0, Number(incoming.losses) || 0);
+  merged.nameAliases = [...new Set([
+    ...(Array.isArray(current.nameAliases) ? current.nameAliases : []),
+    ...(Array.isArray(incoming.nameAliases) ? incoming.nameAliases : []),
+    current.name, incoming.name
+  ].map(name => String(name || '').trim()).filter(name => name && normalizeName(name) !== normalizeName(merged.name)))].slice(-20);
+  merged.historicalOnly = current.historicalOnly === true && incoming.historicalOnly === true;
+  return merged;
+}
+function getUniqueRankablePlayers() {
+  const players = state.data?.players || [];
+  const parents = players.map((_, index) => index);
+  const findRoot = index => parents[index] === index ? index : (parents[index] = findRoot(parents[index]));
+  const union = (left, right) => {
+    const a = findRoot(left), b = findRoot(right);
+    if (a !== b) parents[b] = a;
+  };
+  const ownerByName = new Map();
+  players.forEach((player, index) => {
+    const aliases = Array.isArray(player?.nameAliases) ? player.nameAliases : [];
+    const keys = [...new Set([player?.name, ...aliases].map(normalizeName).filter(Boolean))];
+    for (const key of keys) {
+      if (ownerByName.has(key)) union(index, ownerByName.get(key));
+      else ownerByName.set(key, index);
+    }
+  });
+  const grouped = new Map();
+  players.forEach((player, index) => {
+    const root = findRoot(index);
+    grouped.set(root, grouped.has(root) ? mergeDuplicateRankProfiles(grouped.get(root), player) : player);
+  });
+  return [...grouped.values()];
+}
 function getRankedPlayers() {
   const signature = state.dataSignature || 'initial';
   if (rankedPlayersCacheSignature === signature) return rankedPlayersCache;
-  const players = [...(state.data?.players || [])];
+  const players = getUniqueRankablePlayers();
   players.sort(compareRankedPlayers);
   rankedPlayersCacheSignature = signature;
   rankedPlayersCache = players;
   return rankedPlayersCache;
 }
-// Dashboard only needs its first 20 rows. Keep the list bounded instead of
-// sorting every player before the dashboard can paint.
+// Dashboard only needs its first 20 rows. De-duplicate first because stats are
+// already keyed by normalized name; then keep the displayed list bounded.
 function topRankedPlayers(limit = 5) {
   if (limit > 100) return getRankedPlayers().slice(0, limit);
   const top = [];
-  for (const player of state.data?.players || []) {
+  for (const player of getUniqueRankablePlayers()) {
     let low = 0, high = top.length;
     while (low < high) {
       const middle = (low + high) >> 1;
@@ -3074,7 +3143,9 @@ function getRankingPlayersForCurrentView() {
           wins: entry.wins,
           losses: entry.losses,
           matches: entry.matches,
-          attendance: (session.attendees || []).some(person => normalizeName(person.name) === normalizeName(entry.name)) ? 1 : 0
+          attendance: (session.attendees || []).some(person =>
+            [entry.name, ...(Array.isArray(profile.nameAliases) ? profile.nameAliases : [])].some(value => normalizeName(value) === normalizeName(person.name))
+          ) ? 1 : 0
         }
       };
     }) : [];
@@ -3102,7 +3173,7 @@ function renderRankings() {
   state.rankingRenderPlayers = [];
   const selectedSessionId = currentRankingSessionId();
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / LEADERBOARD', 'Player Rankings', 'Rank players using their wins, losses, total matches and win rate from the existing system.', `<button class="btn" data-action="export-rankings">${icon('download')} Export</button>`)}
-    <div class="metric-grid"><div class="metric-tile"><span>Players ranked</span>${metricCount('rankings', 'players-ranked', state.data.players.filter(player => !player.historicalOnly).length, 'rankingPlayerCount')}</div><div class="metric-tile"><span>Matches recorded</span>${metricCount('rankings', 'matches-recorded', state.data.matches.length)}</div><div class="metric-tile"><span>Attendance entries</span>${metricCount('rankings', 'attendance-entries', countAttendanceEntries())}</div><div class="metric-tile"><span>DUPR IDs recorded</span>${metricCount('rankings', 'dupr-ids-recorded', state.data.players.filter(player => player.duprId).length)}</div></div>
+    <div class="metric-grid"><div class="metric-tile"><span>Players ranked</span>${metricCount('rankings', 'players-ranked', getUniqueRankablePlayers().filter(player => !player.historicalOnly).length, 'rankingPlayerCount')}</div><div class="metric-tile"><span>Matches recorded</span>${metricCount('rankings', 'matches-recorded', state.data.matches.length)}</div><div class="metric-tile"><span>Attendance entries</span>${metricCount('rankings', 'attendance-entries', countAttendanceEntries())}</div><div class="metric-tile"><span>DUPR IDs recorded</span>${metricCount('rankings', 'dupr-ids-recorded', getUniqueRankablePlayers().filter(player => player.duprId).length)}</div></div>
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Community Leaderboard', 'trophy')}<div class="toolbar">${rankingSessionFilterMarkup(selectedSessionId)}<select class="select-control" id="rankingCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.rankingCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div class="table-wrap rankings-table-wrap" id="rankingsTableWrap" aria-busy="true"><table class="data-table rankings-table"><colgroup><col style="width:8%"><col style="width:25%"><col style="width:15%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:11%"><col style="width:16%"></colgroup><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Category</th><th scope="col">Wins</th><th scope="col">Losses</th><th scope="col">Matches</th><th scope="col">Win rate</th><th scope="col">DUPR ID</th></tr></thead><tbody id="rankingTableBody"><tr><td colspan="8" class="ranking-loading-row">Preparing player rankings…</td></tr></tbody></table></div></section>
     <p class="page-note">DUPR ID is shown as an identifier only. This dashboard does not treat a DUPR ID as a numeric DUPR rating.</p></div>`;
 }
@@ -4023,11 +4094,15 @@ function buildSessionRanking(session) {
     const clean = String(name || '').trim();
     const key = normalizeName(clean);
     if (!key) return null;
-    if (!ranked.has(key)) {
-      const profile = state.data.players.find(player => normalizeName(player.name) === key) || {};
-      ranked.set(key, { name: clean, nickname: profile.nickname || '', gender: profile.gender || '', category: profile.category || '', wins: 0, losses: 0, matches: 0, winRate: 0 });
+    const profile = state.data.players.find(player =>
+      [player?.name, ...(Array.isArray(player?.nameAliases) ? player.nameAliases : [])].some(value => normalizeName(value) === key)
+    ) || {};
+    const canonicalName = String(profile.name || clean);
+    const canonicalKey = normalizeName(canonicalName) || key;
+    if (!ranked.has(canonicalKey)) {
+      ranked.set(canonicalKey, { name: canonicalName, nickname: profile.nickname || '', gender: profile.gender || '', category: profile.category || '', wins: 0, losses: 0, matches: 0, winRate: 0 });
     }
-    return ranked.get(key);
+    return ranked.get(canonicalKey);
   };
   (session.attendees || []).forEach(person => ensure(person.name));
   state.data.matches.filter(match => match.sessionId === session.id).forEach(match => {

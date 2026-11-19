@@ -249,7 +249,17 @@
   });
 
   function normalizedName(value) {
-    return String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+    return String(value || '').normalize('NFC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+  }
+
+  function playerNameKeys(player) {
+    const aliases = Array.isArray(player?.nameAliases) ? player.nameAliases : (typeof player?.nameAliases === 'string' ? [player.nameAliases] : []);
+    return [...new Set([player?.name, ...aliases].map(normalizedName).filter(Boolean))];
+  }
+
+  function playerMatchesName(player, name) {
+    const target = normalizedName(name);
+    return !!target && playerNameKeys(player).includes(target);
   }
 
   function formatName(value) {
@@ -319,8 +329,8 @@
   function duplicatePlayer(name) {
     const normalized = normalizedName(name);
     if (!normalized) return null;
-    return cloudPlayers.find(player => normalizedName(player && player.name) === normalized)
-      || appPlayers.find(player => normalizedName(player && player.name) === normalized)
+    return cloudPlayers.find(player => playerMatchesName(player, normalized))
+      || appPlayers.find(player => playerMatchesName(player, normalized))
       || null;
   }
 
@@ -332,11 +342,11 @@
   function queueDuplicateForCloudPlayer(player) {
     if (!player) return null;
     const cloudId = String(player.cloudId ?? '').trim();
-    const playerName = normalizedName(player.name);
-    if (!cloudId && !playerName) return null;
+    const names = new Set(playerNameKeys(player));
+    if (!cloudId && !names.size) return null;
     return appPlayers.find(candidate =>
       (cloudId && String(candidate?.registeredCloudId || candidate?.registrationCloudId || '').trim() === cloudId)
-      || (playerName && normalizedName(candidate?.name) === playerName)
+      || names.has(normalizedName(candidate?.name))
     ) || null;
   }
 
@@ -516,16 +526,16 @@
     const matches = cloudPlayers
       .filter(player => {
         if (!String(player?.cloudId ?? '').trim()) return false;
-        const name = normalizedName(player?.name);
+        const names = playerNameKeys(player);
         const nickname = normalizedName(player?.nickname);
-        return name.includes(normalizedQuery) || nickname.includes(normalizedQuery);
+        return names.some(name => name.includes(normalizedQuery)) || nickname.includes(normalizedQuery);
       })
       .sort((a, b) => {
-        const aName = normalizedName(a?.name);
-        const bName = normalizedName(b?.name);
-        const aRank = aName === normalizedQuery ? 0 : aName.startsWith(normalizedQuery) ? 1 : 2;
-        const bRank = bName === normalizedQuery ? 0 : bName.startsWith(normalizedQuery) ? 1 : 2;
-        return aRank - bRank || aName.localeCompare(bName);
+        const aNames = playerNameKeys(a);
+        const bNames = playerNameKeys(b);
+        const aRank = aNames.some(name => name === normalizedQuery) ? 0 : aNames.some(name => name.startsWith(normalizedQuery)) ? 1 : 2;
+        const bRank = bNames.some(name => name === normalizedQuery) ? 0 : bNames.some(name => name.startsWith(normalizedQuery)) ? 1 : 2;
+        return aRank - bRank || String(a?.name || '').localeCompare(String(b?.name || ''));
       })
       .slice(0, 8);
 

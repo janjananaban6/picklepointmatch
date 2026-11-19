@@ -509,7 +509,7 @@ async function initializeSharedDataSync(){if(!isHttpApp()){sharedSyncReady=true;
   if(remoteCloud.records&&typeof remoteCloud.records==='object'){applySharedCloudRecords({revision:remoteCloud.revision,updatedAt:remoteCloud.updatedAt,clientId:null,records:remoteCloud.records},true);}else{const response=await fetch('/api/cloud-records',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({records:cloneSharedData(cloudRecords),clientId:sharedClientId,onlyIfEmpty:true})});if(!response.ok)throw new Error('Unable to initialize Registered Player Cloud');const seeded=await response.json();sharedCloudRevision=Number(seeded.revision)||0;if(seeded.accepted===false&&seeded.records)applySharedCloudRecords({revision:seeded.revision,updatedAt:seeded.updatedAt,clientId:null,records:seeded.records},true);}
   sharedSyncAvailable=true;sharedSyncReady=true;sharedEvents=new EventSource('/api/shared-events');sharedEvents.addEventListener('app-state',event=>{try{applySharedAppState(JSON.parse(event.data));}catch(e){}});sharedEvents.addEventListener('cloud-records',event=>{try{applySharedCloudRecords(JSON.parse(event.data));}catch(e){}});publishLiveViewState();flushSharedAppStateSync();flushCloudRecordsSync();
  }catch(error){sharedSyncReady=true;console.warn('Shared device sync is temporarily unavailable:',error);scheduleSharedSyncRetry();}finally{sharedSyncInitializing=false;}}
-function upsertCloudPlayer(p){if(!p||!p.name)return;loadCloudRecords();let a=cloudRecords.players.find(x=>x.name.toLowerCase()===p.name.toLowerCase());if(!a){a={cloudId:Date.now()+Math.floor(Math.random()*100000),registeredAt:new Date().toISOString(),name:p.name,matches:0,wins:0,losses:0};cloudRecords.players.push(a);}Object.assign(a,{name:p.name,nickname:p.nickname||a.nickname||'',gender:p.gender||a.gender||'',category:p.category||a.category||'',duprId:p.duprId||p.duprID||p.dupr_id||p.dupr||a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:p.selfRating||p.self_rating||a.selfRating||a.self_rating||''});const avatarId=getPlayerAvatarId(p);if(avatarId)a.avatarId=avatarId;saveCloudRecords();}
+function upsertCloudPlayer(p){if(!p||!p.name)return;loadCloudRecords();let a=cloudRecords.players.find(x=>cloudPlayerNameMatches(x,p.name));if(!a){a={cloudId:Date.now()+Math.floor(Math.random()*100000),registeredAt:new Date().toISOString(),name:p.name,matches:0,wins:0,losses:0};cloudRecords.players.push(a);}const canonicalName=a&&cloudPlayerNameKeys(a).includes(normalizeCloudPlayerName(p.name))?a.name:p.name;Object.assign(a,{name:canonicalName,nickname:p.nickname||a.nickname||'',gender:p.gender||a.gender||'',category:p.category||a.category||'',duprId:p.duprId||p.duprID||p.dupr_id||p.dupr||a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:p.selfRating||p.self_rating||a.selfRating||a.self_rating||''});const avatarId=getPlayerAvatarId(p);if(avatarId)a.avatarId=avatarId;saveCloudRecords();}
 function archiveLiveSession(){
   loadCloudRecords();
   const sid=String(state.sessionId||createSessionId());
@@ -603,22 +603,40 @@ function formatCloudRegisteredOn(player){
   return `Registered on: ${dateLabel} · ${timeLabel}`;
 }
 function normalizeCloudPlayerName(value){
-  return String(value||'').normalize('NFC').trim().replace(/\s+/g,' ').toLocaleLowerCase();
+  return String(value||'').normalize('NFC').replace(/[\u200B-\u200D\u2060\uFEFF]/g,'').trim().replace(/\s+/g,' ').toLocaleLowerCase();
+}
+function cloudPlayerNameKeys(playerOrName){
+  const player=playerOrName&&typeof playerOrName==='object'?playerOrName:{name:playerOrName};
+  const aliases=Array.isArray(player.nameAliases)?player.nameAliases:(typeof player.nameAliases==='string'?[player.nameAliases]:[]);
+  return [...new Set([player.name,...aliases].map(normalizeCloudPlayerName).filter(Boolean))];
+}
+function cloudPlayerNameMatches(player,nameOrPlayer){
+  const target=new Set(cloudPlayerNameKeys(nameOrPlayer));
+  return target.size>0&&cloudPlayerNameKeys(player).some(key=>target.has(key));
+}
+function rememberCloudPlayerPreviousName(player,previousName){
+  if(!player||typeof player!=='object')return;
+  const clean=String(previousName||'').normalize('NFC').replace(/[\u200B-\u200D\u2060\uFEFF]/g,'').trim().replace(/\s+/g,' ').slice(0,120);
+  const key=normalizeCloudPlayerName(clean);
+  if(!key||key===normalizeCloudPlayerName(player.name))return;
+  const aliases=Array.isArray(player.nameAliases)?player.nameAliases.slice():[];
+  if(!aliases.some(alias=>normalizeCloudPlayerName(alias)===key))aliases.push(clean);
+  player.nameAliases=aliases.filter(alias=>normalizeCloudPlayerName(alias)!==normalizeCloudPlayerName(player.name)).slice(-20);
 }
 function isCloudPlayerInLeftPlayers(cloudPlayer){
-  const targetName=normalizeCloudPlayerName(cloudPlayer?.name);
-  if(!targetName)return false;
+  const targetNames=new Set(cloudPlayerNameKeys(cloudPlayer));
+  if(!targetNames.size)return false;
   return (Array.isArray(state.left)?state.left:[]).some(leftPlayer=>
-    normalizeCloudPlayerName(leftPlayer?.name)===targetName
+    targetNames.has(normalizeCloudPlayerName(leftPlayer?.name))
   );
 }
 function isCloudPlayerCheckedIn(cloudPlayer){
-  const targetName=normalizeCloudPlayerName(cloudPlayer?.name);
-  if(!targetName)return false;
+  const targetNames=new Set(cloudPlayerNameKeys(cloudPlayer));
+  if(!targetNames.size)return false;
   const queueIds=Array.isArray(state.queue)?state.queue:[];
   const courts=Array.isArray(state.courts)?state.courts:[];
   return (Array.isArray(state.players)?state.players:[]).some(activePlayer=>{
-    if(normalizeCloudPlayerName(activePlayer?.name)!==targetName)return false;
+    if(!targetNames.has(normalizeCloudPlayerName(activePlayer?.name)))return false;
     const playerId=activePlayer?.id;
     return queueIds.some(id=>String(id)===String(playerId)) || !!activePlayer?.court ||
       courts.some(court=>(Array.isArray(court?.players)?court.players:[]).some(id=>String(id)===String(playerId)));
@@ -957,8 +975,7 @@ async function saveCloudPlayerEdit(){
   loadCloudRecords();
   const player=cloudRecords.players.find(item=>Number(item.cloudId)===id);
   if(!player){toast('This registered player could not be found.');cancelCloudPlayerEdit();renderCloudRecords();return;}
-  const normalizedName=name.toLowerCase();
-  const duplicate=cloudRecords.players.find(item=>Number(item.cloudId)!==id&&String(item.name||'').trim().replace(/\s+/g,' ').toLowerCase()===normalizedName);
+  const duplicate=cloudRecords.players.find(item=>Number(item.cloudId)!==id&&cloudPlayerNameMatches(item,name));
   if(duplicate){toast('Another registered player already uses this full name.');$('cloudPlayerEditFullName')?.focus();return;}
 
   const saveButton=panel?.querySelector('.cloud-player-edit-save');
@@ -972,14 +989,17 @@ async function saveCloudPlayerEdit(){
   try{
     // Let the spinner paint before local storage and queue state are updated.
     await new Promise(resolve=>window.setTimeout(resolve,50));
-    const previousName=String(player.name||'').trim().toLowerCase();
+    const previousName=String(player.name||'').trim();
     player.name=name;
+    // Store the former display name only after the canonical name changes so
+    // the alias helper can distinguish the old name from the current one.
+    rememberCloudPlayerPreviousName(player,previousName);
     player.nickname=nickname;
     player.gender=gender;
     player.category=category;
     player.duprId=duprId;player.duprID='';player.dupr_id='';player.dupr='';
     let changedLiveState=false;
-    [...state.players,...state.left].filter(active=>String(active.name||'').trim().toLowerCase()===previousName).forEach(active=>{
+    [...state.players,...state.left].filter(active=>normalizeCloudPlayerName(active.name)===normalizeCloudPlayerName(previousName)).forEach(active=>{
       active.name=name;
       active.nickname=nickname;
       active.gender=gender;
@@ -1034,7 +1054,7 @@ function deleteCloudPlayer(id){
   saveCloudRecords();
   renderCloudRecords();
 }
-function checkInCloudPlayer(id,countAsCloudCheckin=true){if(!cloudRecordsHydratedFromServer)loadCloudRecords();const a=cloudRecords.players.find(p=>Number(p.cloudId)===Number(id));if(!a)return;if(isCloudPlayerCheckedIn(a)){renderCloudRecords();return;}let p=state.players.find(p=>normalizeCloudPlayerName(p.name)===normalizeCloudPlayerName(a.name));if(!p){const left=state.left.find(p=>p.name.toLowerCase()===a.name.toLowerCase());if(left){left.avatarId=left.avatarId||getPlayerAvatarId(a);checkIn(left.id,countAsCloudCheckin);if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();renderCloudRecords();return;}p={id:state.nextPlayer++,name:a.name,nickname:a.nickname||'',wins:a.wins||0,court:null,gender:a.gender||'Male',category:a.category||'',avatarId:getPlayerAvatarId(a),duprId:a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:a.selfRating||a.self_rating||'',queuedAt:Date.now(),waitingSince:Date.now()};state.players.push(p);}else{p.avatarId=p.avatarId||getPlayerAvatarId(a);p.duprId=p.duprId||a.duprId||a.duprID||a.dupr_id||a.dupr||'';p.selfRating=p.selfRating||a.selfRating||a.self_rating||'';}if(p.court){toast('Player is already on court.');return;}if(!state.queue.includes(p.id))state.queue.push(p.id);if(countAsCloudCheckin||!p.queuedAt){p.queuedAt=Date.now();p.waitingSince=p.queuedAt;}if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();render();renderCloudRecords();toast(`${p.name} checked in.`);}
+function checkInCloudPlayer(id,countAsCloudCheckin=true){if(!cloudRecordsHydratedFromServer)loadCloudRecords();const a=cloudRecords.players.find(p=>Number(p.cloudId)===Number(id));if(!a)return;if(isCloudPlayerCheckedIn(a)){renderCloudRecords();return;}let p=state.players.find(p=>cloudPlayerNameMatches(a,p.name));if(!p){const left=state.left.find(p=>cloudPlayerNameMatches(a,p.name));if(left){left.avatarId=left.avatarId||getPlayerAvatarId(a);checkIn(left.id,countAsCloudCheckin);if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();renderCloudRecords();return;}p={id:state.nextPlayer++,name:a.name,nickname:a.nickname||'',wins:a.wins||0,court:null,gender:a.gender||'Male',category:a.category||'',avatarId:getPlayerAvatarId(a),duprId:a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:a.selfRating||a.self_rating||'',queuedAt:Date.now(),waitingSince:Date.now()};state.players.push(p);}else{p.avatarId=p.avatarId||getPlayerAvatarId(a);p.duprId=p.duprId||a.duprId||a.duprID||a.dupr_id||a.dupr||'';p.selfRating=p.selfRating||a.selfRating||a.self_rating||'';}if(p.court){toast('Player is already on court.');return;}if(!state.queue.includes(p.id))state.queue.push(p.id);if(countAsCloudCheckin||!p.queuedAt){p.queuedAt=Date.now();p.waitingSince=p.queuedAt;}if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();render();renderCloudRecords();toast(`${p.name} checked in.`);}
 
 let openCategoryPlayerId=null;
 let openGenderPlayerId=null;
@@ -3835,8 +3855,7 @@ function updateRegistrationDuplicateMessage(){
   const fullname=String(input.value||'').trim();
   if(!fullname){message.textContent='';message.hidden=true;return;}
   loadCloudRecords();
-  const normalized=fullname.replace(/\s+/g,' ').toLocaleLowerCase();
-  const match=cloudRecords.players.find(p=>String(p.name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase()===normalized);
+  const match=cloudRecords.players.find(p=>cloudPlayerNameMatches(p,fullname));
   if(match){message.textContent=`This user is already registered: ${match.name}`;message.hidden=false;}
   else{message.textContent='';message.hidden=true;}
 }
@@ -3844,8 +3863,7 @@ function updateRegistrationDuplicateMessage(){
 function updateRegistrationSaveButton(){
   const fullname=String($('registerFullname')?.value||'').trim();
   loadCloudRecords();
-  const normalized=fullname.replace(/\s+/g,' ').toLocaleLowerCase();
-  const duplicate=!!fullname&&cloudRecords.players.some(p=>String(p.name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase()===normalized);
+  const duplicate=!!fullname&&cloudRecords.players.some(p=>cloudPlayerNameMatches(p,fullname));
   const saveBtn=$('registerSaveBtn');
   if(saveBtn) saveBtn.disabled=!(fullname && registrationGender && registrationSkillLevel) || duplicate;
   updateRegistrationDuplicateMessage();
@@ -3880,8 +3898,7 @@ function saveRegisteredPlayer(){
   if(!registrationSkillLevel){toast('Select a skill level.');return;}
 
   loadCloudRecords();
-  const normalizedFullname=fullname.toLocaleLowerCase();
-  const duplicate=cloudRecords.players.find(p=>String(p.name||'').trim().replace(/\s+/g,' ').toLocaleLowerCase()===normalizedFullname);
+  const duplicate=cloudRecords.players.find(p=>cloudPlayerNameMatches(p,fullname));
   if(duplicate){updateRegistrationSaveButton();toast(`This user is already registered: ${duplicate.name}`);return;}
 
   // Save the profile to Registered Player Cloud, then check the new player in.
@@ -4292,7 +4309,7 @@ function persistQueueDuprId(id,duprId){
     item.duprId=duprId;item.duprID='';item.dupr_id='';item.dupr='';
   });
   loadCloudRecords();
-  let record=cloudRecords.players.find(item=>String(item.name||'').trim().toLowerCase()===normalizedName);
+  let record=cloudRecords.players.find(item=>cloudPlayerNameMatches(item,target.name));
   if(!record){
     record={cloudId:Date.now()+Math.floor(Math.random()*100000),registeredAt:new Date().toISOString(),name:target.name,nickname:target.nickname||'',gender:target.gender||'',category:target.category||'',avatarId:getPlayerAvatarId(target),matches:0,wins:0,losses:0};
     cloudRecords.players.push(record);
@@ -4506,7 +4523,7 @@ function renderQueue(){
     const st=rankingStats.get(p.id)||{matches:0,wins:0,losses:0};
     const queueRecordLabel=`${st.matches} match${st.matches===1?'':'es'} (${st.wins}W-${st.losses}L)`;
     const queueRecordBadgeMarkup=`<span class="queue-record-badge" title="${esc(queueRecordLabel)}" aria-label="${esc(queueRecordLabel)}">${queueRecordIconSvgMarkup()}${esc(queueRecordLabel)}</span>`;
-    const matchingCloudDupr=cloudRecords.players.find(cp=>String(cp.name||'').trim().toLowerCase()===String(p.name||'').trim().toLowerCase());
+    const matchingCloudDupr=cloudRecords.players.find(cp=>cloudPlayerNameMatches(cp,p.name));
     const rawQueueDuprId=String(p.duprId||p.duprID||p.dupr_id||p.dupr||matchingCloudDupr?.duprId||matchingCloudDupr?.duprID||matchingCloudDupr?.dupr_id||matchingCloudDupr?.dupr||'').replace(/\s+/g,'').toUpperCase();
     const queueDuprId=rawQueueDuprId==='NR'?'':rawQueueDuprId;
     const queueDuprBadge=`<button type="button" class="queue-dupr-badge ${queueDuprId?'':'is-unrated'}" onclick="event.stopPropagation();openQueueDuprModal(${id})" aria-label="Edit DUPR ID" title="Click to edit DUPR ID">DUPR: ${esc(queueDuprId||'NR')}</button>`;

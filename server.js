@@ -983,6 +983,7 @@ function publicCloudPlayer(player) {
   return {
     cloudId: player.cloudId ?? null,
     name: String(player.name || '').slice(0, 120),
+    nameAliases: registeredPlayerNameKeys(player).filter(name => name !== normalizePlayerName(player.name)).slice(0,20),
     nickname: String(player.nickname || '').slice(0, 80),
     gender: String(player.gender || '').slice(0, 20),
     category: String(player.category || '').slice(0, 10),
@@ -1024,7 +1025,25 @@ function publicSharedEventPayload(eventName, payload) {
   return payload;
 }
 function normalizePlayerName(value) {
-  return String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+  return String(value || '').normalize('NFC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+function registeredPlayerNameKeys(playerOrName) {
+  const player = playerOrName && typeof playerOrName === 'object' ? playerOrName : {name:playerOrName};
+  const aliases = Array.isArray(player.nameAliases) ? player.nameAliases : (typeof player.nameAliases === 'string' ? [player.nameAliases] : []);
+  return [...new Set([player.name, ...aliases].map(normalizePlayerName).filter(Boolean))];
+}
+function registeredPlayerNameMatches(player, nameOrPlayer) {
+  const targetKeys = new Set(registeredPlayerNameKeys(nameOrPlayer));
+  return targetKeys.size > 0 && registeredPlayerNameKeys(player).some(key => targetKeys.has(key));
+}
+function addRegisteredPlayerNameAlias(player, previousName) {
+  if (!player || typeof player !== 'object') return;
+  const cleanName = String(previousName || '').normalize('NFC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim().replace(/\s+/g, ' ').slice(0,120);
+  const key = normalizePlayerName(cleanName);
+  if (!key || key === normalizePlayerName(player.name)) return;
+  const aliases = Array.isArray(player.nameAliases) ? player.nameAliases.slice() : [];
+  if (!aliases.some(alias => normalizePlayerName(alias) === key)) aliases.push(cleanName);
+  player.nameAliases = aliases.filter(alias => normalizePlayerName(alias) !== normalizePlayerName(player.name)).slice(-20);
 }
 function isRecordedMatchScore(log) {
   if (String(log?.recordingMode || '').trim().toLowerCase() === 'win-only') return false;
@@ -1589,9 +1608,10 @@ async function handle(req, res) {
       const duprKey = player => String(duprValue(player))
         .trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toUpperCase();
       const rememberPlayer = player => {
-        const nameKey = normalizePlayerName(player?.name);
+        for (const nameKey of registeredPlayerNameKeys(player)) {
+          if (!nameIndex.has(nameKey)) nameIndex.set(nameKey, player);
+        }
         const idKey = duprKey(player);
-        if (nameKey && !nameIndex.has(nameKey)) nameIndex.set(nameKey, player);
         if (idKey && !duprIndex.has(idKey)) duprIndex.set(idKey, player);
         const cloudId = Number(player?.cloudId ?? player?.id);
         if (Number.isSafeInteger(cloudId) && cloudId > 0) usedCloudIds.add(cloudId);
@@ -2070,9 +2090,10 @@ async function handle(req, res) {
         const duprIndex = new Map();
         const usedCloudIds = new Set();
         const rememberPlayer = player => {
-          const nameKey = normalizePlayerName(player?.name);
+          for (const nameKey of registeredPlayerNameKeys(player)) {
+            if (!nameIndex.has(nameKey)) nameIndex.set(nameKey,player);
+          }
           const duprKey = registeredCloudDuprId(player);
-          if (nameKey && !nameIndex.has(nameKey)) nameIndex.set(nameKey,player);
           if (duprKey && !duprIndex.has(duprKey)) duprIndex.set(duprKey,player);
           const cloudId = Number(player?.cloudId ?? player?.id);
           if (Number.isSafeInteger(cloudId) && cloudId > 0) usedCloudIds.add(cloudId);
@@ -3073,8 +3094,8 @@ async function handle(req, res) {
           const registeredId = registeredCloudDuprId(duplicateDupr) || duprId;
           return sendJson(res, 409, {ok:false,duplicate:true,duplicateType:'duprId',error:`This DUPR ID: ${duprId} is already registered under the name: ${duplicateDupr.name}.`,player:{name:duplicateDupr.name,duprId:registeredId}});
         }
-        const duplicate = currentPlayers.find(player => normalizePlayerName(player?.name) === normalizePlayerName(name));
-        if (duplicate) return sendJson(res, 409, {ok:false,duplicate:true,duplicateType:'name',error:'This user is already registered in Registered Player Cloud',player:{name:duplicate.name}});
+        const duplicate = currentPlayers.find(player => registeredPlayerNameMatches(player, name));
+        if (duplicate) return sendJson(res, 409, {ok:false,duplicate:true,duplicateType:'name',error:`This name already belongs to the registered player ${duplicate.name}. Select the existing player instead of creating another record.`,player:{name:duplicate.name}});
 
         registrationSessionStatus = getOrganizerRegistrationSessionStatus(organizerId, requestedSessionId);
         if (!registrationSessionStatus.active) return sendJson(res, 409, registrationSessionUnavailableResponse(registrationSessionStatus));

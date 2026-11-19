@@ -262,20 +262,26 @@
       registeredPlayerValue(player, 'nickname'),
       registeredPlayerValue(player, 'gender'),
       registeredPlayerValue(player, 'category'),
-      registeredPlayerValue(player, 'duprId', ['dupr_id','duprID'])
+      registeredPlayerValue(player, 'duprId', ['dupr_id','duprID']),
+      ...(Array.isArray(player?.nameAliases) ? player.nameAliases : [])
     ].join(' ').toLocaleLowerCase();
   }
   function getUniqueRegisteredPlayers(players) {
     const seenNames = new Set();
     const seenDuprIds = new Set();
-    return players.filter(player => {
-      const name = String(registeredPlayerValue(player, 'name')).trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+    const unique = [];
+    for (const player of players) {
+      const aliases = Array.isArray(player?.nameAliases) ? player.nameAliases : [];
+      const names = [...new Set([registeredPlayerValue(player, 'name'), ...aliases]
+        .map(value => String(value || '').normalize('NFC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim().toLocaleLowerCase().replace(/\s+/g, ' '))
+        .filter(Boolean))];
       const duprId = String(registeredPlayerValue(player, 'duprId', ['dupr_id','duprID'])).trim().toLocaleLowerCase();
-      if ((name && seenNames.has(name)) || (duprId && seenDuprIds.has(duprId))) return false;
-      if (name) seenNames.add(name);
+      if (names.some(name => seenNames.has(name)) || (duprId && seenDuprIds.has(duprId))) continue;
+      names.forEach(name => seenNames.add(name));
       if (duprId) seenDuprIds.add(duprId);
-      return true;
-    });
+      unique.push(player);
+    }
+    return unique;
   }
   function syncRegisteredPlayersMissingNotice() {
     const count = Number($('registeredPlayersMissingCount').textContent) || 0;
