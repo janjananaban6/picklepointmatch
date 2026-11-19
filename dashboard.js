@@ -221,6 +221,9 @@ async function api(url, options = {}) {
     window.location.replace(`/?next=${encodeURIComponent('manage')}`);
     throw new Error('Your organizer session has expired. Please sign in again.');
   }
+  if (response.status === 405 && String(url).split('?')[0].replace(/\/+$/, '') === '/api/organizer-dashboard/sessions/import') {
+    throw new Error('The deployed server is not accepting the session-import POST request. Redeploy the complete updated project (including server.js), then refresh the dashboard.');
+  }
   if (!response.ok || payload?.ok === false) throw new Error(payload?.error || `Request failed (${response.status}).`);
   return payload;
 }
