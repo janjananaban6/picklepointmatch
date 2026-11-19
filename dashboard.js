@@ -783,17 +783,25 @@ function animateDashboardAttendanceBars() {
       fill.style.setProperty('--bar-scale', '1');
       return;
     }
+
     attendanceBarTargets.set(fill, targetHeight);
-    fill.style.setProperty('--bar-scale', '0');
     if (reducedMotion) {
       fill.style.setProperty('--bar-scale', '1');
       attendanceBarFrames.delete(fill);
       return;
     }
 
-    // Give the browser a paint opportunity with the bar collapsed before raising it.
-    // A single requestAnimationFrame can apply both states before the first paint,
-    // which makes the CSS transition appear to jump straight to its final height.
+    // Existing bars keep their current scale: CSS transitions the updated height
+    // from its previous value instead of collapsing to zero and jumping back up.
+    if (previousTarget !== undefined) {
+      fill.style.setProperty('--bar-scale', '1');
+      attendanceBarFrames.delete(fill);
+      return;
+    }
+
+    // Only the first appearance uses a scale entrance. Two frames guarantee the
+    // collapsed state is painted before the transition begins.
+    fill.style.setProperty('--bar-scale', '0');
     const firstFrame = requestAnimationFrame(() => {
       if (!fill.isConnected) {
         attendanceBarFrames.delete(fill);
@@ -838,6 +846,7 @@ function liveBanner() {
 }
 let rankedPlayersCacheSignature = '';
 let rankedPlayersCache = [];
+let dashboardRankingHasRendered = false;
 function compareRankedPlayers(a, b) {
   const sa = playerStats(a), sb = playerStats(b);
   const rateA = sa.matches ? sa.wins / sa.matches : 0;
@@ -2982,15 +2991,31 @@ function scheduleDashboardRankings() {
     const target = $('#dashboardTopRankings');
     if (state.page !== 'dashboard' || token !== state.dashboardRankingToken || !target?.isConnected) return;
     const top = topRankedPlayers(20);
-    target.classList.remove('is-entering');
-    target.innerHTML = top.length ? top.map((player, index) => {
+    const markup = top.length ? top.map((player, index) => {
       const stats = playerStats(player);
       const podiumClass = ['podium-rank-gold', 'podium-rank-silver', 'podium-rank-bronze'][index] || '';
       const avatarClass = podiumClass ? `player-avatar ${podiumClass}` : 'player-avatar';
       const rankLabel = ['🥇', '🥈', '🥉'][index] || String(index + 1);
       return `<div class="ranking-row" style="--ranking-order:${index}"><span class="rank-index ${index < 3 ? 'top' : ''}" aria-label="Rank ${index + 1}">${rankLabel}</span><span class="${avatarClass}"><span class="podium-avatar-initials">${initials(player.name)}</span></span><span class="ranking-name">${escapeHTML(player.name)}</span><span class="ranking-rating">${stats.wins}W - ${stats.losses}L (${stats.matches} <span class="ranking-match-label-long">Matches</span><span class="ranking-match-label-short">Match</span>)</span></div>`;
     }).join('') : emptyState('No player records yet', 'Players registered through the existing queueing system will appear here.');
-    if (top.length) requestAnimationFrame(() => {
+
+    // Live queue updates can arrive every few seconds. Do not rebuild an
+    // unchanged leaderboard: replacing the rows resets scroll and replays the
+    // entrance animation, which looks like the panel is jumping.
+    if (target.innerHTML === markup) {
+      dashboardRankingHasRendered = true;
+      return;
+    }
+
+    const previousScrollTop = target.scrollTop;
+    const animateFirstRender = !dashboardRankingHasRendered && top.length > 0
+      && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    target.classList.remove('is-entering');
+    target.innerHTML = markup;
+    target.scrollTop = Math.min(previousScrollTop, Math.max(0, target.scrollHeight - target.clientHeight));
+    dashboardRankingHasRendered = true;
+
+    if (animateFirstRender) requestAnimationFrame(() => {
       if (target.isConnected) target.classList.add('is-entering');
     });
   });

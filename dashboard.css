@@ -28,7 +28,7 @@ button:disabled { cursor: not-allowed; opacity: .48; transform: none !important;
 a { color: inherit; }
 svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .app-shell {
-  width: min(1600px, calc(100vw - 32px)); height: calc(100dvh - 32px); min-height: 520px;
+  width: min(1600px, calc(100vw - 32px)); height: calc(100vh - 32px); height: calc(100svh - 32px); min-height: 520px;
   margin: 16px auto; display: grid; grid-template-columns: 224px minmax(0, 1fr);
   overflow: hidden; background: var(--surface); border: 1px solid rgba(255,255,255,.88);
   border-radius: 20px; box-shadow: 0 18px 58px rgba(30, 78, 46, .12);
@@ -39,7 +39,7 @@ svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColo
 .brand-ball img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .brand-name { font-size: 17px; line-height: .98; font-weight: 850; letter-spacing: -.65px; }
 .sidebar-caption { padding: 4px 13px 8px; color: #a0aaa2; font-size: 9px; font-weight: 800; letter-spacing: 1.1px; }
-.nav-list { flex: 1 1 auto; min-height: 0; display: grid; align-content: start; gap: 4px; overflow-y: auto; scrollbar-width: none; }
+.nav-list { flex: 1 1 auto; min-height: 0; display: grid; gap: 4px; overflow-y: auto; scrollbar-width: none; }
 .nav-list::-webkit-scrollbar { display: none; }
 .nav-item { position: relative; width: 100%; min-height: 40px; display: flex; align-items: center; gap: 11px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: #5d6961; text-align: left; font-size: 12px; font-weight: 550; transition: background-color .16s ease, color .16s ease; }
 .nav-item:hover { color: var(--green-900); background: #f4faf1; }
@@ -53,7 +53,7 @@ svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColo
 .topbar { position: relative; z-index: 20; flex: 0 0 58px; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 23px; background: rgba(255,255,255,.96); border-bottom: 1px solid #edf1ec; }
 .topbar-left, .topbar-right { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .breadcrumb { color: #3e4942; font-size: 12px; font-weight: 650; white-space: nowrap; }
-.global-search { width: min(250px, 28vw); height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #f7f9f6; border: 1px solid #edf0ed; border-radius: 99px; transition: border-color .16s ease, box-shadow .16s ease, background .16s ease; }
+.global-search { width: min(250px, 28vw); height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #f7f9f6; border: 1px solid #edf0ed; transition: border-color .16s ease, box-shadow .16s ease, background .16s ease; }
 .global-search:focus-within { border-color: #a8df96; background: #fff; box-shadow: 0 0 0 3px rgba(103,198,83,.10); }
 .global-search svg { width: 15px; height: 15px; color: #758077; }
 .global-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 11px; }
@@ -120,7 +120,7 @@ h1 { margin: 4px 0 3px; color: #13281d; font-size: clamp(22px, 2vw, 28px); line-
 .text-link { border: 0; padding: 3px 0; color: var(--green-800); background: transparent; font-size: 10px; font-weight: 750; white-space: nowrap; }
 .text-link:hover { color: var(--green-950); text-decoration: underline; }
 .select-control { max-width: 150px; min-height: 29px; padding: 0 25px 0 9px; color: #59665d; border: 1px solid #e7ece6; border-radius: 99px; background: #fff; font-size: 10px; }
-.trend-panel { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; }
+.trend-panel { grid-column: 1; grid-row: 1; }
 .chart-meta { display: flex; align-items: baseline; gap: 8px; }
 .chart-meta strong { font-size: 24px; letter-spacing: -.8px; }
 .chart-meta span { display: inline-flex; align-items: center; gap: 3px; color: var(--green-700); font-size: 9px; font-weight: 800; }
@@ -128,7 +128,7 @@ h1 { margin: 4px 0 3px; color: #13281d; font-size: clamp(22px, 2vw, 28px); line-
 .chart-box { min-height: 100px; flex: 1; margin-top: 5px; }
 .chart-box svg { width: 100%; height: 100%; min-height: 112px; overflow: visible; }
 .chart-empty { display: grid; place-items: center; height: 100%; min-height: 85px; color: #93a096; font-size: 10px; }
-.ranking-panel { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; min-height: 0; max-height: 100%; overflow: hidden; }
+.ranking-panel { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; max-height: 100%; }
 .ranking-list { min-height: 0; height: 0; flex: 1 1 0; display: grid; align-content: start; gap: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding-right: 0; scrollbar-width: none; -ms-overflow-style: none; }
 .ranking-list::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .ranking-row { min-width: 0; display: grid; grid-template-columns: 23px 27px minmax(0,1fr) minmax(88px,auto); align-items: center; gap: 7px; padding: 8px 0; border-top: 1px solid #f0f3ef; }
@@ -137,14 +137,13 @@ h1 { margin: 4px 0 3px; color: #13281d; font-size: clamp(22px, 2vw, 28px); line-
 .player-avatar { display: inline-grid; place-items: center; width: 27px; height: 27px; flex: 0 0 27px; border-radius: 50%; color: #286338; background: #e7f5df; font-size: 8px; font-weight: 850; }
 .ranking-name { overflow: hidden; color: #354239; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .ranking-rating { color: #34453a; font-size: 9px; font-weight: 750; line-height: 1.35; text-align: right; white-space: normal; }
-.side-stack { grid-column: 3; grid-row: 1 / span 2; min-height: 0; display: grid; grid-template-rows: minmax(0,1fr) minmax(0,1fr); gap: 11px; }
-.court-panel { display: flex; flex-direction: column; }
-.court-status-grid { width: 100%; min-height: 0; display: block; margin-top: auto; padding: 2px 2px 8px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: #d5e0d3 transparent; }
-.court-status-track { width: max-content; min-width: 100%; min-height: 68px; display: flex; align-items: stretch; justify-content: center; gap: 8px; }
+.side-stack { min-height: 0; display: grid; grid-template-rows: minmax(0,1fr) minmax(0,1fr); gap: 11px; }
+.court-status-grid { display: block; margin-top: auto; padding: 2px 2px 8px; scrollbar-width: thin; scrollbar-color: #d5e0d3 transparent; }
+.court-status-track { min-height: 68px; }
 .court-empty-note { width: 100%; min-height: 68px; display: grid; align-content: center; justify-items: center; gap: 5px; padding: 12px 10px; border: 1px dashed #dfe9dc; border-radius: 10px; color: #758279; background: #fafcf9; text-align: center; }
 .court-empty-note strong { color: #405046; font-size: 11px; }
 .court-empty-note span { font-size: 9px; line-height: 1.45; }
-.court-tile { min-width: 0; min-height: 64px; flex: 0 0 132px; display: grid; align-content: center; justify-items: center; gap: 4px; padding: 7px 6px; border: 1px solid #d9efcf; border-radius: 9px; color: #1c5d2b; background: #f0faec; scroll-snap-align: center; transition: background-color .16s ease, border-color .16s ease; }
+.court-tile { min-height: 64px; flex: 0 0 132px; display: grid; align-content: center; justify-items: center; gap: 4px; padding: 7px 6px; transition: background-color .16s ease, border-color .16s ease; }
 .court-tile:hover { border-color: #9ed68d; background: #e7f7df; }
 .court-tile strong { font-size: 13px; }
 .court-tile span { display: inline-flex; align-items: center; gap: 4px; font-size: 8px; color: #5b7861; }
@@ -289,7 +288,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .metric-tile .registered-player-skill-count.category-exp { color: #bd6268; border-color: #f2dadd; background: #fcf4f5; }
 .map-panel { display: flex; flex-direction: column; }
 .map-count { color: #809087; font-size: 9px; font-weight: 700; white-space: nowrap; }
-.interactive-map { position: relative; width: 100%; height: 178px; min-height: 150px; overflow: hidden; border: 1px solid #e5eee1; border-radius: 11px; background: #eaf2e8; isolation: isolate; }
+.interactive-map { height: 178px; min-height: 150px; border: 1px solid #e5eee1; border-radius: 11px; background: #eaf2e8; }
 .map-loading { display: grid; place-items: center; width: 100%; height: 100%; padding: 12px; color: #758279; font-size: 10px; text-align: center; }
 .interactive-map .leaflet-container { width: 100%; height: 100%; background: #eaf2e8; font: inherit; }
 .interactive-map .leaflet-control-attribution { font-size: 8px; }
@@ -350,11 +349,11 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 }
 @media (max-width: 980px) {
   body { overflow: hidden; }
-  .app-shell { width: calc(100vw - 20px); height: calc(100dvh - 20px); min-height: 0; margin: 10px; grid-template-columns: 190px minmax(0,1fr); }
+  .app-shell { width: calc(100vw - 20px); height: calc(100vh - 20px); height: calc(100svh - 20px); min-height: 0; margin: 10px; grid-template-columns: 190px minmax(0,1fr); }
   .dashboard-grid { min-height: 560px; grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-rows: minmax(190px,.95fr) minmax(165px,.85fr) auto; overflow: visible; }
   .trend-panel { grid-column: 1; grid-row: 1; }
   .ranking-panel { grid-column: 2; grid-row: 1 / span 2; }
-  .side-stack { grid-column: 1; grid-row: 2; grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-rows: minmax(165px,1fr); }
+  .side-stack { grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-rows: minmax(165px,1fr); }
   .recent-panel { display: flex; grid-column: 1 / -1; grid-row: 3; min-height: 155px; }
   .sidebar-shortcuts { margin-top: 8px; }
 }
@@ -378,7 +377,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-bottom: 10px; }
   .stat-card { min-height: 72px; padding: 10px; }
   .stat-value { font-size: 21px; }
-  .dashboard-grid { min-height: 0; display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: auto; overflow: visible; }
+  .dashboard-grid { display: grid; grid-template-columns: minmax(0,1fr); }
   .trend-panel, .ranking-panel, .side-stack, .recent-panel { grid-column: 1; grid-row: auto; min-height: 190px; }
   .ranking-panel { min-height: 245px; }
   .side-stack { grid-template-columns: 1fr 1fr; grid-template-rows: 170px; }
@@ -461,11 +460,10 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .side-stack { grid-column: 1; grid-row: 2; }
 }
 @media (max-width: 840px) {
-  .app-shell { height: 100dvh; }
+  .app-shell { height: 100vh; height: 100svh; }
   .page-content { overflow-y: auto; }
   .dashboard-grid .recent-panel, .trend-panel, .ranking-panel, .side-stack { grid-column: 1; grid-row: auto; }
-  .dashboard-grid { gap: 10px; }
-  .sidebar { height: 100dvh; }
+  .sidebar { height: 100vh; height: 100svh; }
 }
 
 .session-podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 14px; }
@@ -521,7 +519,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .attendance-bars { position: relative; z-index: 1; width: 100%; height: 100%; min-width: 0; min-height: 0; flex: 1 1 auto; display: grid; grid-template-columns: repeat(var(--bar-count,6),minmax(0,1fr)); align-items: stretch; gap: clamp(4px,1.2vw,14px); padding: 3px 4px 0; }
 .attendance-bar-item { min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
 .attendance-bar-visual { position: relative; width: 100%; min-height: 0; flex: 1 1 auto; display: flex; align-items: flex-end; justify-content: center; }
-.attendance-bar-fill { display: block; width: min(34px,70%); height: var(--bar-height); min-height: 0; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg,#78c957 0%,#248448 100%); box-shadow: 0 2px 5px rgba(33,125,66,.13); transform: scaleY(var(--bar-scale, 1)); transform-origin: center bottom; transition: transform 780ms cubic-bezier(.2, .72, .22, 1); will-change: transform; }
+.attendance-bar-fill { display: block; width: min(34px,70%); height: var(--bar-height); min-height: 0; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg,#78c957 0%,#248448 100%); box-shadow: 0 2px 5px rgba(33,125,66,.13); transform: scaleY(var(--bar-scale, 1)); transform-origin: center bottom; transition: height 780ms cubic-bezier(.2, .72, .22, 1), transform 780ms cubic-bezier(.2, .72, .22, 1); will-change: height, transform; }
 .attendance-bar-value { position: absolute; bottom: calc(var(--bar-height) + 3px); color: #3e5145; font-size: 9px; font-weight: 800; line-height: 1; }
 .attendance-bar-date { width: 100%; margin-top: 6px; color: #7f8b82; font-size: 8px; line-height: 1.1; text-align: center; white-space: nowrap; }
 .chart-empty { min-height: 126px; padding: 8px; text-align: center; line-height: 1.5; }
@@ -663,28 +661,23 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .ranking-list::-webkit-scrollbar-thumb { background: #d5e0d3; border-radius: 99px; }
 .court-status-grid::-webkit-scrollbar { height: 5px; }
 .court-status-grid::-webkit-scrollbar-thumb { background: #d5e0d3; border-radius: 99px; }
-.court-status-track.is-empty { width: 100%; }
 .popover-action { width: auto; min-width: 0; min-height: 34px; flex: 1 1 0; display: flex; align-items: center; justify-content: center; border: 1px solid #e6eee3 !important; border-radius: 99px !important; padding: 8px 10px !important; color: #31533b !important; background: #f9fcf7 !important; font-size: 10px; font-weight: 750; text-align: center; white-space: nowrap; }
 .popover-action:hover { border-color: #cfe5c8 !important; background: #f0f8ec !important; }
 @media (max-width: 840px) { .ranking-panel { min-height: 300px; max-height: min(72vh, 440px); } .court-status-track { justify-content: center; } }
 
 
 /* Court status strip: compact cards with mouse-drag and touch-swipe support. */
-.court-panel { display: flex; flex-direction: column; padding-top: 13px; padding-bottom: 13px; }
 .court-panel .panel-heading { margin-bottom: 10px; }
-.court-status-grid {
-  width: 100%; min-width: 0; min-height: 0; flex: 1 1 auto; display: flex; align-items: center;
-  margin-top: 0; padding: 0 2px; overflow-x: auto; overflow-y: hidden;
-  overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
-  scrollbar-width: none; -ms-overflow-style: none; cursor: grab;
+.court-status-grid { min-height: 0; flex: 1 1 auto;
+  margin-top: 0; padding: 0 2px; scroll-snap-type: x mandatory; cursor: grab;
   user-select: none; -webkit-user-select: none; touch-action: pan-x pan-y;
 }
 .court-status-grid::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .court-status-grid.is-dragging { cursor: grabbing; scroll-snap-type: none; }
-.court-status-track { width: max-content; min-width: 100%; min-height: 104px; flex: 0 0 max-content; display: flex; align-items: stretch; justify-content: center; gap: 8px; }
+.court-status-track { width: max-content; min-width: 100%; flex: 0 0 max-content; display: flex; justify-content: center; gap: 8px; }
 .court-status-track.is-empty { width: 100%; min-width: 100%; flex: 1 1 auto; justify-content: center; }
 .court-tile {
-  min-width: 0; min-height: 96px; flex: 0 0 174px; display: flex; flex-direction: column;
+  min-width: 0; flex: 0 0 174px; display: flex; flex-direction: column;
   align-content: stretch; align-items: stretch; justify-items: stretch; justify-content: flex-start;
   gap: 6px; padding: 8px 9px; border: 1px solid #d9efcf; border-radius: 9px;
   color: #1c5d2b; background: #f0faec; scroll-snap-align: center;
@@ -710,7 +703,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .court-player-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .court-tile .court-player-chip small { flex: 0 0 auto; color: #75847a; font-size: 7px; font-variant-numeric: tabular-nums; }
 .court-tile .court-player-empty, .court-tile .court-player-more { color: #89958c; font-size: 8px; line-height: 1.4; }
-.court-empty-note { min-height: 96px; }
 
 
 /* Requested dashboard UI polish: hide only the main page scrollbar and use pill actions. */
@@ -734,14 +726,9 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   display: flex;
   flex-direction: column;
 }
-.court-panel > .panel-heading {
-  flex: 0 0 auto;
-  margin-bottom: 10px;
-}
 .court-status-grid {
   min-height: 118px;
   flex: 1 0 118px;
-  align-items: center;
   padding: 5px 2px;
   overflow-y: visible;
 }
@@ -766,17 +753,11 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 
 /* Small laptops and tablets in landscape: avoid squeezing the court row. */
 @media (min-width: 841px) and (max-width: 980px) {
-  .dashboard-grid {
-    min-height: 690px;
-    grid-template-rows: minmax(250px, 1fr) minmax(250px, 1fr) auto;
-  }
   .trend-panel { grid-column: 1; grid-row: 1; }
   .ranking-panel { grid-column: 2; grid-row: 1 / span 2; }
   .side-stack {
     grid-column: 1;
     grid-row: 2;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: minmax(250px, 1fr);
     align-items: stretch;
   }
   .side-stack > .map-panel { min-height: 250px; }
@@ -787,22 +768,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 /* Tablets and phones: use a single dashboard column; the map and courts sit side by side. */
 @media (max-width: 840px) {
   .dashboard-grid {
-    min-height: 0;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto;
     overflow: visible;
-  }
-  .dashboard-grid > .trend-panel,
-  .dashboard-grid > .ranking-panel,
-  .dashboard-grid > .side-stack,
-  .dashboard-grid > .recent-panel {
-    grid-column: 1;
-    grid-row: auto;
-  }
-  .side-stack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: auto;
-    align-items: stretch;
   }
   .side-stack > .map-panel { min-height: 270px; }
   .side-stack > .court-panel { min-height: 180px; }
@@ -819,7 +785,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .side-stack > .court-panel { min-height: 180px; }
   .court-status-track { justify-content: flex-start; }
   .page-heading { gap: 10px; }
-  .heading-actions { width: 100%; justify-content: flex-start; }
   .heading-actions .btn { flex: 1 1 auto; }
 }
 
@@ -830,7 +795,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .global-search { width: min(122px, 34vw); }
   .breadcrumb { font-size: 10px; }
   .stats-grid { gap: 6px; }
-  .stat-card { padding: 9px 8px; }
   .stat-value { font-size: 19px; }
 }
 
@@ -1726,7 +1690,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 
 /* Registered court list, Philippine location picker and upright branded CourtMap markers. */
 .registered-courts-panel .panel-heading { margin-bottom: 12px; }
-.court-page-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.court-page-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .court-page-actions .court-action-pill { border-radius: 99px !important; }
 .registered-court-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .registered-court-card { min-width: 0; display: flex; align-items: flex-start; gap: 10px; padding: 12px 10px; border: 0 !important; border-radius: 12px; background: #f8faf7; box-shadow: none !important; }
@@ -1762,7 +1726,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .map-popup-court span { min-width: 0; display: grid; gap: 1px; }
 .map-popup-court strong { overflow-wrap: anywhere; font-size: 9px; }
 .map-popup-court small { color: #77847a; font-size: 7px; }
-.map-popup-correct-pin { display: inline-flex; width: max-content; max-width: 100%; padding: 0; border: 0; color: #176d3c; background: transparent; font: inherit; font-size: 8px; font-weight: 800; cursor: pointer; }
 .map-popup-correct-pin:hover { text-decoration: underline; }
 .map-location-pin img { width: 22px; height: 22px; border-radius: 6px; object-fit: contain; }
 .map-location-row.is-static { cursor: pointer; }
@@ -1783,14 +1746,10 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .court-page-actions .court-action-pill,
 .court-page-actions .btn-sm.btn-primary.court-action-pill,
 .court-page-actions .btn.btn-primary.court-action-pill {
-  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 38px !important;
-  min-height: 38px !important;
   padding: 0 16px !important;
-  line-height: 1 !important;
   border-radius: 99px !important;
 }
 .court-page-actions .court-action-pill svg { width: 13px; height: 13px; flex: 0 0 13px; }
@@ -1820,7 +1779,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   min-height: 38px !important;
   font-size: 11px !important;
   font-weight: 800 !important;
-  line-height: 1 !important;
 }
 
 
@@ -3651,6 +3609,25 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
     width: 100%;
     min-height: 0;
     align-self: stretch;
+  }
+}
+
+
+
+/* Dashboard responsive stability: prevent narrow-phone map/court squeeze.
+   Keep the tablet two-column side stack, but stack these panels on phones. */
+@media (max-width: 600px) {
+  .page-dashboard > .dashboard-grid > .side-stack {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+  .page-dashboard > .dashboard-grid > .side-stack > .map-panel {
+    min-width: 0;
+    min-height: 340px;
+  }
+  .page-dashboard > .dashboard-grid > .side-stack > .court-panel {
+    min-width: 0;
+    min-height: 205px;
   }
 }
 
