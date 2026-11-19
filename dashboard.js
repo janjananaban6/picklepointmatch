@@ -61,6 +61,7 @@ const state = {
 };
 
 let pendingPlayerImport = null;
+let pendingSessionImport = null;
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -2784,10 +2785,11 @@ function renderSessions() {
   const liveCount = state.data.sessions.filter(session => session.isLive).length;
   const completedCount = state.data.sessions.filter(session => !session.isLive).length;
   const attendanceCount = countAttendanceEntries();
-  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / OPEN PLAY', 'Open Play Sessions', 'Session history and live attendance synced from your original queueing system.', `<a class="btn btn-primary" href="/session" target="_blank" rel="noopener">${icon('plus')} Start Open Play</a>`)}
+  const sessionActions = `<button class="btn" type="button" data-action="import-sessions">${icon('upload')} Import CSV</button><button class="btn" type="button" data-action="export-sessions">${icon('download')} Export CSV</button><a class="btn btn-primary" href="/session" target="_blank" rel="noopener">${icon('plus')} Start Open Play</a><input id="sessionCsvImportFile" type="file" accept=".csv,text/csv" hidden>`;
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / OPEN PLAY', 'Open Play Sessions', 'Session history and live attendance synced from your original queueing system.', sessionActions)}
     <div class="metric-grid"><div class="metric-tile"><span>Live sessions</span>${metricCount('sessions', 'live-sessions', liveCount)}</div><div class="metric-tile"><span>Completed sessions</span>${metricCount('sessions', 'completed-sessions', completedCount)}</div><div class="metric-tile"><span>Total attendance</span>${metricCount('sessions', 'total-attendance', attendanceCount)}</div><div class="metric-tile"><span>Recorded matches</span>${metricCount('sessions', 'recorded-matches', state.data.matches.length)}</div></div>
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Session History', 'calendar')}<div class="toolbar"><select class="select-control" id="sessionStatusFilter" aria-label="Filter sessions"><option value="all" ${state.filters.sessionStatus === 'all' ? 'selected' : ''}>All sessions</option><option value="Live" ${state.filters.sessionStatus === 'Live' ? 'selected' : ''}>Live</option><option value="Completed" ${state.filters.sessionStatus === 'Completed' ? 'selected' : ''}>Completed</option></select></div></div><div class="session-list">${all.length ? all.map(sessionCard).join('') : emptyState('No sessions found', 'Start an open-play session in the existing Session Setup page.')}</div></section>
-    <p class="page-note">The original queueing system creates a session when an organizer starts Open Play. This dashboard does not create a separate, duplicate session record.</p></div>`;
+    <p class="page-note">The original queueing system creates a session when an organizer starts Open Play. Session CSV files include attendance and linked match records so their session IDs remain connected on import. Imported sessions are saved as completed history and do not start a live queue.</p></div>`;
 }
 function playersTable(players) {
   if (!players.length) return emptyState('No registered players yet', 'Players added through the player registration page will appear here.', 'Open registration', 'register-player');
@@ -3323,6 +3325,200 @@ async function confirmPlayerImport(button) {
       button.innerHTML = `${icon('download')} Import ${readyRows.length} Player${readyRows.length === 1 ? '' : 's'}`;
     }
   }
+}
+
+function parseSessionImportCsv(text) {
+  const source = String(text || '').replace(/^\uFEFF/, '');
+  const rows = [];
+  let row = [], field = '', quoted = false;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (quoted) {
+      if (char === '"' && source[index + 1] === '"') { field += '"'; index += 1; }
+      else if (char === '"') quoted = false;
+      else field += char;
+    } else if (char === '"' && field.length === 0) quoted = true;
+    else if (char === ',') { row.push(field); field = ''; }
+    else if (char === '\n' || char === '\r') {
+      if (char === '\r' && source[index + 1] === '\n') index += 1;
+      row.push(field); field = '';
+      if (row.some(value => String(value).trim() !== '')) rows.push(row);
+      row = [];
+    } else field += char;
+  }
+  if (field !== '' || row.length) {
+    row.push(field);
+    if (row.some(value => String(value).trim() !== '')) rows.push(row);
+  }
+  if (rows.length < 2) throw new Error('The CSV does not contain any session rows.');
+
+  const normalizeHeader = value => String(value || '').trim().toLocaleLowerCase().replace(/[^a-z0-9]/g, '');
+  const headers = rows.shift().map(normalizeHeader);
+  const findColumn = aliases => headers.findIndex(header => aliases.includes(header));
+  const columns = {
+    id: findColumn(['sessionid', 'id']),
+    name: findColumn(['sessionname', 'name', 'title', 'event']),
+    startedAt: findColumn(['startedat', 'startdate', 'startdatetime', 'date', 'sessiondate']),
+    endedAt: findColumn(['endedat', 'enddate', 'enddatetime']),
+    location: findColumn(['location', 'venue', 'duprlocation']),
+    latitude: findColumn(['latitude', 'lat']),
+    longitude: findColumn(['longitude', 'lon', 'lng']),
+    participants: findColumn(['participantsjson', 'attendeesjson', 'participants', 'attendees', 'players']),
+    matches: findColumn(['matchesjson', 'linkedmatchesjson', 'matchlogsjson']),
+    duprMatch: findColumn(['duprmatch', 'isduprmatch'])
+  };
+  if (columns.name < 0) throw new Error('A Session Name column is required in the CSV.');
+  const valueAt = (values, column) => column < 0 ? '' : String(values[column] ?? '').trim();
+  const parseDate = (value, label, rowNumber) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (!Number.isFinite(parsed.getTime())) throw new Error(`Row ${rowNumber}: ${label} is not a valid date and time.`);
+    return parsed.toISOString();
+  };
+  const parseJsonArray = (value, label, rowNumber) => {
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(value);
+      if (!Array.isArray(parsed)) throw new Error('must be a JSON array');
+      return parsed;
+    } catch (error) {
+      throw new Error(`Row ${rowNumber}: ${label} must contain a valid JSON array.`);
+    }
+  };
+
+  return rows.map((values, index) => {
+    const rowNumber = index + 2;
+    const name = valueAt(values, columns.name).normalize('NFC').replace(/\s+/g, ' ').trim();
+    const id = valueAt(values, columns.id) || `session-import-${Date.now()}-${index + 1}`;
+    const startedAt = parseDate(valueAt(values, columns.startedAt), 'Started At', rowNumber);
+    const endedAt = parseDate(valueAt(values, columns.endedAt), 'Ended At', rowNumber);
+    const latitude = Number(valueAt(values, columns.latitude));
+    const longitude = Number(valueAt(values, columns.longitude));
+    const hasCoordinates = valueAt(values, columns.latitude) !== '' && valueAt(values, columns.longitude) !== '' && Number.isFinite(latitude) && Number.isFinite(longitude);
+    const participantValue = valueAt(values, columns.participants);
+    let participants = [];
+    if (participantValue) {
+      if (participantValue.startsWith('[')) {
+        participants = parseJsonArray(participantValue, 'Participants JSON', rowNumber);
+      } else {
+        participants = participantValue.split(/[;|]/).map(name => name.trim()).filter(Boolean).map((name, participantIndex) => ({ id: `imported-attendee-${participantIndex + 1}`, name }));
+      }
+    }
+    const matches = parseJsonArray(valueAt(values, columns.matches), 'Matches JSON', rowNumber);
+    const locationCoordinates = hasCoordinates ? { lat: latitude, lon: longitude, label: valueAt(values, columns.location), countrycode: 'PH', source: 'csv-import', verified: false } : null;
+    const session = {
+      id: id.slice(0, 200),
+      sessionName: name,
+      startedAt,
+      endedAt,
+      duprLocation: valueAt(values, columns.location),
+      duprLocationCoordinates: locationCoordinates,
+      duprMatch: ['true', '1', 'yes'].includes(valueAt(values, columns.duprMatch).toLowerCase()),
+      participants
+    };
+    return { rowNumber, session, matches };
+  });
+}
+
+function analyzeSessionImportRows(rows) {
+  const existingIds = new Set(asArray(state.data?.sessions).map(session => String(session.id || '')));
+  const seenIds = new Set();
+  return rows.map(row => {
+    const id = String(row.session.id || '');
+    if (!row.session.sessionName) return { ...row, status: 'invalid', reason: 'Session name is required.' };
+    if (!id) return { ...row, status: 'invalid', reason: 'Session ID is missing.' };
+    if (existingIds.has(id) || seenIds.has(id)) return { ...row, status: 'duplicate', reason: 'Session ID already exists.' };
+    seenIds.add(id);
+    return { ...row, status: 'ready', reason: '' };
+  });
+}
+
+function sessionImportReviewMarkup() {
+  const rows = asArray(pendingSessionImport?.rows);
+  const ready = rows.filter(row => row.status === 'ready').length;
+  const duplicates = rows.filter(row => row.status === 'duplicate').length;
+  const invalid = rows.filter(row => row.status === 'invalid').length;
+  const totalPlayers = rows.filter(row => row.status === 'ready').reduce((sum, row) => sum + asArray(row.session.participants).length, 0);
+  const totalMatches = rows.filter(row => row.status === 'ready').reduce((sum, row) => sum + row.matches.length, 0);
+  const tableRows = rows.map((row, index) => {
+    const playerCount = asArray(row.session.participants).length;
+    const statusClass = row.status;
+    const statusLabel = row.status === 'ready' ? 'Ready to import' : row.status === 'duplicate' ? 'Duplicate · skipped' : `Invalid · ${row.reason}`;
+    return `<tr class="session-import-row-${statusClass}"><td class="session-import-index" aria-label="Row ${index + 1}">${index + 1}</td><td class="primary-cell session-import-name-cell"><strong class="session-import-name">${escapeHTML(row.session.sessionName || 'Unnamed session')}</strong><small class="session-import-id">${escapeHTML(row.session.id)}</small><span class="player-import-status ${statusClass === 'ready' ? 'ready' : statusClass === 'duplicate' ? 'duplicate' : 'invalid'}">${escapeHTML(statusLabel)}</span></td><td class="session-import-value-cell session-import-date" data-label="Date">${escapeHTML(row.session.startedAt ? fmtDate(row.session.startedAt) : '—')}</td><td class="session-import-value-cell session-import-count" data-label="Players"><strong>${playerCount}</strong></td><td class="session-import-value-cell session-import-count" data-label="Matches"><strong>${row.matches.length}</strong></td></tr>`;
+  }).join('');
+  return `<div class="player-import-layout session-import-layout"><div class="metric-grid session-import-summary"><div class="metric-tile"><span>Ready sessions</span><strong>${ready}</strong></div><div class="metric-tile"><span>Duplicate / skipped</span><strong>${duplicates}</strong></div><div class="metric-tile"><span>Players</span><strong>${totalPlayers}</strong></div><div class="metric-tile"><span>Linked matches</span><strong>${totalMatches}</strong></div></div>${invalid ? `<div class="player-import-alert"><span class="player-import-alert-icon">${icon('info')}</span><div><strong>${invalid} invalid session row${invalid === 1 ? '' : 's'}</strong><span>Rows without a session name will be skipped.</span></div></div>` : ''}<div class="player-import-table-wrap"><table class="data-table session-import-table"><colgroup><col style="width:6%"><col style="width:39%"><col style="width:27%"><col style="width:14%"><col style="width:14%"></colgroup><thead><tr><th>#</th><th>Session</th><th>Date</th><th>Players</th><th>Matches</th></tr></thead><tbody>${tableRows}</tbody></table></div><div class="player-import-footer"><span>Importing restores attendance and linked match records. Imported sessions are saved as completed history.</span><div><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="button" class="btn btn-primary" data-action="confirm-session-import" ${ready ? '' : 'disabled'}>${icon('upload')} Import ${ready} Session${ready === 1 ? '' : 's'}</button></div></div></div>`;
+}
+
+function openSessionImportReview(filename, rows) {
+  pendingSessionImport = { filename, rows: analyzeSessionImportRows(rows) };
+  modal('Import Open Play Sessions', sessionImportReviewMarkup(), { wide: true, className: 'player-import-modal session-import-modal', subtitle: `Review ${filename} before adding session history to your shared cloud.` });
+}
+
+async function handleSessionCsvFile(file) {
+  if (!file) return;
+  if (!/\.csv$/i.test(file.name) && file.type && !/csv|comma-separated/i.test(file.type)) { toast('Please choose a CSV file.', 'error'); return; }
+  if (file.size > 12 * 1024 * 1024) { toast('The CSV file is too large. Choose a file smaller than 12 MB.', 'error'); return; }
+  try {
+    const rows = parseSessionImportCsv(await file.text());
+    if (rows.length > 1000) throw new Error('A maximum of 1,000 session rows can be imported at one time.');
+    const matchCount = rows.reduce((sum, row) => sum + row.matches.length, 0);
+    if (matchCount > 10000) throw new Error('A maximum of 10,000 linked match rows can be imported at one time.');
+    openSessionImportReview(file.name, rows);
+  } catch (error) { toast(error.message || 'Unable to read this session CSV file.', 'error'); }
+}
+
+async function confirmSessionImport(button) {
+  const readyRows = asArray(pendingSessionImport?.rows).filter(row => row.status === 'ready');
+  if (!readyRows.length) return;
+  button.disabled = true;
+  button.innerHTML = 'Importing…';
+  try {
+    const sessions = readyRows.map(row => row.session);
+    const matches = readyRows.flatMap(row => row.matches.map(match => ({ ...match, sessionId: row.session.id })));
+    const response = await api('/api/organizer-dashboard/sessions/import', {
+      method: 'POST',
+      body: JSON.stringify({ sessions, matches })
+    });
+    await refreshData({ silent: true });
+    closeModal();
+    pendingSessionImport = null;
+    const summary = [`Imported ${Number(response.importedCount) || 0} session${Number(response.importedCount) === 1 ? '' : 's'}`];
+    if (Number(response.importedMatchCount)) summary.push(`${Number(response.importedMatchCount)} linked match${Number(response.importedMatchCount) === 1 ? '' : 'es'}`);
+    if (Number(response.duplicateCount)) summary.push(`${Number(response.duplicateCount)} duplicate session${Number(response.duplicateCount) === 1 ? '' : 's'} skipped`);
+    if (Number(response.invalidCount)) summary.push(`${Number(response.invalidCount)} invalid row${Number(response.invalidCount) === 1 ? '' : 's'} skipped`);
+    toast(summary.join(' · '));
+  } catch (error) {
+    toast(error.message || 'Unable to import Open Play Sessions.', 'error');
+    if (button.isConnected) { button.disabled = false; button.innerHTML = `${icon('upload')} Import ${readyRows.length} Session${readyRows.length === 1 ? '' : 's'}`; }
+  }
+}
+
+function exportSessions() {
+  const headers = ['Session ID', 'Session Name', 'Started At', 'Ended At', 'Location', 'Latitude', 'Longitude', 'DUPR Match', 'Participants JSON', 'Matches JSON'];
+  const rows = asArray(state.data?.sessions).map(session => {
+    const attendees = asArray(session.attendees).map(person => ({
+      id: person.id,
+      registeredCloudId: person.playerId || '',
+      name: person.name || person.playerName || '',
+      nickname: person.nickname || '',
+      gender: person.gender || '',
+      category: person.category || '',
+      avatarId: person.avatarId || '',
+      duprId: person.duprId || ''
+    }));
+    const linkedMatches = asArray(state.data?.matches).filter(match => String(match.sessionId) === String(session.id)).map(match => ({
+      ...(match.raw || {}),
+      id: match.id,
+      sessionId: session.id,
+      team1Names: asArray(match.teamANames),
+      team2Names: asArray(match.teamBNames)
+    }));
+    const coordinates = normalizeMapLocationCoordinates(session.locationCoordinates || session.raw?.duprLocationCoordinates || session.raw?.locationCoordinates);
+    const location = session.location || session.raw?.duprLocation || session.raw?.location || '';
+    return [session.id, session.title || session.sessionName || '', session.startedAt || '', session.endedAt || '', location, coordinates?.lat ?? '', coordinates?.lon ?? '', session.raw?.duprMatch === true, JSON.stringify(attendees), JSON.stringify(linkedMatches)];
+  });
+  downloadCSV('pickle-point-match-open-play-sessions.csv', headers, rows);
+  toast(`Exported ${rows.length} session${rows.length === 1 ? '' : 's'} with attendance and linked match records.`);
 }
 
 function exportPlayers() {
@@ -4084,6 +4280,9 @@ document.addEventListener('click', async event => {
     if (action === 'import-players') { $('#playerCsvImportFile')?.click(); return; }
     if (action === 'confirm-player-import') { await confirmPlayerImport(actionButton); return; }
     if (action === 'export-players') { exportPlayers(); return; }
+    if (action === 'import-sessions') { $('#sessionCsvImportFile')?.click(); return; }
+    if (action === 'confirm-session-import') { await confirmSessionImport(actionButton); return; }
+    if (action === 'export-sessions') { exportSessions(); return; }
     if (action === 'export-dupr') { exportDuprMatches(); return; }
     if (action === 'edit-settings') { openOrganizerSettings(); return; }
     if (action === 'register-court') { openRegisterCourtModal(); return; }
@@ -4531,6 +4730,12 @@ document.addEventListener('change', async event => {
     const file = target.files?.[0];
     target.value = '';
     await handlePlayerCsvFile(file);
+    return;
+  }
+  if (target.id === 'sessionCsvImportFile') {
+    const file = target.files?.[0];
+    target.value = '';
+    await handleSessionCsvFile(file);
     return;
   }
   if (target.id === 'mapModalSessionSelect') { setMapModalSession(target.value); return; }

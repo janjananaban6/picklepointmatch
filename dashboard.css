@@ -2371,6 +2371,15 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 }
 
 /* Portrait phones and narrow portrait tablets. */
+/* Final Open Play import polish: keep count values unboxed and pill the confirm action. */
+.session-import-modal .session-import-table tbody td.session-import-value-cell.session-import-count strong {
+  border: 0 !important;
+  background: transparent !important;
+}
+.session-import-modal button[data-action="confirm-session-import"] {
+  border-radius: 99px !important;
+}
+
 @media screen and (max-width: 700px) and (orientation: portrait) {
   .modal-root:has(.player-import-modal) {
     padding: 6px;
@@ -2666,4 +2675,384 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
     padding: 2px 1px !important;
     font-size: 6px !important;
   }
+}
+
+
+/* Open Play Sessions CSV import review: readable table on desktop, compact cards on phones. */
+.session-import-layout { gap: 12px; }
+.session-import-summary { min-width: 0; }
+.session-import-summary .metric-tile { min-width: 0; }
+.session-import-summary .metric-tile > strong {
+  display: block;
+  margin-top: 5px;
+  color: #25352a;
+  font-size: 19px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.session-import-id {
+  display: block;
+  max-width: 100%;
+  margin-top: 4px;
+  color: #87938a;
+  font-size: 8px;
+  font-weight: 550;
+  line-height: 1.35;
+  letter-spacing: .08px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.modal-card.session-import-modal {
+  width: min(900px, calc(100vw - 28px));
+  max-width: 900px;
+  max-height: min(84dvh, 760px);
+}
+.session-import-modal,
+.session-import-modal * { box-sizing: border-box; }
+.session-import-modal .modal-header {
+  flex: 0 0 auto;
+  padding: 11px 16px;
+  background: #fff;
+}
+.session-import-modal .modal-header h2 {
+  color: #24352a;
+  font-size: 14px;
+  font-weight: 800;
+}
+.session-import-modal .modal-body {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+}
+.session-import-modal .session-import-layout {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  gap: 12px;
+}
+.session-import-modal .session-import-summary {
+  flex: 0 0 auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  padding: 11px 16px 0;
+}
+.session-import-modal .session-import-summary .metric-tile {
+  padding: 11px 12px;
+  border-color: #e8eee7;
+  border-radius: 10px;
+  background: #fbfdfb;
+}
+.session-import-modal .session-import-summary .metric-tile > span {
+  color: #7d8980;
+  font-size: 8px;
+  line-height: 1.3;
+}
+.session-import-modal .session-import-summary .metric-tile > strong {
+  margin-top: 5px;
+  color: #25352a;
+  font-size: 19px;
+}
+.session-import-modal .player-import-table-wrap {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 100px;
+  max-height: min(40dvh, 380px);
+  margin: 0 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid #e6ece5;
+  border-radius: 10px;
+  background: #fff;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+.session-import-modal table.data-table.session-import-table {
+  display: table;
+  width: 100%;
+  min-width: 0 !important;
+  max-width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+}
+.session-import-modal .session-import-table col:nth-child(1) { width: 6%; }
+.session-import-modal .session-import-table col:nth-child(2) { width: 39%; }
+.session-import-modal .session-import-table col:nth-child(3) { width: 27%; }
+.session-import-modal .session-import-table col:nth-child(4) { width: 14%; }
+.session-import-modal .session-import-table col:nth-child(5) { width: 14%; }
+.session-import-modal .session-import-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-width: 0;
+  padding: 10px 9px;
+  color: #738176;
+  background: #f5f8f4;
+  border-bottom: 1px solid #e5ece3;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: .18px;
+  text-align: center;
+  white-space: nowrap;
+}
+.session-import-modal .session-import-table thead th:nth-child(2),
+.session-import-modal .session-import-table thead th:nth-child(3) { text-align: left; }
+.session-import-modal .session-import-table tbody tr { background: #fff; transition: background-color .15s ease; }
+.session-import-modal .session-import-table tbody tr:hover { background: #fbfef9; }
+.session-import-modal .session-import-table tbody td {
+  min-width: 0;
+  padding: 11px 9px;
+  color: #536158;
+  border-bottom: 1px solid #edf1ec;
+  font-size: 10px;
+  line-height: 1.4;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.session-import-modal .session-import-table tbody tr:last-child td { border-bottom: 0; }
+.session-import-modal .session-import-table .session-import-index {
+  color: #8a978e;
+  font-size: 9px;
+  font-weight: 800;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.session-import-modal .session-import-table .session-import-name-cell {
+  color: #2d3d32;
+  text-align: left;
+}
+.session-import-modal .session-import-name {
+  display: block;
+  color: #2d3d32;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.session-import-modal .session-import-id { font-size: 8px; }
+.session-import-modal .session-import-table .player-import-status {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 3px 7px;
+  border-radius: 99px;
+  font-size: 7px;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.session-import-modal .session-import-value-cell { text-align: center; }
+.session-import-modal .session-import-date {
+  color: #526157;
+  text-align: left;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+.session-import-modal .session-import-count strong {
+  display: inline-grid;
+  min-width: 28px;
+  min-height: 25px;
+  place-items: center;
+  padding: 0 7px;
+  border: 1px solid #e3eee0;
+  border-radius: 8px;
+  color: #2e7041;
+  background: #f4faf1;
+  font-size: 10px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.session-import-modal .session-import-row-duplicate td { background: #fffaf1; }
+.session-import-modal .session-import-row-invalid td { background: #fff7f7; }
+.session-import-modal .session-import-row-duplicate:hover td { background: #fff7e9; }
+.session-import-modal .session-import-row-invalid:hover td { background: #fff0f0; }
+.session-import-modal .player-import-footer { flex: 0 0 auto; }
+
+/* Portrait devices: make each table row a clear summary card instead of squeezing five columns. */
+@media screen and (max-width: 700px) and (orientation: portrait) {
+  .modal-root:has(.session-import-modal) { padding: 6px; }
+  .modal-card.session-import-modal {
+    width: calc(100vw - 12px);
+    max-width: calc(100vw - 12px);
+    max-height: min(90dvh, calc(100dvh - 12px));
+    border-radius: 11px;
+  }
+  .session-import-modal .modal-header { padding: 9px 11px; }
+  .session-import-modal .modal-header h2 { font-size: 13px; }
+  .session-import-modal .session-import-layout { gap: 9px; }
+  .session-import-modal .session-import-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    padding: 9px 10px 0;
+  }
+  .session-import-modal .session-import-summary .metric-tile { padding: 8px 9px; }
+  .session-import-modal .session-import-summary .metric-tile > span { font-size: 8px; }
+  .session-import-modal .session-import-summary .metric-tile > strong { margin-top: 4px; font-size: 16px; }
+  .session-import-modal .player-import-table-wrap {
+    min-height: 90px;
+    max-height: min(38dvh, 340px);
+    margin: 0 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .session-import-modal table.data-table.session-import-table {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+    border: 0;
+    border-spacing: 0;
+    background: transparent;
+  }
+  .session-import-modal .session-import-table thead { display: none; }
+  .session-import-modal .session-import-table tbody {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+  }
+  .session-import-modal .session-import-table tbody tr {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: 28px repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto auto;
+    grid-template-areas: "index session session session" "index date players matches";
+    overflow: hidden;
+    border: 1px solid #e6ece5;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 7px rgba(28, 63, 35, .035);
+  }
+  .session-import-modal .session-import-table tbody tr:hover { background: #fff; }
+  .session-import-modal .session-import-table tbody td {
+    display: flex;
+    min-width: 0;
+    padding: 8px 7px;
+    border: 0;
+    font-size: 9px;
+    line-height: 1.3;
+  }
+  .session-import-modal .session-import-table tbody td.session-import-index {
+    grid-area: index;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px 4px;
+    border-right: 1px solid #edf1ec;
+    color: #8a978e;
+    background: #f7faf6;
+    font-size: 9px;
+  }
+  .session-import-modal .session-import-table tbody td.session-import-name-cell {
+    grid-area: session;
+    padding: 10px 10px 8px;
+    border-bottom: 1px solid #edf1ec;
+    text-align: left;
+  }
+  .session-import-modal .session-import-name { font-size: 10px; }
+  .session-import-modal .session-import-id { margin-top: 3px; font-size: 7.5px; }
+  .session-import-modal .session-import-table .player-import-status { margin-top: 5px; padding: 3px 6px; font-size: 7px; }
+  .session-import-modal .session-import-table tbody td.session-import-date {
+    grid-area: date;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .session-import-modal .session-import-table tbody td.session-import-count:nth-child(4) { grid-area: players; }
+  .session-import-modal .session-import-table tbody td.session-import-count:nth-child(5) { grid-area: matches; }
+  .session-import-modal .session-import-table tbody td[data-label] {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .session-import-modal .session-import-table tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    color: #8b978e;
+    font-size: 7px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: .25px;
+    text-transform: uppercase;
+  }
+  .session-import-modal .session-import-table tbody td.session-import-value-cell {
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 0;
+    padding: 8px 7px 9px;
+    color: #536158;
+    font-size: 8.5px;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+  .session-import-modal .session-import-table .session-import-count strong {
+    min-width: 23px;
+    min-height: 22px;
+    padding: 0 6px;
+    font-size: 9px;
+  }
+  .session-import-modal .session-import-row-duplicate td,
+  .session-import-modal .session-import-row-invalid td { background: transparent; }
+  .session-import-modal .session-import-row-duplicate td.session-import-index { background: #fff8e9; }
+  .session-import-modal .session-import-row-invalid td.session-import-index { background: #fff0f0; }
+  .session-import-modal .player-import-footer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+    padding: 8px 10px 10px;
+  }
+  .session-import-modal .player-import-footer > span { max-width: none; font-size: 8px; }
+  .session-import-modal .player-import-footer > div { width: 100%; justify-content: stretch; gap: 5px; }
+  .session-import-modal .player-import-footer .btn {
+    min-width: 0;
+    min-height: 30px;
+    height: 30px;
+    flex: 1 1 0;
+    padding-inline: 7px;
+    font-size: 8px;
+  }
+  .session-import-modal .player-import-footer .btn-primary { flex: 1 1 100%; }
+}
+
+@media screen and (max-width: 360px) and (orientation: portrait) {
+  .session-import-modal .player-import-table-wrap { margin-inline: 8px; }
+  .session-import-modal .session-import-table tbody tr { grid-template-columns: 24px repeat(3, minmax(0, 1fr)); }
+  .session-import-modal .session-import-table tbody td.session-import-value-cell { padding-inline: 5px; font-size: 8px; }
+  .session-import-modal .session-import-table .session-import-count strong { min-width: 21px; min-height: 21px; }
+}
+
+@media screen and (min-width: 701px) and (max-width: 850px) {
+  .modal-root:has(.session-import-modal) { padding: 12px; }
+  .modal-card.session-import-modal {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+  }
+}
+
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  .modal-root:has(.session-import-modal) { padding: 6px 10px; }
+  .modal-card.session-import-modal {
+    width: min(900px, calc(100vw - 20px));
+    max-width: calc(100vw - 20px);
+    max-height: calc(100dvh - 12px);
+    border-radius: 10px;
+  }
+  .session-import-modal .modal-header { padding: 6px 11px; }
+  .session-import-modal .modal-header h2 { font-size: 12px; }
+  .session-import-modal .session-import-summary { padding: 5px 11px 0; }
 }
