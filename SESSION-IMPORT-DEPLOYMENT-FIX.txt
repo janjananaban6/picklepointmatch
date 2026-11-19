@@ -1,0 +1,41 @@
+PICKLE POINT MATCH — SESSION CSV IMPORT DEPLOYMENT FIX
+Build: ppm-session-import-20261119-v3
+
+WHY THE WARNING APPEARS
+The dashboard received HTTP 405 from POST /api/organizer-dashboard/sessions/import.
+That usually means the dashboard JavaScript is newer than the Node server currently
+running on Render, or a rewrite/proxy is rejecting the POST before it reaches server.js.
+The import route is implemented in this server.js build.
+
+IMPORTANT: DEPLOY TO THE EXISTING SERVICE
+1. Back up the current GitHub repository and the existing Render PostgreSQL database.
+2. Update the SAME GitHub repository and SAME deployment branch used by the existing
+   Render web service. Do not create a second Render service or database.
+3. The repository/service Root Directory must contain package.json, package-lock.json,
+   server.js, render.yaml, dashboard.html, dashboard.js, dashboard.css, and the other
+   app files directly. Do not leave them one folder deeper unless Root Directory is set
+   to that exact folder.
+4. Keep the current DATABASE_URL, SESSION_SECRET, and organizer credentials unchanged.
+5. Confirm the Render build command is `npm install --omit=dev` and the start command is
+   `npm start` (or retain equivalent known-good commands already configured).
+6. In Render, open the existing web service and choose Manual Deploy > Clear build cache
+   & deploy. Wait for the deployment to finish successfully, then refresh /manage.
+
+VERIFY THE BACKEND BEFORE IMPORTING
+Open this URL on the SAME Render domain used by /manage:
+  /api/health
+The JSON must include:
+  "build": "ppm-session-import-20261119-v3"
+  "capabilities": { "sessionImport": true }
+If either value is missing, Render is still running an older server.js or the wrong
+service/Root Directory/branch was deployed. Do not retry CSV import until it matches.
+
+If /api/health shows the expected build and capability but import still returns 405,
+inspect Render Logs and any proxy/rewrite rules: the POST is being blocked or rewritten
+before the route handler receives it. The dashboard now reports this case separately.
+
+DATA SAFETY
+This is a source-only package. It intentionally excludes runtime `data/` records and
+`node_modules/`. Keep the existing Render PostgreSQL DATABASE_URL unchanged so current
+hosted player, attendance, session, and match data remain attached to the same database.
+Do not commit local organizer account JSON, player data, .env files, or secrets to GitHub.

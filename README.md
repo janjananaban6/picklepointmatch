@@ -6,6 +6,14 @@ The HUSAY DINKERS management dashboard at `/manage` is the single organizer dash
 
 If the original queueing system is already online on Render, deploy this project to the **same GitHub repository/branch and the same Render web service**. Keep the existing `DATABASE_URL`, `SESSION_SECRET`, organizer accounts and other environment variables. Do not create a new database or Blueprint for the dashboard.
 
+## Session CSV import backend verification
+
+The session CSV importer uses `POST /api/organizer-dashboard/sessions/import` in `server.js`.
+After deploying, verify `/api/health` on the same Render domain: it must report build
+`ppm-session-import-20261119-v3` and `capabilities.sessionImport: true`. If not, the
+existing Render service is still running an older backend or the wrong repository branch
+or Root Directory was deployed. See `SESSION-IMPORT-DEPLOYMENT-FIX.txt`.
+
 ## Main management dashboard
 
 - `/manage` — only organizer management dashboard.

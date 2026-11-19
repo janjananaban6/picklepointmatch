@@ -5,6 +5,7 @@ const { URL } = require('node:url');
 const crypto = require('node:crypto');
 
 const ROOT = __dirname;
+const APP_BUILD_VERSION = 'ppm-session-import-20261119-v3';
 const DATA_DIR = process.env.PICKLE_DATA_DIR ? path.resolve(process.env.PICKLE_DATA_DIR) : path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'live-state.json');
 const THEME_FILE = path.join(DATA_DIR, 'live-theme.json');
@@ -893,6 +894,7 @@ function sendJson(res, status, data) {
 }
 function setSecurityHeaders(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-PPM-Build', APP_BUILD_VERSION);
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
@@ -1316,6 +1318,17 @@ async function readBody(req, limit = 2 * 1024 * 1024) {
 async function handle(req, res) {
   setSecurityHeaders(req, res);
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  // Normalize the session-import path before route matching. This tolerates
+  // a trailing slash and percent-encoded path segments preserved by a proxy.
+  let decodedRequestPath = url.pathname;
+  try { decodedRequestPath = decodeURIComponent(url.pathname); } catch (_) {}
+  const normalizedRequestPath = (decodedRequestPath.length > 1 ? decodedRequestPath.replace(/\/+$/, '') : decodedRequestPath).toLowerCase();
+  const isSessionImportApi = normalizedRequestPath === '/api/organizer-dashboard/sessions/import';
+  if (isSessionImportApi && req.method === 'OPTIONS') {
+    res.setHeader('Allow', 'POST, OPTIONS');
+    res.writeHead(204, {'Cache-Control':'no-store'});
+    return res.end();
+  }
   const isPrivilegedMutation = !['GET','HEAD','OPTIONS'].includes(req.method) && (
     url.pathname.startsWith('/api/panel/') ||
     url.pathname.startsWith('/api/organizer-dashboard') ||
@@ -1832,6 +1845,9 @@ async function handle(req, res) {
   if (url.pathname === '/api/health' && req.method === 'GET') return sendJson(res, 200, {
     ok:true,
     service:'Pickle Point Match Live View',
+    build:APP_BUILD_VERSION,
+    capabilities:{sessionImport:true},
+    sessionImportEndpoint:'/api/organizer-dashboard/sessions/import',
     storage:dbPool ? 'postgresql' : 'json-file'
   });
   if (url.pathname === '/api/live-theme' && req.method === 'GET') return sendJson(res, 200, {ok:true,theme:liveTheme});
@@ -2031,6 +2047,309 @@ async function handle(req, res) {
       updatedAt:sharedCloudUpdatedAt
     });
   }
+  if (url.pathname === '/api/organizer-dashboard/players/import' && req.method === 'POST') {
+    const auth = getAuthSession(req);
+    if (auth?.role !== 'organizer' || !auth.organizerId) {
+      return sendJson(res,401,{ok:false,error:'Organizer login required.'});
+    }
+    try {
+      const body = await readBody(req,8 * 1024 * 1024);
+      const incomingPlayers = Array.isArray(body?.players) ? body.players : null;
+      if (!incomingPlayers) return sendJson(res,400,{ok:false,error:'Invalid player import data.'});
+      if (!incomingPlayers.length) return sendJson(res,400,{ok:false,error:'No player rows were provided for import.'});
+      if (incomingPlayers.length > 5000) return sendJson(res,400,{ok:false,error:'A maximum of 5,000 player rows can be imported at one time.'});
+
+      return await withRegisteredPlayerCommitLock(async () => {
+        const savedPlayers = await loadRegisteredPlayersCsv();
+        const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
+        const currentPlayers = Array.isArray(savedPlayers)
+          ? savedPlayers
+          : (Array.isArray(currentRecords.players) ? currentRecords.players : []);
+        const nameIndex = new Map();
+        const duprIndex = new Map();
+        const usedCloudIds = new Set();
+        const rememberPlayer = player => {
+          const nameKey = normalizePlayerName(player?.name);
+          const duprKey = registeredCloudDuprId(player);
+          if (nameKey && !nameIndex.has(nameKey)) nameIndex.set(nameKey,player);
+          if (duprKey && !duprIndex.has(duprKey)) duprIndex.set(duprKey,player);
+          const cloudId = Number(player?.cloudId ?? player?.id);
+          if (Number.isSafeInteger(cloudId) && cloudId > 0) usedCloudIds.add(cloudId);
+        };
+        currentPlayers.forEach(rememberPlayer);
+
+        const importedPlayers = [];
+        const duplicates = [];
+        let invalidCount = 0;
+        for (let index = 0; index < incomingPlayers.length; index += 1) {
+          const source = incomingPlayers[index];
+          if (!source || typeof source !== 'object' || Array.isArray(source)) {
+            invalidCount += 1;
+            continue;
+          }
+          const incoming = withoutOpgFields(source);
+          const name = String(incoming?.name || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,120);
+          if (!name) {
+            invalidCount += 1;
+            continue;
+          }
+          const duprId = String(incoming?.duprId ?? incoming?.duprID ?? incoming?.dupr_id ?? incoming?.dupr ?? '')
+            .trim().replace(/^DUPR\s*:\s*/i,'').replace(/\s+/g,'').toUpperCase().slice(0,40);
+          const nameKey = normalizePlayerName(name);
+          const duprKey = registeredCloudDuprId({duprId});
+          const nameMatch = nameIndex.get(nameKey);
+          const duprMatch = duprKey ? duprIndex.get(duprKey) : null;
+          if (nameMatch || duprMatch) {
+            const matches = [nameMatch,duprMatch].filter(Boolean);
+            const existingNames = [...new Set(matches.map(player => String(player?.name || '').trim()).filter(Boolean))];
+            duplicates.push({
+              rowNumber:index + 2,
+              name,
+              duprId,
+              matchedBy:nameMatch && duprMatch ? 'Name + DUPR ID' : (nameMatch ? 'Name' : 'DUPR ID'),
+              existingName:existingNames.join(' / ') || 'Already registered'
+            });
+            continue;
+          }
+
+          let cloudId = Number(incoming.cloudId ?? incoming.id);
+          if (!Number.isSafeInteger(cloudId) || cloudId <= 0 || usedCloudIds.has(cloudId)) {
+            do { cloudId = Date.now() + Math.floor(Math.random() * 100000); }
+            while (usedCloudIds.has(cloudId));
+          }
+          const registeredAtValue = incoming.registeredAt ?? incoming.registered_at ?? incoming.createdAt ?? incoming.created_at;
+          const registeredAtDate = registeredAtValue ? new Date(registeredAtValue) : null;
+          const registeredAt = registeredAtDate && Number.isFinite(registeredAtDate.getTime())
+            ? registeredAtDate.toISOString()
+            : new Date().toISOString();
+          const gender = String(incoming.gender || '').trim().slice(0,20);
+          const imported = {
+            cloudId,
+            registeredAt,
+            name,
+            nickname:String(incoming.nickname || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,80),
+            gender,
+            category:String(incoming.category || 'Unspecified').trim().slice(0,30),
+            avatarId:normalizeAvatarId(incoming.avatarId ?? incoming.avatarID ?? incoming.avatar_id) || fallbackAvatarIdForPlayer({name,gender}),
+            duprId,
+            selfRating:String(incoming.selfRating ?? incoming.self_rating ?? '').trim().slice(0,40),
+            matches:Math.max(0,Math.floor(Number(incoming.matches) || 0)),
+            wins:Math.max(0,Math.floor(Number(incoming.wins) || 0)),
+            losses:Math.max(0,Math.floor(Number(incoming.losses) || 0))
+          };
+          importedPlayers.push(imported);
+          rememberPlayer(imported);
+        }
+
+        const mergedPlayers = [...currentPlayers,...importedPlayers];
+        if (importedPlayers.length) {
+          const previousCloudRecords = sharedCloudRecords;
+          const previousCloudRevision = sharedCloudRevision;
+          const previousCloudUpdatedAt = sharedCloudUpdatedAt;
+          const previousCloudClientId = sharedCloudClientId;
+          sharedCloudRecords = {
+            ...currentRecords,
+            players:mergedPlayers,
+            logs:Array.isArray(currentRecords.logs) ? currentRecords.logs : [],
+            sessions:Array.isArray(currentRecords.sessions) ? currentRecords.sessions : []
+          };
+          sharedCloudRevision += 1;
+          sharedCloudUpdatedAt = new Date().toISOString();
+          sharedCloudClientId = 'organizer-dashboard-player-import';
+          try {
+            await persistSharedCloudRecords();
+          } catch (error) {
+            sharedCloudRecords = previousCloudRecords;
+            sharedCloudRevision = previousCloudRevision;
+            sharedCloudUpdatedAt = previousCloudUpdatedAt;
+            sharedCloudClientId = previousCloudClientId;
+            throw error;
+          }
+          broadcastNamedEvent('cloud-records',{
+            revision:sharedCloudRevision,
+            updatedAt:sharedCloudUpdatedAt,
+            clientId:sharedCloudClientId,
+            records:sharedCloudRecords
+          });
+        }
+        return sendJson(res,200,{
+          ok:true,
+          importedCount:importedPlayers.length,
+          duplicateCount:duplicates.length,
+          invalidCount,
+          duplicates,
+          count:mergedPlayers.length,
+          updatedAt:sharedCloudUpdatedAt
+        });
+      });
+    } catch (err) {
+      const statusCode = err.statusCode || 500;
+      if (statusCode >= 500) console.error('Unable to import organizer dashboard players:',err.message);
+      return sendJson(res,statusCode,{
+        ok:false,
+        error:statusCode === 413
+          ? 'The CSV file is too large. Please upload a file smaller than 8 MB.'
+          : (statusCode === 400 ? (err.message || 'The player import data could not be read.') : 'Unable to import players. Please check the database connection and try again.')
+      });
+    }
+  }
+
+  if (isSessionImportApi && req.method === 'POST') {
+    try {
+      const auth = getAuthSession(req);
+      if (auth?.role !== 'organizer' || !auth.organizerId) return sendJson(res,401,{ok:false,error:'Organizer login required.'});
+      const organizerId = auth.organizerId;
+      const body = await readBody(req,12 * 1024 * 1024);
+      const incomingSessions = Array.isArray(body?.sessions) ? body.sessions : null;
+      const incomingMatches = Array.isArray(body?.matches) ? body.matches : [];
+      if (!incomingSessions) return sendJson(res,400,{ok:false,error:'Invalid Open Play session import data.'});
+      if (!incomingSessions.length) return sendJson(res,400,{ok:false,error:'No session rows were provided for import.'});
+      if (incomingSessions.length > 1000) return sendJson(res,400,{ok:false,error:'A maximum of 1,000 session rows can be imported at one time.'});
+      if (incomingMatches.length > 10000) return sendJson(res,400,{ok:false,error:'A maximum of 10,000 linked match rows can be imported at one time.'});
+
+      const currentRecords = sharedCloudRecords || {players:[],logs:[],sessions:[]};
+      const records = JSON.parse(JSON.stringify(currentRecords));
+      records.players = Array.isArray(records.players) ? records.players : [];
+      records.logs = Array.isArray(records.logs) ? records.logs : [];
+      records.sessions = Array.isArray(records.sessions) ? records.sessions : [];
+      const existingSessionIds = new Set(records.sessions.map(session => String(session?.id || '')).filter(Boolean));
+      const appState = getOrganizerAppEntry(organizerId).state;
+      const activeSessionId = appState?.sessionActive === true && !isEndedSessionState(appState) ? getSessionId(appState) : '';
+      if (activeSessionId) existingSessionIds.add(String(activeSessionId));
+
+      const attendance = JSON.parse(JSON.stringify(getOrganizerAttendance(organizerId) || {sessions:{}}));
+      attendance.sessions = attendance.sessions && typeof attendance.sessions === 'object' ? attendance.sessions : {};
+      const acceptedSessions = new Map();
+      const duplicateIds = new Set();
+      let importedCount = 0;
+      let duplicateCount = 0;
+      let invalidCount = 0;
+      let totalParticipants = 0;
+
+      for (let index = 0; index < incomingSessions.length; index += 1) {
+        const source = incomingSessions[index];
+        if (!source || typeof source !== 'object' || Array.isArray(source)) { invalidCount += 1; continue; }
+        const id = String(source.id || source.sessionId || '').trim().slice(0,200);
+        const sessionName = String(source.sessionName || source.name || source.title || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,200);
+        if (!id || !sessionName) { invalidCount += 1; continue; }
+        if (existingSessionIds.has(id) || acceptedSessions.has(id)) { duplicateCount += 1; duplicateIds.add(id); continue; }
+        const startedAtValue = source.startedAt || source.startDate || source.date || null;
+        const endedAtValue = source.endedAt || source.endDate || null;
+        const startedAtDate = startedAtValue ? new Date(startedAtValue) : null;
+        const endedAtDate = endedAtValue ? new Date(endedAtValue) : null;
+        if ((startedAtDate && !Number.isFinite(startedAtDate.getTime())) || (endedAtDate && !Number.isFinite(endedAtDate.getTime()))) { invalidCount += 1; continue; }
+        const rawParticipants = Array.isArray(source.participants) ? source.participants : (Array.isArray(source.attendees) ? source.attendees : []);
+        if (rawParticipants.length > 2000 || totalParticipants + rawParticipants.length > 25000) { invalidCount += 1; continue; }
+        const participants = rawParticipants.map((person, participantIndex) => attendancePersonSnapshot(person,participantIndex)).filter(Boolean);
+        const location = String(source.duprLocation || source.location || source.venue || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,250);
+        const coordinatesSource = source.duprLocationCoordinates || source.locationCoordinates || {};
+        const lat = Number(coordinatesSource.lat ?? coordinatesSource.latitude);
+        const lon = Number(coordinatesSource.lon ?? coordinatesSource.lng ?? coordinatesSource.longitude);
+        const validCoordinates = Number.isFinite(lat) && Number.isFinite(lon) && lat >= 4.0 && lat <= 22.4 && lon >= 115.5 && lon <= 128.6;
+        const locationCoordinates = validCoordinates ? {
+          lat, lon,
+          label:String(coordinatesSource.label || location).slice(0,180),
+          countrycode:'PH',
+          source:String(coordinatesSource.source || 'csv-import').slice(0,40),
+          verified:coordinatesSource.verified === true,
+          placeId:String(coordinatesSource.placeId || '').slice(0,180),
+          pinId:String(coordinatesSource.pinId || '').slice(0,180),
+          osmId:String(coordinatesSource.osmId || '').slice(0,120)
+        } : null;
+        const session = {
+          id,
+          organizerId,
+          sessionName,
+          startedAt:startedAtDate ? startedAtDate.toISOString() : null,
+          endedAt:endedAtDate ? endedAtDate.toISOString() : null,
+          playerCount:participants.length,
+          matchCount:0,
+          duprLocation:location,
+          duprLocationCoordinates:locationCoordinates,
+          duprMatch:source.duprMatch === true,
+          participants
+        };
+        records.sessions.push(session);
+        acceptedSessions.set(id,session);
+        existingSessionIds.add(id);
+        totalParticipants += participants.length;
+        importedCount += 1;
+        attendance.sessions[id] = {participants:JSON.parse(JSON.stringify(participants)),removed:[]};
+      }
+
+      const existingMatchKeys = new Set(records.logs.map(log => `${String(log?.sessionId || '')}|${String(log?.id || '')}`));
+      let importedMatchCount = 0;
+      let duplicateMatchCount = 0;
+      for (let index = 0; index < incomingMatches.length; index += 1) {
+        const source = incomingMatches[index];
+        if (!source || typeof source !== 'object' || Array.isArray(source)) continue;
+        const sessionId = String(source.sessionId || '').trim();
+        const session = acceptedSessions.get(sessionId);
+        if (!session) continue;
+        const id = String(source.id || source.matchId || `imported-match-${Date.now()}-${index + 1}`).trim().slice(0,200);
+        const key = `${sessionId}|${id}`;
+        if (existingMatchKeys.has(key)) { duplicateMatchCount += 1; continue; }
+        const importedLog = JSON.parse(JSON.stringify(source));
+        importedLog.id = id;
+        importedLog.sessionId = sessionId;
+        importedLog.organizerId = organizerId;
+        importedLog.sessionName = session.sessionName;
+        if (!Array.isArray(importedLog.team1Names)) importedLog.team1Names = Array.isArray(importedLog.team1Players) ? importedLog.team1Players.map(person => String(person?.name || '')).filter(Boolean) : [];
+        if (!Array.isArray(importedLog.team2Names)) importedLog.team2Names = Array.isArray(importedLog.team2Players) ? importedLog.team2Players.map(person => String(person?.name || '')).filter(Boolean) : [];
+        records.logs.push(importedLog);
+        existingMatchKeys.add(key);
+        importedMatchCount += 1;
+      }
+      acceptedSessions.forEach((session,id) => {
+        session.matchCount = records.logs.filter(log => String(log?.sessionId || '') === id).length;
+      });
+
+      if (!importedCount) {
+        return sendJson(res,200,{ok:true,importedCount:0,importedMatchCount:0,duplicateCount,duplicateMatchCount,invalidCount,updatedAt:sharedCloudUpdatedAt});
+      }
+
+      const previousRecords = sharedCloudRecords;
+      const previousRevision = sharedCloudRevision;
+      const previousUpdatedAt = sharedCloudUpdatedAt;
+      const previousClientId = sharedCloudClientId;
+      const previousAttendance = JSON.parse(JSON.stringify(getOrganizerAttendance(organizerId) || {sessions:{}}));
+      try {
+        await saveOrganizerAttendance(organizerId,attendance);
+        sharedCloudRecords = records;
+        sharedCloudRevision += 1;
+        sharedCloudUpdatedAt = new Date().toISOString();
+        sharedCloudClientId = 'organizer-dashboard-session-import';
+        await persistSharedCloudRecords();
+      } catch (error) {
+        sharedCloudRecords = previousRecords;
+        sharedCloudRevision = previousRevision;
+        sharedCloudUpdatedAt = previousUpdatedAt;
+        sharedCloudClientId = previousClientId;
+        try { await saveOrganizerAttendance(organizerId,previousAttendance); } catch (_) {}
+        throw error;
+      }
+      broadcastNamedEvent('cloud-records',{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
+      return sendJson(res,200,{
+        ok:true,
+        importedCount,
+        importedMatchCount,
+        duplicateCount,
+        duplicateMatchCount,
+        invalidCount,
+        updatedAt:sharedCloudUpdatedAt
+      });
+    } catch (err) {
+      const statusCode = err.statusCode || 500;
+      if (statusCode >= 500) console.error('Unable to import organizer dashboard sessions:',err.message);
+      return sendJson(res,statusCode,{
+        ok:false,
+        error:statusCode === 413
+          ? 'The CSV file is too large. Please upload a file smaller than 12 MB.'
+          : (statusCode === 400 ? (err.message || 'The session import data could not be read.') : 'Unable to import Open Play Sessions. Please check the database connection and try again.')
+      });
+    }
+  }
+
   if (url.pathname === '/api/organizer-dashboard/courts' && req.method === 'POST') {
     try {
       const auth = getAuthSession(req);
@@ -2997,6 +3316,11 @@ async function handle(req, res) {
     res.on('error', cleanup);
     req.on('aborted', cleanup);
     return;
+  }
+  if (isSessionImportApi) {
+    res.setHeader('Allow','POST, OPTIONS');
+    console.warn(`[session-import] Rejected ${req.method} ${url.pathname} on build ${APP_BUILD_VERSION}`);
+    return sendJson(res,405,{ok:false,error:'The Open Play session import endpoint accepts POST requests only.',build:APP_BUILD_VERSION,capabilities:{sessionImport:true}});
   }
   if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res,405,{ok:false,error:'Method not allowed'});
   let pathname;

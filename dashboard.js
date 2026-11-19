@@ -222,7 +222,16 @@ async function api(url, options = {}) {
     throw new Error('Your organizer session has expired. Please sign in again.');
   }
   if (response.status === 405 && String(url).split('?')[0].replace(/\/+$/, '') === '/api/organizer-dashboard/sessions/import') {
-    throw new Error('The deployed server is not accepting the session-import POST request. Redeploy the complete updated project (including server.js), then refresh the dashboard.');
+    let health = null;
+    try {
+      const healthResponse = await fetch('/api/health', {cache:'no-store', credentials:'same-origin'});
+      if (healthResponse.ok) health = await healthResponse.json();
+    } catch (_) {}
+    if (health?.capabilities?.sessionImport !== true) {
+      const runningBuild = health?.build ? ` Detected server build: ${health.build}.` : ' The live server did not report the session-import capability.';
+      throw new Error(`The dashboard files are newer than the backend currently running on Render.${runningBuild} Deploy the project files to the same Render web service and branch, with server.js and package.json in the service Root Directory. Then verify /api/health reports capabilities.sessionImport = true.`);
+    }
+    throw new Error(`The backend reports session-import support (build ${health.build}), but the POST was rejected with 405. Check the Render service logs and any rewrite/proxy rule for /api/organizer-dashboard/sessions/import.`);
   }
   if (!response.ok || payload?.ok === false) throw new Error(payload?.error || `Request failed (${response.status}).`);
   return payload;
