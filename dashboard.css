@@ -1067,6 +1067,15 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   align-self: center;
   font-size: 10px;
 }
+.data-table.players-table .player-name-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  max-width: 100%;
+}
 .data-table.players-table .player-name-text {
   display: block;
   min-width: 0;
@@ -1078,6 +1087,19 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: normal;
+}
+.data-table.players-table .player-registered-date {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  color: #87938a;
+  font-size: 7px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .data-table.players-table .player-category-badge {
   display: inline-flex;
@@ -1212,6 +1234,11 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
     font-size: 9px;
     line-height: 1.3;
     overflow-wrap: anywhere;
+  }
+
+  .data-table.players-table .player-registered-date {
+    font-size: 7px;
+    line-height: 1.2;
   }
 
   .data-table.players-table .player-category-badge {
@@ -2016,4 +2043,627 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   height: 34px !important;
   min-height: 34px !important;
   line-height: 1 !important;
+}
+
+/* Registered Player Cloud CSV import preview: compact dimensions, dashboard light palette. */
+.modal-heading-copy { min-width: 0; display: grid; gap: 3px; }
+.modal-heading-copy p { margin: 0; color: #7b8980; font-size: 9px; line-height: 1.35; }
+.modal-card.player-import-modal {
+  width: min(900px, calc(100vw - 28px));
+  max-height: min(84dvh, 760px);
+}
+.player-import-modal .modal-header {
+  flex: 0 0 auto;
+  padding: 11px 16px;
+  background: #fff;
+}
+.player-import-modal .modal-header h2 { color: #24352a; font-size: 14px; font-weight: 800; }
+.player-import-modal .modal-header .icon-action { width: 29px; height: 29px; min-width: 29px; }
+.player-import-modal .modal-body {
+  min-height: 0;
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+}
+.player-import-layout { min-width: 0; min-height: 0; height: auto; display: flex; flex: 0 1 auto; flex-direction: column; }
+.player-import-filterbar {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  border-bottom: 1px solid #edf1ec;
+  background: #fff;
+}
+.player-import-tabs { min-width: 0; display: flex; align-items: center; gap: 6px; overflow-x: auto; scrollbar-width: thin; }
+.player-import-tab {
+  min-height: 30px;
+  flex: 0 0 auto;
+  padding: 0 10px;
+  border: 1px solid #e3eae2;
+  border-radius: 8px;
+  color: #738078;
+  background: #f7faf6;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color .15s ease, background .15s ease, border-color .15s ease;
+}
+.player-import-tab:hover { color: #2c6940; border-color: #b9d9b5; background: #f3faf0; }
+.player-import-tab.is-active { color: #24753b; border-color: #a8d39e; background: #edf8e9; box-shadow: inset 0 0 0 1px rgba(76,148,66,.05); }
+.player-import-searchbar {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px;
+  border-bottom: 1px solid #edf1ec;
+  background: #fff;
+}
+.player-import-search {
+  min-width: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid #dfe8df;
+  border-radius: 8px;
+  color: #829187;
+  background: #f8faf7;
+}
+.player-import-search svg { width: 15px; height: 15px; flex: 0 0 15px; }
+.player-import-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: #344238;
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
+  font-size: 9px;
+}
+.player-import-search input:focus { border: 0; outline: 0; box-shadow: none; }
+.player-import-search input::placeholder { color: #929e95; }
+.player-import-meta { min-width: 145px; display: grid; justify-items: end; gap: 2px; text-align: right; }
+.player-import-meta strong { color: #35463b; font-size: 10px; font-weight: 800; }
+.player-import-meta span { color: #76847a; font-size: 8px; }
+.player-import-meta small { max-width: 260px; color: #91a097; font-size: 8px; overflow-wrap: anywhere; }
+.player-import-alert,
+.player-import-success-note {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 16px;
+  padding: 8px 10px;
+  border: 1px solid #f0dfc3;
+  border-radius: 8px;
+  color: #906522;
+  background: #fffaf1;
+}
+.player-import-alert-icon { display: grid; width: 19px; height: 19px; flex: 0 0 19px; place-items: center; }
+.player-import-alert-icon svg { width: 15px; height: 15px; }
+.player-import-alert > div { min-width: 0; display: grid; gap: 2px; }
+.player-import-alert strong { color: #8d6323; font-size: 9px; }
+.player-import-alert span:not(.player-import-alert-icon) { color: #9b835d; font-size: 8px; line-height: 1.35; }
+.player-import-success-note { border-color: #d8ebd1; color: #397248; background: #f4fbf1; font-size: 8px; }
+.player-import-success-note svg { width: 14px; height: 14px; flex: 0 0 14px; }
+.player-import-table-wrap {
+  min-width: 0;
+  min-height: 90px;
+  max-height: min(40dvh, 380px);
+  flex: 0 1 auto;
+  margin: 0 16px;
+  overflow: auto;
+  border: 1px solid #e6ece5;
+  border-radius: 8px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.player-import-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+}
+.player-import-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 8px 6px;
+  color: #77857b;
+  background: #f5f8f4;
+  border-bottom: 1px solid #e5ece3;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.player-import-table tbody td { padding: 8px 6px; border-bottom: 1px solid #edf1ec; font-size: 9px; overflow-wrap: anywhere; }
+.player-import-table tbody tr:last-child td { border-bottom: 0; }
+.player-import-table .player-import-row-number { color: #8a978e !important; font-size: 9px; font-weight: 800; }
+.player-import-table .player-import-person-cell { text-align: left; }
+.player-import-table .player-import-person-cell > strong {
+  display: block;
+  color: #2d3d32;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.player-import-table .player-import-person-cell .player-import-status { margin-top: 3px; }
+.player-import-table .player-import-row-detail {
+  max-width: 240px;
+  color: #977d52;
+  font-size: 7px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.player-import-table .player-import-status {
+  width: fit-content;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 5px;
+  border-radius: 99px;
+  font-size: 7px;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: normal;
+}
+.player-import-table .player-import-status.ready { color: #26743e; background: #eaf7e8; }
+.player-import-table .player-import-status.duplicate { color: #97651d; background: #fff1d7; }
+.player-import-table .player-import-status.invalid { color: #a54242; background: #fdeaea; }
+.player-import-table .player-import-dupr-id { color: #17866c !important; font-size: 8px !important; font-weight: 850 !important; letter-spacing: .1px; overflow-wrap: anywhere; }
+.player-import-table .player-import-count { color: #34483a; font-size: 9px; font-weight: 850; font-variant-numeric: tabular-nums; }
+.player-import-table .player-import-row-duplicate td { background: #fffaf1; }
+.player-import-table .player-import-row-invalid td { background: #fff7f7; }
+.player-import-table .player-import-empty-row td { padding: 22px 10px; color: #87948b; text-align: center !important; font-size: 9px; }
+.player-import-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 9px 16px 11px;
+  border-top: 1px solid #edf1ec;
+  background: #fcfdfb;
+}
+.player-import-footer > span { max-width: 390px; color: #78867c; font-size: 8px; line-height: 1.4; }
+.player-import-footer > span strong { color: #36764a; }
+.player-import-footer > div { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex: 0 0 auto; }
+.player-import-footer .btn {
+  min-height: 30px;
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 7px;
+  font-size: 8px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.player-import-footer .btn svg { width: 13px; height: 13px; }
+.player-import-footer .btn:disabled { cursor: not-allowed; opacity: .48; }
+@media (max-width: 850px) {
+  .modal-card.player-import-modal { width: min(820px, calc(100vw - 24px)); }
+  .player-import-searchbar { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .player-import-meta { display: flex; min-width: 0; flex-wrap: wrap; justify-content: space-between; justify-items: initial; text-align: left; }
+  .player-import-meta small { max-width: 52%; text-align: right; }
+  .player-import-table { min-width: 680px; }
+  .player-import-footer { align-items: flex-start; flex-direction: column; gap: 7px; }
+  .player-import-footer > div { width: 100%; justify-content: flex-end; }
+}
+@media (max-width: 560px) {
+  .modal-root { padding: 7px; }
+  .modal-card.player-import-modal { width: 100%; max-height: 88dvh; border-radius: 11px; }
+  .player-import-modal .modal-header { padding: 9px 11px; }
+  .player-import-modal .modal-header h2 { font-size: 13px; }
+  .modal-heading-copy p { font-size: 8px; }
+  .player-import-filterbar { padding: 7px 10px; }
+  .player-import-tabs { gap: 4px; }
+  .player-import-tab { min-height: 28px; padding: 0 8px; font-size: 8px; }
+  .player-import-searchbar { gap: 6px; padding: 8px 10px; }
+  .player-import-search { min-height: 32px; padding: 0 8px; }
+  .player-import-search input { font-size: 9px; }
+  .player-import-meta { gap: 4px 8px; }
+  .player-import-meta strong { font-size: 9px; }
+  .player-import-meta small { max-width: 100%; width: 100%; text-align: left; }
+  .player-import-alert, .player-import-success-note { margin: 7px 10px; padding: 7px 8px; }
+  .player-import-table-wrap { min-height: 80px; max-height: 36dvh; margin: 0 10px; border-radius: 7px; }
+  .player-import-table { min-width: 620px; }
+  .player-import-table thead th { padding: 7px 5px; font-size: 7px; }
+  .player-import-table tbody td { padding: 7px 5px; }
+  .player-import-footer { gap: 7px; margin-top: 7px; padding: 8px 10px 9px; }
+  .player-import-footer > span { max-width: none; }
+  .player-import-footer > div { display: flex; flex-wrap: wrap; justify-content: stretch; gap: 5px; }
+  .player-import-footer .btn { min-width: 0; flex: 1 1 auto; width: auto; min-height: 29px; height: 29px; padding-inline: 7px; font-size: 8px; }
+  .player-import-footer .btn-primary { flex: 1 1 100%; }
+}
+
+/* Player CSV import modal: fluid portrait/landscape layout with a fully fitted table. */
+.player-import-modal,
+.player-import-modal * {
+  box-sizing: border-box;
+}
+.player-import-modal .player-import-layout {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+.player-import-modal .player-import-table-wrap {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: auto;
+}
+.player-import-modal table.data-table.players-table.player-import-table {
+  display: table;
+  width: 100%;
+  min-width: 0 !important;
+  max-width: 100%;
+  table-layout: fixed;
+}
+.player-import-modal .player-import-table thead th {
+  min-width: 0;
+  padding: 7px 4px;
+  font-size: clamp(6px, .72vw, 8px);
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.player-import-modal .player-import-table tbody td {
+  min-width: 0;
+  padding: 7px 4px;
+  font-size: clamp(7px, .78vw, 9px);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.player-import-modal .player-import-table tbody td:nth-child(2) {
+  padding-right: 4px;
+  text-align: left;
+}
+.player-import-modal .player-import-table .player-import-person-cell > strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.player-import-modal .player-import-table .player-category-badge {
+  max-width: 100%;
+  padding: 3px 4px;
+  font-size: 7px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.player-import-modal .player-import-table .player-gender-badge {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.player-import-modal .player-import-table .player-import-dupr-id {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+.player-import-modal .player-import-table .player-import-status {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.player-import-modal .player-import-table .player-import-row-detail {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* Portrait phones and narrow portrait tablets. */
+@media screen and (max-width: 700px) and (orientation: portrait) {
+  .modal-root:has(.player-import-modal) {
+    padding: 6px;
+  }
+  .modal-card.player-import-modal {
+    width: calc(100vw - 12px);
+    max-width: calc(100vw - 12px);
+    max-height: min(90dvh, calc(100dvh - 12px));
+    border-radius: 10px;
+  }
+  .player-import-modal .modal-header {
+    padding: 8px 10px;
+  }
+  .player-import-modal .modal-header h2 {
+    font-size: 12px;
+  }
+  .player-import-filterbar {
+    padding: 6px 9px;
+  }
+  .player-import-tabs {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    overflow: visible;
+    gap: 4px;
+  }
+  .player-import-tab {
+    min-height: 26px;
+    padding: 0 7px;
+    font-size: 8px;
+  }
+  .player-import-searchbar {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+    padding: 7px 9px;
+  }
+  .player-import-search {
+    min-height: 30px;
+  }
+  .player-import-meta {
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 3px 7px;
+    text-align: left;
+  }
+  .player-import-meta small {
+    max-width: 100%;
+    width: 100%;
+    text-align: left;
+  }
+  .player-import-alert,
+  .player-import-success-note {
+    margin: 6px 9px;
+    padding: 6px 7px;
+  }
+  .player-import-table-wrap {
+    min-height: 58px;
+    max-height: 34dvh;
+    margin: 0 9px;
+    overflow-x: hidden;
+  }
+  .player-import-modal .player-import-table thead th {
+    padding: 6px 2px;
+    font-size: 6.5px;
+  }
+  .player-import-modal .player-import-table tbody td {
+    padding: 6px 2px;
+    font-size: 7px;
+  }
+  .player-import-modal .player-import-table .player-import-person-cell > strong {
+    font-size: 7px;
+  }
+  .player-import-modal .player-import-table .player-category-badge {
+    padding: 2px 3px;
+    font-size: 6px;
+    letter-spacing: 0;
+  }
+  .player-import-modal .player-import-table .player-import-dupr-id,
+  .player-import-modal .player-import-table .player-import-count {
+    font-size: 7px !important;
+  }
+  .player-import-modal .player-import-table .player-import-status {
+    padding: 2px 3px;
+    font-size: 6px;
+  }
+  .player-import-modal .player-import-table .player-import-row-detail {
+    display: none;
+  }
+  .player-import-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 7px 9px 8px;
+  }
+  .player-import-footer > span {
+    max-width: none;
+  }
+  .player-import-footer > div {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: stretch;
+    gap: 4px;
+  }
+  .player-import-footer .btn {
+    min-width: 0;
+    min-height: 27px;
+    height: 27px;
+    flex: 1 1 0;
+    padding-inline: 5px;
+    font-size: 7px;
+  }
+  .player-import-footer .btn-primary {
+    flex: 1 1 100%;
+  }
+}
+
+/* Tablet-width portrait and regular-height layouts: align dialog width with its gutters. */
+@media screen and (min-width: 701px) and (max-width: 850px) {
+  .modal-root:has(.player-import-modal) { padding: 12px; }
+  .modal-card.player-import-modal {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+  }
+}
+
+/* Landscape phones and short-height screens: keep the dialog and actions visible. */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  .modal-root:has(.player-import-modal) {
+    padding: 6px 10px;
+  }
+  .modal-card.player-import-modal {
+    width: min(900px, calc(100vw - 20px));
+    max-width: calc(100vw - 20px);
+    max-height: calc(100dvh - 12px);
+    border-radius: 10px;
+  }
+  .player-import-modal .modal-header {
+    padding: 6px 11px;
+  }
+  .player-import-modal .modal-header h2 {
+    font-size: 12px;
+  }
+  .player-import-filterbar {
+    padding: 5px 11px;
+  }
+  .player-import-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 4px;
+  }
+  .player-import-tab {
+    min-height: 25px;
+    padding-inline: 7px;
+    font-size: 7px;
+  }
+  .player-import-searchbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 5px 11px;
+  }
+  .player-import-search {
+    min-height: 28px;
+  }
+  .player-import-meta {
+    min-width: 110px;
+    gap: 2px;
+  }
+  .player-import-alert,
+  .player-import-success-note {
+    margin: 5px 11px;
+    padding: 5px 7px;
+  }
+  .player-import-table-wrap {
+    min-height: 55px;
+    max-height: 31dvh;
+    margin: 0 11px;
+    overflow-x: hidden;
+  }
+  .player-import-modal .player-import-table thead th {
+    padding: 4px 3px;
+    font-size: 6.5px;
+  }
+  .player-import-modal .player-import-table tbody td {
+    padding: 4px 3px;
+    font-size: 7px;
+  }
+  .player-import-footer {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 5px;
+    padding: 5px 11px 6px;
+  }
+  .player-import-footer > span {
+    flex: 1 1 170px;
+    max-width: none;
+  }
+  .player-import-footer > div {
+    width: auto;
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin-left: auto;
+    gap: 4px;
+  }
+  .player-import-footer .btn {
+    min-height: 26px;
+    height: 26px;
+    padding-inline: 7px;
+    font-size: 7px;
+  }
+  .player-import-footer .btn-primary {
+    flex: 0 0 auto;
+  }
+}
+
+/* If viewport is exceptionally narrow, preserve every column and allow labels to wrap. */
+@media screen and (max-width: 360px) {
+  .player-import-modal .player-import-table col:nth-child(1) { width: 5% !important; }
+  .player-import-modal .player-import-table col:nth-child(2) { width: 30% !important; }
+  .player-import-modal .player-import-table col:nth-child(3) { width: 12% !important; }
+  .player-import-modal .player-import-table col:nth-child(4) { width: 10% !important; }
+  .player-import-modal .player-import-table col:nth-child(5) { width: 15% !important; }
+  .player-import-modal .player-import-table col:nth-child(6) { width: 13% !important; }
+  .player-import-modal .player-import-table col:nth-child(7) { width: 15% !important; }
+  .player-import-modal .player-import-table thead th {
+    font-size: 6px;
+    letter-spacing: -.1px;
+  }
+  .player-import-modal .player-import-table tbody td {
+    padding-inline: 1px;
+    font-size: 6.5px;
+  }
+}
+
+/* Final polish: pill controls, quiet close icon, and hidden table scrollbar. */
+.player-import-modal .player-import-tabs,
+.player-import-modal .player-import-tab,
+.player-import-modal .player-import-search,
+.player-import-modal .player-import-footer [data-action="close-modal"],
+.player-import-modal .player-import-footer [data-action="import-players"],
+.player-import-modal .player-import-footer [data-action="confirm-player-import"] {
+  border-radius: 99px !important;
+}
+.player-import-modal .modal-header [data-action="close-modal"] {
+  border: 0 !important;
+  outline: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 99px !important;
+}
+.player-import-modal .modal-header [data-action="close-modal"] svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 3.25px;
+}
+.player-import-modal .player-import-table-wrap {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.player-import-modal .player-import-table-wrap::-webkit-scrollbar,
+.player-import-modal .player-import-tabs::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+.player-import-modal .player-import-tabs {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.player-import-modal .player-import-table .player-number,
+.player-import-modal .player-import-table .player-import-row-number {
+  width: 1%;
+  padding: 3px 2px !important;
+  font-size: 7px !important;
+  line-height: 1.1;
+  font-weight: 700 !important;
+  letter-spacing: -.2px;
+}
+@media (max-width: 640px), (max-height: 520px) and (orientation: landscape) {
+  .player-import-modal .modal-header [data-action="close-modal"] svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 3.25px;
+  }
+  .player-import-modal .player-import-table .player-number,
+  .player-import-modal .player-import-table .player-import-row-number {
+    padding: 2px 1px !important;
+    font-size: 6px !important;
+  }
 }

@@ -21,6 +21,7 @@ const ICONS = {
   'chevron-down': '<path d="m6 9 6 6 6-6"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   download: '<path d="M12 3v12m-5-5 5 5 5-5M4 19h16"/>',
+  upload: '<path d="M12 16V4m-5 5 5-5 5 5M4 17v3h16v-3"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   check: '<path d="m5 12 4 4L19 6"/>',
   edit: '<path d="m14 5 5 5M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16l-1 4Z"/>',
@@ -59,6 +60,8 @@ const state = {
   filters: { sessionStatus: 'all', playerCategory: 'all', rankingCategory: 'all', rankingSession: 'all', matchType: 'all' }
 };
 
+let pendingPlayerImport = null;
+
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -69,6 +72,7 @@ function registeredCourtLogo(court = {}) {
 const icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ICONS.info}</svg>`;
 const refreshIcon = () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-ccw preview-icon dashboard-refresh-icon" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>';
 const normalizeName = value => String(value || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+const normalizeDuprId = value => String(value || '').trim().replace(/^DUPR\s*:\s*/i, '').replace(/\s+/g, '').toLocaleUpperCase();
 const CATEGORY_NAMES = { BEG: 'Beginner', NOV: 'Novice', INT: 'Intermediate', ADV: 'Advanced', EXP: 'Expert', BEGINNER: 'Beginner', NOVICE: 'Novice', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced', EXPERT: 'Expert' };
 const CATEGORY_CODES = { Beginner: 'BEG', Novice: 'NOV', Intermediate: 'INT', Advanced: 'ADV', Expert: 'EXP' };
 const categoryName = value => CATEGORY_NAMES[String(value || '').trim().toUpperCase()] || String(value || 'Unspecified');
@@ -83,6 +87,37 @@ const fmtMatchTime = value => {
   return date && !Number.isNaN(date.getTime())
     ? new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).format(date)
     : '—';
+};
+const formatPlayerRegisteredOn = player => {
+  const savedValue = player?.registeredAt || player?.registered_at || player?.createdAt || player?.created_at || '';
+  let timestamp = 0;
+  if (typeof savedValue === 'number' && Number.isFinite(savedValue) && savedValue > 0) {
+    timestamp = savedValue;
+  } else if (String(savedValue).trim()) {
+    const text = String(savedValue).trim();
+    const numeric = /^\d{10,13}$/.test(text) ? Number(text) : 0;
+    if (numeric > 0) timestamp = numeric < 100000000000 ? numeric * 1000 : numeric;
+    else {
+      const parsed = Date.parse(text);
+      if (Number.isFinite(parsed) && parsed > 0) timestamp = parsed;
+    }
+  }
+  // Older cloud IDs were generated from Date.now(); use the embedded creation
+  // time only when no explicit registration timestamp was saved.
+  if (!timestamp) {
+    const legacyId = Number(player?.cloudId);
+    if (Number.isFinite(legacyId) && legacyId >= 1577836800000 && legacyId <= Date.now() + 600000) timestamp = legacyId;
+  }
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '';
+  const dateLabel = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric'
+  }).format(date);
+  const timeLabel = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+  }).format(date);
+  return `Registered on ${dateLabel} • ${timeLabel}`;
 };
 const formatMatchDuration = (value, startedAt, endedAt) => {
   const raw = String(value ?? '').trim();
@@ -419,7 +454,7 @@ function normalizeLegacyDashboard(payload) {
     phone: String(player?.phone || ''),
     notes: '',
     avatarId: String(player?.avatarId || ''),
-    registeredAt: player?.registeredAt || null,
+    registeredAt: player?.registeredAt || player?.registered_at || player?.createdAt || player?.created_at || null,
     raw: player
   }));
 
@@ -2766,7 +2801,8 @@ function playersTable(players) {
       ? `<span class="player-gender-badge ${genderClass}">${escapeHTML(gender)}</span>`
       : escapeHTML(gender || '—');
     const fullDisplayName = `${player.name || 'Unnamed Player'}${player.nickname ? ` (${player.nickname})` : ''}`;
-    return `<tr><td class="player-number">${index + 1}</td><td class="primary-cell"><span class="table-player"><span class="player-avatar">${initials(player.name)}</span><span class="player-name-text">${escapeHTML(fullDisplayName)}</span></span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td>${genderCell}</td><td><strong>${escapeHTML(player.duprId || '—')}</strong></td><td class="player-count-cell">${stats.attendance}</td><td class="player-count-cell">${stats.matches}</td></tr>`;
+    const registeredOn = formatPlayerRegisteredOn(player);
+    return `<tr><td class="player-number">${index + 1}</td><td class="primary-cell"><span class="table-player"><span class="player-avatar">${initials(player.name)}</span><span class="player-name-copy"><span class="player-name-text">${escapeHTML(fullDisplayName)}</span>${registeredOn ? `<span class="player-registered-date">${escapeHTML(registeredOn)}</span>` : ''}</span></span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td>${genderCell}</td><td><strong>${escapeHTML(player.duprId || '—')}</strong></td><td class="player-count-cell">${stats.attendance}</td><td class="player-count-cell">${stats.matches}</td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 function renderPlayers() {
@@ -2789,7 +2825,7 @@ function renderPlayers() {
     count: registeredPlayers.filter(player => category.match.includes(categoryCode(player.category))).length
   }));
   const skillCountMarkup = `<div class="registered-player-skill-counts" aria-label="Registered player skill category counts">${skillCounts.map(category => `<span class="registered-player-skill-count ${category.className}"><span class="registered-player-skill-code">${category.code}</span><span class="registered-player-skill-value" data-count-target="${category.count}" data-count-key="metric:players:registered-skill-${category.code.toLowerCase()}" aria-live="off">0</span></span>`).join('')}</div>`;
-  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / COMMUNITY', 'Players', 'Registered Player Cloud profiles used by queueing, player registration and match history.', `<button class="btn" data-action="export-players">${icon('download')} Export CSV</button><button class="btn btn-primary" data-action="register-player">${icon('plus')} Register Player</button>`)}
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / COMMUNITY', 'Players', 'Registered Player Cloud profiles used by queueing, player registration and match history.', `<button class="btn" data-action="import-players">${icon('upload')} Import CSV</button><button class="btn" data-action="export-players">${icon('download')} Export CSV</button><button class="btn btn-primary" data-action="register-player">${icon('plus')} Register Player</button><input id="playerCsvImportFile" type="file" accept=".csv,text/csv" hidden>`)}
     <div class="metric-grid"><div class="metric-tile registered-players-metric"><span>Registered players</span>${metricCount('players', 'registered-players', registeredPlayers.length)}${skillCountMarkup}</div><div class="metric-tile metric-breakdown-tile player-dupr-breakdown"><span>With DUPR ID</span>${metricCount('players', 'with-dupr-id', registeredPlayers.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR player counts"><span class="metric-breakdown-item dupr"><span>DUPR</span><strong data-count-target="${rated}" data-count-key="metric:players:with-dupr-id-dupr" aria-live="off">0</strong></span><span class="metric-breakdown-item non-dupr"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayers}" data-count-key="metric:players:with-dupr-id-non-dupr" aria-live="off">0</strong></span></div></div><div class="metric-tile"><span>Attendance entries</span>${metricCount('players', 'attendance-entries', attendanceCount)}</div><div class="metric-tile metric-breakdown-tile player-match-records-breakdown"><span>Match records</span>${metricCount('players', 'match-records', state.data.matches.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR match counts"><span class="metric-breakdown-item dupr"><span>DUPR</span><strong data-count-target="${duprPlayerMatchCount}" data-count-key="metric:players:match-records-dupr" aria-live="off">0</strong></span><span class="metric-breakdown-item non-dupr"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayerMatchCount}" data-count-key="metric:players:match-records-non-dupr" aria-live="off">0</strong></span></div></div></div>
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Registered Player Cloud', 'users')}<div class="toolbar"><select class="select-control" id="playerCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.playerCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div id="playersTableWrap">${playersTable(players.filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory))}</div></section>
     <p class="page-note">Player profiles are stored in the existing Registered Player Cloud. Register new players through the live session registration page so they enter the real queue.</p></div>`;
@@ -3032,6 +3068,263 @@ function downloadCSV(filename, headers, rows) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a'); link.href = url; link.download = filename; document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(url);
 }
+function parsePlayerImportCsv(text) {
+  const source = String(text || '').replace(/^\uFEFF/, '');
+  const rows = [];
+  let row = [];
+  let field = '';
+  let quoted = false;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (quoted) {
+      if (char === '"' && source[index + 1] === '"') { field += '"'; index += 1; }
+      else if (char === '"') quoted = false;
+      else field += char;
+    } else if (char === '"' && field.length === 0) {
+      quoted = true;
+    } else if (char === ',') {
+      row.push(field); field = '';
+    } else if (char === '\n' || char === '\r') {
+      if (char === '\r' && source[index + 1] === '\n') index += 1;
+      row.push(field); field = '';
+      if (row.some(value => String(value).trim() !== '')) rows.push(row);
+      row = [];
+    } else {
+      field += char;
+    }
+  }
+  if (field !== '' || row.length) {
+    row.push(field);
+    if (row.some(value => String(value).trim() !== '')) rows.push(row);
+  }
+  if (rows.length < 2) throw new Error('The CSV does not contain any player rows.');
+
+  const normalizeHeader = value => String(value || '').trim().toLocaleLowerCase().replace(/[^a-z0-9]/g, '');
+  const headers = rows.shift().map(normalizeHeader);
+  const findColumn = aliases => headers.findIndex(header => aliases.includes(header));
+  const columns = {
+    name: findColumn(['name', 'fullname', 'playername', 'playerfullname', 'playersfullname', 'fullplayername']),
+    nickname: findColumn(['nickname', 'nick']),
+    category: findColumn(['category', 'skillcategory', 'level']),
+    gender: findColumn(['gender', 'sex']),
+    duprId: findColumn(['duprid', 'dupridentifier', 'duprplayerid']),
+    selfRating: findColumn(['selfrating', 'selfrate']),
+    matches: findColumn(['matches', 'matchrecords']),
+    wins: findColumn(['wins', 'win']),
+    losses: findColumn(['losses', 'loss']),
+    avatarId: findColumn(['avatarid'])
+  };
+  if (columns.name < 0) throw new Error('A Full Name or Name column is required in the CSV.');
+
+  const valueAt = (values, column) => column < 0 ? '' : String(values[column] ?? '').trim();
+  return rows.map((values, index) => {
+    const name = valueAt(values, columns.name).normalize('NFC').replace(/\s+/g, ' ').trim();
+    const categoryValue = valueAt(values, columns.category);
+    const player = {
+      name,
+      nickname: valueAt(values, columns.nickname),
+      category: categoryValue ? categoryName(categoryValue) : 'Unspecified',
+      gender: valueAt(values, columns.gender),
+      duprId: valueAt(values, columns.duprId),
+      selfRating: valueAt(values, columns.selfRating),
+      matches: valueAt(values, columns.matches),
+      wins: valueAt(values, columns.wins),
+      losses: valueAt(values, columns.losses),
+      avatarId: valueAt(values, columns.avatarId)
+    };
+    return { rowNumber: index + 2, player };
+  });
+}
+
+function analyzePlayerImportRows(rows) {
+  const existingPlayers = asArray(state.data?.players).filter(player => !player.historicalOnly);
+  const existingNames = new Map();
+  const existingDuprIds = new Map();
+  existingPlayers.forEach(player => {
+    const nameKey = normalizeName(player.name);
+    const duprKey = normalizeDuprId(player.duprId || player.duprID || player.dupr_id);
+    if (nameKey && !existingNames.has(nameKey)) existingNames.set(nameKey, player);
+    if (duprKey && !existingDuprIds.has(duprKey)) existingDuprIds.set(duprKey, player);
+  });
+
+  const seenNames = new Map();
+  const seenDuprIds = new Map();
+  return rows.map(row => {
+    const nameKey = normalizeName(row.player.name);
+    const duprKey = normalizeDuprId(row.player.duprId);
+    if (!nameKey) return { ...row, status: 'invalid', reasons: [], duplicateOf: 'Full name is required.' };
+
+    const nameMatch = existingNames.get(nameKey);
+    const duprMatch = duprKey ? existingDuprIds.get(duprKey) : null;
+    const fileNameMatch = seenNames.get(nameKey);
+    const fileDuprMatch = duprKey ? seenDuprIds.get(duprKey) : null;
+    const reasons = [];
+    if (nameMatch || fileNameMatch) reasons.push('Full name');
+    if (duprMatch || fileDuprMatch) reasons.push('DUPR ID');
+
+    const duplicateTargets = [];
+    if (nameMatch) duplicateTargets.push(`List: ${nameMatch.name}`);
+    if (duprMatch && duprMatch !== nameMatch) duplicateTargets.push(`List: ${duprMatch.name}`);
+    if (fileNameMatch) duplicateTargets.push(`CSV row ${fileNameMatch.rowNumber}: ${fileNameMatch.player.name}`);
+    if (fileDuprMatch && fileDuprMatch !== fileNameMatch) duplicateTargets.push(`CSV row ${fileDuprMatch.rowNumber}: ${fileDuprMatch.player.name}`);
+
+    if (nameKey && !seenNames.has(nameKey)) seenNames.set(nameKey, row);
+    if (duprKey && !seenDuprIds.has(duprKey)) seenDuprIds.set(duprKey, row);
+
+    return {
+      ...row,
+      status: reasons.length ? 'duplicate' : 'ready',
+      reasons,
+      duplicateOf: [...new Set(duplicateTargets)].join(' · ')
+    };
+  });
+}
+
+function playerImportCounts(rows = asArray(pendingPlayerImport?.rows)) {
+  return {
+    all: rows.length,
+    ready: rows.filter(row => row.status === 'ready').length,
+    duplicate: rows.filter(row => row.status === 'duplicate').length,
+    invalid: rows.filter(row => row.status === 'invalid').length
+  };
+}
+
+function applyPlayerImportPreviewFilters() {
+  const root = $('#modalRoot');
+  if (!root || !pendingPlayerImport) return;
+  const search = normalizeName($('#playerImportSearch', root)?.value || '');
+  const selectedFilter = pendingPlayerImport.filter || 'all';
+  const rows = $$('.player-import-table tbody tr[data-player-import-row]', root);
+  let visibleCount = 0;
+
+  rows.forEach(row => {
+    const matchesFilter = selectedFilter === 'all' || row.dataset.status === selectedFilter;
+    const matchesSearch = !search || String(row.dataset.search || '').includes(search);
+    const visible = matchesFilter && matchesSearch;
+    row.hidden = !visible;
+    if (visible) visibleCount += 1;
+  });
+
+  const countLabel = $('.player-import-visible-count', root);
+  if (countLabel) countLabel.textContent = `Showing ${visibleCount} of ${asArray(pendingPlayerImport.rows).length} players`;
+  const emptyRow = $('.player-import-empty-row', root);
+  if (emptyRow) emptyRow.hidden = visibleCount !== 0;
+
+  $$('.player-import-tab', root).forEach(button => {
+    const active = button.dataset.playerImportFilter === selectedFilter;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+
+function playerImportReviewMarkup() {
+  const rows = asArray(pendingPlayerImport?.rows);
+  const counts = playerImportCounts(rows);
+  const filter = pendingPlayerImport?.filter || 'all';
+  const tableRows = rows.map((row, index) => {
+    const statusClass = row.status === 'ready' ? 'ready' : row.status === 'duplicate' ? 'duplicate' : 'invalid';
+    const statusLabel = row.status === 'ready'
+      ? 'Ready to import'
+      : row.status === 'duplicate'
+        ? `Duplicate · ${row.reasons.join(' + ')}`
+        : 'Missing full name';
+    const category = categoryName(row.player.category);
+    const categoryClass = `category-${categoryCode(category).toLowerCase()}`;
+    const gender = String(row.player.gender || '').trim();
+    const genderClass = gender.toLowerCase() === 'male' ? 'gender-male' : gender.toLowerCase() === 'female' ? 'gender-female' : '';
+    const stats = playerStats(row.player);
+    const fullName = `${row.player.name || 'Unnamed player'}${row.player.nickname ? ` (${row.player.nickname})` : ''}`;
+    const searchText = normalizeName([
+      row.player.name, row.player.nickname, category, gender, row.player.duprId,
+      statusLabel, row.duplicateOf, row.reasons.join(' ')
+    ].join(' '));
+    const duplicateDetail = row.status === 'duplicate'
+      ? `<small class="player-import-row-detail" title="${escapeHTML(row.duplicateOf || '')}">Matched by ${escapeHTML(row.reasons.join(' and '))}${row.duplicateOf ? ` · ${escapeHTML(row.duplicateOf)}` : ''}</small>`
+      : row.status === 'invalid'
+        ? '<small class="player-import-row-detail">A full name is required before importing.</small>'
+        : '';
+    return `<tr class="player-import-row-${statusClass}" data-player-import-row="true" data-status="${statusClass}" data-search="${escapeHTML(searchText)}">
+      <td class="player-number player-import-row-number">${index + 1}</td>
+      <td class="player-import-person-cell"><strong>${escapeHTML(fullName)}</strong><span class="player-import-status ${statusClass}">${escapeHTML(statusLabel)}</span>${duplicateDetail}</td>
+      <td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td>
+      <td>${genderClass ? `<span class="player-gender-badge ${genderClass}">${escapeHTML(gender)}</span>` : escapeHTML(gender || '—')}</td>
+      <td><strong class="player-import-dupr-id">${escapeHTML(row.player.duprId || '—')}</strong></td>
+      <td class="player-count-cell player-import-count">${stats.attendance}</td>
+      <td class="player-count-cell player-import-count">${stats.matches}</td>
+    </tr>`;
+  }).join('');
+
+  const filterTabs = [
+    ['all', `All (${counts.all})`],
+    ['ready', `Ready (${counts.ready})`],
+    ['duplicate', `Duplicates (${counts.duplicate})`],
+    ['invalid', `Invalid (${counts.invalid})`]
+  ].map(([key, label]) => `<button type="button" class="player-import-tab ${filter === key ? 'is-active' : ''}" data-player-import-filter="${key}" aria-pressed="${filter === key}">${label}</button>`).join('');
+
+  return `<div class="player-import-layout">
+    <div class="player-import-filterbar"><div class="player-import-tabs" role="group" aria-label="Filter CSV player rows">${filterTabs}</div></div>
+    <div class="player-import-searchbar">
+      <label class="player-import-search" for="playerImportSearch">${icon('search')}<input id="playerImportSearch" type="search" autocomplete="off" placeholder="Search name, nickname, category, DUPR ID…" value="${escapeHTML(pendingPlayerImport?.query || '')}"></label>
+      <div class="player-import-meta"><strong>${counts.all} CSV players</strong><span class="player-import-visible-count">Showing ${counts.all} of ${counts.all} players</span><small>${escapeHTML(pendingPlayerImport?.filename || 'Selected CSV file')}</small></div>
+    </div>
+    ${counts.duplicate || counts.invalid ? `<div class="player-import-alert"><span class="player-import-alert-icon">${icon('info')}</span><div><strong>${counts.duplicate} duplicate${counts.duplicate === 1 ? '' : 's'}${counts.invalid ? ` · ${counts.invalid} invalid` : ''} will be skipped</strong><span>Duplicates are detected by full name or DUPR ID. Only rows marked Ready can be imported.</span></div></div>` : `<div class="player-import-success-note">${icon('check')} All ${counts.ready} player rows are ready to import. Duplicate checking will run once more before saving.</div>`}
+    <div class="player-import-table-wrap"><table class="data-table players-table player-import-table"><colgroup><col style="width:5%"><col style="width:31%"><col style="width:13%"><col style="width:11%"><col style="width:14%"><col style="width:12%"><col style="width:14%"></colgroup><thead><tr><th scope="col">#</th><th scope="col">Player's Fullname (Nickname)</th><th scope="col">Category</th><th scope="col">Gender</th><th scope="col">DUPR ID</th><th scope="col">Attendance</th><th scope="col">Match Records</th></tr></thead><tbody>${tableRows}<tr class="player-import-empty-row" hidden><td colspan="7">No player rows match your search or selected filter.</td></tr></tbody></table></div>
+    <div class="player-import-footer"><span>Only <strong>${counts.ready} Ready</strong> player${counts.ready === 1 ? '' : 's'} will be saved. Duplicate and invalid rows are excluded.</span><div><button type="button" class="btn" data-action="close-modal">Close</button><button type="button" class="btn" data-action="import-players">${icon('upload')} Upload CSV</button><button type="button" class="btn btn-primary" data-action="confirm-player-import" ${counts.ready ? '' : 'disabled'}>${icon('download')} Import ${counts.ready} Player${counts.ready === 1 ? '' : 's'}</button></div></div>
+  </div>`;
+}
+function openPlayerImportReview(filename, rows) {
+  pendingPlayerImport = { filename, rows: analyzePlayerImportRows(rows), filter: 'all', query: '' };
+  modal('Registered Player Cloud', playerImportReviewMarkup(), { wide: true, className: 'player-import-modal', subtitle: 'Review the selected CSV before adding players to your shared directory.' });
+}
+
+async function handlePlayerCsvFile(file) {
+  if (!file) return;
+  if (!/\.csv$/i.test(file.name) && file.type && !/csv|comma-separated/i.test(file.type)) {
+    toast('Please choose a CSV file.', 'error');
+    return;
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    toast('The CSV file is too large. Choose a file smaller than 8 MB.', 'error');
+    return;
+  }
+  try {
+    const rows = parsePlayerImportCsv(await file.text());
+    if (rows.length > 5000) throw new Error('A maximum of 5,000 player rows can be imported at one time.');
+    openPlayerImportReview(file.name, rows);
+  } catch (error) {
+    toast(error.message || 'Unable to read this CSV file.', 'error');
+  }
+}
+
+async function confirmPlayerImport(button) {
+  const readyRows = asArray(pendingPlayerImport?.rows).filter(row => row.status === 'ready');
+  if (!readyRows.length) return;
+  button.disabled = true;
+  button.innerHTML = 'Importing…';
+  try {
+    const response = await api('/api/organizer-dashboard/players/import', {
+      method: 'POST',
+      body: JSON.stringify({ players: readyRows.map(row => row.player) })
+    });
+    await refreshData({ silent: true });
+    closeModal();
+    pendingPlayerImport = null;
+    const imported = Number(response.importedCount) || 0;
+    const serverDuplicates = Number(response.duplicateCount) || 0;
+    const skipped = Number(response.invalidCount) || 0;
+    const summary = [`Imported ${imported} player${imported === 1 ? '' : 's'}`];
+    if (serverDuplicates) summary.push(`${serverDuplicates} duplicate${serverDuplicates === 1 ? '' : 's'} skipped`);
+    if (skipped) summary.push(`${skipped} invalid row${skipped === 1 ? '' : 's'} skipped`);
+    toast(summary.join(' · '));
+  } catch (error) {
+    toast(error.message || 'Unable to import players.', 'error');
+    if (button.isConnected) {
+      button.disabled = false;
+      button.innerHTML = `${icon('download')} Import ${readyRows.length} Player${readyRows.length === 1 ? '' : 's'}`;
+    }
+  }
+}
+
 function exportPlayers() {
   downloadCSV('husay-dinkers-players.csv', ['Name', 'Nickname', 'Category', 'Gender', 'DUPR ID', 'Self Rating', 'Matches', 'Wins', 'Losses', 'Attendance'], state.data.players.filter(p => !p.historicalOnly).map(player => { const s = playerStats(player); return [player.name, player.nickname, player.category, player.gender, player.duprId, player.selfRating, s.matches, s.wins, s.losses, s.attendance]; }));
 }
@@ -3457,7 +3750,7 @@ function modal(title, body, options = {}) {
     if (existingMap) { try { existingMap.remove(); } catch (_) {} state.mapInstances.delete(mapId); }
   }
   const root = $('#modalRoot');
-  root.innerHTML = `<div class="modal-backdrop" data-action="close-modal"></div><section class="modal-card ${options.wide ? 'wide' : ''} ${escapeHTML(options.className || '')}" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><header class="modal-header"><h2 id="modalTitle">${escapeHTML(title)}</h2><button type="button" class="icon-action" data-action="close-modal" aria-label="Close">${icon('close')}</button></header><div class="modal-body">${body}</div></section>`;
+  root.innerHTML = `<div class="modal-backdrop" data-action="close-modal"></div><section class="modal-card ${options.wide ? 'wide' : ''} ${escapeHTML(options.className || '')}" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><header class="modal-header"><div class="modal-heading-copy"><h2 id="modalTitle">${escapeHTML(title)}</h2>${options.subtitle ? `<p>${escapeHTML(options.subtitle)}</p>` : ''}</div><button type="button" class="icon-action" data-action="close-modal" aria-label="Close">${icon('close')}</button></header><div class="modal-body">${body}</div></section>`;
   state.modal = title;
   const focusable = $('input:not([type=hidden]),select,textarea,button', root);
   if (focusable) window.setTimeout(() => focusable.focus(), 20);
@@ -3725,6 +4018,13 @@ document.addEventListener('click', async event => {
     }
     return;
   }
+  const playerImportFilter = event.target.closest('[data-player-import-filter]');
+  if (playerImportFilter && pendingPlayerImport) {
+    pendingPlayerImport.filter = playerImportFilter.dataset.playerImportFilter || 'all';
+    applyPlayerImportPreviewFilters();
+    return;
+  }
+
   const matchTypeButton = event.target.closest('[data-match-type-filter]');
   if (matchTypeButton) {
     const nextMatchType = matchTypeButton.dataset.matchTypeFilter;
@@ -3781,6 +4081,8 @@ document.addEventListener('click', async event => {
       }
       return;
     }
+    if (action === 'import-players') { $('#playerCsvImportFile')?.click(); return; }
+    if (action === 'confirm-player-import') { await confirmPlayerImport(actionButton); return; }
     if (action === 'export-players') { exportPlayers(); return; }
     if (action === 'export-dupr') { exportDuprMatches(); return; }
     if (action === 'edit-settings') { openOrganizerSettings(); return; }
@@ -4095,6 +4397,11 @@ document.addEventListener('focusin', event => {
 });
 
 document.addEventListener('input', event => {
+  if (event.target?.id === 'playerImportSearch' && pendingPlayerImport) {
+    pendingPlayerImport.query = event.target.value || '';
+    applyPlayerImportPreviewFilters();
+    return;
+  }
   const input = event.target.closest('[data-court-location-input]');
   if (!input) return;
   const form = input.closest('form');
@@ -4218,8 +4525,14 @@ document.addEventListener('click', event => {
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') { closeModal(); $('#topPopover').hidden = true; closeMobileNav(); }
 });
-document.addEventListener('change', event => {
+document.addEventListener('change', async event => {
   const target = event.target;
+  if (target.id === 'playerCsvImportFile') {
+    const file = target.files?.[0];
+    target.value = '';
+    await handlePlayerCsvFile(file);
+    return;
+  }
   if (target.id === 'mapModalSessionSelect') { setMapModalSession(target.value); return; }
   if (target.id === 'sessionStatusFilter') { state.filters.sessionStatus = target.value; renderPage(true); }
   if (target.id === 'playerCategoryFilter') { state.filters.playerCategory = target.value; const filtered = visibleRows(state.data.players.filter(player => !player.historicalOnly).sort((a,b)=>a.name.localeCompare(b.name))).filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory); $('#playersTableWrap').innerHTML = playersTable(filtered); }
