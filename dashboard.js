@@ -931,26 +931,15 @@ function getRankedPlayers() {
   rankedPlayersCache = players;
   return rankedPlayersCache;
 }
-// Dashboard only needs its first 20 rows. De-duplicate first because stats are
-// already keyed by normalized name; then keep the displayed list bounded.
+// Both the dashboard preview and the All Sessions Player Rankings table must
+// use this exact same eligible, sorted list. Historical-only names are kept in
+// match history, but are not registered leaderboard entries.
+function getOverallRankedPlayers() {
+  return getRankedPlayers().filter(player => !player.historicalOnly);
+}
 function topRankedPlayers(limit = 5) {
-  if (limit > 100) return getRankedPlayers().slice(0, limit);
-  const top = [];
-  for (const player of getUniqueRankablePlayers()) {
-    let low = 0, high = top.length;
-    while (low < high) {
-      const middle = (low + high) >> 1;
-      if (compareRankedPlayers(player, top[middle]) < 0) high = middle;
-      else low = middle + 1;
-    }
-    if (low < limit) {
-      top.splice(low, 0, player);
-      if (top.length > limit) top.pop();
-    } else if (top.length < limit) {
-      top.push(player);
-    }
-  }
-  return top;
+  const count = Math.max(0, Math.floor(Number(limit) || 0));
+  return getOverallRankedPlayers().slice(0, count);
 }
 function scheduleIdleTask(callback, timeout = 180) {
   if (typeof window.requestIdleCallback === 'function') {
@@ -3128,7 +3117,7 @@ function getRankingPlayersForCurrentView() {
   const selectedSessionId = currentRankingSessionId();
   let players;
   if (selectedSessionId === 'all') {
-    players = getRankedPlayers().filter(player => !player.historicalOnly);
+    players = getOverallRankedPlayers();
   } else {
     const session = (state.data?.sessions || []).find(item => String(item.id) === selectedSessionId);
     players = session ? buildSessionRanking(session).map(entry => {
