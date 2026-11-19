@@ -5,7 +5,8 @@ const { URL } = require('node:url');
 const crypto = require('node:crypto');
 
 const ROOT = __dirname;
-const APP_BUILD_VERSION = 'ppm-session-import-20261119-v3';
+const APP_BUILD_VERSION = 'ppm-session-import-20261119-v4';
+const SESSION_IMPORT_API_PATH = '/api/organizer-dashboard/sessions/import';
 const DATA_DIR = process.env.PICKLE_DATA_DIR ? path.resolve(process.env.PICKLE_DATA_DIR) : path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'live-state.json');
 const THEME_FILE = path.join(DATA_DIR, 'live-theme.json');
@@ -1323,7 +1324,7 @@ async function handle(req, res) {
   let decodedRequestPath = url.pathname;
   try { decodedRequestPath = decodeURIComponent(url.pathname); } catch (_) {}
   const normalizedRequestPath = (decodedRequestPath.length > 1 ? decodedRequestPath.replace(/\/+$/, '') : decodedRequestPath).toLowerCase();
-  const isSessionImportApi = normalizedRequestPath === '/api/organizer-dashboard/sessions/import';
+  const isSessionImportApi = normalizedRequestPath === SESSION_IMPORT_API_PATH;
   if (isSessionImportApi && req.method === 'OPTIONS') {
     res.setHeader('Allow', 'POST, OPTIONS');
     res.writeHead(204, {'Cache-Control':'no-store'});
@@ -1847,7 +1848,7 @@ async function handle(req, res) {
     service:'Pickle Point Match Live View',
     build:APP_BUILD_VERSION,
     capabilities:{sessionImport:true},
-    sessionImportEndpoint:'/api/organizer-dashboard/sessions/import',
+    sessionImportEndpoint:SESSION_IMPORT_API_PATH,
     storage:dbPool ? 'postgresql' : 'json-file'
   });
   if (url.pathname === '/api/live-theme' && req.method === 'GET') return sendJson(res, 200, {ok:true,theme:liveTheme});

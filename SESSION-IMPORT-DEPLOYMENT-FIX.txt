@@ -1,41 +1,64 @@
-PICKLE POINT MATCH — SESSION CSV IMPORT DEPLOYMENT FIX
-Build: ppm-session-import-20261119-v3
+PICKLE POINT MATCH — OPEN PLAY SESSION CSV IMPORT RECOVERY
+Build: ppm-session-import-20261119-v4
 
-WHY THE WARNING APPEARS
-The dashboard received HTTP 405 from POST /api/organizer-dashboard/sessions/import.
-That usually means the dashboard JavaScript is newer than the Node server currently
-running on Render, or a rewrite/proxy is rejecting the POST before it reaches server.js.
-The import route is implemented in this server.js build.
+WHAT CAUSED THE WARNING
+The dashboard attempted POST /api/organizer-dashboard/sessions/import, but the live
+Render backend returned HTTP 405. The dashboard then checked /api/health and found that
+the running server did not advertise capabilities.sessionImport = true. This means the
+currently deployed server.js is older than the dashboard files (or Render is deploying
+a different service, branch, or Root Directory). It is not a CSV parsing error.
 
-IMPORTANT: DEPLOY TO THE EXISTING SERVICE
-1. Back up the current GitHub repository and the existing Render PostgreSQL database.
-2. Update the SAME GitHub repository and SAME deployment branch used by the existing
-   Render web service. Do not create a second Render service or database.
-3. The repository/service Root Directory must contain package.json, package-lock.json,
-   server.js, render.yaml, dashboard.html, dashboard.js, dashboard.css, and the other
-   app files directly. Do not leave them one folder deeper unless Root Directory is set
-   to that exact folder.
-4. Keep the current DATABASE_URL, SESSION_SECRET, and organizer credentials unchanged.
-5. Confirm the Render build command is `npm install --omit=dev` and the start command is
-   `npm start` (or retain equivalent known-good commands already configured).
-6. In Render, open the existing web service and choose Manual Deploy > Clear build cache
-   & deploy. Wait for the deployment to finish successfully, then refresh /manage.
+WHAT IS INCLUDED IN THIS REPAIR
+- server.js contains the authenticated POST import route and advertises its capability
+  from /api/health.
+- dashboard.html and dashboard.js use a matching versioned cache token.
+- The server and health endpoint use one shared path constant for the import route.
+- The redundant unreachable startup statement was removed.
+- The project archive has server.js, package.json, and render.yaml directly at its root.
+- The archive excludes node_modules and local data/ records. Render installs dependencies;
+  keep the original private ZIP as a backup if its local data/ records have not already
+  been migrated to the existing PostgreSQL database.
 
-VERIFY THE BACKEND BEFORE IMPORTING
-Open this URL on the SAME Render domain used by /manage:
-  /api/health
-The JSON must include:
-  "build": "ppm-session-import-20261119-v3"
+DEPLOY TO THE EXISTING RENDER SERVICE — DO NOT CREATE A NEW ONE
+1. Keep the original uploaded ZIP as a private backup. Do not publish its data/ folder or
+   organizer account file to a public GitHub repository.
+2. Back up the existing Render PostgreSQL database before deploying. Keep the current
+   DATABASE_URL, SESSION_SECRET, and organizer credentials unchanged.
+3. Put the contents of this repaired ZIP at the top level of the SAME GitHub repository
+   and the SAME branch connected to the existing Render web service. The root must show
+   package.json, package-lock.json, server.js, render.yaml, dashboard.html, dashboard.js,
+   and the other app files together. Do not put these files one folder deeper.
+4. In the existing Render web service, check Settings > Build & Deploy. Set Root Directory
+   to blank (repository root), unless your existing repository intentionally uses a
+   subdirectory. Build Command: npm install --omit=dev. Start Command: npm start.
+5. Deploy the existing service from the same branch. Do not create a second web service,
+   do not replace the existing PostgreSQL database, and do not change DATABASE_URL.
+6. Wait for that deployment to finish successfully, then open /api/health on the same
+   Render domain used by /manage.
+
+VERIFY BEFORE IMPORTING A CSV
+The /api/health JSON must include all of these:
+  "build": "ppm-session-import-20261119-v4"
   "capabilities": { "sessionImport": true }
-If either value is missing, Render is still running an older server.js or the wrong
-service/Root Directory/branch was deployed. Do not retry CSV import until it matches.
+  "sessionImportEndpoint": "/api/organizer-dashboard/sessions/import"
+  "storage": "postgresql"
 
-If /api/health shows the expected build and capability but import still returns 405,
-inspect Render Logs and any proxy/rewrite rules: the POST is being blocked or rewritten
-before the route handler receives it. The dashboard now reports this case separately.
+Only after the health response matches should you retry Import CSV from the Open Play
+Sessions menu. The repaired backend accepts POST and OPTIONS for the import endpoint.
+The POST still requires a signed-in organizer session. Duplicate session IDs are skipped;
+valid sessions, attendance, and linked matches are saved to the existing organizer data.
+
+IF THE HEALTH RESPONSE IS STILL OLD
+- Check that the latest deployment completed on the correct existing Render service.
+- Check that the service is connected to the repository and branch you updated.
+- Check that the service Root Directory contains server.js and package.json directly.
+- Use Manual Deploy > Clear build cache & deploy, then verify /api/health again.
+- If health reports v4 but POST still returns 405, inspect Render logs and rewrite/proxy
+  rules for /api/organizer-dashboard/sessions/import.
 
 DATA SAFETY
-This is a source-only package. It intentionally excludes runtime `data/` records and
-`node_modules/`. Keep the existing Render PostgreSQL DATABASE_URL unchanged so current
-hosted player, attendance, session, and match data remain attached to the same database.
-Do not commit local organizer account JSON, player data, .env files, or secrets to GitHub.
+The repaired source ZIP intentionally excludes node_modules/ and data/. Keep the original
+private ZIP. If any records in that ZIP exist only in local data/ and are not yet in the
+current PostgreSQL database, follow DEPLOYMENT-SECURITY-CHECKLIST.md and
+scripts/import-legacy-data.js to migrate them safely before deploying source-only files.
+Do not overwrite or recreate the current Render PostgreSQL database.

@@ -9,8 +9,13 @@ If the original queueing system is already online on Render, deploy this project
 ## Session CSV import backend verification
 
 The session CSV importer uses `POST /api/organizer-dashboard/sessions/import` in `server.js`.
+The backend and dashboard assets are versioned together. Deploy the **complete project root**
+to the same Render web service and branch. The ZIP is laid out with `server.js` and
+`package.json` at its top level so the Render service Root Directory can point directly
+at the extracted repository root.
+
 After deploying, verify `/api/health` on the same Render domain: it must report build
-`ppm-session-import-20261119-v3` and `capabilities.sessionImport: true`. If not, the
+`ppm-session-import-20261119-v4` and `capabilities.sessionImport: true`. If not, the
 existing Render service is still running an older backend or the wrong repository branch
 or Root Directory was deployed. See `SESSION-IMPORT-DEPLOYMENT-FIX.txt`.
 
