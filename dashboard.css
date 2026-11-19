@@ -164,7 +164,6 @@ h1 { margin: 4px 0 3px; color: #13281d; font-size: clamp(22px, 2vw, 28px); line-
 .status-pill.amber { color: #956518; background: #fff5df; }
 .page-stack { display: grid; gap: 14px; }
 .page-stack .page-heading { margin-bottom: 1px; }
-.content-columns { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(240px,.8fr); gap: 13px; align-items: start; }
 .session-list { display: grid; gap: 9px; }
 .session-card { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 12px 13px; border: 1px solid #edf1eb; border-radius: 11px; background: #fff; transition: border-color .16s ease, box-shadow .16s ease; }
 .session-card:hover { border-color: #cfe7c7; box-shadow: 0 4px 13px rgba(25,70,37,.055); }
@@ -208,6 +207,16 @@ h1 { margin: 4px 0 3px; color: #13281d; font-size: clamp(22px, 2vw, 28px); line-
 }
 .match-type-filter[data-active="dupr"]::before { transform: translateX(100%); }
 .match-type-filter[data-active="non-dupr"]::before { transform: translateX(200%); }
+/* Open Play status filter: keep the three options equal-width so the
+   animated active pill always matches exactly one option. A slightly wider
+   control gives COMPLETED enough room without making the slider overlap LIVE. */
+.session-status-filter {
+  width: 202px;
+  flex: 0 0 202px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.session-status-filter[data-active="live"]::before { transform: translateX(100%); }
+.session-status-filter[data-active="completed"]::before { transform: translateX(200%); }
 .match-type-option {
   position: relative;
   z-index: 1;
@@ -225,10 +234,13 @@ h1 { margin: 4px 0 3px; color: #13281d; font-size: clamp(22px, 2vw, 28px); line-
   transition: color .18s ease;
 }
 .match-type-option[aria-pressed="true"] { color: #fff; }
+/* Keep the COMPLETED text comfortably inset from the right edge. */
+.session-status-filter .match-type-option:last-child { padding-right: 10px; padding-left: 5px; }
 .match-type-option:hover { color: var(--green-900); }
 .match-type-option[aria-pressed="true"]:hover { color: #fff; }
 @media (max-width: 560px) {
   .match-type-filter { width: 180px; flex-basis: 180px; }
+  .session-status-filter { width: 202px; flex-basis: 202px; }
 }
 .table-wrap { width: 100%; overflow: auto; border: 1px solid #eef2ed; border-radius: 10px; }
 table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; background: #fff; font-size: 10px; }
@@ -275,11 +287,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .metric-tile .registered-player-skill-count.category-int { color: #a27a25; border-color: #f0e5c4; background: #fcf8ed; }
 .metric-tile .registered-player-skill-count.category-adv { color: #b87837; border-color: #f4e1cd; background: #fcf6ef; }
 .metric-tile .registered-player-skill-count.category-exp { color: #bd6268; border-color: #f2dadd; background: #fcf4f5; }
-.court-cards { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 11px; }
-.court-card { padding: 13px; border: 1px solid #e9efe7; border-radius: 12px; background: #fff; }
-.court-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.court-card h3 { margin: 0; font-size: 14px; }
-.court-card p { color: #7c887f; font-size: 10px; line-height: 1.5; }
 .map-panel { display: flex; flex-direction: column; }
 .map-count { color: #809087; font-size: 9px; font-weight: 700; white-space: nowrap; }
 .interactive-map { position: relative; width: 100%; height: 178px; min-height: 150px; overflow: hidden; border: 1px solid #e5eee1; border-radius: 11px; background: #eaf2e8; isolation: isolate; }
@@ -349,7 +356,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .ranking-panel { grid-column: 2; grid-row: 1 / span 2; }
   .side-stack { grid-column: 1; grid-row: 2; grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-rows: minmax(165px,1fr); }
   .recent-panel { display: flex; grid-column: 1 / -1; grid-row: 3; min-height: 155px; }
-  .content-columns { grid-template-columns: 1fr; }
   .sidebar-shortcuts { margin-top: 8px; }
 }
 @media (max-width: 840px) {
@@ -379,9 +385,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .recent-panel { display: flex; min-height: 180px; }
   .page-heading { align-items: flex-start; flex-direction: column; }
   .heading-actions { width: 100%; justify-content: flex-start; }
-  .content-columns { grid-template-columns: 1fr; }
   .metric-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .court-cards { grid-template-columns: 1fr; }
   .session-card { grid-template-columns: 1fr; }
   .session-actions { justify-content: flex-start; }
   .toolbar { width: 100%; }
@@ -404,14 +408,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
-
-.map-help { margin-top: 8px; }
-.avatar-inline { display: inline-grid; vertical-align: middle; margin-right: 7px; }
-.dupr-value { color: var(--green-800); }
-.latest-date { font-size: 13px; }
-.toolbar-spaced { margin-top: 12px; }
 .form-footer { padding: 0; border: 0; background: transparent; }
-.session-detail-heading { margin-top: 16px; }
 .popover-heading { padding: 8px 10px 4px; color: #2a392f; font-size: 10px; }
 .popover-empty { padding: 8px 10px; color: #88948b; font-size: 10px; }
 @media (max-height: 680px) and (min-width: 841px) {
@@ -422,25 +419,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .page-content { overflow-y: auto; }
 }
 
-
-/* Organizer sign-in gate */
-.auth-gate[hidden] { display: none !important; }
-.auth-gate { position: fixed; z-index: 300; inset: 0; display: grid; place-items: center; padding: 22px; background: rgba(242,248,240,.96); }
-.auth-card { width: min(100%, 390px); padding: 30px; border: 1px solid #e5eee2; border-radius: 18px; background: #fff; box-shadow: 0 18px 60px rgba(25,65,34,.12); }
-.auth-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; color: #075b32; font-size: 17px; font-weight: 900; line-height: .95; letter-spacing: -.4px; }
-.auth-brand .brand-ball { flex: 0 0 42px; width: 42px; height: 42px; }
-.auth-eyebrow { margin: 0 0 8px; color: #4b9b39; font-size: 9px; font-weight: 850; letter-spacing: 1.2px; }
-.auth-card h1 { margin: 0; color: #1c2d22; font-size: 25px; letter-spacing: -.7px; }
-.auth-description { margin: 8px 0 22px; color: #758177; font-size: 12px; line-height: 1.55; }
-.auth-card form { display: grid; gap: 9px; }
-.auth-card label { color: #46534a; font-size: 11px; font-weight: 750; }
-.auth-card input { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid #dfe8dc; border-radius: 9px; outline: 0; color: #243329; background: #fff; font: inherit; font-size: 12px; transition: border-color .16s ease, box-shadow .16s ease; }
-.auth-card input:focus { border-color: #75bd58; box-shadow: 0 0 0 3px rgba(117,189,88,.14); }
-.auth-submit { width: 100%; min-height: 42px; margin-top: 5px; }
-.auth-footnote { margin: 19px 0 0; color: #96a097; font-size: 9px; text-align: center; }
-.auth-error { margin: 0; color: #bd3e36; font-size: 10px; }
-.auth-card button:disabled { opacity: .65; cursor: wait; }
-@media (max-width: 480px) { .auth-card { padding: 23px; border-radius: 14px; } }
 
 /* Integrated queueing shortcuts and stable page frame */
 .sidebar-shortcuts{display:grid;gap:4px;padding:9px 5px 5px;margin-top:9px;flex:0 0 auto;border-top:1px solid var(--line,#e7ede8)}
@@ -455,10 +433,8 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .status-pill.ended{background:#eef1ef;color:#68736c}
 .status-pill.dupr{background:#e7f1ff;color:#1d5fae}
 .detail-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.participant-tools{display:flex;align-items:center;gap:8px}
 .participant-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
 .participant-edit-grid .field.full{grid-column:1/-1}
-.score-result{font-weight:700;white-space:nowrap}
 .session-card.is-live{border-color:#c6e5cd;background:#fbfefb}
 
 .external-tools-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
@@ -507,7 +483,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 /* Dashboard map sizing and responsive panel layout. */
 .side-stack { grid-template-rows: minmax(0,1.35fr) minmax(0,.85fr); }
 .side-stack .interactive-map { height: 128px; min-height: 118px; }
-.page-stack > .map-panel .interactive-map { height: 260px; min-height: 220px; }
 @media (max-width: 980px) {
   .dashboard-grid { min-height: 0; grid-template-columns: minmax(0,1fr); grid-template-rows: auto; }
   .trend-panel, .ranking-panel, .side-stack, .recent-panel { grid-column: 1; grid-row: auto; min-height: 0; }
@@ -552,7 +527,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .chart-empty { min-height: 126px; padding: 8px; text-align: center; line-height: 1.5; }
 
 /* Interactive 3D map: pointer capture stays inside the map canvas, never the panel edges. */
-.interactive-map { position: relative; width: 100%; min-width: 0; height: 100%; min-height: 0; overflow: hidden; border: 1px solid #e2eae0; border-radius: 12px; background: #e9f1ed; isolation: isolate; touch-action: none; user-select: none; cursor: grab; }
+.interactive-map { position: relative; width: 100%; min-width: 0; height: 100%; min-height: 0; overflow: hidden; border: 1px solid #e2eae0; border-radius: 12px; background: #e9f1ed; isolation: isolate; user-select: none; cursor: grab; }
 .interactive-map:active { cursor: grabbing; }
 .interactive-map .maplibregl-canvas-container, .interactive-map .maplibregl-canvas { width: 100% !important; height: 100% !important; cursor: grab; }
 .interactive-map .maplibregl-canvas-container:active, .interactive-map .maplibregl-canvas:active { cursor: grabbing; }
@@ -736,7 +711,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .court-tile .court-player-chip small { flex: 0 0 auto; color: #75847a; font-size: 7px; font-variant-numeric: tabular-nums; }
 .court-tile .court-player-empty, .court-tile .court-player-more { color: #89958c; font-size: 8px; line-height: 1.4; }
 .court-empty-note { min-height: 96px; }
-@media (max-width: 840px) { .court-status-track { justify-content: center; } }
 
 
 /* Requested dashboard UI polish: hide only the main page scrollbar and use pill actions. */
@@ -973,7 +947,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
     grid-template-rows: auto;
     align-items: stretch;
   }
-  .side-stack > .map-panel { min-height: 270px; }
   .side-stack > .court-panel { min-height: 205px; }
   .court-status-track { justify-content: flex-start; }
   .court-status-grid { min-height: 128px; height: 128px; flex-basis: 128px; }
@@ -981,15 +954,9 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 
 /* Narrow phones: stack map and court status to avoid cramped columns. */
 @media (max-width: 600px) {
-  .side-stack {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto;
-  }
-  .side-stack > .map-panel { min-height: 270px; }
   .side-stack > .court-panel { min-height: 205px; }
   .page-heading { align-items: flex-start; flex-direction: column; }
   .heading-actions { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
-  .heading-actions .btn { flex: 1 1 auto; }
   .live-session-banner { align-items: flex-start; flex-direction: column; }
   .live-session-actions { width: 100%; flex-wrap: wrap; }
   .live-session-actions .btn { flex: 1 1 auto; }
@@ -997,7 +964,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 
 /* Small phones: protect the top bar and metric cards from horizontal overflow. */
 @media (max-width: 380px) {
-  .page-content { padding-inline: 8px; }
   .topbar { padding-inline: 7px; gap: 4px; }
   .topbar-left, .topbar-right { gap: 4px; }
   .global-search { width: clamp(82px, 29vw, 108px); padding-inline: 8px; }
@@ -1005,7 +971,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .profile-avatar { width: 28px; height: 28px; }
   .stats-grid, .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stat-card { min-width: 0; padding: 9px 8px; }
-  .stat-value { font-size: 19px; }
   .court-tile { flex-basis: 164px; }
 }
 
@@ -1841,7 +1806,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .court-location-draggable-pin svg { display: block; width: 36px; height: 50px; overflow: visible; filter: drop-shadow(0 2px 3px rgba(55, 25, 20, .35)); pointer-events: none; }
 .court-location-draggable-pin:hover svg { filter: drop-shadow(0 3px 5px rgba(55, 25, 20, .42)); }
 .map-popup-correct-pin { display: inline-flex; width: max-content; max-width: 100%; margin: 0; padding: 0; border: 0; color: #176d3c; background: transparent; font: inherit; font-size: 8px; font-weight: 800; cursor: pointer; }
-.map-popup-correct-pin:hover { text-decoration: underline; }
 @media (max-width: 640px) {
   .court-location-pin-map { height: 235px; }
   .court-location-map-heading { align-items: flex-start; }
@@ -3056,3 +3020,637 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .session-import-modal .modal-header h2 { font-size: 12px; }
   .session-import-modal .session-import-summary { padding: 5px 11px 0; }
 }
+
+/* Open Play Session Details: single scoped layout for the two-card modal. */
+.session-details-modal,
+.session-details-modal * {
+  box-sizing: border-box;
+}
+
+.modal-root:has(.session-details-modal) {
+  padding: clamp(10px, 2vw, 22px);
+  overscroll-behavior: contain;
+}
+
+.modal-card.wide.session-details-modal {
+  width: min(780px, calc(100vw - 36px));
+  max-width: min(780px, calc(100vw - 36px));
+  min-width: 0;
+  max-height: min(88dvh, 790px);
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  animation: modalIn .16s ease both;
+}
+
+.session-details-modal .modal-body {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-height: min(88dvh, 790px);
+  padding: 0;
+  overflow: auto;
+  background: transparent;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.session-details-modal .modal-body::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.session-details-content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, .96fr) minmax(0, 1.04fr);
+  align-items: stretch;
+  gap: 10px;
+  padding: 0;
+}
+
+.session-details-content > *,
+.session-details-card {
+  min-width: 0;
+  max-width: 100%;
+}
+.session-details-card {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 13px;
+  border: 1px solid #e8ede7;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(25, 45, 29, .08);
+}
+
+/* Keep the information card at the full desktop two-card row height. */
+.session-details-info-card { min-height: 100%; }
+
+.session-details-card-heading,
+.session-details-info-heading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.session-details-card-heading {
+  /* Match the session meta row so both card dividers sit on one baseline. */
+  min-height: 19px;
+  box-sizing: content-box;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e8eee7;
+}
+.session-details-card-heading h3 {
+  margin: 0;
+  color: #718078;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .7px;
+  line-height: 1.25;
+}
+.session-details-card-heading h3 .session-details-count {
+  display: inline;
+  margin-left: 3px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.session-details-card-heading h3 .session-details-count strong {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* Attendance list and rows: action buttons stay at the right edge. */
+.session-attendance-list {
+  min-width: 0;
+  max-width: 100%;
+  /* Let the attendance scroller use the players card's available height. */
+  flex: 1 1 auto;
+  max-height: min(66dvh, 520px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  margin-top: 9px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.session-attendance-list::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.session-details-modal .session-attendee-row {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 39px;
+  display: grid;
+  grid-template-columns: 19px minmax(0, 1fr) max-content;
+  align-items: center;
+  column-gap: 8px;
+  padding: 4px 6px;
+  border: 1px solid #edf1eb;
+  border-radius: 8px;
+  background: #fff;
+}
+.session-details-modal .session-attendee-row:hover {
+  border-color: #dfe9dc;
+  background: #fbfdfb;
+}
+.session-details-modal .session-attendee-row .session-attendee-number {
+  width: 19px;
+  min-width: 19px;
+  height: auto;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  border: 0 !important;
+  border-radius: 0;
+  color: #6c8b72;
+  background: transparent !important;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.session-details-modal .session-attendee-row .session-attendee-copy {
+  min-width: 0;
+  width: auto;
+  max-width: 100%;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 2px;
+}
+.session-details-modal .session-attendee-primary {
+  min-width: 0;
+  width: max-content;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 3px;
+}
+.session-details-modal .session-attendee-row .session-attendee-copy strong {
+  min-width: 0;
+  max-width: 100%;
+  display: block;
+  flex: 0 1 auto;
+  color: #304036;
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+}
+.session-details-modal .session-attendee-primary.has-gender strong {
+  max-width: calc(100% - 16px);
+}
+.session-details-modal .session-attendee-gender {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+.session-details-modal .session-attendee-gender svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.session-details-modal .session-attendee-gender.gender-female { color: #c13b78; }
+.session-details-modal .session-attendee-gender.gender-male { color: #1d64b5; }
+
+.session-details-modal .player-category-badge {
+  width: fit-content;
+  max-width: 100%;
+  height: 15px;
+  min-height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 7px;
+  border: 1px solid transparent;
+  border-radius: 99px;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .28px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.session-details-modal .player-category-badge.category-beg { color: #247eae; border-color: #d5e9f5; background: #f1f8fc; }
+.session-details-modal .player-category-badge.category-nov { color: #258673; border-color: #d0eee6; background: #f0faf7; }
+.session-details-modal .player-category-badge.category-int { color: #a27a25; border-color: #f0e5c4; background: #fcf8ed; }
+.session-details-modal .player-category-badge.category-adv { color: #b87837; border-color: #f4e1cd; background: #fcf6ef; }
+.session-details-modal .player-category-badge.category-exp { color: #bd6268; border-color: #f2dadd; background: #fcf4f5; }
+.session-details-modal .player-category-badge:not(.category-beg):not(.category-nov):not(.category-int):not(.category-adv):not(.category-exp) { color: #59665d; border-color: #e5ebe4; background: #f3f6f2; }
+
+.session-details-modal .session-attendance-actions {
+  min-width: max-content;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  justify-self: end;
+  gap: 4px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.session-details-modal .session-attendance-actions .btn {
+  min-width: 38px;
+  min-height: 25px;
+  height: 25px;
+  padding: 0 7px;
+  border-radius: 6px;
+  font-size: 8px;
+}
+.session-details-modal .session-attendance-actions .icon-action {
+  width: 25px;
+  height: 25px;
+  min-width: 25px;
+  border-radius: 6px;
+}
+.session-details-modal .session-attendance-actions .icon-action svg {
+  width: 12px;
+  height: 12px;
+}
+.session-attendance-empty {
+  min-height: 160px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 18px;
+  border: 1px dashed #dfe8dc;
+  border-radius: 9px;
+  color: #7d8980;
+  text-align: center;
+}
+.session-attendance-empty strong { color: #35483a; font-size: 11px; }
+.session-attendance-empty span { font-size: 9px; line-height: 1.4; }
+
+/* Session information card. Keep its heading meta items on one line. */
+.session-details-info-heading {
+  position: relative;
+  align-items: flex-start;
+}
+/* Extend the divider across the full card content width, including beneath the close-button side. */
+.session-details-info-heading::after {
+  content: "";
+  position: absolute;
+  top: 27px;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-bottom: 1px solid #e8eee7;
+  pointer-events: none;
+}
+.session-details-info-heading .modal-heading-copy {
+  min-width: 0;
+  width: 100%;
+  flex: 1 1 auto;
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+}
+.session-details-heading-meta {
+  width: 100%;
+  min-width: 0;
+  min-height: 19px;
+  box-sizing: content-box;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding-bottom: 8px;
+}
+.session-details-eyebrow {
+  color: #718078;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .75px;
+  line-height: 1;
+}
+.session-details-info-heading .modal-heading-copy h2 {
+  max-width: 100%;
+  margin: 0;
+  color: #26382c;
+  font-size: 13px;
+  font-weight: 820;
+  letter-spacing: -.18px;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+.session-details-info-heading .status-pill {
+  min-height: 19px;
+  padding: 3px 7px;
+  font-size: 8px;
+  letter-spacing: .2px;
+}
+.session-details-modal .session-details-close,
+.session-details-modal .session-details-close:hover,
+.session-details-modal .session-details-close:active,
+.session-details-modal .session-details-close:focus {
+  border: 0 !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.session-details-close {
+  /* Keep the close control precisely aligned with the session meta row. */
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  align-self: flex-start;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  line-height: 0;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+  cursor: pointer;
+}
+.session-details-close svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.session-details-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 11px;
+  margin-top: 11px;
+}
+.session-details-fact {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 3px;
+}
+.session-details-fact > span {
+  color: #89948c;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: .35px;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+.session-details-fact > strong {
+  color: #36463b;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.session-details-fact-location { grid-column: 1 / -1; }
+.session-details-map-block {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  margin-top: 11px;
+}
+.session-details-map-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  color: #89948c;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .55px;
+}
+.session-details-map-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #6b9e70;
+}
+.session-details-mini-map {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  min-height: 180px;
+  flex: 1 1 auto;
+  overflow: hidden;
+  border: 1px solid #e8eee7;
+  border-radius: 8px;
+  background: #f3f6f1;
+  isolation: isolate;
+}
+.session-details-mini-map .maplibregl-canvas-container,
+.session-details-mini-map .maplibregl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+.session-details-mini-map .maplibregl-canvas { outline: none; }
+.session-details-mini-map .maplibregl-ctrl-top-right { top: 7px; right: 7px; }
+.session-details-mini-map .maplibregl-ctrl-group {
+  overflow: hidden;
+  border: 1px solid rgba(29,55,38,.14);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(20,55,31,.14);
+}
+.session-details-mini-map .maplibregl-ctrl-group button {
+  width: 27px;
+  height: 27px;
+  cursor: pointer;
+}
+.session-details-mini-map .maplibregl-ctrl-group button + button { border-top: 1px solid #edf1ec; }
+.session-details-map-empty {
+  width: 100%;
+  height: 100%;
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  color: #8a968d;
+  font-size: 9px;
+  line-height: 1.45;
+  text-align: center;
+}
+.session-details-modal .btn:focus-visible,
+.session-details-modal .icon-action:focus-visible {
+  outline: 2px solid rgba(75,157,83,.3);
+  outline-offset: 2px;
+}
+
+@media (max-width: 820px) {
+  .modal-root:has(.session-details-modal) { padding: 10px; }
+  .modal-card.wide.session-details-modal {
+    width: min(540px, calc(100vw - 20px));
+    max-width: min(540px, calc(100vw - 20px));
+    max-height: min(94dvh, 900px);
+  }
+  .session-details-modal .modal-body { max-height: min(94dvh, 900px); }
+  .session-details-content {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 9px;
+  }
+  .session-details-players-card { order: 1; }
+  .session-details-info-card { order: 2; min-height: 0; }
+  .session-details-card { padding: 12px; border-radius: 10px; }
+  .session-attendance-list { max-height: min(58dvh, 420px); }
+  .session-details-map-block { margin-top: 11px; }
+  .session-details-mini-map { height: clamp(220px, 36dvh, 280px); min-height: 190px; }
+}
+
+@media (max-width: 420px) {
+  .modal-root:has(.session-details-modal) { padding: 7px; }
+  .modal-card.wide.session-details-modal,
+  .session-details-modal .modal-body { max-height: 95dvh; }
+  .session-details-card { padding: 10px; }
+  .session-details-card-heading h3 { font-size: 9px; }
+  .session-details-info-heading .modal-heading-copy h2 { font-size: 12px; }
+  .session-details-facts { gap: 7px 8px; }
+  .session-details-fact > strong { font-size: 9px; }
+  .session-attendance-list { max-height: min(56dvh, 380px); }
+  .session-details-modal .session-attendee-row {
+    grid-template-columns: 17px minmax(0, 1fr) max-content;
+    column-gap: 5px;
+    padding: 5px 6px;
+  }
+  .session-details-modal .session-attendee-row .session-attendee-number {
+    width: 17px;
+    min-width: 17px;
+  }
+  .session-details-modal .session-attendee-row .session-attendee-copy strong { font-size: 9px; }
+  .session-details-modal .session-attendance-actions { gap: 3px; }
+  .session-details-modal .session-attendance-actions .btn {
+    min-width: 33px;
+    padding-inline: 4px;
+  }
+  .session-details-modal .session-attendance-actions .icon-action {
+    flex: 0 0 25px;
+  }
+  .session-details-mini-map { height: clamp(220px, 47dvh, 280px); min-height: 190px; }
+}
+
+@media screen and (orientation: landscape) and (max-height: 620px) and (min-width: 821px) {
+  .modal-card.wide.session-details-modal {
+    width: min(780px, calc(100vw - 28px));
+    max-width: min(780px, calc(100vw - 28px));
+    max-height: calc(100dvh - 14px);
+  }
+  .session-details-modal .modal-body { max-height: calc(100dvh - 14px); }
+  .session-details-content { grid-template-columns: minmax(0, .96fr) minmax(0, 1.04fr); }
+  .session-details-mini-map { height: 200px; min-height: 180px; }
+  .session-attendance-list { max-height: min(52dvh, 340px); }
+}
+
+
+/* Courts & Locations MapLibre sizing and native gesture support.
+   Keep the map container sized, but let MapLibre manage its canvas positioning
+   and touch-action classes so wheel, drag-pan and pinch gestures remain active. */
+.registered-courts-map-layout > .map-panel #venuesCourtMap {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  isolation: isolate;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.registered-courts-map-layout #venuesCourtMap .maplibregl-canvas-container,
+.registered-courts-map-layout #venuesCourtMap .maplibregl-canvas {
+  pointer-events: auto;
+}
+
+.registered-courts-map-layout #venuesCourtMap .maplibregl-canvas {
+  max-width: none !important;
+  outline: 0;
+}
+
+.registered-courts-map-layout #venuesCourtMap .maplibregl-control-container {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.registered-courts-map-layout > .map-panel > .map-preview-footer {
+  align-items: center;
+  flex-wrap: wrap;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .registered-courts-map-layout #venuesCourtMap .maplibregl-ctrl-top-right {
+    top: 7px;
+    right: 7px;
+  }
+}
+
+/* Session details: show the information card only on phones and portrait iPads.
+   Keep the attendance/players card and the original two-card desktop layout intact. */
+@media screen and (max-width: 600px),
+       screen and (min-width: 601px) and (max-width: 1100px) and (orientation: portrait),
+       screen and (hover: none) and (orientation: landscape) and (max-height: 520px) and (max-width: 960px) {
+  .session-details-modal .session-details-content {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .session-details-modal .session-details-players-card {
+    display: none !important;
+  }
+
+  .session-details-modal .session-details-info-card {
+    display: flex;
+    order: 0;
+    width: 100%;
+    min-height: 0;
+    align-self: stretch;
+  }
+}
+

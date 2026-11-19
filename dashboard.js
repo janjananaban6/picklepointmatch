@@ -2709,15 +2709,24 @@ function initializeInteractiveMaps() {
       bearing: -8,
       maxBounds: [[115.5, 4.0], [128.6, 22.4]],
       renderWorldCopies: false,
+      interactive: true,
       scrollZoom: true,
       dragPan: true,
       dragRotate: false,
       pitchWithRotate: false,
       touchZoomRotate: true,
+      touchPitch: false,
       cooperativeGestures: false,
       attributionControl: { compact: true },
       fadeDuration: 180
     });
+    // Explicitly enable MapLibre's interaction handlers after construction.
+    // This keeps wheel zoom, single-finger/mouse drag-pan and two-finger pinch
+    // active even when this map is mounted after a responsive page transition.
+    map.scrollZoom.enable();
+    map.dragPan.enable();
+    map.touchZoomRotate.enable();
+    map.doubleClickZoom.enable();
     map.addControl(new window.maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }), 'top-right');
     collapseMapAttribution(node);
     map.on('resize', () => collapseMapAttribution(node));
@@ -2792,15 +2801,29 @@ function sessionCard(session) {
   const count = (session.attendees || []).length;
   return `<article class="session-card ${session.isLive ? 'is-live' : ''}"><div class="session-main"><h3 class="session-name">${sessionStatusBadge(sessionStatus(session))}<span>${escapeHTML(session.title)}</span></h3><div class="session-meta"><span>${icon('calendar')}${escapeHTML(sessionDateLabel(session))}</span><span>${icon('clock')}${escapeHTML(sessionTimeLabel(session))}</span><span>${icon('pin')}${escapeHTML(sessionLocationLabel(session))}</span><span>${icon('court')}${escapeHTML(sessionCourtsLabel(session))}</span><span>${count} player${count === 1 ? '' : 's'}</span></div></div><div class="session-actions"><button class="btn btn-sm" data-session-view="${escapeHTML(session.id)}">Details</button>${session.isLive ? `<a class="btn btn-sm btn-primary" href="/queueing" target="_blank" rel="noopener">Open Queue</a>` : `<button class="btn btn-sm" data-session-edit="${escapeHTML(session.id)}">Rename</button><button class="icon-action danger" title="Delete session" data-session-delete="${escapeHTML(session.id)}">${icon('trash')}</button>`}${session.isLive && getRegistrationUrl(session) ? `<a class="btn btn-sm btn-soft" href="${escapeHTML(getRegistrationUrl(session))}" target="_blank" rel="noopener">Register</a>` : ''}</div></article>`;
 }
+function filteredSessions() {
+  const selectedSessionId = currentRankingSessionId();
+  return visibleRows(sortedSessions()).filter(session => {
+    const matchesStatus = state.filters.sessionStatus === 'all' || sessionStatus(session) === state.filters.sessionStatus;
+    const matchesSession = selectedSessionId === 'all' || String(session.id) === selectedSessionId;
+    return matchesStatus && matchesSession;
+  });
+}
+function sessionHistoryListMarkup() {
+  const sessions = filteredSessions();
+  return sessions.length
+    ? sessions.map(sessionCard).join('')
+    : emptyState('No sessions found', 'Start an open-play session in the existing Session Setup page.');
+}
 function renderSessions() {
-  const all = visibleRows(sortedSessions()).filter(session => state.filters.sessionStatus === 'all' || sessionStatus(session) === state.filters.sessionStatus);
   const liveCount = state.data.sessions.filter(session => session.isLive).length;
   const completedCount = state.data.sessions.filter(session => !session.isLive).length;
   const attendanceCount = countAttendanceEntries();
+  const sessionStatus = String(state.filters.sessionStatus || 'all').toLowerCase();
   const sessionActions = `<button class="btn" type="button" data-action="import-sessions">${icon('upload')} Import CSV</button><button class="btn" type="button" data-action="export-sessions">${icon('download')} Export CSV</button><a class="btn btn-primary" href="/session" target="_blank" rel="noopener">${icon('plus')} Start Open Play</a><input id="sessionCsvImportFile" type="file" accept=".csv,text/csv" hidden>`;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / OPEN PLAY', 'Open Play Sessions', 'Session history and live attendance synced from your original queueing system.', sessionActions)}
     <div class="metric-grid"><div class="metric-tile"><span>Live sessions</span>${metricCount('sessions', 'live-sessions', liveCount)}</div><div class="metric-tile"><span>Completed sessions</span>${metricCount('sessions', 'completed-sessions', completedCount)}</div><div class="metric-tile"><span>Total attendance</span>${metricCount('sessions', 'total-attendance', attendanceCount)}</div><div class="metric-tile"><span>Recorded matches</span>${metricCount('sessions', 'recorded-matches', state.data.matches.length)}</div></div>
-    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Session History', 'calendar')}<div class="toolbar"><select class="select-control" id="sessionStatusFilter" aria-label="Filter sessions"><option value="all" ${state.filters.sessionStatus === 'all' ? 'selected' : ''}>All sessions</option><option value="Live" ${state.filters.sessionStatus === 'Live' ? 'selected' : ''}>Live</option><option value="Completed" ${state.filters.sessionStatus === 'Completed' ? 'selected' : ''}>Completed</option></select></div></div><div class="session-list">${all.length ? all.map(sessionCard).join('') : emptyState('No sessions found', 'Start an open-play session in the existing Session Setup page.')}</div></section>
+    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Session History', 'calendar')}<div class="toolbar">${rankingSessionFilterMarkup(currentRankingSessionId())}<div class="match-type-filter session-status-filter" id="sessionStatusFilter" data-active="${escapeHTML(sessionStatus)}" role="group" aria-label="Filter sessions by status"><button class="match-type-option" type="button" data-session-status-filter="all" aria-pressed="${sessionStatus === 'all'}">ALL</button><button class="match-type-option" type="button" data-session-status-filter="Live" aria-pressed="${sessionStatus === 'live'}">LIVE</button><button class="match-type-option" type="button" data-session-status-filter="Completed" aria-pressed="${sessionStatus === 'completed'}">COMPLETED</button></div></div></div><div class="session-list">${sessionHistoryListMarkup()}</div></section>
     <p class="page-note">The original queueing system creates a session when an organizer starts Open Play. Session CSV files include attendance and linked match records so their session IDs remain connected on import. Imported sessions are saved as completed history and do not start a live queue.</p></div>`;
 }
 function playersTable(players) {
@@ -3082,69 +3105,84 @@ function downloadCSV(filename, headers, rows) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a'); link.href = url; link.download = filename; document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(url);
 }
-function parsePlayerImportCsv(text) {
+function parseCsvRows(text) {
   const source = String(text || '').replace(/^\uFEFF/, '');
   const rows = [];
   let row = [];
   let field = '';
   let quoted = false;
+
   for (let index = 0; index < source.length; index += 1) {
     const char = source[index];
     if (quoted) {
-      if (char === '"' && source[index + 1] === '"') { field += '"'; index += 1; }
-      else if (char === '"') quoted = false;
-      else field += char;
+      if (char === '"' && source[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        field += char;
+      }
     } else if (char === '"' && field.length === 0) {
       quoted = true;
     } else if (char === ',') {
-      row.push(field); field = '';
+      row.push(field);
+      field = '';
     } else if (char === '\n' || char === '\r') {
       if (char === '\r' && source[index + 1] === '\n') index += 1;
-      row.push(field); field = '';
+      row.push(field);
+      field = '';
       if (row.some(value => String(value).trim() !== '')) rows.push(row);
       row = [];
     } else {
       field += char;
     }
   }
+
   if (field !== '' || row.length) {
     row.push(field);
     if (row.some(value => String(value).trim() !== '')) rows.push(row);
   }
+  return rows;
+}
+
+const normalizeCsvHeader = value => String(value || '').trim().toLocaleLowerCase().replace(/[^a-z0-9]/g, '');
+const csvColumnIndex = (headers, aliases) => headers.findIndex(header => aliases.includes(header));
+const csvValueAt = (values, column) => column < 0 ? '' : String(values[column] ?? '').trim();
+
+function parsePlayerImportCsv(text) {
+  const rows = parseCsvRows(text);
   if (rows.length < 2) throw new Error('The CSV does not contain any player rows.');
 
-  const normalizeHeader = value => String(value || '').trim().toLocaleLowerCase().replace(/[^a-z0-9]/g, '');
-  const headers = rows.shift().map(normalizeHeader);
-  const findColumn = aliases => headers.findIndex(header => aliases.includes(header));
+  const headers = rows.shift().map(normalizeCsvHeader);
   const columns = {
-    name: findColumn(['name', 'fullname', 'playername', 'playerfullname', 'playersfullname', 'fullplayername']),
-    nickname: findColumn(['nickname', 'nick']),
-    category: findColumn(['category', 'skillcategory', 'level']),
-    gender: findColumn(['gender', 'sex']),
-    duprId: findColumn(['duprid', 'dupridentifier', 'duprplayerid']),
-    selfRating: findColumn(['selfrating', 'selfrate']),
-    matches: findColumn(['matches', 'matchrecords']),
-    wins: findColumn(['wins', 'win']),
-    losses: findColumn(['losses', 'loss']),
-    avatarId: findColumn(['avatarid'])
+    name: csvColumnIndex(headers, ['name', 'fullname', 'playername', 'playerfullname', 'playersfullname', 'fullplayername']),
+    nickname: csvColumnIndex(headers, ['nickname', 'nick']),
+    category: csvColumnIndex(headers, ['category', 'skillcategory', 'level']),
+    gender: csvColumnIndex(headers, ['gender', 'sex']),
+    duprId: csvColumnIndex(headers, ['duprid', 'dupridentifier', 'duprplayerid']),
+    selfRating: csvColumnIndex(headers, ['selfrating', 'selfrate']),
+    matches: csvColumnIndex(headers, ['matches', 'matchrecords']),
+    wins: csvColumnIndex(headers, ['wins', 'win']),
+    losses: csvColumnIndex(headers, ['losses', 'loss']),
+    avatarId: csvColumnIndex(headers, ['avatarid'])
   };
   if (columns.name < 0) throw new Error('A Full Name or Name column is required in the CSV.');
 
-  const valueAt = (values, column) => column < 0 ? '' : String(values[column] ?? '').trim();
   return rows.map((values, index) => {
-    const name = valueAt(values, columns.name).normalize('NFC').replace(/\s+/g, ' ').trim();
-    const categoryValue = valueAt(values, columns.category);
+    const name = csvValueAt(values, columns.name).normalize('NFC').replace(/\s+/g, ' ').trim();
+    const categoryValue = csvValueAt(values, columns.category);
     const player = {
       name,
-      nickname: valueAt(values, columns.nickname),
+      nickname: csvValueAt(values, columns.nickname),
       category: categoryValue ? categoryName(categoryValue) : 'Unspecified',
-      gender: valueAt(values, columns.gender),
-      duprId: valueAt(values, columns.duprId),
-      selfRating: valueAt(values, columns.selfRating),
-      matches: valueAt(values, columns.matches),
-      wins: valueAt(values, columns.wins),
-      losses: valueAt(values, columns.losses),
-      avatarId: valueAt(values, columns.avatarId)
+      gender: csvValueAt(values, columns.gender),
+      duprId: csvValueAt(values, columns.duprId),
+      selfRating: csvValueAt(values, columns.selfRating),
+      matches: csvValueAt(values, columns.matches),
+      wins: csvValueAt(values, columns.wins),
+      losses: csvValueAt(values, columns.losses),
+      avatarId: csvValueAt(values, columns.avatarId)
     };
     return { rowNumber: index + 2, player };
   });
@@ -3340,47 +3378,23 @@ async function confirmPlayerImport(button) {
 }
 
 function parseSessionImportCsv(text) {
-  const source = String(text || '').replace(/^\uFEFF/, '');
-  const rows = [];
-  let row = [], field = '', quoted = false;
-  for (let index = 0; index < source.length; index += 1) {
-    const char = source[index];
-    if (quoted) {
-      if (char === '"' && source[index + 1] === '"') { field += '"'; index += 1; }
-      else if (char === '"') quoted = false;
-      else field += char;
-    } else if (char === '"' && field.length === 0) quoted = true;
-    else if (char === ',') { row.push(field); field = ''; }
-    else if (char === '\n' || char === '\r') {
-      if (char === '\r' && source[index + 1] === '\n') index += 1;
-      row.push(field); field = '';
-      if (row.some(value => String(value).trim() !== '')) rows.push(row);
-      row = [];
-    } else field += char;
-  }
-  if (field !== '' || row.length) {
-    row.push(field);
-    if (row.some(value => String(value).trim() !== '')) rows.push(row);
-  }
+  const rows = parseCsvRows(text);
   if (rows.length < 2) throw new Error('The CSV does not contain any session rows.');
 
-  const normalizeHeader = value => String(value || '').trim().toLocaleLowerCase().replace(/[^a-z0-9]/g, '');
-  const headers = rows.shift().map(normalizeHeader);
-  const findColumn = aliases => headers.findIndex(header => aliases.includes(header));
+  const headers = rows.shift().map(normalizeCsvHeader);
   const columns = {
-    id: findColumn(['sessionid', 'id']),
-    name: findColumn(['sessionname', 'name', 'title', 'event']),
-    startedAt: findColumn(['startedat', 'startdate', 'startdatetime', 'date', 'sessiondate']),
-    endedAt: findColumn(['endedat', 'enddate', 'enddatetime']),
-    location: findColumn(['location', 'venue', 'duprlocation']),
-    latitude: findColumn(['latitude', 'lat']),
-    longitude: findColumn(['longitude', 'lon', 'lng']),
-    participants: findColumn(['participantsjson', 'attendeesjson', 'participants', 'attendees', 'players']),
-    matches: findColumn(['matchesjson', 'linkedmatchesjson', 'matchlogsjson']),
-    duprMatch: findColumn(['duprmatch', 'isduprmatch'])
+    id: csvColumnIndex(headers, ['sessionid', 'id']),
+    name: csvColumnIndex(headers, ['sessionname', 'name', 'title', 'event']),
+    startedAt: csvColumnIndex(headers, ['startedat', 'startdate', 'startdatetime', 'date', 'sessiondate']),
+    endedAt: csvColumnIndex(headers, ['endedat', 'enddate', 'enddatetime']),
+    location: csvColumnIndex(headers, ['location', 'venue', 'duprlocation']),
+    latitude: csvColumnIndex(headers, ['latitude', 'lat']),
+    longitude: csvColumnIndex(headers, ['longitude', 'lon', 'lng']),
+    participants: csvColumnIndex(headers, ['participantsjson', 'attendeesjson', 'participants', 'attendees', 'players']),
+    matches: csvColumnIndex(headers, ['matchesjson', 'linkedmatchesjson', 'matchlogsjson']),
+    duprMatch: csvColumnIndex(headers, ['duprmatch', 'isduprmatch'])
   };
   if (columns.name < 0) throw new Error('A Session Name column is required in the CSV.');
-  const valueAt = (values, column) => column < 0 ? '' : String(values[column] ?? '').trim();
   const parseDate = (value, label, rowNumber) => {
     if (!value) return null;
     const parsed = new Date(value);
@@ -3400,14 +3414,14 @@ function parseSessionImportCsv(text) {
 
   return rows.map((values, index) => {
     const rowNumber = index + 2;
-    const name = valueAt(values, columns.name).normalize('NFC').replace(/\s+/g, ' ').trim();
-    const id = valueAt(values, columns.id) || `session-import-${Date.now()}-${index + 1}`;
-    const startedAt = parseDate(valueAt(values, columns.startedAt), 'Started At', rowNumber);
-    const endedAt = parseDate(valueAt(values, columns.endedAt), 'Ended At', rowNumber);
-    const latitude = Number(valueAt(values, columns.latitude));
-    const longitude = Number(valueAt(values, columns.longitude));
-    const hasCoordinates = valueAt(values, columns.latitude) !== '' && valueAt(values, columns.longitude) !== '' && Number.isFinite(latitude) && Number.isFinite(longitude);
-    const participantValue = valueAt(values, columns.participants);
+    const name = csvValueAt(values, columns.name).normalize('NFC').replace(/\s+/g, ' ').trim();
+    const id = csvValueAt(values, columns.id) || `session-import-${Date.now()}-${index + 1}`;
+    const startedAt = parseDate(csvValueAt(values, columns.startedAt), 'Started At', rowNumber);
+    const endedAt = parseDate(csvValueAt(values, columns.endedAt), 'Ended At', rowNumber);
+    const latitude = Number(csvValueAt(values, columns.latitude));
+    const longitude = Number(csvValueAt(values, columns.longitude));
+    const hasCoordinates = csvValueAt(values, columns.latitude) !== '' && csvValueAt(values, columns.longitude) !== '' && Number.isFinite(latitude) && Number.isFinite(longitude);
+    const participantValue = csvValueAt(values, columns.participants);
     let participants = [];
     if (participantValue) {
       if (participantValue.startsWith('[')) {
@@ -3416,16 +3430,16 @@ function parseSessionImportCsv(text) {
         participants = participantValue.split(/[;|]/).map(name => name.trim()).filter(Boolean).map((name, participantIndex) => ({ id: `imported-attendee-${participantIndex + 1}`, name }));
       }
     }
-    const matches = parseJsonArray(valueAt(values, columns.matches), 'Matches JSON', rowNumber);
-    const locationCoordinates = hasCoordinates ? { lat: latitude, lon: longitude, label: valueAt(values, columns.location), countrycode: 'PH', source: 'csv-import', verified: false } : null;
+    const matches = parseJsonArray(csvValueAt(values, columns.matches), 'Matches JSON', rowNumber);
+    const locationCoordinates = hasCoordinates ? { lat: latitude, lon: longitude, label: csvValueAt(values, columns.location), countrycode: 'PH', source: 'csv-import', verified: false } : null;
     const session = {
       id: id.slice(0, 200),
       sessionName: name,
       startedAt,
       endedAt,
-      duprLocation: valueAt(values, columns.location),
+      duprLocation: csvValueAt(values, columns.location),
       duprLocationCoordinates: locationCoordinates,
-      duprMatch: ['true', '1', 'yes'].includes(valueAt(values, columns.duprMatch).toLowerCase()),
+      duprMatch: ['true', '1', 'yes'].includes(csvValueAt(values, columns.duprMatch).toLowerCase()),
       participants
     };
     return { rowNumber, session, matches };
@@ -3953,18 +3967,20 @@ function toast(message, type = 'success') {
   window.setTimeout(() => node.remove(), 3400);
 }
 function modal(title, body, options = {}) {
-  for (const mapId of ['sessionMapModal', 'courtLocationPinMap']) {
+  for (const mapId of ['sessionMapModal', 'courtLocationPinMap', 'sessionDetailsMiniMap']) {
     const existingMap = state.mapInstances.get(mapId);
     if (existingMap) { try { existingMap.remove(); } catch (_) {} state.mapInstances.delete(mapId); }
   }
   const root = $('#modalRoot');
-  root.innerHTML = `<div class="modal-backdrop" data-action="close-modal"></div><section class="modal-card ${options.wide ? 'wide' : ''} ${escapeHTML(options.className || '')}" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><header class="modal-header"><div class="modal-heading-copy"><h2 id="modalTitle">${escapeHTML(title)}</h2>${options.subtitle ? `<p>${escapeHTML(options.subtitle)}</p>` : ''}</div><button type="button" class="icon-action" data-action="close-modal" aria-label="Close">${icon('close')}</button></header><div class="modal-body">${body}</div></section>`;
+  const labelledBy = options.hideHeader && options.ariaLabelledBy ? escapeHTML(options.ariaLabelledBy) : 'modalTitle';
+  const headerMarkup = options.hideHeader ? '' : `<header class="modal-header"><div class="modal-heading-copy"><h2 id="modalTitle">${escapeHTML(title)}</h2>${options.subtitle ? `<p>${escapeHTML(options.subtitle)}</p>` : ''}</div><button type="button" class="icon-action" data-action="close-modal" aria-label="Close">${icon('close')}</button></header>`;
+  root.innerHTML = `<div class="modal-backdrop" data-action="close-modal"></div><section class="modal-card ${options.wide ? 'wide' : ''} ${escapeHTML(options.className || '')}" role="dialog" aria-modal="true" aria-labelledby="${labelledBy}">${headerMarkup}<div class="modal-body">${body}</div></section>`;
   state.modal = title;
   const focusable = $('input:not([type=hidden]),select,textarea,button', root);
   if (focusable) window.setTimeout(() => focusable.focus(), 20);
 }
 function closeModal() {
-  for (const mapId of ['sessionMapModal', 'courtLocationPinMap']) {
+  for (const mapId of ['sessionMapModal', 'courtLocationPinMap', 'sessionDetailsMiniMap']) {
     const map = state.mapInstances.get(mapId);
     if (map) { try { map.remove(); } catch (_) {} state.mapInstances.delete(mapId); }
   }
@@ -4015,11 +4031,187 @@ function openSessionPodium(sessionId) {
 function openSessionDetails(sessionId) {
   const session = state.data.sessions.find(item => item.id === sessionId);
   if (!session) return;
-  const attendees = session.attendees || [];
-  const attendanceRows = attendees.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Player</th><th>Category</th><th>Gender</th><th>Action</th></tr></thead><tbody>${attendees.map(person => `<tr><td>${person.index + 1}</td><td class="primary-cell">${escapeHTML(person.name)}${person.nickname ? `<span class="muted-cell">${escapeHTML(person.nickname)}</span>` : ''}</td><td>${escapeHTML(person.category)}</td><td>${escapeHTML(person.gender || '—')}</td><td><div class="table-actions"><button class="btn btn-sm" data-attendance-edit="${escapeHTML(session.id)}|${person.index}">Edit</button><button class="icon-action danger" data-attendance-delete="${escapeHTML(session.id)}|${person.index}" title="Remove attendance">${icon('trash')}</button></div></td></tr>`).join('')}</tbody></table></div>` : emptyState('No attendance names available', 'No player attendance snapshots were saved for this session.');
-  const sessionMatches = state.data.matches.filter(match => match.sessionId === session.id);
-  modal(session.title, `<div class="detail-list"><div class="detail-row"><span>Date</span><strong>${escapeHTML(sessionDateLabel(session))}</strong></div><div class="detail-row"><span>Time</span><strong>${escapeHTML(sessionTimeLabel(session))}</strong></div><div class="detail-row"><span>Status</span><strong>${escapeHTML(sessionStatus(session))}</strong></div><div class="detail-row"><span>Players</span><strong>${attendees.length}</strong></div><div class="detail-row"><span>Matches</span><strong>${sessionMatches.length}</strong></div><div class="detail-row"><span>Location</span><strong>${escapeHTML(sessionLocationLabel(session))}</strong></div></div><div class="panel-heading session-detail-heading"><h3 class="panel-title">${icon('users')} Attendance List</h3><span class="page-note">${attendees.length} saved check-ins</span></div>${attendanceRows}<div class="detail-actions"><button class="btn" data-action="close-modal">Close</button>${!session.isLive && sessionMatches.length ? `<button class="btn btn-primary" data-session-podium="${escapeHTML(session.id)}">View Session Podium</button>` : ''}${session.isLive ? `<a class="btn btn-primary" href="/queueing" target="_blank" rel="noopener">Open Live Queue</a>` : ''}</div>`, { wide: true });
+
+  const attendees = asArray(session.attendees);
+  const statusLabel = session.isLive ? 'LIVE' : 'COMPLETE';
+  const statusClass = session.isLive ? 'live' : 'ended';
+  const location = sessionLocationLabel(session);
+  const courts = sessionCourtsLabel(session);
+  const attendanceMarkup = attendees.length
+    ? `<div class="session-attendance-list" role="list" aria-label="Session attendance">${attendees.map((person, index) => {
+        const personIndex = Number.isInteger(person.index) ? person.index : index;
+        const displayNumber = index + 1;
+        const playerName = String(person.name || 'Unnamed player').trim();
+        const nickname = String(person.nickname || '').trim();
+        const gender = String(person.gender || '').trim();
+        const genderKey = gender.toLowerCase();
+        const genderClass = genderKey === 'female' ? 'gender-female' : genderKey === 'male' ? 'gender-male' : '';
+        const genderIcon = genderKey === 'female'
+          ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="9" r="5.5"></circle><path d="M11 14.5v6m-3-3h6"></path></svg>'
+          : genderKey === 'male'
+            ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="14" r="5.5"></circle><path d="m14 10 6-6m-5 0h5v5"></path></svg>'
+            : '';
+        const category = String(person.category || '').trim();
+        const categoryLabel = category ? categoryName(category).toUpperCase() : 'PLAYER';
+        const categoryClass = `category-${category ? categoryCode(category).toLowerCase() : 'other'}`;
+        return `<article class="session-attendee-row" role="listitem">
+          <span class="session-attendee-number" aria-hidden="true">${displayNumber}</span>
+          <span class="session-attendee-copy">
+            <span class="session-attendee-primary${genderIcon ? ' has-gender' : ''}"><strong title="${escapeHTML(`${playerName}${nickname ? ` (${nickname})` : ''}`)}">${escapeHTML(playerName)}${nickname ? ` (${escapeHTML(nickname)})` : ''}</strong>${genderIcon ? `<span class="session-attendee-gender ${genderClass}" role="img" aria-label="${escapeHTML(gender)}" title="${escapeHTML(gender)}">${genderIcon}</span>` : ''}</span>
+            <span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(categoryLabel)}</span>
+          </span>
+          <span class="session-attendance-actions">
+            <button type="button" class="btn btn-sm" data-attendance-edit="${escapeHTML(session.id)}|${personIndex}" aria-label="Edit ${escapeHTML(playerName)} attendance">Edit</button>
+            <button type="button" class="icon-action danger" data-attendance-delete="${escapeHTML(session.id)}|${personIndex}" title="Remove attendance" aria-label="Remove ${escapeHTML(playerName)} from attendance">${icon('trash')}</button>
+          </span>
+        </article>`;
+      }).join('')}</div>`
+    : `<div class="session-attendance-empty"><strong>No attendance yet</strong><span>No player attendance records were saved for this session.</span></div>`;
+
+  const body = `<div class="session-details-content">
+    <section class="session-details-card session-details-players-card" aria-labelledby="sessionAttendanceHeading">
+      <div class="session-details-card-heading">
+        <h3 id="sessionAttendanceHeading">ATTENDANCE <span class="session-details-count">(${attendees.length})</span></h3>
+      </div>
+      ${attendanceMarkup}
+    </section>
+
+    <section class="session-details-card session-details-info-card" aria-labelledby="sessionDetailsHeading">
+      <div class="session-details-info-heading">
+        <div class="modal-heading-copy">
+          <div class="session-details-heading-meta">
+            <span class="session-details-eyebrow">SESSIONS</span>
+            <span class="status-pill ${statusClass}">${statusLabel}</span>
+          </div>
+          <h2 id="sessionDetailsHeading">${escapeHTML(session.title)}</h2>
+        </div>
+        <button type="button" class="icon-action session-details-close" data-action="close-modal" aria-label="Close session details">${icon('close')}</button>
+      </div>
+
+      <div class="session-details-facts">
+        <div class="session-details-fact"><span>Date</span><strong>${escapeHTML(sessionDateLabel(session))}</strong></div>
+        <div class="session-details-fact"><span>Time</span><strong>${escapeHTML(sessionTimeLabel(session))}</strong></div>
+        <div class="session-details-fact"><span>Court number</span><strong>${escapeHTML(courts)}</strong></div>
+        <div class="session-details-fact session-details-fact-location"><span>Location</span><strong>${escapeHTML(location)}</strong></div>
+      </div>
+
+      <div class="session-details-map-block">
+        <div class="session-details-map-heading"><span>LOCATION MAP</span><span class="session-details-map-dot" aria-hidden="true"></span></div>
+        <div id="sessionDetailsMiniMap" class="session-details-mini-map" role="application" aria-label="Interactive map preview for ${escapeHTML(location)}">
+          <div class="map-loading">Loading map preview…</div>
+        </div>
+      </div>
+    </section>
+  </div>`;
+
+  modal(session.title, body, {
+    wide: true,
+    className: 'session-details-modal',
+    hideHeader: true,
+    ariaLabelledBy: 'sessionDetailsHeading'
+  });
+  initializeSessionDetailsMiniMap(session);
 }
+
+async function initializeSessionDetailsMiniMap(session) {
+  const mapId = 'sessionDetailsMiniMap';
+  const node = document.getElementById(mapId);
+  if (!node) return;
+
+  const location = String(session?.location || session?.raw?.duprLocation || session?.raw?.location || '').trim();
+  if (!location) {
+    node.innerHTML = '<div class="session-details-map-empty">No saved location for this session.</div>';
+    return;
+  }
+
+  // Reuse the same session-to-registered-court match used by the other map
+  // canvases, so this preview can display the registered court's real logo.
+  const matchedMapLocation = mapSessionsForPins(true).find(item =>
+    asArray(item.sessions).some(entry => String(entry.id) === String(session.id))
+  );
+  const registeredCourt = asArray(matchedMapLocation?.courts)[0] || null;
+  let coordinates = normalizeMapLocationCoordinates(
+    registeredCourt?.locationCoordinates || matchedMapLocation?.coordinates ||
+    session?.locationCoordinates || session?.raw?.duprLocationCoordinates || session?.raw?.locationCoordinates
+  );
+  if (!coordinates) coordinates = state.mapResolvedLocations.get(normalizeName(location)) || coordinatesFromText(location);
+  if (!coordinates) coordinates = await photonLookup(location);
+  if (!node.isConnected) return;
+  if (coordinates && isPhilippinesCoordinate(Number(coordinates.lat), Number(coordinates.lon))) {
+    state.mapResolvedLocations.set(normalizeName(location), coordinates);
+  } else {
+    node.innerHTML = '<div class="session-details-map-empty">Map preview is unavailable for this saved location.</div>';
+    return;
+  }
+
+  try {
+    const maplibre = await ensureMapLibreLoaded();
+    if (!node.isConnected) return;
+    node.innerHTML = '';
+    const map = new maplibre.Map({
+      container: node,
+      style: 'https://tiles.openfreemap.org/styles/liberty',
+      center: [Number(coordinates.lon), Number(coordinates.lat)],
+      zoom: 14.2,
+      minZoom: 4,
+      maxZoom: 19,
+      maxBounds: [[115.5, 4.0], [128.6, 22.4]],
+      renderWorldCopies: false,
+      pitch: 0,
+      bearing: 0,
+      scrollZoom: false,
+      dragPan: true,
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchZoomRotate: true,
+      attributionControl: { compact: true },
+      fadeDuration: 120
+    });
+    map.addControl(new maplibre.NavigationControl({ showCompass: false, visualizePitch: false }), 'top-right');
+    state.mapInstances.set(mapId, map);
+    map.on('load', () => {
+      if (!node.isConnected) return;
+      const logo = registeredCourtLogo(registeredCourt);
+      const markerElement = document.createElement('div');
+      const isLive = Boolean(session?.isLive);
+      const markerStatus = registeredCourt
+        ? registeredCourtMapMarkerStatus(registeredCourt.registeredAt, isLive)
+        : (isLive ? 'live' : 'idle');
+      markerElement.className = `dashboard-map-pin${registeredCourt ? ' dashboard-map-pin-court' : ''}${markerStatus === 'live' ? ' is-live' : ''}${markerStatus === 'new' ? ' is-new' : ''}${logo ? ' has-logo' : ''}`;
+      markerElement.setAttribute('role', 'img');
+      markerElement.setAttribute('aria-label', `${registeredCourt?.name || 'Court location'}${isLive ? ' · Live session' : ''}`);
+      markerElement.title = registeredCourt?.name || location;
+      markerElement.innerHTML = dashboardMapPinMarkup(logo);
+      const logoImage = markerElement.querySelector('.dashboard-map-pin-logo');
+      if (logoImage) {
+        logoImage.addEventListener('error', () => {
+          markerElement.innerHTML = dashboardMapPinMarkup();
+          markerElement.classList.remove('has-logo');
+        }, { once: true });
+      }
+      new maplibre.Marker({ element: markerElement, anchor: logo ? 'center' : 'bottom' })
+        .setLngLat([Number(coordinates.lon), Number(coordinates.lat)])
+        .addTo(map);
+      collapseMapAttribution(node);
+      map.resize();
+      window.setTimeout(() => {
+        if (node.isConnected) {
+          map.resize();
+          collapseMapAttribution(node);
+        }
+      }, 80);
+    });
+    map.on('resize', () => collapseMapAttribution(node));
+    map.on('error', event => {
+      if (node.isConnected && event?.error && !node.querySelector('.maplibregl-canvas')) {
+        node.innerHTML = '<div class="session-details-map-empty">Map tiles are temporarily unavailable.</div>';
+      }
+    });
+  } catch (_) {
+    if (node.isConnected) node.innerHTML = '<div class="session-details-map-empty">Map preview could not be loaded.</div>';
+  }
+}
+
 function openSessionRename(sessionId) {
   const session = state.data.sessions.find(item => item.id === sessionId);
   if (!session || session.isLive) return;
@@ -4230,6 +4422,23 @@ document.addEventListener('click', async event => {
   if (playerImportFilter && pendingPlayerImport) {
     pendingPlayerImport.filter = playerImportFilter.dataset.playerImportFilter || 'all';
     applyPlayerImportPreviewFilters();
+    return;
+  }
+
+  const sessionStatusButton = event.target.closest('[data-session-status-filter]');
+  if (sessionStatusButton) {
+    const nextStatus = sessionStatusButton.dataset.sessionStatusFilter || 'all';
+    if (!['all', 'Live', 'Completed'].includes(nextStatus)) return;
+    state.filters.sessionStatus = nextStatus;
+    const statusFilter = sessionStatusButton.closest('.session-status-filter');
+    if (statusFilter) {
+      statusFilter.dataset.active = nextStatus.toLowerCase();
+      $$('[data-session-status-filter]', statusFilter).forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.sessionStatusFilter === nextStatus));
+      });
+    }
+    const sessionList = $('.session-list');
+    if (sessionList) sessionList.innerHTML = sessionHistoryListMarkup();
     return;
   }
 
@@ -4751,7 +4960,6 @@ document.addEventListener('change', async event => {
     return;
   }
   if (target.id === 'mapModalSessionSelect') { setMapModalSession(target.value); return; }
-  if (target.id === 'sessionStatusFilter') { state.filters.sessionStatus = target.value; renderPage(true); }
   if (target.id === 'playerCategoryFilter') { state.filters.playerCategory = target.value; const filtered = visibleRows(state.data.players.filter(player => !player.historicalOnly).sort((a,b)=>a.name.localeCompare(b.name))).filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory); $('#playersTableWrap').innerHTML = playersTable(filtered); }
   if (target.id === 'rankingCategoryFilter') { state.filters.rankingCategory = target.value; scheduleRankingsPage(); }
   if (target.id === 'rankingSessionFilter') {
@@ -4761,6 +4969,9 @@ document.addEventListener('change', async event => {
       const recordsWrap = $('#matchRecordsTableWrap');
       if (recordsWrap) recordsWrap.innerHTML = matchesTable(filteredMatchRecords());
       updateFilteredMatchRecordsMetric();
+    } else if (state.page === 'sessions') {
+      const sessionList = $('.session-list');
+      if (sessionList) sessionList.innerHTML = sessionHistoryListMarkup();
     }
   }
 });
