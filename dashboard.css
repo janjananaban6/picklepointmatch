@@ -41,7 +41,7 @@ svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColo
 .sidebar-caption { padding: 4px 13px 8px; color: #a0aaa2; font-size: 9px; font-weight: 800; letter-spacing: 1.1px; }
 .nav-list { flex: 1 1 auto; min-height: 0; display: grid; gap: 4px; overflow-y: auto; scrollbar-width: none; }
 .nav-list::-webkit-scrollbar { display: none; }
-.nav-item { position: relative; width: 100%; min-height: 40px; display: flex; align-items: center; gap: 11px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: #5d6961; text-align: left; font-size: 12px; font-weight: 550; transition: background-color .16s ease, color .16s ease; }
+.nav-item { position: relative; width: 100%; min-height: 40px; display: flex; align-items: center; gap: 11px; padding: 0 12px; border: 0; border-radius: 99px; background: transparent; color: #5d6961; text-align: left; font-size: 12px; font-weight: 550; transition: background-color .16s ease, color .16s ease; }
 .nav-item:hover { color: var(--green-900); background: #f4faf1; }
 .nav-item.active { color: #123d22; background: #e8f8df; font-weight: 750; }
 .nav-item.active::before { content: ""; position: absolute; left: -13px; top: 8px; bottom: 8px; width: 3px; background: var(--green-700); border-radius: 0 4px 4px 0; }
@@ -421,7 +421,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 
 /* Integrated queueing shortcuts and stable page frame */
 .sidebar-shortcuts{display:grid;gap:4px;padding:9px 5px 5px;margin-top:9px;flex:0 0 auto;border-top:1px solid var(--line,#e7ede8)}
-.sidebar-shortcuts a{display:flex;align-items:center;gap:9px;min-height:32px;padding:6px 8px;border-radius:9px;color:var(--muted,#66736a);font-size:12px;font-weight:600;text-decoration:none;transition:background .18s ease,color .18s ease,transform .18s ease}
+.sidebar-shortcuts a{display:flex;align-items:center;gap:9px;min-height:32px;padding:6px 8px;border-radius:99px;color:var(--muted,#66736a);font-size:12px;font-weight:600;text-decoration:none;transition:background .18s ease,color .18s ease,transform .18s ease}
 .sidebar-shortcuts a:hover{background:#edf7ef;color:#176b37;transform:translateX(2px)}
 .sidebar-shortcuts svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .live-session-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 15px;border-radius:12px;background:linear-gradient(110deg,#eaf7ed,#f7fbf7);border:1px solid #d9ebdc;margin:0}
@@ -932,7 +932,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .topbar-left, .topbar-right { gap: 4px; }
   .global-search { width: clamp(82px, 29vw, 108px); padding-inline: 8px; }
   .breadcrumb { max-width: 84px; overflow: hidden; text-overflow: ellipsis; }
-  .profile-avatar { width: 28px; height: 28px; }
+  .profile-avatar { width: 30px; height: 30px; }
   .stats-grid, .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stat-card { min-width: 0; padding: 9px 8px; }
   .court-tile { flex-basis: 164px; }
@@ -3663,3 +3663,107 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   font-size: 8px;
   font-weight: 700;
 }
+
+
+/* Workspace settings polish: keep Organizer Profile and Connected Queueing Tools side by side. */
+.settings-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 14px;
+  min-width: 0;
+}
+.settings-panel-grid > .panel {
+  min-width: 0;
+}
+.settings-organizer-profile .detail-actions .btn {
+  border-radius: 99px;
+}
+
+/* Soft color-fade animation for dashboard eyebrow indicator dots. */
+.eyebrow::before {
+  animation: dashboard-eyebrow-dot-fade 2.4s ease-in-out infinite;
+}
+@keyframes dashboard-eyebrow-dot-fade {
+  0%, 100% {
+    background-color: #188447;
+    box-shadow: 0 0 0 3px rgba(32, 166, 78, .12);
+    opacity: .68;
+  }
+  50% {
+    background-color: #a8d96f;
+    box-shadow: 0 0 0 4px rgba(168, 217, 111, .22);
+    opacity: 1;
+  }
+}
+
+/* The account popover's destructive action is visually distinct. */
+#topPopover button[data-action="logout"] {
+  color: #c62828;
+  font-weight: 750;
+}
+#topPopover button[data-action="logout"]:hover {
+  color: #a61f1f;
+  background: #fff0ef;
+}
+
+@media (max-width: 720px) {
+  .settings-panel-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Dashboard Attendance Trend: horizontally swipe or drag the full history.
+   The right edge is the newest five sessions on first load and refresh. */
+.page-dashboard .trend-panel > .chart-box {
+  min-width: 0;
+  overflow: hidden;
+}
+.page-dashboard .trend-panel .attendance-chart {
+  min-width: 0;
+  grid-template-columns: 24px minmax(0, 1fr);
+}
+.page-dashboard .trend-panel .attendance-plot {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  cursor: grab;
+  /* Keep horizontal scrolling fully usable while hiding the scrollbar
+     consistently across Chromium, Safari, Firefox and legacy Edge. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  outline-offset: -2px;
+}
+.page-dashboard .trend-panel .attendance-plot.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+  scroll-behavior: auto;
+}
+.page-dashboard .trend-panel .attendance-plot::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+.page-dashboard .trend-panel .attendance-bars {
+  box-sizing: border-box;
+  width: var(--bar-track-width, 100%);
+  min-width: 100%;
+  flex: 0 0 var(--bar-track-width, 100%);
+  grid-template-columns: repeat(var(--bar-count, 5), minmax(0, 1fr));
+  user-select: none;
+  -webkit-user-select: none;
+}
+.page-dashboard .trend-panel .attendance-bar-item {
+  min-width: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-dashboard .trend-panel .attendance-plot {
+    scroll-behavior: auto;
+  }
+}
+

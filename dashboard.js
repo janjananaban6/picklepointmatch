@@ -473,7 +473,7 @@ function normalizeLegacyDashboard(payload) {
   }));
 
   // Older queue logs may contain participants that have since been removed from
-  // Registered Player Cloud. Keep those names visible in historical match rows.
+  // Registered Player. Keep those names visible in historical match rows.
   const knownNames = new Set(players.flatMap(player => [player.name, ...(player.nameAliases || [])]).map(normalizeName).filter(Boolean));
   for (const match of logs) {
     for (const name of [...match.teamANames, ...match.teamBNames]) {
@@ -844,18 +844,31 @@ function emptyState(title, message, actionLabel = '', action = '') {
   return `<div class="empty-state"><span class="empty-icon">${icon('info')}</span><strong>${escapeHTML(title)}</strong><p>${escapeHTML(message)}</p>${actionLabel ? `<button class="btn btn-primary btn-sm" data-action="${escapeHTML(action)}">${escapeHTML(actionLabel)}</button>` : ''}</div>`;
 }
 function chartMarkup(sessions) {
-  const last = sessions.filter(session => !session.isLive).slice(0, 6).reverse();
-  if (!last.length) return '<div class="chart-empty">Attendance activity will appear after an open-play session is completed.</div>';
-  const values = last.map(session => (session.attendees || []).length);
-  const max = Math.max(4, ...values) + 1;
-  const bars = last.map((session, index) => {
+  // Session data is newest-first. Render the full completed history oldest-to-newest
+  // so the latest five bars can be the default rightmost viewport on every device.
+  const history = sessions.filter(session => !session.isLive).slice().reverse();
+  if (!history.length) return '<div class="chart-empty">Attendance activity will appear after an open-play session is completed.</div>';
+  const values = history.map(session => (session.attendees || []).length);
+  const max = values.reduce((current, value) => Math.max(current, value), 4) + 1;
+  const bars = history.map((session, index) => {
     const value = values[index];
     const height = value ? Math.max(5, (value / max) * 100) : 0;
     const label = fmtDate(session.date, { month: 'short', day: 'numeric' });
     const countKey = `attendance-bar:${String(session.id ?? index)}`;
     return `<div class="attendance-bar-item" title="${escapeHTML(label)}: ${value} players"><div class="attendance-bar-visual" style="--bar-height:${height}%;--bar-scale:0"><span class="attendance-bar-value" data-count-target="${value}" data-count-key="${escapeHTML(countKey)}" aria-hidden="true">0</span><span class="attendance-bar-fill"></span></div><span class="attendance-bar-date">${escapeHTML(label)}</span></div>`;
   }).join('');
-  return `<div class="attendance-chart" role="img" aria-label="Bar chart showing player attendance across the latest completed open-play sessions"><div class="attendance-y-axis"><span>${max}</span><span>${Math.round(max / 2)}</span><span>0</span></div><div class="attendance-plot"><span class="attendance-grid-line grid-top"></span><span class="attendance-grid-line grid-middle"></span><span class="attendance-grid-line grid-bottom"></span><div class="attendance-bars" style="--bar-count:${last.length}">${bars}</div></div></div>`;
+  // Each bar gets one-fifth of the visible plot width. Older bars extend to
+  // the left, while scrolling to the end shows exactly the five newest entries.
+  const trackWidth = Math.max(100, history.length * 20);
+  return `<div class="attendance-chart" role="group" aria-label="Bar chart showing player attendance across completed open-play sessions"><div class="attendance-y-axis"><span>${max}</span><span>${Math.round(max / 2)}</span><span>0</span></div><div class="attendance-plot" role="region" aria-label="Attendance history. Swipe, drag or use the arrow keys horizontally to see previous attendance bars." tabindex="0"><span class="attendance-grid-line grid-top"></span><span class="attendance-grid-line grid-middle"></span><span class="attendance-grid-line grid-bottom"></span><div class="attendance-bars" style="--bar-count:${history.length};--bar-track-width:${trackWidth}%">${bars}</div></div></div>`;
+}
+
+function scrollAttendanceChartToLatest(viewport = $('.page-dashboard .attendance-plot')) {
+  if (!viewport) return;
+  window.requestAnimationFrame(() => {
+    if (!viewport.isConnected) return;
+    viewport.scrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+  });
 }
 function liveBanner() {
   const session = getLiveSession();
@@ -1176,7 +1189,7 @@ function mapCard(session, mapId = 'courtLocationMap') {
   const payload = JSON.stringify(locations).replace(/</g, '\\u003c');
   const count = locations.length;
   const liveSessionId = session?.isLive ? String(session.id || '') : '';
-  return `<section class="panel panel-pad map-panel">${panelTitle('Court Locations in the Philippines', 'pin', `<button type="button" class="text-link map-open-link" data-open-map-modal="${escapeHTML(liveSessionId)}" data-map-include-registered="${includeRegisteredCourts ? 'true' : 'false'}">Open 3D Map ${icon('arrow')}</button>`)}<div id="${escapeHTML(mapId)}" class="interactive-map map-preview" data-map-variant="preview" data-map-include-registered="${includeRegisteredCourts ? 'true' : 'false'}" data-map-focus-session="${escapeHTML(liveSessionId)}" data-map-locations="${escapeHTML(payload)}" role="application" aria-label="Interactive 3D map of the Philippines with saved open-play court locations"><div class="map-loading">Loading Philippines 3D map…</div></div><div class="map-preview-footer"><span class="map-count">${count} saved location${count === 1 ? '' : 's'}</span><span>Drag to move · scroll or use + / − to zoom</span></div><p class="map-status" data-map-status="${escapeHTML(mapId)}">${includeRegisteredCourts ? 'Registered court locations and saved session locations appear as map pins.' : "Court pins are placed from each session's saved Location field."}</p></section>`;
+  return `<section class="panel panel-pad map-panel">${panelTitle('Court Locations', 'pin', `<button type="button" class="text-link map-open-link" data-open-map-modal="${escapeHTML(liveSessionId)}" data-map-include-registered="${includeRegisteredCourts ? 'true' : 'false'}">Open 3D Map ${icon('arrow')}</button>`)}<div id="${escapeHTML(mapId)}" class="interactive-map map-preview" data-map-variant="preview" data-map-include-registered="${includeRegisteredCourts ? 'true' : 'false'}" data-map-focus-session="${escapeHTML(liveSessionId)}" data-map-locations="${escapeHTML(payload)}" role="application" aria-label="Interactive 3D map of the Philippines with saved open-play court locations"><div class="map-loading">Loading Philippines 3D map…</div></div><div class="map-preview-footer"><span class="map-count">${count} saved location${count === 1 ? '' : 's'}</span><span>Drag to move · scroll or use + / − to zoom</span></div><p class="map-status" data-map-status="${escapeHTML(mapId)}">${includeRegisteredCourts ? 'Registered court locations and saved session locations appear as map pins.' : "Court pins are placed from each session's saved Location field."}</p></section>`;
 }
 function isPhilippinesCoordinate(lat, lon) {
   return Number.isFinite(lat) && Number.isFinite(lon) && lat >= PH_MAP_BOUNDS[0][0] && lat <= PH_MAP_BOUNDS[1][0] && lon >= PH_MAP_BOUNDS[0][1] && lon <= PH_MAP_BOUNDS[1][1];
@@ -2868,7 +2881,7 @@ function renderDashboard() {
   return `<div class="page-dashboard">
     ${pageHeading('HUSAY DINKERS / OVERVIEW', 'Pickleball Dashboard', 'Your existing queueing records, open-play attendance and match results in one place.', `<button class="btn dashboard-refresh-button${state.refreshingDashboard ? ' is-refreshing' : ''}" type="button" data-action="refresh" aria-label="Refresh dashboard" aria-busy="${state.refreshingDashboard ? 'true' : 'false'}" ${state.refreshingDashboard ? 'disabled' : ''}>${refreshIcon()}<span>Refresh</span></button><a class="btn btn-primary" href="/session" target="_blank" rel="noopener">${icon('plus')} Start Open Play</a>`)}
     ${liveBanner()}
-    <div class="stats-grid">${statCard('Registered Players', String(players.filter(player => !player.historicalOnly).length), 'Registered Player Cloud', 'users')}${statCard('Recorded Matches', String(matches.length), 'From queueing match logs', 'trophy', true)}${statCard('Attendance Records', String(attendanceCount), 'Saved session check-ins', 'users', true)}${statCard('Active Courts', String(live ? activeCourts.filter(court => court.status === 'Active').length : 0), live ? `${activeCourts.length} courts in current session` : 'No live session', 'court')}</div>
+    <div class="stats-grid">${statCard('Registered Players', String(players.filter(player => !player.historicalOnly).length), 'Registered Player', 'users')}${statCard('Recorded Matches', String(matches.length), 'Queueing match logs', 'trophy', true)}${statCard('Attendance Records', String(attendanceCount), 'Session check-ins', 'users', true)}${statCard('Registered Courts', String(asArray(state.data.registeredCourts).length), 'Registered court pins on 3D map', 'court')}</div>
     <div class="dashboard-grid">
       <section class="panel panel-pad trend-panel">${panelTitle('Attendance Trend', 'chart')}<div class="chart-meta"><strong data-count-target="${attendanceCount}" data-count-key="attendance-total">0</strong><span>attendance entries loaded from queueing history</span></div><div class="chart-box">${chartMarkup(sessions)}</div></section>
       <section class="panel panel-pad ranking-panel">${panelTitle('Overall Player Rankings', 'trophy', '<button class="text-link" data-page="rankings">View all →</button>')}<div class="ranking-list" id="dashboardTopRankings"><div class="ranking-loading">Preparing player rankings…</div></div></section>
@@ -2944,10 +2957,10 @@ function renderPlayers() {
     count: registeredPlayers.filter(player => category.match.includes(categoryCode(player.category))).length
   }));
   const skillCountMarkup = `<div class="registered-player-skill-counts" aria-label="Registered player skill category counts">${skillCounts.map(category => `<span class="registered-player-skill-count ${category.className}"><span class="registered-player-skill-code">${category.code}</span><span class="registered-player-skill-value" data-count-target="${category.count}" data-count-key="metric:players:registered-skill-${category.code.toLowerCase()}" aria-live="off">0</span></span>`).join('')}</div>`;
-  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / COMMUNITY', 'Players', 'Registered Player Cloud profiles used by queueing, player registration and match history.', `<button class="btn" data-action="import-players">${icon('upload')} Import CSV</button><button class="btn" data-action="export-players">${icon('download')} Export CSV</button><button class="btn btn-primary" data-action="register-player">${icon('plus')} Register Player</button><input id="playerCsvImportFile" type="file" accept=".csv,text/csv" hidden>`)}
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / COMMUNITY', 'Players', 'Registered Player profiles used by queueing, player registration and match history.', `<button class="btn" data-action="import-players">${icon('upload')} Import CSV</button><button class="btn" data-action="export-players">${icon('download')} Export CSV</button><button class="btn btn-primary" data-action="register-player">${icon('plus')} Register Player</button><input id="playerCsvImportFile" type="file" accept=".csv,text/csv" hidden>`)}
     <div class="metric-grid"><div class="metric-tile registered-players-metric"><span>Registered players</span>${metricCount('players', 'registered-players', registeredPlayers.length)}${skillCountMarkup}</div><div class="metric-tile metric-breakdown-tile player-dupr-breakdown"><span>With DUPR ID</span>${metricCount('players', 'with-dupr-id', registeredPlayers.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR player counts"><span class="metric-breakdown-item dupr"><span>DUPR</span><strong data-count-target="${rated}" data-count-key="metric:players:with-dupr-id-dupr" aria-live="off">0</strong></span><span class="metric-breakdown-item non-dupr"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayers}" data-count-key="metric:players:with-dupr-id-non-dupr" aria-live="off">0</strong></span></div></div><div class="metric-tile metric-breakdown-tile player-attendance-breakdown"><span>Attendance entries</span>${metricCount('players', 'attendance-entries', attendanceCount)}<div class="metric-breakdown" aria-label="Attendance entries by gender"><span class="metric-breakdown-item male"><span>MALE</span><strong data-count-target="${attendanceGenderCounts.male}" data-count-key="metric:players:attendance-entries-male" aria-live="off">0</strong></span><span class="metric-breakdown-item female"><span>FEMALE</span><strong data-count-target="${attendanceGenderCounts.female}" data-count-key="metric:players:attendance-entries-female" aria-live="off">0</strong></span></div></div><div class="metric-tile metric-breakdown-tile player-match-records-breakdown"><span>Match records</span>${metricCount('players', 'match-records', state.data.matches.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR match counts"><span class="metric-breakdown-item dupr"><span>DUPR</span><strong data-count-target="${duprPlayerMatchCount}" data-count-key="metric:players:match-records-dupr" aria-live="off">0</strong></span><span class="metric-breakdown-item non-dupr"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayerMatchCount}" data-count-key="metric:players:match-records-non-dupr" aria-live="off">0</strong></span></div></div></div>
-    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Registered Player Cloud', 'users')}<div class="toolbar"><select class="select-control" id="playerCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.playerCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div id="playersTableWrap">${playersTable(players.filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory))}</div></section>
-    <p class="page-note">Player profiles are stored in the existing Registered Player Cloud. Register new players through the live session registration page so they enter the real queue.</p></div>`;
+    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Registered Player', 'users')}<div class="toolbar"><select class="select-control" id="playerCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.playerCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div id="playersTableWrap">${playersTable(players.filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory))}</div></section>
+    <p class="page-note">Player profiles are stored in the existing Registered Player. Register new players through the live session registration page so they enter the real queue.</p></div>`;
 }
 function matchesTable(matches) {
   if (!matches.length) return emptyState('No matches recorded', 'Completed matches saved by the queueing system will appear here.');
@@ -3185,7 +3198,7 @@ function renderCourts() {
   const session = getLiveSession();
   const courts = state.data.courts;
   const registeredCourts = asArray(state.data.registeredCourts);
-  const registeredCourtCards = registeredCourts.length ? `<div class="registered-court-grid">${registeredCourts.map(court => `<article class="registered-court-card"><button type="button" class="registered-court-logo" data-map-focus-court-id="${escapeHTML(court.id)}" aria-label="Focus map on ${escapeHTML(court.name)}" title="Show ${escapeHTML(court.name)} on map">${court.logo ? `<img src="${escapeHTML(court.logo)}" alt="">` : icon('court')}</button><span class="registered-court-copy"><strong>${escapeHTML(court.name)}</strong><small>${escapeHTML(court.location)}</small><small class="registered-court-owner">${court.isOwner ? 'Your registered court' : `Registered by ${escapeHTML(court.ownerName)}`}</small>${court.isOwner ? `<span class="registered-court-actions"><button type="button" class="registered-court-edit" data-action="edit-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('edit')} Edit</button><button type="button" class="registered-court-delete" data-action="delete-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('trash')} Delete</button></span>` : `<span class="registered-court-readonly">Shared listing · View only</span>`}</span></article>`).join('')}</div>` : emptyState('No registered courts yet', 'Registered courts shared by organizers will appear here and on the CourtMap.');
+  const registeredCourtCards = registeredCourts.length ? `<div class="registered-court-grid">${registeredCourts.map(court => `<article class="registered-court-card"><button type="button" class="registered-court-logo" data-map-focus-court-id="${escapeHTML(court.id)}" aria-label="Focus map on ${escapeHTML(court.name)}" title="Show ${escapeHTML(court.name)} on map">${court.logo ? `<img src="${escapeHTML(court.logo)}" alt="">` : icon('court')}</button><span class="registered-court-copy"><strong>${escapeHTML(court.name)}</strong><small>${escapeHTML(court.location)}</small><small class="registered-court-owner">Registered by ${escapeHTML(court.ownerName)}</small><span class="registered-court-actions"><button type="button" class="registered-court-edit" data-action="edit-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('edit')} Edit</button><button type="button" class="registered-court-delete" data-action="delete-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('trash')} Delete</button></span></span></article>`).join('')}</div>` : emptyState('No registered courts yet', 'Registered courts shared by organizers will appear here and on the CourtMap.');
   const courtPageActions = `<div class="court-page-actions"><button type="button" class="btn btn-sm btn-primary court-action-pill" data-action="register-court">${icon('plus')} Register Court</button><a class="btn btn-primary court-action-pill" href="/queueing" target="_blank" rel="noopener">Manage in Queueing ${icon('external')}</a></div>`;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / VENUES', 'Courts & Locations', 'Current court activity is read directly from the live queueing session.', courtPageActions)}
     <div class="metric-grid"><div class="metric-tile"><span>Total courts</span>${metricCount('courts', 'total-courts', registeredCourts.length)}</div><div class="metric-tile"><span>In play</span>${metricCount('courts', 'in-play', courts.filter(court => court.status === 'Active').length)}</div><div class="metric-tile"><span>Ready / assigned</span>${metricCount('courts', 'ready-assigned', courts.filter(court => court.status === 'Ready').length)}</div><div class="metric-tile"><span>Waiting courts</span>${metricCount('courts', 'waiting-courts', courts.filter(court => court.status === 'Waiting').length)}</div></div>
@@ -3193,7 +3206,7 @@ function renderCourts() {
       ${mapCard(session, 'venuesCourtMap')}
       <section class="panel panel-pad registered-courts-panel">${panelTitle('Registered Court List', 'court')}${registeredCourtCards}</section>
     </div>
-    <p class="page-note">The Registered Court List and Philippines 3D Court Map are shared with all organizers. Only the organizer who registered a court can edit or delete its listing.</p></div>`;
+    <p class="page-note">The Registered Court List and Philippines 3D Court Map are shared with all organizers. Any approved organizer can edit or delete a shared court listing; the original registrant remains credited.</p></div>`;
 }
 function renderSchedule() {
   const sessions = visibleRows(sortedSessions());
@@ -3426,7 +3439,7 @@ function playerImportReviewMarkup() {
 }
 function openPlayerImportReview(filename, rows) {
   pendingPlayerImport = { filename, rows: analyzePlayerImportRows(rows), filter: 'all', query: '' };
-  modal('Registered Player Cloud', playerImportReviewMarkup(), { wide: true, className: 'player-import-modal', subtitle: 'Review the selected CSV before adding players to your shared directory.' });
+  modal('Registered Player', playerImportReviewMarkup(), { wide: true, className: 'player-import-modal', subtitle: 'Review the selected CSV before adding players to your shared directory.' });
 }
 
 async function handlePlayerCsvFile(file) {
@@ -3726,8 +3739,25 @@ function exportRankings() {
   const players = getRankingPlayersForCurrentView();
   downloadCSV('husay-dinkers-rankings.csv', ['Rank', 'Player', 'Category', 'Wins', 'Losses', 'Matches', 'Attendance', 'DUPR ID'], players.map((player, index) => { const s = player.rankingStats || playerStats(player); return [index + 1, player.name, player.category, s.wins, s.losses, s.matches, s.attendance, player.duprId]; }));
 }
+function reportDisplayValue(value, fallback = '—') {
+  if (value === null || value === undefined) return fallback;
+  const text = String(value).trim();
+  if (!text || /^(?:undefined|null|nan)$/i.test(text)) return fallback;
+  return text;
+}
 function exportReport() {
-  downloadCSV('husay-dinkers-session-attendance.csv', ['Session', 'Status', 'Date', 'Location', 'Player', 'Nickname', 'Gender', 'Category'], state.data.sessions.flatMap(session => session.attendees.map(person => [session.title, sessionStatus(session), session.date, session.location, person.name, person.nickname, person.gender, person.category])));
+  const sessions = asArray(state.data?.sessions);
+  const rows = sessions.flatMap(session => asArray(session?.attendees).map(person => [
+    reportDisplayValue(session?.title, 'Untitled session'),
+    reportDisplayValue(sessionStatus(session), 'Unknown'),
+    reportDisplayValue(session?.date),
+    reportDisplayValue(session?.location),
+    reportDisplayValue(person?.name || person?.playerName || person?.displayName, 'Unnamed player'),
+    reportDisplayValue(person?.nickname),
+    reportDisplayValue(person?.gender),
+    reportDisplayValue(person?.category, 'Unspecified')
+  ]));
+  downloadCSV('husay-dinkers-session-attendance.csv', ['Session', 'Status', 'Date', 'Location', 'Player', 'Nickname', 'Gender', 'Category'], rows);
 }
 function exportBackup() {
   const safeBackup = {
@@ -3744,20 +3774,34 @@ function exportBackup() {
 function renderReports() {
   const attendance = allAttendance();
   const byPlayer = new Map();
-  attendance.forEach(row => byPlayer.set(normalizeName(row.name), (byPlayer.get(normalizeName(row.name)) || { name: row.name, count: 0 }).count + 1));
-  const topAttendance = [...byPlayer.values()].sort((a, b) => b.count - a.count).slice(0, 8);
+  attendance.forEach(row => {
+    const name = reportDisplayValue(row?.name || row?.playerName || row?.displayName, 'Unnamed player');
+    const key = normalizeName(name) || 'unnamed-player';
+    const current = byPlayer.get(key);
+    if (current) current.count += 1;
+    else byPlayer.set(key, { name, count: 1 });
+  });
+  const topAttendance = [...byPlayer.values()]
+    .filter(item => Number.isFinite(item.count) && item.count > 0)
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, 8);
+  const players = asArray(state.data?.players);
+  const sessions = asArray(state.data?.sessions);
+  const matches = asArray(state.data?.matches);
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / ANALYTICS', 'Reports', 'Attendance and match activity calculated from your existing queueing records.', `<button class="btn" data-action="export-backup">${icon('download')} Full Backup</button><button class="btn btn-primary" data-action="export-report">${icon('download')} Export Attendance</button>`)}
-    <div class="metric-grid"><div class="metric-tile"><span>Players registered</span>${metricCount('reports', 'players-registered', state.data.players.filter(p => !p.historicalOnly).length)}</div><div class="metric-tile"><span>Sessions saved</span>${metricCount('reports', 'sessions-saved', state.data.sessions.length)}</div><div class="metric-tile"><span>Attendance entries</span>${metricCount('reports', 'attendance-entries', attendance.length)}</div><div class="metric-tile"><span>Matches saved</span>${metricCount('reports', 'matches-saved', state.data.matches.length)}</div></div>
-    <section class="panel panel-pad">${panelTitle('Most Frequent Attendees', 'users')}<div class="table-wrap">${topAttendance.length ? `<table class="data-table"><thead><tr><th>Player</th><th>Attendance</th></tr></thead><tbody>${topAttendance.map(item => `<tr><td class="primary-cell">${escapeHTML(item.name)}</td><td>${item.count}</td></tr>`).join('')}</tbody></table>` : emptyState('No attendance data', 'Completed or live session attendance will appear here.')}</div></section>
+    <div class="metric-grid"><div class="metric-tile"><span>Players registered</span>${metricCount('reports', 'players-registered', players.filter(p => p && !p.historicalOnly).length)}</div><div class="metric-tile"><span>Sessions saved</span>${metricCount('reports', 'sessions-saved', sessions.length)}</div><div class="metric-tile"><span>Attendance entries</span>${metricCount('reports', 'attendance-entries', attendance.length)}</div><div class="metric-tile"><span>Matches saved</span>${metricCount('reports', 'matches-saved', matches.length)}</div></div>
+    <section class="panel panel-pad">${panelTitle('Most Frequent Attendees', 'users')}<div class="table-wrap">${topAttendance.length ? `<table class="data-table"><thead><tr><th>Player</th><th>Attendance</th></tr></thead><tbody>${topAttendance.map(item => `<tr><td class="primary-cell">${escapeHTML(reportDisplayValue(item?.name, 'Unnamed player'))}</td><td>${Number.isFinite(Number(item?.count)) ? Number(item.count) : 0}</td></tr>`).join('')}</tbody></table>` : emptyState('No attendance data', 'Completed or live session attendance will appear here.')}</div></section>
     <div class="notice-box">This report reads saved sessions and player records from the existing Pickle Point Match server. The dashboard does not store a second copy of your attendance.</div></div>`;
 }
 function renderSettings() {
   const organizer = state.organizer || {};
   const live = getLiveSession();
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / WORKSPACE', 'Workspace & Tools', 'The new management dashboard is your main organizer workspace. Queueing tools remain connected below.')}
-    <section class="panel panel-pad">${panelTitle('Organizer Profile', 'users')}<div class="detail-list"><div class="detail-row"><span>Club / organizer</span><strong>${escapeHTML(organizer.displayName || organizer.username || 'HUSAY DINKERS')}</strong></div><div class="detail-row"><span>Username</span><strong>${escapeHTML(organizer.username || '—')}</strong></div><div class="detail-row"><span>Organizer slug</span><strong>${escapeHTML(organizer.slug || '—')}</strong></div><div class="detail-row"><span>DUPR ID</span><strong>${escapeHTML(organizer.duprId || '—')}</strong></div></div><div class="detail-actions"><button class="btn btn-primary" data-action="edit-settings">${icon('edit')} Edit workspace profile</button><button class="btn" data-action="export-backup">${icon('download')} Download Backup</button><button class="btn btn-danger" data-action="logout">Sign Out</button></div></section>
-    <section class="panel panel-pad">${panelTitle('Connected Queueing Tools', 'court')}<div class="external-tools-grid"><a class="external-tool-card" href="/session" target="_blank" rel="noopener"><span>${icon('calendar')}</span><span><strong>Session Setup</strong><small>Start or end an open-play session</small></span></a><a class="external-tool-card" href="/queueing" target="_blank" rel="noopener"><span>${icon('court')}</span><span><strong>Live Queueing</strong><small>Manage players, courts and matches</small></span></a><a class="external-tool-card" href="/live" target="_blank" rel="noopener"><span>${icon('external')}</span><span><strong>Public Live View</strong><small>Display queue and match activity</small></span></a>${live && getRegistrationUrl(live) ? `<a class="external-tool-card" href="${escapeHTML(getRegistrationUrl(live))}" target="_blank" rel="noopener"><span>${icon('users')}</span><span><strong>Player Registration</strong><small>Open the current session registration page</small></span></a>` : ''}<a class="external-tool-card" href="/panel"><span>${icon('users')}</span><span><strong>Admin Panel</strong><small>Organizer account administration</small></span></a></div></section>
-    <section class="panel panel-pad">${panelTitle('Data Source', 'report')}<div class="notice-box">This dashboard reads the same organizer-scoped app state, Registered Player Cloud, saved sessions, attendance snapshots and match logs used by Queueing. No duplicate player or match database is created.</div></section></div>`;
+    <div class="settings-panel-grid">
+      <section class="panel panel-pad settings-organizer-profile">${panelTitle('Organizer Profile', 'users')}<div class="detail-list"><div class="detail-row"><span>Club / organizer</span><strong>${escapeHTML(organizer.displayName || organizer.username || 'HUSAY DINKERS')}</strong></div><div class="detail-row"><span>Username</span><strong>${escapeHTML(organizer.username || '—')}</strong></div><div class="detail-row"><span>Organizer slug</span><strong>${escapeHTML(organizer.slug || '—')}</strong></div><div class="detail-row"><span>DUPR ID</span><strong>${escapeHTML(organizer.duprId || '—')}</strong></div></div><div class="detail-actions"><button class="btn btn-primary" data-action="edit-settings">${icon('edit')} Edit workspace profile</button><button class="btn" data-action="export-backup">${icon('download')} Download Backup</button><button class="btn btn-danger" data-action="logout">Sign Out</button></div></section>
+      <section class="panel panel-pad settings-connected-tools">${panelTitle('Connected Queueing Tools', 'court')}<div class="external-tools-grid"><a class="external-tool-card" href="/session" target="_blank" rel="noopener"><span>${icon('calendar')}</span><span><strong>Session Setup</strong><small>Start or end an open-play session</small></span></a><a class="external-tool-card" href="/queueing" target="_blank" rel="noopener"><span>${icon('court')}</span><span><strong>Live Queueing</strong><small>Manage players, courts and matches</small></span></a><a class="external-tool-card" href="/live" target="_blank" rel="noopener"><span>${icon('external')}</span><span><strong>Public Live View</strong><small>Display queue and match activity</small></span></a>${live && getRegistrationUrl(live) ? `<a class="external-tool-card" href="${escapeHTML(getRegistrationUrl(live))}" target="_blank" rel="noopener"><span>${icon('users')}</span><span><strong>Player Registration</strong><small>Open the current session registration page</small></span></a>` : ''}<a class="external-tool-card" href="/panel"><span>${icon('users')}</span><span><strong>Admin Panel</strong><small>Organizer account administration</small></span></a></div></section>
+    </div>
+    <section class="panel panel-pad">${panelTitle('Data Source', 'report')}<div class="notice-box">This dashboard reads the same organizer-scoped app state, Registered Player, saved sessions, attendance snapshots and match logs used by Queueing. No duplicate player or match database is created.</div></section></div>`;
 }
 
 function isDashboardInteractionActive() {
@@ -3912,6 +3956,9 @@ function renderDashboardInPlace() {
   }
   const previousCountValues = captureDashboardCountValues();
   const currentRoot = container?.firstElementChild;
+  const previousAttendanceViewport = currentRoot?.querySelector('.attendance-plot');
+  const attendanceWasAtLatest = !previousAttendanceViewport
+    || previousAttendanceViewport.scrollWidth - previousAttendanceViewport.clientWidth - previousAttendanceViewport.scrollLeft <= 3;
   if (!container || !currentRoot?.classList.contains('page-dashboard')) {
     renderPage(true);
     return;
@@ -3925,6 +3972,7 @@ function renderDashboardInPlace() {
   patchDashboardNode(currentRoot, nextRoot);
   animateDashboardCountValues(previousCountValues);
   animateDashboardAttendanceBars();
+  if (attendanceWasAtLatest) scrollAttendanceChartToLatest(currentRoot.querySelector('.attendance-plot'));
   state.pendingRender = false;
   updateNavigation();
   scheduleDashboardRankings();
@@ -3955,6 +4003,7 @@ function renderPage(preserveScroll = true) {
   animateDashboardCountValues(previousCountValues);
   if (state.page === 'dashboard') {
     animateDashboardAttendanceBars();
+    scrollAttendanceChartToLatest($('.page-dashboard .attendance-plot', container));
   }
   if (state.page === 'rankings') {
     scheduleRankingsPage();
@@ -4335,7 +4384,7 @@ function openParticipantEdit(sessionId, index) {
 }
 function openPlayerEdit(playerId) {
   const player = state.data.players.find(item => !item.historicalOnly && String(item.cloudId || item.id) === String(playerId));
-  if (!player) { toast('This player is no longer in Registered Player Cloud. Refresh the page and try again.', 'error'); return; }
+  if (!player) { toast('This player is no longer in Registered Player. Refresh the page and try again.', 'error'); return; }
   const currentCategory = String(player.categoryCode || categoryCode(player.category) || '').trim();
   const categoryOptions = [
     ['BEG', 'Beginner'], ['NOV', 'Novice'], ['INT', 'Intermediate'],
@@ -4380,7 +4429,6 @@ function openRegisterCourtModal() {
 function openEditRegisteredCourtModal(courtId) {
   const court = asArray(state.data?.registeredCourts).find(item => String(item.id) === String(courtId));
   if (!court) { toast('Registered court not found. Refresh the page and try again.', 'error'); return; }
-  if (court.isOwner !== true) { toast('Only the organizer who registered this court can edit it.', 'error'); return; }
   modal('Edit Registered Court', `<form id="editRegisteredCourtForm" data-court-id="${escapeHTML(court.id)}"><div class="form-grid">${courtLogoFieldMarkup(court.logo, true)}<div class="field full"><label for="registerCourtName">Court name</label><input id="registerCourtName" name="courtName" maxlength="100" required value="${escapeHTML(court.name)}" placeholder="Enter court name"></div>${courtLocationFieldMarkup(court.location, court.locationCoordinates)}</div><div class="modal-footer form-footer"><button type="button" class="btn" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div></form>`, { wide: true });
   const form = $('#editRegisteredCourtForm');
   initializeCourtLocationPinMap(form, court.locationCoordinates);
@@ -4480,6 +4528,44 @@ function finishCourtStripDrag(event) {
 }
 document.addEventListener('pointerup', finishCourtStripDrag);
 document.addEventListener('pointercancel', finishCourtStripDrag);
+
+// Mouse users can drag the attendance history horizontally; touch and stylus
+// devices use the browser's native horizontal pan on the same scroll viewport.
+let attendanceChartDrag = null;
+document.addEventListener('pointerdown', event => {
+  if (event.pointerType !== 'mouse' || event.button !== 0 || !event.isPrimary) return;
+  const viewport = event.target.closest('.page-dashboard .attendance-plot');
+  if (!viewport || viewport.scrollWidth <= viewport.clientWidth + 1) return;
+  attendanceChartDrag = {
+    viewport,
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startScrollLeft: viewport.scrollLeft,
+    moved: false
+  };
+  try { viewport.setPointerCapture(event.pointerId); } catch (_) {}
+});
+document.addEventListener('pointermove', event => {
+  if (!attendanceChartDrag || event.pointerId !== attendanceChartDrag.pointerId) return;
+  const delta = event.clientX - attendanceChartDrag.startX;
+  if (!attendanceChartDrag.moved && Math.abs(delta) < 3) return;
+  attendanceChartDrag.moved = true;
+  attendanceChartDrag.viewport.classList.add('is-dragging');
+  attendanceChartDrag.viewport.scrollLeft = Math.max(0, Math.min(
+    attendanceChartDrag.viewport.scrollWidth - attendanceChartDrag.viewport.clientWidth,
+    attendanceChartDrag.startScrollLeft - delta
+  ));
+  event.preventDefault();
+});
+function finishAttendanceChartDrag(event) {
+  if (!attendanceChartDrag || (event && event.pointerId !== attendanceChartDrag.pointerId)) return;
+  const { viewport, pointerId } = attendanceChartDrag;
+  viewport.classList.remove('is-dragging');
+  try { if (viewport.hasPointerCapture(pointerId)) viewport.releasePointerCapture(pointerId); } catch (_) {}
+  attendanceChartDrag = null;
+}
+document.addEventListener('pointerup', finishAttendanceChartDrag);
+document.addEventListener('pointercancel', finishAttendanceChartDrag);
 
 // Pause automatic DOM replacement while a pointer gesture is in progress.
 document.addEventListener('pointerdown', event => {
@@ -4633,7 +4719,6 @@ document.addEventListener('click', async event => {
       const courtId = String(actionButton.dataset.courtId || '');
       const court = asArray(state.data?.registeredCourts).find(item => String(item.id) === courtId);
       if (!court) { toast('Registered court not found. Refresh the page and try again.', 'error'); return; }
-      if (court.isOwner !== true) { toast('Only the organizer who registered this court can delete it.', 'error'); return; }
       if (window.confirm(`Delete ${court.name} from the shared Registered Court List? Its map pin will also be removed for all organizers.`)) {
         await withRefresh('Registered court deleted.', () => api(`/api/organizer-dashboard/courts/${encodeURIComponent(courtId)}`, { method: 'DELETE' }), 'courts');
       }
@@ -4723,8 +4808,8 @@ document.addEventListener('click', async event => {
   const playerDelete = event.target.closest('[data-player-delete]');
   if (playerDelete) {
     const player = state.data.players.find(item => !item.historicalOnly && String(item.cloudId || item.id) === String(playerDelete.dataset.playerDelete));
-    if (player && window.confirm(`Delete ${player.name} from Registered Player Cloud? This removes the shared player profile from all devices. Existing match history will remain.`)) {
-      await withRefresh('Player deleted from Registered Player Cloud.', () => api(`/api/organizer-dashboard/players/${encodeURIComponent(player.cloudId || player.id)}`, { method: 'DELETE' }), 'players');
+    if (player && window.confirm(`Delete ${player.name} from Registered Player? This removes the shared player profile from all devices. Existing match history will remain.`)) {
+      await withRefresh('Player deleted from Registered Player.', () => api(`/api/organizer-dashboard/players/${encodeURIComponent(player.cloudId || player.id)}`, { method: 'DELETE' }), 'players');
     }
     return;
   }
@@ -4914,7 +4999,7 @@ document.addEventListener('submit', async event => {
       duprId: fd.get('duprId'),
       selfRating: fd.get('selfRating')
     };
-    await withRefresh('Player profile updated across Registered Player Cloud.', () => api(`/api/organizer-dashboard/players/${encodeURIComponent(playerId)}`, { method: 'PATCH', body: JSON.stringify(body) }), 'players');
+    await withRefresh('Player profile updated across Registered Player.', () => api(`/api/organizer-dashboard/players/${encodeURIComponent(playerId)}`, { method: 'PATCH', body: JSON.stringify(body) }), 'players');
   }
   if (form.id === 'matchEditForm') {
     event.preventDefault();

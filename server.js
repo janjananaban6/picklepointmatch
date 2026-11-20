@@ -5,7 +5,7 @@ const { URL } = require('node:url');
 const crypto = require('node:crypto');
 
 const ROOT = __dirname;
-const APP_BUILD_VERSION = 'ppm-shared-registered-courts-20261119-v1';
+const APP_BUILD_VERSION = 'ppm-shared-registered-courts-global-manage-20261120-v2';
 const SESSION_IMPORT_API_PATH = '/api/organizer-dashboard/sessions/import';
 const DATA_DIR = process.env.PICKLE_DATA_DIR ? path.resolve(process.env.PICKLE_DATA_DIR) : path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'live-state.json');
@@ -2602,12 +2602,17 @@ async function handle(req, res) {
       const existingIndex = registeredCourtsDirectory.findIndex(court => String(court?.id || '') === courtId);
       if (existingIndex < 0) return sendJson(res,404,{ok:false,error:'Registered court not found.'});
       const existingCourt = registeredCourtsDirectory[existingIndex];
-      if (String(existingCourt.ownerId || '') !== String(auth.organizerId)) {
-        return sendJson(res,403,{ok:false,error:'Only the organizer who registered this court can edit or delete it.'});
-      }
+      // Registered courts are a shared community directory. Any approved
+      // organizer may maintain a listing; the original owner metadata remains
+      // attached to the listing for attribution only.
       if (req.method === 'DELETE') {
         registeredCourtsDirectory = registeredCourtsDirectory.filter((court, index) => index !== existingIndex);
-        account.registeredCourts = (Array.isArray(account.registeredCourts) ? account.registeredCourts : []).filter(court => String(court?.id || '') !== courtId);
+        // Remove legacy copies from every organizer account as well. Otherwise
+        // startup migration could re-import a deleted court into the directory.
+        for (const organizerAccount of organizerAccounts) {
+          const savedCourts = Array.isArray(organizerAccount?.registeredCourts) ? organizerAccount.registeredCourts : [];
+          organizerAccount.registeredCourts = savedCourts.filter(court => String(court?.id || '') !== courtId);
+        }
         await saveStoredBatch([
           {key:'registered-courts-directory',filePath:REGISTERED_COURTS_FILE,value:registeredCourtsDirectory},
           {key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}
@@ -2637,8 +2642,8 @@ async function handle(req, res) {
       if (duplicate) return sendJson(res,409,{ok:false,error:'Another court is already registered in the shared directory with that name at that location.'});
       const updatedCourt = {
         ...existingCourt,
-        ownerName:String(account.displayName || account.username || existingCourt.ownerName || 'Organizer'),
-        ownerSlug:String(account.slug || existingCourt.ownerSlug || ''),
+        // Keep the original registrant's attribution even when another
+        // organizer edits this shared entry.
         name,
         location,
         logo,
@@ -2646,16 +2651,22 @@ async function handle(req, res) {
         updatedAt:new Date().toISOString()
       };
       registeredCourtsDirectory = registeredCourtsDirectory.map((court, index) => index === existingIndex ? updatedCourt : court);
-      const ownRegisteredCourts = Array.isArray(account.registeredCourts) ? account.registeredCourts : [];
-      const ownIndex = ownRegisteredCourts.findIndex(court => String(court?.id || '') === courtId);
-      if (ownIndex >= 0) account.registeredCourts = ownRegisteredCourts.map((court, index) => index === ownIndex ? updatedCourt : court);
-      else account.registeredCourts = [...ownRegisteredCourts, updatedCourt];
+      // Keep any legacy account copies synchronized so they cannot overwrite
+      // the shared directory with stale data during a later startup migration.
+      for (const organizerAccount of organizerAccounts) {
+        const savedCourts = Array.isArray(organizerAccount?.registeredCourts) ? organizerAccount.registeredCourts : [];
+        const hasMatchingCourt = savedCourts.some(court => String(court?.id || '') === courtId);
+        if (hasMatchingCourt) {
+          organizerAccount.registeredCourts = savedCourts.map(court => String(court?.id || '') === courtId ? updatedCourt : court);
+        }
+      }
       await saveStoredBatch([
         {key:'registered-courts-directory',filePath:REGISTERED_COURTS_FILE,value:registeredCourtsDirectory},
         {key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}
       ]);
       broadcastNamedEvent('registered-courts',{updatedAt:new Date().toISOString()});
-      return sendJson(res,200,{ok:true,registeredCourt:{...updatedCourt,isOwner:true},registeredCourts:publicRegisteredCourtsFor(auth.organizerId)});
+      const visibleUpdatedCourt = publicRegisteredCourtsFor(auth.organizerId).find(court => String(court.id) === courtId) || null;
+      return sendJson(res,200,{ok:true,registeredCourt:visibleUpdatedCourt,registeredCourts:publicRegisteredCourtsFor(auth.organizerId)});
     } catch (err) {
       return sendJson(res,err.statusCode || 500,{ok:false,error:err.statusCode===413?'Court logo file is too large.':err.message||'Unable to update registered court.'});
     }

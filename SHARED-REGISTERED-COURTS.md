@@ -6,9 +6,9 @@ Registered Court entries are stored in the shared `registered-courts-directory` 
 
 - All authenticated, approved organizer accounts can view every registered court in the directory.
 - The Courts & Locations list and Philippines 3D Court Map use the shared directory.
-- Each entry retains its original organizer owner ID. Only that organizer can edit or delete the entry; the server enforces this on PATCH and DELETE requests.
+- Each entry retains its original organizer owner ID for attribution. Any authenticated, approved organizer can edit or delete any entry; the server applies the same permission to PATCH and DELETE requests.
 - Existing `registeredCourts` saved inside organizer accounts are imported into the directory automatically when the server starts. The original account records are retained for compatibility.
-- New, edited, and deleted court listings are broadcast to connected organizer dashboards so their list and map refresh immediately. A normal dashboard refresh also retrieves the directory.
+- New, edited, and deleted court listings are broadcast to connected organizer dashboards so their list and map refresh immediately. A normal dashboard refresh also retrieves the directory. When a court is edited or deleted, any legacy account copies are synchronized or removed so startup migration cannot restore stale or deleted records.
 
 ## Deployment
 
