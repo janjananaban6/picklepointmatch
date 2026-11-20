@@ -82,12 +82,38 @@ html body[data-page="queueing"] header.topbar .event-title-row > #eventTitle {
   -webkit-box-orient: initial !important;
   box-sizing: border-box !important;
 }
-html body[data-page="queueing"] #queueMainArea .selected-court-note.show {
+/* Keep the DUPR warning in the exact selected-court-note slot and layout:
+   same 8px type, left alignment, edge-to-edge divider, and panel spacing. */
+html body[data-page="queueing"] #queueMainArea .queue-no-dupr-id-note {
   display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  animation: none !important;
+  position: relative !important;
+  flex: 0 0 auto !important;
+  align-self: stretch !important;
+  min-height: 0 !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 5px 14px 7px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e5e9ee !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  color: #087da4 !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  text-align: left !important;
   transform: none !important;
+  translate: none !important;
+  animation: none !important;
+  transition: none !important;
+  will-change: auto !important;
+}
+html body[data-page="queueing"] #queueMainArea .queue-no-dupr-id-note.is-dupr-count {
+  color: #d97706 !important;
+}
+html body[data-page="queueing"] #queueMainArea .queue-no-dupr-id-note[hidden] {
+  display: none !important;
 }
 html body[data-page="queueing"] #queueList > .queue-modern-item {
   animation: none !important;

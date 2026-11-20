@@ -202,6 +202,7 @@ function applySharedCloudRecords(payload,force=false){
   }
   cloudRecords={players:Array.isArray(payload.records.players)?payload.records.players:[],logs:Array.isArray(payload.records.logs)?payload.records.logs:[],sessions:Array.isArray(payload.records.sessions)?payload.records.sessions:[]};
   try{localStorage.setItem(CLOUD_RECORDS_KEY,JSON.stringify(cloudRecords));}catch(e){}
+  if(IS_QUEUEING_PAGE)syncQueueNoDuprIdNote();
   stampRemoteSave(CLOUD_RECORDS_SAVED_AT_KEY,CLOUD_RECORDS_PENDING_SYNC_KEY,payload.updatedAt);
   cloudSyncPending=null;
   if($('cloudRecordsModal')&&!$('cloudRecordsModal').classList.contains('hidden'))renderCloudRecords();
@@ -2133,6 +2134,43 @@ function syncOrganizerQrSessionStatus(){
 window.addEventListener('online',()=>{if($('registrationQrModal')&&!$('registrationQrModal').classList.contains('hidden'))syncRegistrationQrNetworkState();});
 window.addEventListener('offline',()=>{if($('registrationQrModal')&&!$('registrationQrModal').classList.contains('hidden'))syncRegistrationQrNetworkState();});
 
+function syncQueueNoDuprIdNote(){
+  if(!IS_QUEUEING_PAGE)return;
+  const note=$('queueNoDuprIdNote');
+  if(!note)return;
+  const duprNoteEnabled=isCurrentSessionDupr()&&state.duprLabelsEnabled!==false;
+  // The original selected-court guidance keeps its normal blue text color;
+  // only the live missing-DUPR count uses the amber warning color.
+  note.classList.toggle('is-dupr-count',duprNoteEnabled);
+  // When DUPR labels are off, restore the original selected-court guidance in
+  // this same note slot instead of leaving the panel blank.
+  if(!duprNoteEnabled){
+    note.hidden=false;
+    const selectedCourt=state.selectedCourt?court(state.selectedCourt):null;
+    const label=selectedCourt
+      ? `${courtDisplayName(selectedCourt)} SELECTED — use an empty court slot to add players.`
+      : 'Select an empty court slot to choose a player.';
+    if(note.textContent!==label)note.textContent=label;
+    return;
+  }
+
+  note.hidden=false;
+  loadCloudRecords();
+  const activePlayersById=new Map((Array.isArray(state.players)?state.players:[]).map(item=>[String(item.id),item]));
+  const activeIds=new Set([
+    ...(Array.isArray(state.queue)?state.queue:[]),
+    ...(Array.isArray(state.courts)?state.courts.flatMap(item=>Array.isArray(item.players)?item.players:[]):[])
+  ].map(id=>String(id)).filter(Boolean));
+  let missingCount=0;
+  activeIds.forEach(id=>{
+    const activePlayer=activePlayersById.get(id);
+    if(activePlayer&&!getPlayerDuprId(activePlayer))missingCount+=1;
+  });
+  const playerLabel=missingCount===1?'Player':'Players';
+  const label=`${missingCount} ${playerLabel} no DUPR ID on Queue`;
+  if(note.textContent!==label)note.textContent=label;
+}
+
 function syncQueueDuprLabelsToggle(){
   const toggle=$('queueDuprLabelsToggle');
   if(!toggle)return;
@@ -2153,6 +2191,7 @@ function syncQueueDuprLabelsToggle(){
   toggle.setAttribute('aria-label',toggle.title);
   toggle.disabled=!duprSession;
   toggle.setAttribute('aria-disabled',String(!duprSession));
+  syncQueueNoDuprIdNote();
 }
 
 function saveState(){
@@ -2941,6 +2980,17 @@ function findBestAutoMatchAssignment(c,combos,mode,history){
   return best;
 }
 
+function buildAutoMatchCombinations(pool,needed){
+  const combos=[];
+  function collect(index,chosen){
+    if(chosen.length===needed){combos.push(chosen.slice());return;}
+    const stillNeeded=needed-chosen.length;
+    for(let i=index;i<=pool.length-stillNeeded;i++)collect(i+1,chosen.concat(pool[i]));
+  }
+  collect(0,[]);
+  return combos;
+}
+
 function autoMatchSingles(courtId){
   const c=court(courtId); if(!c||c.playing)return;
   const limit=2;
@@ -2960,13 +3010,7 @@ function autoMatchSingles(courtId){
   }
 
   const pool=available.slice(0,32);
-  const combos=[];
-  function walk(index,chosen){
-    if(chosen.length===needed){combos.push(chosen.slice());return;}
-    const stillNeeded=needed-chosen.length;
-    for(let i=index;i<=pool.length-stillNeeded;i++)walk(i+1,chosen.concat(pool[i]));
-  }
-  walk(0,[]);
+  const combos=buildAutoMatchCombinations(pool,needed);
   const history=autoMatchHistoryContext();
   const fixedIds=slots.filter(Boolean).map(Number);
   const targetOutcome=state.winnersLosersNextGroup==='losers'?'losers':'winners';
@@ -3086,13 +3130,7 @@ function autoMatchVariety(courtId){
     if(partnerId!=null)addToPool(availableById.get(Number(partnerId)));
   }
 
-  const combos=[];
-  function walk(index,chosen){
-    if(chosen.length===needed){combos.push(chosen.slice());return;}
-    const stillNeeded=needed-chosen.length;
-    for(let i=index;i<=pool.length-stillNeeded;i++)walk(i+1,chosen.concat(pool[i]));
-  }
-  walk(0,[]);
+  const combos=buildAutoMatchCombinations(pool,needed);
 
   const chosenIdsFor=combo=>new Set(combo.map(person=>Number(person.id)));
   const validCombos=combos.filter(combo=>{
@@ -4143,12 +4181,20 @@ function renderLockInPartnerChoices(playerId){
   const options=candidates.map(candidate=>`<button type="button" class="queue-lock-partner-option" title="Lock in ${esc(displayPlayerName(candidate))}" aria-label="Lock in ${esc(displayPlayerName(candidate))}" onclick="event.stopPropagation();toggleLockInPartner(${playerId},${candidate.id})"><span class="queue-lock-partner-option-ident"><span class="queue-lock-partner-option-name">${highlightSearchMatch(displayPlayerName(candidate),searchValue)}</span><span class="queue-lock-partner-option-meta"><span class="queue-lock-partner-gender ${candidate.gender==='Female'?'female':'male'}" aria-label="${candidate.gender==='Female'?'Female':'Male'}">${genderSvgIcon(candidate.gender)}</span><span class="queue-lock-partner-category ${candidate.category?'skill-'+String(candidate.category).toLowerCase():''}">${esc(candidate.category||'—')}</span></span></span><span class="queue-lock-partner-option-state" aria-hidden="true">${queueLockSvgMarkup(false, `partner-option-${playerId}-${candidate.id}`)}</span></button>`).join('');
   return `<div class="queue-lock-partner"><div class="queue-lock-partner-heading">Lock in partner</div><span class="queue-lock-partner-divider" aria-hidden="true"></span><div class="queue-lock-partner-search-wrap"><svg class="queue-lock-partner-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg><input class="queue-lock-partner-search" data-player-id="${Number(playerId)}" type="search" placeholder="Search players..." aria-label="Search lock in partner players" value="${esc(searchValue)}" oninput="lockPartnerSearchValues[${Number(playerId)}]=this.value;filterLockInPartnerOptions(${Number(playerId)})" onclick="event.stopPropagation()"></div><div class="queue-lock-partner-list ${candidates.length>=5?'has-scroll':''}">${options||'<small class="queue-lock-partner-empty">No other players in the Queue List.</small>'}</div></div>`;
 }
+function getPlayerDuprId(target){
+  if(!target)return '';
+  const normalize=value=>{
+    const id=String(value||'').replace(/\s+/g,'').toUpperCase();
+    return id==='NR'?'':id;
+  };
+  const directId=normalize(target.duprId||target.duprID||target.dupr_id||target.dupr||'');
+  if(directId)return directId;
+  loadCloudRecords();
+  const matchingCloud=cloudRecords.players.find(item=>cloudPlayerNameMatches(item,target));
+  return normalize(matchingCloud?.duprId||matchingCloud?.duprID||matchingCloud?.dupr_id||matchingCloud?.dupr||'');
+}
 function getCourtDuprDetails(target){
-  if(!target)return {duprId:''};
-  const normalizedName=String(target.name||'').trim().toLowerCase();
-  const matchingCloud=cloudRecords.players.find(item=>String(item.name||'').trim().toLowerCase()===normalizedName);
-  const rawId=String(target.duprId||target.duprID||target.dupr_id||target.dupr||matchingCloud?.duprId||matchingCloud?.duprID||matchingCloud?.dupr_id||matchingCloud?.dupr||'').replace(/\s+/g,'').toUpperCase();
-  return {duprId:rawId==='NR'?'':rawId};
+  return {duprId:getPlayerDuprId(target)};
 }
 function renderCourtDuprBadge(target,surface){
   // Live court is display-only; editable Queue/Ready court badges open the shared modal.
@@ -4508,6 +4554,7 @@ function renderQueue(){
   cleanupGenderMenuPortal();
   const q=$('queueList');
   loadCloudRecords();
+  syncQueueNoDuprIdNote();
   const search=isRegisteredCloudSearchMode()?'':String($('registeredPlayerSearch')?.value||'').trim().toLowerCase();
   // The same normalized IDs drive the count and rows so stale synced duplicates
   // cannot create extra items or move an existing row between refreshes.
@@ -4523,9 +4570,7 @@ function renderQueue(){
     const st=rankingStats.get(p.id)||{matches:0,wins:0,losses:0};
     const queueRecordLabel=`${st.matches} match${st.matches===1?'':'es'} (${st.wins}W-${st.losses}L)`;
     const queueRecordBadgeMarkup=`<span class="queue-record-badge" title="${esc(queueRecordLabel)}" aria-label="${esc(queueRecordLabel)}">${queueRecordIconSvgMarkup()}${esc(queueRecordLabel)}</span>`;
-    const matchingCloudDupr=cloudRecords.players.find(cp=>cloudPlayerNameMatches(cp,p.name));
-    const rawQueueDuprId=String(p.duprId||p.duprID||p.dupr_id||p.dupr||matchingCloudDupr?.duprId||matchingCloudDupr?.duprID||matchingCloudDupr?.dupr_id||matchingCloudDupr?.dupr||'').replace(/\s+/g,'').toUpperCase();
-    const queueDuprId=rawQueueDuprId==='NR'?'':rawQueueDuprId;
+    const queueDuprId=getPlayerDuprId(p);
     const queueDuprBadge=`<button type="button" class="queue-dupr-badge ${queueDuprId?'':'is-unrated'}" onclick="event.stopPropagation();openQueueDuprModal(${id})" aria-label="Edit DUPR ID" title="Click to edit DUPR ID">DUPR: ${esc(queueDuprId||'NR')}</button>`;
     const lockedPartnerId=getLockedPartnerId(id);
     const lockedPartner=lockedPartnerId?player(lockedPartnerId):null;
@@ -4580,15 +4625,6 @@ function renderQueue(){
       document.body.appendChild(menu);
     }
     requestAnimationFrame(()=>positionGenderMenu(openGenderPlayerId));
-  }
-
-  const sc=state.selectedCourt?court(state.selectedCourt):null;
-  const note=$('selectedCourtNote');
-  if(note){
-    note.hidden=false;
-    note.classList.remove('hidden');
-    note.classList.add('show');
-    note.textContent=sc?`${courtDisplayName(sc)} SELECTED — use an empty court slot to add players.`:'Select an empty court slot to choose a player.';
   }
 
   const leftCount=$('leftCount');

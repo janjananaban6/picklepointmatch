@@ -35,7 +35,6 @@ button:disabled{cursor:not-allowed;opacity:.45;}
 .queue-add{padding:12px;display:grid;grid-template-columns:1fr;gap:7px;border-bottom:1px solid var(--line);}
 .queue-add input,
   .modal-box input{width:100%;border:1px solid #ccd5df;border-radius:7px;padding:10px;outline:none;}
-.selected-court-note{display:none;margin:7px 12px 0;padding:5px 8px;border-radius:6px;background:#e8f7fc;color:#087da4;font-size:8px;font-weight:800;line-height:1.2;}
 .queue-list{max-height:430px;overflow:auto;}
 .queue-item{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:11px 12px;border-bottom:1px solid #edf0f4;}
 .queue-item.clickable{cursor:pointer;background:#f5fcff;}
@@ -873,7 +872,6 @@ body{overflow-y:auto;}
 /* V26 — registration gender logos, native category dropdown, queue layout */
 #queueMainArea{display:flex;flex-direction:column;min-height:0;flex:1 1 auto;overflow:hidden!important;}
 #queueMainArea .queue-add{flex:0 0 auto;}
-#queueMainArea .selected-court-note{flex:0 0 auto;}
 #queueMainArea .queue-list{flex:1 1 auto;min-height:70px;max-height:none;overflow-y:auto;overflow-x:hidden;}
 #queueMainArea #queueEmpty{flex:0 0 auto;}
 #queueMainArea .left-section{flex:0 0 auto;margin-top:auto;max-height:150px;overflow-y:auto;overflow-x:hidden;}
@@ -1363,8 +1361,7 @@ only its list may scroll. */
 }
 @media(max-width:600px) {.queue-stats-line{grid-template-columns:38px minmax(0,1fr) auto!important;column-gap:3px!important;font-size:7px!important;}
 .queue-cat-stack{width:38px!important;min-width:38px!important;max-width:38px!important;flex-basis:38px!important;}}
-/* V29.3 — compact selected court note and live announce action */
-.selected-court-note.show{display:block;font-size:8px;line-height:1.2;padding:5px 8px;margin:7px 12px 0;}
+/* V29.3 — live announce action */
 /* MODULE: WAITING COURTS & COURT QUEUE */
 /* V21 — waiting court redesigned to visually match the live match card */
 .ready-box{
@@ -2563,17 +2560,6 @@ avatar is slightly smaller. */
 #queueMainArea .registered-player-results{
   display:none!important;
 }
-#queueMainArea .selected-court-note{
-  display:none;
-  margin:0!important;
-  padding:5px 14px 7px!important;
-  border-radius:0!important;
-  border-bottom:1px solid #e5e9ee!important;
-  background:#fff!important;
-  color:#087da4!important;
-  font-size:8px!important;
-  line-height:1.2!important;
-}
 #queueMainArea .queue-list{
   flex:1 1 auto!important;
   min-height:80px!important;
@@ -2717,7 +2703,7 @@ existing queue design unchanged. */
   font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;
 }
 #queueMainArea .queue-add{order:1!important;}
-#queueMainArea .selected-court-note{order:2!important;}
+#queueMainArea .queue-no-dupr-id-note{order:2!important;}
 #queueMainArea .queue-list{order:4!important;}
 #queueMainArea .left-section{order:5!important;}
 /* Icon update: use native emoji glyphs while preserving existing control sizing/layout. */
@@ -16198,25 +16184,7 @@ html body #leftPlayersModal #leftPlayersPopupList {
     font-size: 8px !important;
     line-height: 1 !important;
   }}
-/* Queue refresh stability: keep the selected-court note and ranking headers in
-   normal document flow so tablet/browser rehydration cannot nudge them around. */
-#queueMainArea .selected-court-note {
-  position: relative !important;
-  flex: 0 0 auto !important;
-  align-self: stretch !important;
-  min-height: 0 !important;
-  box-sizing: border-box !important;
-  transform: none !important;
-  translate: none !important;
-  animation: none !important;
-  transition: none !important;
-  will-change: auto !important;
-}
-#queueMainArea .selected-court-note:not(.show) { display: none !important; }
-#queueMainArea .selected-court-note.show {
-  display: block !important;
-  visibility: visible !important;
-}
+/* Queue refresh stability: keep ranking headers in normal document flow. */
 #rankingView .ranking-heading,
 #rankingView .leaderboard-heading {
   position: relative !important;
