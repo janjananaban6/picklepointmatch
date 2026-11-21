@@ -71,6 +71,9 @@ function registeredCourtLogo(court = {}) {
   const candidates = [court?.logo, court?.logoUrl, court?.logoData, court?.logoDataUrl, court?.imageUrl, court?.image];
   return candidates.map(value => String(value || '').trim()).find(Boolean) || '';
 }
+// Generic court badge used only when an older server requires a logo field
+// but the imported CSV row does not contain an individual court logo.
+const DEFAULT_IMPORTED_COURT_LOGO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAFSUlEQVR42u2dTWobQRCFpWZ2geCdNoZgCCEL38S3cC7gGwTfIBeIbuGbaBFCwBi80U4EslYWYch46NZ091R1188ryCK2RhrN++p1dU9Ne3s+nzcIvxFwCQAAAgAgAADCZQwevuTz8VRd6d7srraWr83W0ixgjdBewVAPQEvRLcKgDoAawW92V2s+zzQQagDIFX6N2NRQaABBPABLwrcQfC0QkkEQC8Al4SWIXgODRBDEAZASXrLopTD8ebqN/vz2/nXrFgBLwsdASImeilYwdAfAsvBjHPbXb/7/8fOn6Ot+/fjZHIKuAMTEtyp8SvRUTGHgBCFAfHniz4857K/ZsnSA8LxRI/702PmwoNoBvIg/Zv8a8ecAcblAsxpgLr7VrKcUP1YTUNcDAeL7jgDxAQDEF27/nLXA0EJ8ZL0zB4D4emKQJP6Hb19VX8yn984BqG3P0i5863g+ns5Ut5YDl/i52Q/x2yYbCwAQ/1/c/f6y2Ww2LMu343u+uzuQQkBeBKLo4w3q6ztQZn/JyaWy/+XhsdnFnJ8DxWcf9t+bQDB2G62tBwKV+BTRUnyuuL1/JR8GJvcByHUIVOLD+nkgSIk/v961EJDUABB/WUCOYymue6DIfkTaBWohmLWEsekyIPv5ITjsr98IWtAUWlQQNpkFYJ2/DoRpj2COI+Rm/dpZwQB52g8J8zbxGtG7rAMg++lgiK2DvHRYG8AWMc4jIPvtxFSX3BkBHAAOgOz37AJwADhAfvYj9MWSfkXTQAv2f6kJZfyd9ruSJauDLhaCSjuPpq+3cIvaLQAULWdWXKGqBtBc/V/qOBr/pX7HBZPE2cDgJetLMnh87fy9LLpBsC7+pazOASF2rKVu5mBl+hdr8KTK1Nh7aYMgpWeWA0gf/zm6e3OGEekQ5OhmbiWQe3y2NhtQD0CPOfv0c7TXA8GK+DgP57OA1tZsZSgISxWj1AJQWtZJdYGlBaGA7PftAugHcB4qAZB0t077jAAOAAdAeI7oXsEtZgHYG6hdUTntDpo/MAIHwBCAAAAItyGqIyh3DKSaBlLdRq45Hyk1EBwAQ4Duarl3JmlvIYcDwAH0Ry8XsLCWEQVguliwZgMiCQWj1/OJ6RfbNcTMENA6G62sZKoGQErWae4LUO8APWYElh4eNTcL4IbA2k2s3C1iVA0FXCK1egCFowAsBoDqb9L0hIAKhNh7abP+lJ6mhoDUg5y1IKSOtfR0kLnHwyke7Zbw10xEAHCzu9qO3UHPx5OqTSJeHh6jQubsEWRB/KUFILMOkOMGXub4LocAirUC66JXA6BtGCiFwYrwJdP2xVmAtukgokw/9AM4j1BKkfRVQe+RW/3DARBlAMAF7GU/HABRBgBcwFb2wwEQ5QDABexkP4kDAAI54jdxgBrKEG2iRpcggUJEv+seqGgDBH3Fr3XlVQ5APRR42TaG+nuu0SG6R1AFjVV7CmGfoP9Rcit6TdXPvg6AoUD+uE8OQG094KnzhuI6UI37LA4ACPSJT1YDUNQD3mqCUvApx31WANZCgGgnPksROD9JFIVyxWdzgJgTwA3WVftcy++st4OxWihbfHYAAIFs8ZsAAAjkis9eAyzVBKgL0gnR6pZ705aw2Jfy7gY9xW/uAHADOcJ3cQC4gSzxuzrAJSew6gYpwHu22HUHwAMIEoUXB4BFECQLLxaAJRCkw3CpjpHYTS0WgBwQpMCwVLxKbqMXD0AuCC2ByJ2taHh+Qg0ApSBQQVEzNdX04Iw6ACiAaLGmAQCMw2Dl8ThTAHCAYf05SBcAINKBDSIAAAIAINzGX6rqbMiKB0IYAAAAAElFTkSuQmCC';
 const icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ICONS.info}</svg>`;
 const refreshIcon = () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-ccw preview-icon dashboard-refresh-icon" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>';
 const normalizeName = value => String(value || '').normalize('NFC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -234,7 +237,12 @@ async function api(url, options = {}) {
     }
     throw new Error(`The backend reports session-import support (build ${health.build}), but the POST was rejected with 405. Check the Render service logs and any rewrite/proxy rule for /api/organizer-dashboard/sessions/import.`);
   }
-  if (!response.ok || payload?.ok === false) throw new Error(payload?.error || `Request failed (${response.status}).`);
+  if (!response.ok || payload?.ok === false) {
+    const error = new Error(payload?.error || `Request failed (${response.status}).`);
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
   return payload;
 }
 
@@ -3431,16 +3439,65 @@ async function handleCourtCsvFile(file) {
   }
 }
 
+async function importCourtsOneByOne(readyCourts) {
+  let importedCount = 0;
+  let duplicateCount = 0;
+  for (const court of readyCourts) {
+    const coordinates = normalizeMapLocationCoordinates(court.locationCoordinates || court.coordinates || court);
+    try {
+      await api('/api/organizer-dashboard/courts', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: court.name,
+          location: court.location,
+          logo: registeredCourtLogo(court) || DEFAULT_IMPORTED_COURT_LOGO,
+          locationCoordinates: {
+            lat: Number(coordinates?.lat),
+            lon: Number(coordinates?.lon),
+            label: String(coordinates?.label || court.location || ''),
+            countrycode: 'PH',
+            source: String(coordinates?.source || 'csv-import'),
+            verified: coordinates?.verified === true,
+            placeId: String(coordinates?.placeId || ''),
+            pinId: String(coordinates?.pinId || ''),
+            osmId: String(coordinates?.osmId || '')
+          }
+        })
+      });
+      importedCount += 1;
+    } catch (error) {
+      if (error.status === 409) {
+        duplicateCount += 1;
+        continue;
+      }
+      error.importResult = { importedCount, duplicateCount };
+      if (error.status === 405) {
+        error.message = 'The live server does not accept court registration requests. Deploy the latest server.js to the same Render web service, then try importing again.';
+      }
+      throw error;
+    }
+  }
+  return { importedCount, duplicateCount, compatibilityMode: true };
+}
+
 async function confirmCourtImport(button) {
   const readyCourts = asArray(pendingCourtImport?.rows).filter(row => row.status === 'ready').map(row => row.court);
   if (!readyCourts.length) return;
   button.disabled = true;
   button.innerHTML = 'Importing…';
   try {
-    const response = await api('/api/organizer-dashboard/courts/import', {
-      method: 'POST',
-      body: JSON.stringify({ courts: readyCourts })
-    });
+    let response;
+    try {
+      response = await api('/api/organizer-dashboard/courts/import', {
+        method: 'POST',
+        body: JSON.stringify({ courts: readyCourts })
+      });
+    } catch (error) {
+      // Older Render builds may not yet have the bulk-import route. The
+      // existing single-court POST route still writes to the shared directory.
+      if (error.status !== 405) throw error;
+      response = await importCourtsOneByOne(readyCourts);
+    }
     await refreshData({ silent: true });
     closeModal();
     pendingCourtImport = null;
@@ -3450,6 +3507,16 @@ async function confirmCourtImport(button) {
     if (duplicates) parts.push(`${duplicates} duplicate${duplicates === 1 ? '' : 's'} skipped`);
     toast(`${parts.join(' · ')}. Shared with all devices.`);
   } catch (error) {
+    const partial = error.importResult;
+    if (partial?.importedCount) {
+      await refreshData({ silent: true });
+      closeModal();
+      pendingCourtImport = null;
+      const parts = [`Imported ${partial.importedCount} court${partial.importedCount === 1 ? '' : 's'}`];
+      if (partial.duplicateCount) parts.push(`${partial.duplicateCount} duplicate${partial.duplicateCount === 1 ? '' : 's'} skipped`);
+      toast(`${parts.join(' · ')}. Some remaining rows were not imported: ${error.message || 'Please retry.'}`, 'error');
+      return;
+    }
     toast(error.message || 'Unable to import Courts & Locations.', 'error');
     if (button.isConnected) {
       button.disabled = false;
