@@ -54,6 +54,7 @@ const state = {
   mapResolvedLocations: new Map(),
   rankingRenderToken: 0,
   rankingRenderPlayers: [],
+  playersRenderToken: 0,
   dashboardRankingToken: 0,
   mapModalSessionId: '',
   mapIncludeRegisteredCourts: false,
@@ -1264,6 +1265,11 @@ function scheduleIdleTask(callback, timeout = 180) {
   } else {
     window.setTimeout(() => callback({ didTimeout: true, timeRemaining: () => 0 }), 24);
   }
+}
+// Let the destination menu paint before preparing larger player tables.
+// This keeps sidebar navigation responsive even when the organizer has a large history.
+function scheduleAfterPagePaint(callback) {
+  window.requestAnimationFrame(() => window.setTimeout(callback, 0));
 }
 function liveTimestamp(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -3213,6 +3219,20 @@ function renderSessions() {
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Session History', 'calendar')}<div class="toolbar">${rankingSessionFilterMarkup(currentRankingSessionId())}<div class="match-type-filter session-status-filter" id="sessionStatusFilter" data-active="${escapeHTML(sessionStatus)}" role="group" aria-label="Filter sessions by status"><button class="match-type-option" type="button" data-session-status-filter="all" aria-pressed="${sessionStatus === 'all'}">ALL</button><button class="match-type-option" type="button" data-session-status-filter="Live" aria-pressed="${sessionStatus === 'live'}">LIVE</button><button class="match-type-option" type="button" data-session-status-filter="Completed" aria-pressed="${sessionStatus === 'completed'}">COMPLETED</button></div></div></div><div class="session-list">${sessionHistoryListMarkup()}</div></section>
     <p class="page-note">The original queueing system creates a session when an organizer starts Open Play. Session CSV files include attendance and linked match records so their session IDs remain connected on import. Imported sessions are saved as completed history and do not start a live queue.</p></div>`;
 }
+function playerTableRowMarkup(player, index) {
+  const stats = playerStats(player);
+  const category = categoryName(player.category);
+  const categoryClass = `category-${categoryCode(player.category).toLowerCase()}`;
+  const gender = String(player.gender || '').trim();
+  const genderClass = gender.toLowerCase() === 'male' ? 'gender-male' : gender.toLowerCase() === 'female' ? 'gender-female' : '';
+  const genderCell = genderClass
+    ? `<span class="player-gender-badge ${genderClass}">${escapeHTML(gender)}</span>`
+    : escapeHTML(gender || '—');
+  const fullDisplayName = `${player.name || 'Unnamed Player'}${player.nickname ? ` (${player.nickname})` : ''}`;
+  const registeredOn = formatPlayerRegisteredOn(player);
+  const playerId = String(player.cloudId || player.id || '');
+  return `<tr style="--row-delay:${index * 18}ms"><td class="player-number">${index + 1}</td><td class="primary-cell"><span class="table-player"><span class="player-avatar">${initials(player.name)}</span><span class="player-name-copy"><span class="player-name-text">${escapeHTML(fullDisplayName)}</span>${registeredOn ? `<span class="player-registered-date">${escapeHTML(registeredOn)}</span>` : ''}</span></span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td>${genderCell}</td><td><strong>${escapeHTML(player.duprId || '—')}</strong></td><td class="player-count-cell">${stats.attendance}</td><td class="player-count-cell">${stats.matches}</td><td><div class="table-actions"><button class="btn btn-sm" type="button" data-player-edit="${escapeHTML(playerId)}">Edit</button><button class="btn btn-sm btn-danger" type="button" title="Delete player" data-player-delete="${escapeHTML(playerId)}">${icon('trash')} Delete</button></div></td></tr>`;
+}
 function playersTable(players) {
   if (!players.length) {
     const hasActiveFilter = (state.filters.playerCategory || 'all') !== 'all'
@@ -3222,29 +3242,62 @@ function playersTable(players) {
       ? emptyState('No matching players', 'No registered players match the selected filter or search. Try another filter.')
       : emptyState('No registered players yet', 'Players added through the player registration page will appear here.', 'Open registration', 'register-player');
   }
-  return `<div class="table-wrap players-table-wrap"><table class="data-table players-table"><colgroup><col style="width:4%"><col style="width:27%"><col style="width:14%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col style="width:10%"><col style="width:13%"></colgroup><thead><tr><th scope="col">#</th><th scope="col">Player's Fullname (Nickname)</th><th scope="col">Category</th><th scope="col">Gender</th><th scope="col">DUPR ID</th><th scope="col">Attendance</th><th scope="col">Match Records</th><th scope="col">Action</th></tr></thead><tbody class="is-entering">${players.map((player, index) => {
-    const stats = playerStats(player);
-    const category = categoryName(player.category);
-    const categoryClass = `category-${categoryCode(player.category).toLowerCase()}`;
-    const gender = String(player.gender || '').trim();
-    const genderClass = gender.toLowerCase() === 'male' ? 'gender-male' : gender.toLowerCase() === 'female' ? 'gender-female' : '';
-    const genderCell = genderClass
-      ? `<span class="player-gender-badge ${genderClass}">${escapeHTML(gender)}</span>`
-      : escapeHTML(gender || '—');
-    const fullDisplayName = `${player.name || 'Unnamed Player'}${player.nickname ? ` (${player.nickname})` : ''}`;
-    const registeredOn = formatPlayerRegisteredOn(player);
-    const playerId = String(player.cloudId || player.id || '');
-    return `<tr style="--row-delay:${index * 18}ms"><td class="player-number">${index + 1}</td><td class="primary-cell"><span class="table-player"><span class="player-avatar">${initials(player.name)}</span><span class="player-name-copy"><span class="player-name-text">${escapeHTML(fullDisplayName)}</span>${registeredOn ? `<span class="player-registered-date">${escapeHTML(registeredOn)}</span>` : ''}</span></span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td>${genderCell}</td><td><strong>${escapeHTML(player.duprId || '—')}</strong></td><td class="player-count-cell">${stats.attendance}</td><td class="player-count-cell">${stats.matches}</td><td><div class="table-actions"><button class="btn btn-sm" type="button" data-player-edit="${escapeHTML(playerId)}">Edit</button><button class="btn btn-sm btn-danger" type="button" title="Delete player" data-player-delete="${escapeHTML(playerId)}">${icon('trash')} Delete</button></div></td></tr>`;
-  }).join('')}</tbody></table></div>`;
+  return `<div class="table-wrap players-table-wrap"><table class="data-table players-table"><colgroup><col style="width:4%"><col style="width:27%"><col style="width:14%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col style="width:10%"><col style="width:13%"></colgroup><thead><tr><th scope="col">#</th><th scope="col">Player's Fullname (Nickname)</th><th scope="col">Category</th><th scope="col">Gender</th><th scope="col">DUPR ID</th><th scope="col">Attendance</th><th scope="col">Match Records</th><th scope="col">Action</th></tr></thead><tbody id="playersTableBody" class="is-entering">${players.map(playerTableRowMarkup).join('')}</tbody></table></div>`;
 }
+function playersTableShell() {
+  return `<div class="table-wrap players-table-wrap"><table class="data-table players-table"><colgroup><col style="width:4%"><col style="width:27%"><col style="width:14%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col style="width:10%"><col style="width:13%"></colgroup><thead><tr><th scope="col">#</th><th scope="col">Player's Fullname (Nickname)</th><th scope="col">Category</th><th scope="col">Gender</th><th scope="col">DUPR ID</th><th scope="col">Attendance</th><th scope="col">Match Records</th><th scope="col">Action</th></tr></thead><tbody id="playersTableBody" class="is-entering"><tr><td colspan="8" class="ranking-loading-row">Preparing registered players…</td></tr></tbody></table></div>`;
+}
+function schedulePlayersTable() {
+  const token = ++state.playersRenderToken;
+  scheduleAfterPagePaint(() => {
+    if (state.page !== 'players' || token !== state.playersRenderToken) return;
+    const wrap = $('#playersTableWrap');
+    if (!wrap?.isConnected) return;
+    const players = getFilteredRegisteredPlayers();
+    if (!players.length) {
+      wrap.innerHTML = playersTable(players);
+      wrap.removeAttribute('aria-busy');
+      return;
+    }
+
+    let tbody = $('#playersTableBody', wrap);
+    if (!tbody) {
+      wrap.innerHTML = playersTableShell();
+      tbody = $('#playersTableBody', wrap);
+    }
+    if (!tbody) return;
+    wrap.setAttribute('aria-busy', 'true');
+    tbody.classList.add('is-entering');
+    tbody.innerHTML = '<tr><td colspan="8" class="ranking-loading-row">Preparing registered players…</td></tr>';
+
+    let cursor = 0;
+    const batchSize = 48;
+    const appendNext = () => {
+      if (state.page !== 'players' || token !== state.playersRenderToken || !tbody.isConnected) return;
+      const end = Math.min(cursor + batchSize, players.length);
+      const holder = document.createElement('tbody');
+      holder.innerHTML = players.slice(cursor, end).map((player, offset) => playerTableRowMarkup(player, cursor + offset)).join('');
+      if (cursor === 0) tbody.replaceChildren(...holder.childNodes);
+      else tbody.append(...holder.childNodes);
+      cursor = end;
+      if (cursor < players.length) {
+        window.requestAnimationFrame(appendNext);
+      } else {
+        wrap.setAttribute('aria-busy', 'false');
+      }
+    };
+    appendNext();
+  });
+}
+
 function renderPlayers() {
   const registeredPlayers = state.data.players.filter(player => !player.historicalOnly);
-  const players = getFilteredRegisteredPlayers();
   const attendanceCount = countAttendanceEntries();
   const attendanceGenderCounts = countAttendanceEntriesByGender();
   const rated = registeredPlayers.filter(player => String(player.duprId || '').trim()).length;
   const nonDuprPlayers = registeredPlayers.length - rated;
-  const duprPlayerMatchCount = state.data.matches.filter(match => matchIsDupr(match, state.data.sessions.find(session => session.id === match.sessionId))).length;
+  const sessionsById = new Map(state.data.sessions.map(session => [String(session.id), session]));
+  const duprPlayerMatchCount = state.data.matches.reduce((total, match) => total + (matchIsDupr(match, sessionsById.get(String(match.sessionId || ''))) ? 1 : 0), 0);
   const nonDuprPlayerMatchCount = state.data.matches.length - duprPlayerMatchCount;
   const skillCategories = [
     { code: 'BEG', match: ['BEG'], className: 'category-beg' },
@@ -3260,7 +3313,7 @@ function renderPlayers() {
   const skillCountMarkup = `<div class="registered-player-skill-counts" aria-label="Registered player skill category counts">${skillCounts.map(category => `<span class="registered-player-skill-count ${category.className}"><span class="registered-player-skill-code">${category.code}</span><span class="registered-player-skill-value" data-count-target="${category.count}" data-count-key="metric:players:registered-skill-${category.code.toLowerCase()}" aria-live="off">0</span></span>`).join('')}</div>`;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / COMMUNITY', 'Players', 'Registered Player profiles used by queueing, player registration and match history.', `<button class="btn" data-action="import-players">${icon('upload')} Import CSV</button><button class="btn" data-action="export-players">${icon('download')} Export CSV</button><button class="btn btn-primary" data-action="register-player">${icon('plus')} Register Player</button><input id="playerCsvImportFile" type="file" accept=".csv,text/csv" hidden>`)}
     <div class="metric-grid"><div class="metric-tile registered-players-metric"><span>Registered players</span>${metricCount('players', 'registered-players', registeredPlayers.length)}${skillCountMarkup}</div><div class="metric-tile metric-breakdown-tile player-dupr-breakdown"><span>With DUPR ID</span>${metricCount('players', 'with-dupr-id', registeredPlayers.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR player counts"><button type="button" class="metric-breakdown-item dupr" data-player-metric-filter="dupr" aria-pressed="${(state.filters.playerMetric || 'all') === 'dupr'}" aria-label="Filter registered players with a DUPR ID"><span>DUPR</span><strong data-count-target="${rated}" data-count-key="metric:players:with-dupr-id-dupr" aria-live="off">0</strong></button><button type="button" class="metric-breakdown-item non-dupr" data-player-metric-filter="non-dupr" aria-pressed="${(state.filters.playerMetric || 'all') === 'non-dupr'}" aria-label="Filter registered players without a DUPR ID"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayers}" data-count-key="metric:players:with-dupr-id-non-dupr" aria-live="off">0</strong></button></div></div><div class="metric-tile metric-breakdown-tile player-attendance-breakdown"><span>Attendance entries</span>${metricCount('players', 'attendance-entries', attendanceCount)}<div class="metric-breakdown" aria-label="Attendance entries by gender"><button type="button" class="metric-breakdown-item male" data-player-metric-filter="male" aria-pressed="${(state.filters.playerMetric || 'all') === 'male'}" aria-label="Filter registered players by male gender"><span>MALE</span><strong data-count-target="${attendanceGenderCounts.male}" data-count-key="metric:players:attendance-entries-male" aria-live="off">0</strong></button><button type="button" class="metric-breakdown-item female" data-player-metric-filter="female" aria-pressed="${(state.filters.playerMetric || 'all') === 'female'}" aria-label="Filter registered players by female gender"><span>FEMALE</span><strong data-count-target="${attendanceGenderCounts.female}" data-count-key="metric:players:attendance-entries-female" aria-live="off">0</strong></button></div></div><div class="metric-tile metric-breakdown-tile player-match-records-breakdown"><span>Match records</span>${metricCount('players', 'match-records', state.data.matches.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR match counts"><span class="metric-breakdown-item dupr"><span>DUPR</span><strong data-count-target="${duprPlayerMatchCount}" data-count-key="metric:players:match-records-dupr" aria-live="off">0</strong></span><span class="metric-breakdown-item non-dupr"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayerMatchCount}" data-count-key="metric:players:match-records-non-dupr" aria-live="off">0</strong></span></div></div></div>
-    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Registered Player', 'users')}<div class="toolbar"><select class="select-control" id="playerCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.playerCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div id="playersTableWrap">${playersTable(players)}</div></section>
+    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Registered Player', 'users')}<div class="toolbar"><select class="select-control" id="playerCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.playerCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div id="playersTableWrap" aria-busy="true">${playersTableShell()}</div></section>
     <p class="page-note">Player profiles are stored in the existing Registered Player. Register new players through the live session registration page so they enter the real queue.</p></div>`;
 }
 function matchesTable(matches) {
@@ -3339,15 +3392,14 @@ function rankingRowMarkup(player, index) {
 }
 function appendRankingRowsInChunks(token, cursor = 0) {
   const batchSize = 60;
-  const liveTbody = $('#rankingTableBody');
+  const tbody = $('#rankingTableBody');
+  const wrap = $('#rankingsTableWrap');
   const players = state.rankingRenderPlayers;
-  if (!liveTbody?.isConnected) return;
+  if (!tbody?.isConnected || !wrap?.isConnected) return;
 
-  // Build the replacement body off-screen and swap it in once complete. This
-  // keeps the visible table height stable while larger leaderboards are built.
-  const stagedTbody = document.createElement('tbody');
-  stagedTbody.id = 'rankingTableBody';
-  stagedTbody.classList.add('is-entering');
+  // Append each batch directly to the visible table. The menu and table header
+  // are already painted, and the first rows appear without waiting for the full list.
+  tbody.classList.add('is-entering');
   const appendNext = () => {
     const currentTbody = $('#rankingTableBody');
     if (state.page !== 'rankings' || token !== state.rankingRenderToken || !currentTbody?.isConnected) return;
@@ -3356,7 +3408,8 @@ function appendRankingRowsInChunks(token, cursor = 0) {
     if (cursor < end) {
       const holder = document.createElement('tbody');
       holder.innerHTML = players.slice(cursor, end).map((player, offset) => rankingRowMarkup(player, cursor + offset)).join('');
-      stagedTbody.append(...holder.childNodes);
+      if (cursor === 0) currentTbody.replaceChildren(...holder.childNodes);
+      else currentTbody.append(...holder.childNodes);
       cursor = end;
     }
 
@@ -3366,13 +3419,13 @@ function appendRankingRowsInChunks(token, cursor = 0) {
     }
 
     if (!players.length) {
-      stagedTbody.innerHTML = '<tr><td colspan="8" class="ranking-empty">No ranking data yet. Rankings will appear when players have saved match results.</td></tr>';
+      currentTbody.innerHTML = '<tr><td colspan="8" class="ranking-empty">No ranking data yet. Rankings will appear when players have saved match results.</td></tr>';
     }
-    currentTbody.replaceWith(stagedTbody);
-    $('#rankingsTableWrap')?.setAttribute('aria-busy', 'false');
+    wrap.setAttribute('aria-busy', 'false');
   };
   appendNext();
 }
+
 function scheduleDashboardRankings() {
   const token = ++state.dashboardRankingToken;
   scheduleIdleTask(() => {
@@ -3416,17 +3469,39 @@ function currentRankingSessionId() {
   }
   return selected;
 }
+let rankingSessionTypeIndexSignature = '';
+let rankingSessionTypeIndex = new Map();
+function getRankingSessionTypeIndex() {
+  const signature = state.dataSignature || 'initial';
+  if (rankingSessionTypeIndexSignature === signature) return rankingSessionTypeIndex;
+
+  const sessionsById = new Map((state.data?.sessions || []).map(session => [String(session.id), session]));
+  const index = new Map();
+  for (const match of state.data?.matches || []) {
+    const sessionId = String(match.sessionId || '');
+    if (!sessionId) continue;
+    const session = sessionsById.get(sessionId);
+    if (!session) continue;
+    const flags = index.get(sessionId) || { hasDupr: false, hasNonDupr: false };
+    if (matchIsDupr(match, session)) flags.hasDupr = true;
+    else flags.hasNonDupr = true;
+    index.set(sessionId, flags);
+  }
+
+  rankingSessionTypeIndexSignature = signature;
+  rankingSessionTypeIndex = index;
+  return rankingSessionTypeIndex;
+}
 function rankingSessionType(session) {
   const raw = session?.raw || {};
   const names = [raw.sessionName, raw.name, session?.sessionName, session?.title].map(value => String(value || '').trim()).filter(Boolean);
   const markedName = names.find(value => /^\((?:NON[\s-]+)?DUPR\s+MATCH\)/i.test(value));
   if (markedName) return /^\(NON[\s-]+DUPR\s+MATCH\)/i.test(markedName) ? 'NON-DUPR' : 'DUPR';
-  const sessionMatches = (state.data?.matches || []).filter(match => String(match.sessionId) === String(session.id));
-  if (sessionMatches.length) {
-    const hasDupr = sessionMatches.some(match => matchIsDupr(match, session));
-    const hasNonDupr = sessionMatches.some(match => !matchIsDupr(match, session));
-    if (hasDupr && hasNonDupr) return 'MIXED';
-    return hasDupr ? 'DUPR' : 'NON-DUPR';
+
+  const flags = getRankingSessionTypeIndex().get(String(session?.id || ''));
+  if (flags) {
+    if (flags.hasDupr && flags.hasNonDupr) return 'MIXED';
+    return flags.hasDupr ? 'DUPR' : 'NON-DUPR';
   }
   if (typeof raw.duprMatch === 'boolean') return raw.duprMatch ? 'DUPR' : 'NON-DUPR';
   return 'NON-DUPR';
@@ -3474,16 +3549,26 @@ function getRankingPlayersForCurrentView() {
 function scheduleRankingsPage() {
   const token = ++state.rankingRenderToken;
   $('#rankingsTableWrap')?.setAttribute('aria-busy', 'true');
-  scheduleIdleTask(() => {
+  scheduleAfterPagePaint(() => {
     if (state.page !== 'rankings' || token !== state.rankingRenderToken) return;
     const players = getRankingPlayersForCurrentView();
     state.rankingRenderPlayers = players;
-    const count = $('#rankingPlayerCount');
-    if (count) {
-      const previousCountValues = captureDashboardCountValues();
-      count.dataset.countTarget = String(players.length);
-      animateDashboardCountValues(previousCountValues);
-    }
+
+    // Resolve shared ranking metrics once, after the leaderboard shell is visible.
+    const allRankablePlayers = getRankedPlayers();
+    const metricValues = [
+      ['rankingPlayerCount', 'metric:rankings:players-ranked', allRankablePlayers.filter(player => !player.historicalOnly).length],
+      ['rankingAttendanceCount', 'metric:rankings:attendance-entries', countAttendanceEntries()],
+      ['rankingDuprIdCount', 'metric:rankings:dupr-ids-recorded', allRankablePlayers.filter(player => Boolean(player.duprId)).length]
+    ];
+    metricValues.forEach(([id, key, value]) => {
+      const node = document.getElementById(id);
+      if (!node) return;
+      node.dataset.countTarget = String(value);
+      node.dataset.countKey = key;
+      node.textContent = String(value);
+    });
+
     if (!$('#rankingTableBody')?.isConnected) return;
     appendRankingRowsInChunks(token);
   });
@@ -3492,7 +3577,7 @@ function renderRankings() {
   state.rankingRenderPlayers = [];
   const selectedSessionId = currentRankingSessionId();
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / LEADERBOARD', 'Player Rankings', 'Rank players using their wins, losses, total matches and win rate from the existing system.', `<button class="btn" data-action="export-rankings">${icon('download')} Export</button>`)}
-    <div class="metric-grid"><div class="metric-tile"><span>Players ranked</span>${metricCount('rankings', 'players-ranked', getUniqueRankablePlayers().filter(player => !player.historicalOnly).length, 'rankingPlayerCount')}</div><div class="metric-tile"><span>Matches recorded</span>${metricCount('rankings', 'matches-recorded', state.data.matches.length)}</div><div class="metric-tile"><span>Attendance entries</span>${metricCount('rankings', 'attendance-entries', countAttendanceEntries())}</div><div class="metric-tile"><span>DUPR IDs recorded</span>${metricCount('rankings', 'dupr-ids-recorded', getUniqueRankablePlayers().filter(player => player.duprId).length)}</div></div>
+    <div class="metric-grid"><div class="metric-tile"><span>Players ranked</span>${metricCount('rankings', 'players-ranked', '—', 'rankingPlayerCount')}</div><div class="metric-tile"><span>Matches recorded</span>${metricCount('rankings', 'matches-recorded', state.data.matches.length)}</div><div class="metric-tile"><span>Attendance entries</span>${metricCount('rankings', 'attendance-entries', '—', 'rankingAttendanceCount')}</div><div class="metric-tile"><span>DUPR IDs recorded</span>${metricCount('rankings', 'dupr-ids-recorded', '—', 'rankingDuprIdCount')}</div></div>
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Community Leaderboard', 'trophy')}<div class="toolbar">${rankingSessionFilterMarkup(selectedSessionId)}<select class="select-control" id="rankingCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.rankingCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div class="table-wrap rankings-table-wrap" id="rankingsTableWrap" aria-busy="true"><table class="data-table rankings-table"><colgroup><col style="width:8%"><col style="width:25%"><col style="width:15%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:11%"><col style="width:16%"></colgroup><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Category</th><th scope="col">Wins</th><th scope="col">Losses</th><th scope="col">Matches</th><th scope="col">Win rate</th><th scope="col">DUPR ID</th></tr></thead><tbody id="rankingTableBody"><tr><td colspan="8" class="ranking-loading-row">Preparing player rankings…</td></tr></tbody></table></div></section>
     <p class="page-note">DUPR ID is shown as an identifier only. This dashboard does not treat a DUPR ID as a numeric DUPR rating.</p></div>`;
 }
@@ -4586,12 +4671,19 @@ function renderPage(preserveScroll = true) {
   if (state.page === 'rankings') {
     scheduleRankingsPage();
     state.dashboardRankingToken += 1;
+    state.playersRenderToken += 1;
+  } else if (state.page === 'players') {
+    state.rankingRenderToken += 1;
+    state.dashboardRankingToken += 1;
+    schedulePlayersTable();
   } else if (state.page === 'dashboard') {
     state.rankingRenderToken += 1;
+    state.playersRenderToken += 1;
     scheduleDashboardRankings();
   } else {
     state.rankingRenderToken += 1;
     state.dashboardRankingToken += 1;
+    state.playersRenderToken += 1;
   }
 
   // Retain loaded WebGL maps when their saved location payload is unchanged.
@@ -5228,8 +5320,7 @@ document.addEventListener('click', async event => {
     $$('[data-player-metric-filter]').forEach(button => {
       button.setAttribute('aria-pressed', String(button.dataset.playerMetricFilter === state.filters.playerMetric));
     });
-    const playersWrap = $('#playersTableWrap');
-    if (playersWrap) playersWrap.innerHTML = playersTable(getFilteredRegisteredPlayers());
+    schedulePlayersTable();
     return;
   }
 
@@ -5801,7 +5892,7 @@ document.addEventListener('change', async event => {
     return;
   }
   if (target.id === 'mapModalSessionSelect') { setMapModalSession(target.value); return; }
-  if (target.id === 'playerCategoryFilter') { state.filters.playerCategory = target.value; const playersWrap = $('#playersTableWrap'); if (playersWrap) playersWrap.innerHTML = playersTable(getFilteredRegisteredPlayers()); }
+  if (target.id === 'playerCategoryFilter') { state.filters.playerCategory = target.value; schedulePlayersTable(); }
   if (target.id === 'rankingCategoryFilter') { state.filters.rankingCategory = target.value; scheduleRankingsPage(); }
   if (target.id === 'rankingSessionFilter') {
     state.filters.rankingSession = target.value;
