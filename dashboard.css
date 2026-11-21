@@ -1529,11 +1529,11 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .page-dashboard .ranking-list.is-entering .ranking-row,
 .players-table tbody.is-entering > tr,
 .rankings-table tbody.is-entering > tr {
-  animation: dashboard-list-row-fade-slide 460ms cubic-bezier(.22, .75, .25, 1) both;
+  animation: dashboard-list-row-fade-slide 1000ms cubic-bezier(.22, .75, .25, 1) both;
   animation-delay: var(--row-delay, 0ms);
 }
 @keyframes dashboard-list-row-fade-slide {
-  from { opacity: 0; transform: translate3d(0, 11px, 0); }
+  from { opacity: 0; transform: translate3d(0, -11px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 @media (prefers-reduced-motion: reduce) {
