@@ -57,7 +57,7 @@ const state = {
   dashboardRankingToken: 0,
   mapModalSessionId: '',
   mapIncludeRegisteredCourts: false,
-  filters: { sessionStatus: 'all', playerCategory: 'all', rankingCategory: 'all', rankingSession: 'all', matchType: 'all' }
+  filters: { sessionStatus: 'all', playerCategory: 'all', playerMetric: 'all', rankingCategory: 'all', rankingSession: 'all', matchType: 'all' }
 };
 
 let pendingPlayerImport = null;
@@ -67,6 +67,271 @@ let pendingSessionImport = null;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+
+// Dashboard-wide premium select menus. The original <select> remains in the
+// DOM as the canonical form control so existing filters, FormData and change
+// handlers keep their current behavior on every supported device.
+let customSelectSequence = 0;
+let activeCustomSelect = null;
+const customSelectInstances = new WeakMap();
+
+function customSelectSelectedLabel(select) {
+  const option = select.options[select.selectedIndex];
+  return option ? String(option.textContent || option.label || '').trim() : 'Select an option';
+}
+
+function syncCustomSelect(instance) {
+  if (!instance || !instance.select.isConnected) return;
+  const { select, trigger, label } = instance;
+  const selectedLabel = customSelectSelectedLabel(select);
+  label.textContent = selectedLabel || 'Select an option';
+  trigger.title = selectedLabel;
+  trigger.disabled = select.disabled;
+  trigger.setAttribute('aria-disabled', String(select.disabled));
+  trigger.setAttribute('aria-required', String(select.required));
+  instance.wrapper.classList.toggle('is-disabled', select.disabled);
+  if (!instance.menu.hidden) buildCustomSelectOptions(instance);
+}
+
+function buildCustomSelectOptions(instance) {
+  const { select, menu, id } = instance;
+  menu.replaceChildren();
+  [...select.options].forEach((option, index) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'custom-select-option';
+    item.id = `${id}-option-${index}`;
+    item.dataset.customSelectOption = '';
+    item.dataset.optionIndex = String(index);
+    item._customSelectInstance = instance;
+    item.disabled = Boolean(option.disabled || option.parentElement?.disabled);
+    item.tabIndex = -1;
+    item.setAttribute('role', 'option');
+    item.setAttribute('aria-selected', String(index === select.selectedIndex));
+    const text = document.createElement('span');
+    text.className = 'custom-select-option-label';
+    text.textContent = String(option.textContent || option.label || '').trim();
+    const check = document.createElement('span');
+    check.className = 'custom-select-option-check';
+    check.setAttribute('aria-hidden', 'true');
+    check.innerHTML = icon('check');
+    item.append(text, check);
+    menu.append(item);
+  });
+}
+
+function positionCustomSelectMenu(instance) {
+  if (!instance || instance.menu.hidden || !instance.trigger.isConnected) return;
+  const rect = instance.trigger.getBoundingClientRect();
+  const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const width = Math.max(1, Math.min(viewportWidth - 20, rect.width));
+  const left = Math.min(Math.max(10, rect.left), viewportWidth - width - 10);
+  const below = Math.max(0, viewportHeight - rect.bottom - 12);
+  const above = Math.max(0, rect.top - 12);
+  const openAbove = below < 210 && above > below;
+  const available = openAbove ? above : below;
+  const maxHeight = Math.max(104, Math.min(320, available || viewportHeight - 24));
+  instance.menu.style.left = `${left}px`;
+  instance.menu.style.width = `${width}px`;
+  instance.menu.style.maxHeight = `${maxHeight}px`;
+  const menuHeight = Math.min(instance.menu.scrollHeight, maxHeight);
+  const top = openAbove ? Math.max(10, rect.top - menuHeight - 8) : Math.min(viewportHeight - 10, rect.bottom + 8);
+  instance.menu.style.top = `${top}px`;
+  instance.menu.dataset.openDirection = openAbove ? 'up' : 'down';
+}
+
+function closeCustomSelect(instance = activeCustomSelect, restoreFocus = false) {
+  if (!instance) return;
+  instance.menu.hidden = true;
+  instance.menu.remove();
+  instance.trigger.setAttribute('aria-expanded', 'false');
+  instance.wrapper.classList.remove('is-open');
+  if (activeCustomSelect === instance) activeCustomSelect = null;
+  if (restoreFocus && instance.trigger.isConnected) instance.trigger.focus({ preventScroll: true });
+}
+
+function openCustomSelect(instance, focusSelected = true) {
+  if (!instance || instance.select.disabled) return;
+  if (activeCustomSelect && activeCustomSelect !== instance) closeCustomSelect(activeCustomSelect);
+  buildCustomSelectOptions(instance);
+  document.body.append(instance.menu);
+  instance.menu.hidden = false;
+  instance.trigger.setAttribute('aria-expanded', 'true');
+  instance.wrapper.classList.add('is-open');
+  activeCustomSelect = instance;
+  positionCustomSelectMenu(instance);
+  const options = [...instance.menu.querySelectorAll('.custom-select-option:not(:disabled)')];
+  const selected = options.find(button => Number(button.dataset.optionIndex) === instance.select.selectedIndex);
+  const first = options[0];
+  const target = focusSelected && selected ? selected : first;
+  if (target) {
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function chooseCustomSelectOption(instance, index) {
+  if (!instance || instance.select.disabled) return;
+  const option = instance.select.options[index];
+  if (!option || option.disabled || option.parentElement?.disabled) return;
+  if (instance.select.selectedIndex !== index) {
+    instance.select.selectedIndex = index;
+    syncCustomSelect(instance);
+    instance.select.dispatchEvent(new Event('input', { bubbles: true }));
+    instance.select.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  closeCustomSelect(instance, true);
+}
+
+function enhanceSelectControls(root = document) {
+  const selects = [];
+  if (root instanceof HTMLSelectElement) selects.push(root);
+  if (root.querySelectorAll) selects.push(...root.querySelectorAll('select:not([data-custom-select-enhanced])'));
+  selects.forEach(select => {
+    if (select.dataset.customSelectEnhanced === 'true' || !select.isConnected) return;
+    const id = `dashboard-select-${++customSelectSequence}`;
+    const wrapper = document.createElement('div');
+    const copiedClasses = [...select.classList].filter(className => className !== 'select-control');
+    wrapper.className = ['select-control-shell', ...copiedClasses].join(' ');
+    wrapper.dataset.customSelectShell = '';
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'select-control-trigger';
+    trigger.id = select.id ? `${select.id}CustomTrigger` : `${id}-trigger`;
+    trigger.dataset.customSelectTrigger = '';
+    trigger.setAttribute('role', 'combobox');
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    const describedName = select.getAttribute('aria-label') || select.labels?.[0]?.textContent?.trim() || select.id.replace(/([A-Z])/g, ' $1').trim() || 'Select an option';
+    trigger.setAttribute('aria-label', describedName);
+    trigger.setAttribute('aria-controls', `${id}-listbox`);
+    const label = document.createElement('span');
+    label.className = 'select-control-value';
+    const chevron = document.createElement('span');
+    chevron.className = 'select-control-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    chevron.innerHTML = '<svg viewBox="0 0 20 20" fill="none"><path d="m5.5 7.5 4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    trigger.append(label, chevron);
+    const menu = document.createElement('div');
+    menu.className = 'custom-select-menu';
+    if (select.classList.contains('ranking-session-filter')) {
+      menu.classList.add('custom-select-menu--ranking-session');
+    }
+    menu.id = `${id}-listbox`;
+    menu.hidden = true;
+    menu.setAttribute('role', 'listbox');
+    menu.setAttribute('aria-label', `${describedName} options`);
+    const instance = { id, select, wrapper, trigger, label, menu, typeahead: '' };
+    trigger._customSelectInstance = instance;
+    menu._customSelectInstance = instance;
+    customSelectInstances.set(select, instance);
+    select.dataset.customSelectEnhanced = 'true';
+    select.classList.add('select-control-native');
+    select.tabIndex = -1;
+    select.setAttribute('aria-hidden', 'true');
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.append(select, trigger);
+    select.labels && [...select.labels].forEach(labelElement => { labelElement.htmlFor = trigger.id; });
+    syncCustomSelect(instance);
+  });
+}
+
+// Open/close and option selection are delegated so controls added by page and
+// modal rendering receive the same behavior without per-menu event listeners.
+document.addEventListener('click', event => {
+  const trigger = event.target.closest('[data-custom-select-trigger]');
+  if (trigger) {
+    const instance = trigger._customSelectInstance;
+    if (!instance) return;
+    event.preventDefault();
+    if (activeCustomSelect === instance && !instance.menu.hidden) closeCustomSelect(instance);
+    else openCustomSelect(instance, true);
+    return;
+  }
+  const option = event.target.closest('[data-custom-select-option]');
+  if (option) {
+    const instance = option._customSelectInstance;
+    if (instance) {
+      event.preventDefault();
+      chooseCustomSelectOption(instance, Number(option.dataset.optionIndex));
+    }
+    return;
+  }
+  if (activeCustomSelect && !activeCustomSelect.wrapper.contains(event.target) && !activeCustomSelect.menu.contains(event.target)) {
+    closeCustomSelect(activeCustomSelect);
+  }
+});
+
+document.addEventListener('keydown', event => {
+  const trigger = event.target.closest?.('[data-custom-select-trigger]');
+  if (trigger) {
+    const instance = trigger._customSelectInstance;
+    if (!instance) return;
+    if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
+      event.preventDefault();
+      if (activeCustomSelect !== instance || instance.menu.hidden) {
+        openCustomSelect(instance, event.key !== 'ArrowUp');
+        if (event.key === 'ArrowUp') {
+          const options = [...instance.menu.querySelectorAll('.custom-select-option:not(:disabled)')];
+          options.at(-1)?.focus();
+        }
+      } else {
+        const options = [...instance.menu.querySelectorAll('.custom-select-option:not(:disabled)')];
+        (event.key === 'ArrowUp' ? options.at(-1) : options[0])?.focus();
+      }
+    } else if (event.key === 'Escape' && activeCustomSelect === instance) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      closeCustomSelect(instance, true);
+    }
+    return;
+  }
+  if (!activeCustomSelect || !activeCustomSelect.menu.contains(event.target)) return;
+  const instance = activeCustomSelect;
+  const options = [...instance.menu.querySelectorAll('.custom-select-option:not(:disabled)')];
+  const current = options.indexOf(document.activeElement);
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    closeCustomSelect(instance, true);
+  } else if (event.key === 'Tab') {
+    const scope = instance.wrapper.closest('.modal-card') || document.querySelector('#pageContent') || document;
+    const candidates = [...scope.querySelectorAll('a[href],button:not(:disabled),input:not(:disabled):not([type=hidden]),select:not(:disabled):not(.select-control-native),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])')];
+    const visibleCandidates = candidates.filter(node => node === instance.trigger || node.getClientRects().length);
+    const triggerIndex = visibleCandidates.indexOf(instance.trigger);
+    const nextFocus = visibleCandidates[triggerIndex + (event.shiftKey ? -1 : 1)];
+    event.preventDefault();
+    closeCustomSelect(instance);
+    if (nextFocus) nextFocus.focus({ preventScroll: true });
+    else instance.trigger.focus({ preventScroll: true });
+  } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
+    event.preventDefault();
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 :
+      (current + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+    options[next]?.focus();
+    options[next]?.scrollIntoView({ block: 'nearest' });
+  } else if (event.key === 'Enter' || event.key === ' ') {
+    const selected = document.activeElement?.closest('[data-custom-select-option]');
+    if (selected) {
+      event.preventDefault();
+      chooseCustomSelectOption(instance, Number(selected.dataset.optionIndex));
+    }
+  } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    const key = event.key.toLocaleLowerCase();
+    const start = Math.max(0, current + 1);
+    const ordered = [...options.slice(start), ...options.slice(0, start)];
+    const match = ordered.find(button => button.querySelector('.custom-select-option-label')?.textContent.trim().toLocaleLowerCase().startsWith(key));
+    if (match) match.focus();
+  }
+});
+
+document.addEventListener('change', event => {
+  const instance = customSelectInstances.get(event.target);
+  if (instance) syncCustomSelect(instance);
+});
+window.addEventListener('resize', () => { if (activeCustomSelect) positionCustomSelectMenu(activeCustomSelect); });
+window.addEventListener('scroll', () => { if (activeCustomSelect) positionCustomSelectMenu(activeCustomSelect); }, true);
 function registeredCourtLogo(court = {}) {
   const candidates = [court?.logo, court?.logoUrl, court?.logoData, court?.logoDataUrl, court?.imageUrl, court?.image];
   return candidates.map(value => String(value || '').trim()).find(Boolean) || '';
@@ -700,6 +965,24 @@ function visibleRows(rows) {
   const q = state.query.toLocaleLowerCase();
   return rows.filter(row => JSON.stringify(row).toLocaleLowerCase().includes(q));
 }
+function getFilteredRegisteredPlayers() {
+  const registeredPlayers = asArray(state.data?.players)
+    .filter(player => !player.historicalOnly)
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+  const queryFiltered = visibleRows(registeredPlayers);
+  const categoryFilter = state.filters.playerCategory || 'all';
+  const metricFilter = state.filters.playerMetric || 'all';
+  return queryFiltered.filter(player => {
+    if (categoryFilter !== 'all' && player.category !== categoryFilter) return false;
+    const hasDuprId = Boolean(String(player.duprId || '').trim());
+    const gender = String(player.gender || '').trim().toLocaleLowerCase();
+    if (metricFilter === 'male') return gender === 'male' || gender === 'm';
+    if (metricFilter === 'female') return gender === 'female' || gender === 'f';
+    if (metricFilter === 'dupr') return hasDuprId;
+    if (metricFilter === 'non-dupr') return !hasDuprId;
+    return true;
+  });
+}
 function sessionStatus(session) { return session.isLive ? 'Live' : 'Completed'; }
 function sessionStatusBadge(status) {
   const cls = status === 'Live' ? 'live' : 'ended';
@@ -885,7 +1168,7 @@ function liveBanner() {
   const registrationUrl = getRegistrationUrl(session);
   const queueCount = Number(state.data.queueCount) || 0;
   const courtsPlaying = asArray(state.data.liveState?.courts).filter(court => court?.playing).length;
-  return `<section class="live-session-banner"><div><strong><span class="status-pill live">LIVE NOW</span> ${escapeHTML(session.title)}</strong><p>${sessionPlayersLabel(session)} checked in · ${queueCount} waiting in queue · ${courtsPlaying} active court${courtsPlaying === 1 ? '' : 's'}</p></div><div class="live-session-actions"><a class="btn btn-sm btn-primary" href="/queueing" target="_blank" rel="noopener">Open Queueing</a>${registrationUrl ? `<a class="btn btn-sm" href="${escapeHTML(registrationUrl)}" target="_blank" rel="noopener">Registration</a>` : ''}<a class="btn btn-sm" href="/live" target="_blank" rel="noopener">Live View</a></div></section>`;
+  return `<section class="live-session-banner"><div><strong><span class="status-pill live"><span class="live-status-dot" aria-hidden="true"></span>LIVE NOW</span> ${escapeHTML(session.title)}</strong><p>${sessionPlayersLabel(session)} checked in · ${queueCount} waiting in queue · ${courtsPlaying} active court${courtsPlaying === 1 ? '' : 's'}</p></div><div class="live-session-actions"><a class="btn btn-sm btn-primary" href="/queueing" target="_blank" rel="noopener">Open Queueing</a>${registrationUrl ? `<a class="btn btn-sm" href="${escapeHTML(registrationUrl)}" target="_blank" rel="noopener">Registration</a>` : ''}<a class="btn btn-sm" href="/live" target="_blank" rel="noopener">Live View</a></div></section>`;
 }
 let rankedPlayersCacheSignature = '';
 let rankedPlayersCache = [];
@@ -2691,7 +2974,10 @@ function setMapModalSession(sessionId) {
   if (!session) return;
   state.mapModalSessionId = session.id;
   const select = $('#mapModalSessionSelect');
-  if (select) select.value = session.id;
+  if (select) {
+    select.value = session.id;
+    syncCustomSelect(customSelectInstances.get(select));
+  }
   const modalMapNode = $('#sessionMapModal');
   if (modalMapNode) {
     modalMapNode.dataset.mapFocusSession = session.id;
@@ -2929,7 +3215,14 @@ function renderSessions() {
     <p class="page-note">The original queueing system creates a session when an organizer starts Open Play. Session CSV files include attendance and linked match records so their session IDs remain connected on import. Imported sessions are saved as completed history and do not start a live queue.</p></div>`;
 }
 function playersTable(players) {
-  if (!players.length) return emptyState('No registered players yet', 'Players added through the player registration page will appear here.', 'Open registration', 'register-player');
+  if (!players.length) {
+    const hasActiveFilter = (state.filters.playerCategory || 'all') !== 'all'
+      || (state.filters.playerMetric || 'all') !== 'all'
+      || Boolean(state.query);
+    return hasActiveFilter
+      ? emptyState('No matching players', 'No registered players match the selected filter or search. Try another filter.')
+      : emptyState('No registered players yet', 'Players added through the player registration page will appear here.', 'Open registration', 'register-player');
+  }
   return `<div class="table-wrap players-table-wrap"><table class="data-table players-table"><colgroup><col style="width:4%"><col style="width:27%"><col style="width:14%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col style="width:10%"><col style="width:13%"></colgroup><thead><tr><th scope="col">#</th><th scope="col">Player's Fullname (Nickname)</th><th scope="col">Category</th><th scope="col">Gender</th><th scope="col">DUPR ID</th><th scope="col">Attendance</th><th scope="col">Match Records</th><th scope="col">Action</th></tr></thead><tbody>${players.map((player, index) => {
     const stats = playerStats(player);
     const category = categoryName(player.category);
@@ -2947,7 +3240,7 @@ function playersTable(players) {
 }
 function renderPlayers() {
   const registeredPlayers = state.data.players.filter(player => !player.historicalOnly);
-  const players = visibleRows([...registeredPlayers].sort((a, b) => a.name.localeCompare(b.name)));
+  const players = getFilteredRegisteredPlayers();
   const attendanceCount = countAttendanceEntries();
   const attendanceGenderCounts = countAttendanceEntriesByGender();
   const rated = registeredPlayers.filter(player => String(player.duprId || '').trim()).length;
@@ -2967,8 +3260,8 @@ function renderPlayers() {
   }));
   const skillCountMarkup = `<div class="registered-player-skill-counts" aria-label="Registered player skill category counts">${skillCounts.map(category => `<span class="registered-player-skill-count ${category.className}"><span class="registered-player-skill-code">${category.code}</span><span class="registered-player-skill-value" data-count-target="${category.count}" data-count-key="metric:players:registered-skill-${category.code.toLowerCase()}" aria-live="off">0</span></span>`).join('')}</div>`;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / COMMUNITY', 'Players', 'Registered Player profiles used by queueing, player registration and match history.', `<button class="btn" data-action="import-players">${icon('upload')} Import CSV</button><button class="btn" data-action="export-players">${icon('download')} Export CSV</button><button class="btn btn-primary" data-action="register-player">${icon('plus')} Register Player</button><input id="playerCsvImportFile" type="file" accept=".csv,text/csv" hidden>`)}
-    <div class="metric-grid"><div class="metric-tile registered-players-metric"><span>Registered players</span>${metricCount('players', 'registered-players', registeredPlayers.length)}${skillCountMarkup}</div><div class="metric-tile metric-breakdown-tile player-dupr-breakdown"><span>With DUPR ID</span>${metricCount('players', 'with-dupr-id', registeredPlayers.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR player counts"><span class="metric-breakdown-item dupr"><span>DUPR</span><strong data-count-target="${rated}" data-count-key="metric:players:with-dupr-id-dupr" aria-live="off">0</strong></span><span class="metric-breakdown-item non-dupr"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayers}" data-count-key="metric:players:with-dupr-id-non-dupr" aria-live="off">0</strong></span></div></div><div class="metric-tile metric-breakdown-tile player-attendance-breakdown"><span>Attendance entries</span>${metricCount('players', 'attendance-entries', attendanceCount)}<div class="metric-breakdown" aria-label="Attendance entries by gender"><span class="metric-breakdown-item male"><span>MALE</span><strong data-count-target="${attendanceGenderCounts.male}" data-count-key="metric:players:attendance-entries-male" aria-live="off">0</strong></span><span class="metric-breakdown-item female"><span>FEMALE</span><strong data-count-target="${attendanceGenderCounts.female}" data-count-key="metric:players:attendance-entries-female" aria-live="off">0</strong></span></div></div><div class="metric-tile metric-breakdown-tile player-match-records-breakdown"><span>Match records</span>${metricCount('players', 'match-records', state.data.matches.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR match counts"><span class="metric-breakdown-item dupr"><span>DUPR</span><strong data-count-target="${duprPlayerMatchCount}" data-count-key="metric:players:match-records-dupr" aria-live="off">0</strong></span><span class="metric-breakdown-item non-dupr"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayerMatchCount}" data-count-key="metric:players:match-records-non-dupr" aria-live="off">0</strong></span></div></div></div>
-    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Registered Player', 'users')}<div class="toolbar"><select class="select-control" id="playerCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.playerCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div id="playersTableWrap">${playersTable(players.filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory))}</div></section>
+    <div class="metric-grid"><div class="metric-tile registered-players-metric"><span>Registered players</span>${metricCount('players', 'registered-players', registeredPlayers.length)}${skillCountMarkup}</div><div class="metric-tile metric-breakdown-tile player-dupr-breakdown"><span>With DUPR ID</span>${metricCount('players', 'with-dupr-id', registeredPlayers.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR player counts"><button type="button" class="metric-breakdown-item dupr" data-player-metric-filter="dupr" aria-pressed="${(state.filters.playerMetric || 'all') === 'dupr'}" aria-label="Filter registered players with a DUPR ID"><span>DUPR</span><strong data-count-target="${rated}" data-count-key="metric:players:with-dupr-id-dupr" aria-live="off">0</strong></button><button type="button" class="metric-breakdown-item non-dupr" data-player-metric-filter="non-dupr" aria-pressed="${(state.filters.playerMetric || 'all') === 'non-dupr'}" aria-label="Filter registered players without a DUPR ID"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayers}" data-count-key="metric:players:with-dupr-id-non-dupr" aria-live="off">0</strong></button></div></div><div class="metric-tile metric-breakdown-tile player-attendance-breakdown"><span>Attendance entries</span>${metricCount('players', 'attendance-entries', attendanceCount)}<div class="metric-breakdown" aria-label="Attendance entries by gender"><button type="button" class="metric-breakdown-item male" data-player-metric-filter="male" aria-pressed="${(state.filters.playerMetric || 'all') === 'male'}" aria-label="Filter registered players by male gender"><span>MALE</span><strong data-count-target="${attendanceGenderCounts.male}" data-count-key="metric:players:attendance-entries-male" aria-live="off">0</strong></button><button type="button" class="metric-breakdown-item female" data-player-metric-filter="female" aria-pressed="${(state.filters.playerMetric || 'all') === 'female'}" aria-label="Filter registered players by female gender"><span>FEMALE</span><strong data-count-target="${attendanceGenderCounts.female}" data-count-key="metric:players:attendance-entries-female" aria-live="off">0</strong></button></div></div><div class="metric-tile metric-breakdown-tile player-match-records-breakdown"><span>Match records</span>${metricCount('players', 'match-records', state.data.matches.length)}<div class="metric-breakdown" aria-label="DUPR and non-DUPR match counts"><span class="metric-breakdown-item dupr"><span>DUPR</span><strong data-count-target="${duprPlayerMatchCount}" data-count-key="metric:players:match-records-dupr" aria-live="off">0</strong></span><span class="metric-breakdown-item non-dupr"><span>Non DUPR</span><strong data-count-target="${nonDuprPlayerMatchCount}" data-count-key="metric:players:match-records-non-dupr" aria-live="off">0</strong></span></div></div></div>
+    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Registered Player', 'users')}<div class="toolbar"><select class="select-control" id="playerCategoryFilter"><option value="all">All categories</option>${['Beginner','Novice','Intermediate','Advanced','Expert'].map(cat => `<option value="${cat}" ${state.filters.playerCategory === cat ? 'selected' : ''}>${cat}</option>`).join('')}</select></div></div><div id="playersTableWrap">${playersTable(players)}</div></section>
     <p class="page-note">Player profiles are stored in the existing Registered Player. Register new players through the live session registration page so they enter the real queue.</p></div>`;
 }
 function matchesTable(matches) {
@@ -4269,6 +4562,7 @@ function renderPage(preserveScroll = true) {
   const oldScroll = preserveScroll ? container.scrollTop : 0;
   const activeElement = preserveScroll && container.contains(document.activeElement) ? document.activeElement : null;
   const activeId = activeElement?.id || '';
+  if (activeCustomSelect) closeCustomSelect(activeCustomSelect);
   const previousMaps = preserveScroll
     ? new Map($$('.interactive-map', container).map(node => [node.id, {
         node,
@@ -4283,6 +4577,7 @@ function renderPage(preserveScroll = true) {
   if (!preserveScroll) state.mapInstances.clear();
   const renderers = { dashboard: renderDashboard, sessions: renderSessions, players: renderPlayers, matches: renderMatches, rankings: renderRankings, courts: renderCourts, schedule: renderSchedule, reports: renderReports, settings: renderSettings };
   container.innerHTML = (renderers[state.page] || renderDashboard)();
+  enhanceSelectControls(container);
   animateDashboardCountValues(previousCountValues);
   if (state.page === 'dashboard') {
     animateDashboardAttendanceBars();
@@ -4407,11 +4702,13 @@ function modal(title, body, options = {}) {
   const labelledBy = options.hideHeader && options.ariaLabelledBy ? escapeHTML(options.ariaLabelledBy) : 'modalTitle';
   const headerMarkup = options.hideHeader ? '' : `<header class="modal-header"><div class="modal-heading-copy"><h2 id="modalTitle">${escapeHTML(title)}</h2>${options.subtitle ? `<p>${escapeHTML(options.subtitle)}</p>` : ''}</div><button type="button" class="icon-action" data-action="close-modal" aria-label="Close">${icon('close')}</button></header>`;
   root.innerHTML = `<div class="modal-backdrop" data-action="close-modal"></div><section class="modal-card ${options.wide ? 'wide' : ''} ${escapeHTML(options.className || '')}" role="dialog" aria-modal="true" aria-labelledby="${labelledBy}">${headerMarkup}<div class="modal-body">${body}</div></section>`;
+  enhanceSelectControls(root);
   state.modal = title;
-  const focusable = $('input:not([type=hidden]),select,textarea,button', root);
+  const focusable = $('input:not([type=hidden]),.select-control-trigger,select:not(.select-control-native),textarea,button', root);
   if (focusable) window.setTimeout(() => focusable.focus(), 20);
 }
 function closeModal() {
+  if (activeCustomSelect) closeCustomSelect(activeCustomSelect);
   if (state.modal === 'Import Courts & Locations') pendingCourtImport = null;
   for (const mapId of ['sessionMapModal', 'courtLocationPinMap', 'sessionDetailsMiniMap']) {
     const map = state.mapInstances.get(mapId);
@@ -4919,6 +5216,20 @@ document.addEventListener('click', async event => {
   if (playerImportFilter && pendingPlayerImport) {
     pendingPlayerImport.filter = playerImportFilter.dataset.playerImportFilter || 'all';
     applyPlayerImportPreviewFilters();
+    return;
+  }
+
+  const playerMetricFilterButton = event.target.closest('[data-player-metric-filter]');
+  if (playerMetricFilterButton && state.page === 'players') {
+    const selectedFilter = playerMetricFilterButton.dataset.playerMetricFilter || 'all';
+    const allowedFilters = ['male', 'female', 'dupr', 'non-dupr'];
+    if (!allowedFilters.includes(selectedFilter)) return;
+    state.filters.playerMetric = state.filters.playerMetric === selectedFilter ? 'all' : selectedFilter;
+    $$('[data-player-metric-filter]').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.playerMetricFilter === state.filters.playerMetric));
+    });
+    const playersWrap = $('#playersTableWrap');
+    if (playersWrap) playersWrap.innerHTML = playersTable(getFilteredRegisteredPlayers());
     return;
   }
 
@@ -5490,7 +5801,7 @@ document.addEventListener('change', async event => {
     return;
   }
   if (target.id === 'mapModalSessionSelect') { setMapModalSession(target.value); return; }
-  if (target.id === 'playerCategoryFilter') { state.filters.playerCategory = target.value; const filtered = visibleRows(state.data.players.filter(player => !player.historicalOnly).sort((a,b)=>a.name.localeCompare(b.name))).filter(player => state.filters.playerCategory === 'all' || player.category === state.filters.playerCategory); $('#playersTableWrap').innerHTML = playersTable(filtered); }
+  if (target.id === 'playerCategoryFilter') { state.filters.playerCategory = target.value; const playersWrap = $('#playersTableWrap'); if (playersWrap) playersWrap.innerHTML = playersTable(getFilteredRegisteredPlayers()); }
   if (target.id === 'rankingCategoryFilter') { state.filters.rankingCategory = target.value; scheduleRankingsPage(); }
   if (target.id === 'rankingSessionFilter') {
     state.filters.rankingSession = target.value;
