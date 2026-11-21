@@ -1172,7 +1172,6 @@ function liveBanner() {
 }
 let rankedPlayersCacheSignature = '';
 let rankedPlayersCache = [];
-let dashboardRankingHasRendered = false;
 function compareRankedPlayers(a, b) {
   const sa = playerStats(a), sb = playerStats(b);
   const rateA = sa.matches ? sa.wins / sa.matches : 0;
@@ -3223,7 +3222,7 @@ function playersTable(players) {
       ? emptyState('No matching players', 'No registered players match the selected filter or search. Try another filter.')
       : emptyState('No registered players yet', 'Players added through the player registration page will appear here.', 'Open registration', 'register-player');
   }
-  return `<div class="table-wrap players-table-wrap"><table class="data-table players-table"><colgroup><col style="width:4%"><col style="width:27%"><col style="width:14%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col style="width:10%"><col style="width:13%"></colgroup><thead><tr><th scope="col">#</th><th scope="col">Player's Fullname (Nickname)</th><th scope="col">Category</th><th scope="col">Gender</th><th scope="col">DUPR ID</th><th scope="col">Attendance</th><th scope="col">Match Records</th><th scope="col">Action</th></tr></thead><tbody>${players.map((player, index) => {
+  return `<div class="table-wrap players-table-wrap"><table class="data-table players-table"><colgroup><col style="width:4%"><col style="width:27%"><col style="width:14%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col style="width:10%"><col style="width:13%"></colgroup><thead><tr><th scope="col">#</th><th scope="col">Player's Fullname (Nickname)</th><th scope="col">Category</th><th scope="col">Gender</th><th scope="col">DUPR ID</th><th scope="col">Attendance</th><th scope="col">Match Records</th><th scope="col">Action</th></tr></thead><tbody class="is-entering">${players.map((player, index) => {
     const stats = playerStats(player);
     const category = categoryName(player.category);
     const categoryClass = `category-${categoryCode(player.category).toLowerCase()}`;
@@ -3235,7 +3234,7 @@ function playersTable(players) {
     const fullDisplayName = `${player.name || 'Unnamed Player'}${player.nickname ? ` (${player.nickname})` : ''}`;
     const registeredOn = formatPlayerRegisteredOn(player);
     const playerId = String(player.cloudId || player.id || '');
-    return `<tr><td class="player-number">${index + 1}</td><td class="primary-cell"><span class="table-player"><span class="player-avatar">${initials(player.name)}</span><span class="player-name-copy"><span class="player-name-text">${escapeHTML(fullDisplayName)}</span>${registeredOn ? `<span class="player-registered-date">${escapeHTML(registeredOn)}</span>` : ''}</span></span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td>${genderCell}</td><td><strong>${escapeHTML(player.duprId || '—')}</strong></td><td class="player-count-cell">${stats.attendance}</td><td class="player-count-cell">${stats.matches}</td><td><div class="table-actions"><button class="btn btn-sm" type="button" data-player-edit="${escapeHTML(playerId)}">Edit</button><button class="btn btn-sm btn-danger" type="button" title="Delete player" data-player-delete="${escapeHTML(playerId)}">${icon('trash')} Delete</button></div></td></tr>`;
+    return `<tr style="--row-delay:${Math.min(index * 18, 360)}ms"><td class="player-number">${index + 1}</td><td class="primary-cell"><span class="table-player"><span class="player-avatar">${initials(player.name)}</span><span class="player-name-copy"><span class="player-name-text">${escapeHTML(fullDisplayName)}</span>${registeredOn ? `<span class="player-registered-date">${escapeHTML(registeredOn)}</span>` : ''}</span></span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td>${genderCell}</td><td><strong>${escapeHTML(player.duprId || '—')}</strong></td><td class="player-count-cell">${stats.attendance}</td><td class="player-count-cell">${stats.matches}</td><td><div class="table-actions"><button class="btn btn-sm" type="button" data-player-edit="${escapeHTML(playerId)}">Edit</button><button class="btn btn-sm btn-danger" type="button" title="Delete player" data-player-delete="${escapeHTML(playerId)}">${icon('trash')} Delete</button></div></td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 function renderPlayers() {
@@ -3336,7 +3335,7 @@ function rankingRowMarkup(player, index) {
   const fullDisplayName = `${playerName}${player.nickname ? ` (${player.nickname})` : ''}`;
   const category = categoryName(player.category);
   const categoryClass = `category-${categoryCode(player.category).toLowerCase()}`;
-  return `<tr><td class="ranking-rank-cell"><span class="ranking-rank-mark" aria-label="${rankLabel}">${rank}</span></td><td class="primary-cell ranking-player-cell"><span class="ranking-player-name">${escapeHTML(fullDisplayName)}</span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td class="ranking-stat-cell"><strong>${stats.wins}</strong></td><td class="ranking-stat-cell">${stats.losses}</td><td class="ranking-stat-cell">${stats.matches}</td><td class="ranking-stat-cell">${rate}</td><td class="ranking-dupr-cell"><strong>${escapeHTML(player.duprId || '-')}</strong></td></tr>`;
+  return `<tr style="--row-delay:${Math.min(index * 18, 360)}ms"><td class="ranking-rank-cell"><span class="ranking-rank-mark" aria-label="${rankLabel}">${rank}</span></td><td class="primary-cell ranking-player-cell"><span class="ranking-player-name">${escapeHTML(fullDisplayName)}</span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td class="ranking-stat-cell"><strong>${stats.wins}</strong></td><td class="ranking-stat-cell">${stats.losses}</td><td class="ranking-stat-cell">${stats.matches}</td><td class="ranking-stat-cell">${rate}</td><td class="ranking-dupr-cell"><strong>${escapeHTML(player.duprId || '-')}</strong></td></tr>`;
 }
 function appendRankingRowsInChunks(token, cursor = 0) {
   const batchSize = 60;
@@ -3348,6 +3347,7 @@ function appendRankingRowsInChunks(token, cursor = 0) {
   // keeps the visible table height stable while larger leaderboards are built.
   const stagedTbody = document.createElement('tbody');
   stagedTbody.id = 'rankingTableBody';
+  stagedTbody.classList.add('is-entering');
   const appendNext = () => {
     const currentTbody = $('#rankingTableBody');
     if (state.page !== 'rankings' || token !== state.rankingRenderToken || !currentTbody?.isConnected) return;
@@ -3384,24 +3384,24 @@ function scheduleDashboardRankings() {
       const podiumClass = ['podium-rank-gold', 'podium-rank-silver', 'podium-rank-bronze'][index] || '';
       const avatarClass = podiumClass ? `player-avatar ${podiumClass}` : 'player-avatar';
       const rankLabel = ['🥇', '🥈', '🥉'][index] || String(index + 1);
-      return `<div class="ranking-row" style="--ranking-order:${index}"><span class="rank-index ${index < 3 ? 'top' : ''}" aria-label="Rank ${index + 1}">${rankLabel}</span><span class="${avatarClass}"><span class="podium-avatar-initials">${initials(player.name)}</span></span><span class="ranking-name">${escapeHTML(player.name)}</span><span class="ranking-rating">${stats.wins}W - ${stats.losses}L (${stats.matches} <span class="ranking-match-label-long">Matches</span><span class="ranking-match-label-short">Match</span>)</span></div>`;
+      return `<div class="ranking-row" style="--row-delay:${Math.min(index * 26, 420)}ms"><span class="rank-index ${index < 3 ? 'top' : ''}" aria-label="Rank ${index + 1}">${rankLabel}</span><span class="${avatarClass}"><span class="podium-avatar-initials">${initials(player.name)}</span></span><span class="ranking-name">${escapeHTML(player.name)}</span><span class="ranking-rating">${stats.wins}W - ${stats.losses}L (${stats.matches} <span class="ranking-match-label-long">Matches</span><span class="ranking-match-label-short">Match</span>)</span></div>`;
     }).join('') : emptyState('No player records yet', 'Players registered through the existing queueing system will appear here.');
 
     // Live queue updates can arrive every few seconds. Do not rebuild an
     // unchanged leaderboard: replacing the rows resets scroll and replays the
     // entrance animation, which looks like the panel is jumping.
     if (target.innerHTML === markup) {
-      dashboardRankingHasRendered = true;
+      if (top.length) target.dataset.rowsRendered = 'true';
       return;
     }
 
     const previousScrollTop = target.scrollTop;
-    const animateFirstRender = !dashboardRankingHasRendered && top.length > 0
+    const animateFirstRender = top.length > 0 && target.dataset.rowsRendered !== 'true'
       && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     target.classList.remove('is-entering');
     target.innerHTML = markup;
     target.scrollTop = Math.min(previousScrollTop, Math.max(0, target.scrollHeight - target.clientHeight));
-    dashboardRankingHasRendered = true;
+    if (top.length) target.dataset.rowsRendered = 'true';
 
     if (animateFirstRender) requestAnimationFrame(() => {
       if (target.isConnected) target.classList.add('is-entering');

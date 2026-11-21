@@ -1526,13 +1526,15 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .page-dashboard .attendance-bar-value {
   font-variant-numeric: tabular-nums;
 }
-.page-dashboard .ranking-list.is-entering .ranking-row {
-  animation: dashboard-ranking-slide-fade-down 480ms cubic-bezier(.2, .7, .2, 1) both;
-  animation-delay: calc(var(--ranking-order, 0) * 26ms);
+.page-dashboard .ranking-list.is-entering .ranking-row,
+.players-table tbody.is-entering > tr,
+.rankings-table tbody.is-entering > tr {
+  animation: dashboard-list-row-fade-slide 460ms cubic-bezier(.22, .75, .25, 1) both;
+  animation-delay: var(--row-delay, 0ms);
 }
-@keyframes dashboard-ranking-slide-fade-down {
-  from { opacity: 0; transform: translateY(-9px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes dashboard-list-row-fade-slide {
+  from { opacity: 0; transform: translate3d(0, 11px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 @media (prefers-reduced-motion: reduce) {
   .page-dashboard .attendance-bar-fill {
@@ -1540,7 +1542,9 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
     transform: scaleY(1);
     will-change: auto;
   }
-  .page-dashboard .ranking-list.is-entering .ranking-row {
+  .page-dashboard .ranking-list.is-entering .ranking-row,
+  .players-table tbody.is-entering > tr,
+  .rankings-table tbody.is-entering > tr {
     animation: none;
     opacity: 1;
     transform: none;
