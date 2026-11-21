@@ -209,8 +209,6 @@ td{font-size:10px;padding:9px 8px;border-bottom:1px solid #edf0f4;}
 .score-control .score-plus{background:#16b5aa;color:#fff;}
 .score-control .score-input{width:50px;height:46px;border:2px solid #dfe4e8;border-radius:9px;background:#fff;font-size:24px;font-weight:900;color:#253247;padding:0;text-align:center;outline:none;box-shadow:0 1px 2px #1b27330d;}
 .score-control .score-input:focus{border-color:#9dded8;box-shadow:0 0 0 2px #16b5aa22;}
-.score-control input[type=number]::-webkit-inner-spin-button,.score-control input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
-.score-control input[type=number]{-moz-appearance:textfield;}
 .match-vs{height:28px;}
 .live-actions{display:grid;grid-template-columns:1fr;padding:8px 12px 4px;}
 .live-actions .mix-live{height:38px;border-radius:10px;background:linear-gradient(90deg,#f02b9b,#b839ee);color:#fff;font-size:11px;font-weight:900;}

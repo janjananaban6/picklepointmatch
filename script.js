@@ -3417,17 +3417,36 @@ function mixCourt(id){
   toast(`Court ${c.name}: teams mixed.`);
 }
 
+function getEventRaceTarget(){
+  const target=Number(state.eventRules?.target);
+  return [11,15,21].includes(target)?target:11;
+}
+
 function scoreInputs(id){return [...document.querySelectorAll(`.score-input[data-court="${id}"]`)];}
 
-function scoreState(id){
+function selectCourtScoreInput(input){
+  if(!input||typeof input.select!=='function')return;
+  try{input.select();}catch(e){}
+}
+
+function handleCourtScoreInput(input,id){
   const c=court(id);
-  const values=scoreInputs(id).map(x=>x.value.trim());
-  const nums=values.map(v=>v===''?0:Number(v));
-  const valid=nums.length===2 && nums.every(n=>Number.isInteger(n)&&n>=0);
-  const hasScore=nums.some(n=>n>0);
-  const tie=nums.length===2 && nums[0]===nums[1];
-  const reachedTarget=c ? nums.some(n=>n>=c.target) : false;
-  return {nums,valid,hasScore,tie,reachedTarget};
+  if(!input||!c)return;
+  const target=getEventRaceTarget();
+  const digits=String(input.value??'').replace(/\D/g,'').slice(0,2);
+  const normalized=digits===''?'':String(Math.min(target,Number(digits)||0));
+  if(input.value!==normalized)input.value=normalized;
+  updateSubmitState(id);
+}
+
+function scoreState(id){
+  const values=scoreInputs(id).map(input=>input.value.trim());
+  const nums=values.map(value=>value===''?0:Number(value));
+  const target=getEventRaceTarget();
+  const valid=nums.length===2&&nums.every(number=>Number.isInteger(number)&&number>=0&&number<=target);
+  const hasScore=nums.some(number=>number>0);
+  const tie=nums.length===2&&nums[0]===nums[1];
+  return {nums,valid,hasScore,tie};
 }
 
 function updateSubmitState(id){
@@ -3469,8 +3488,9 @@ function setScore(id,team,delta){
   const c=court(id); if(!c||!c.playing)return;
   const input=document.querySelector(`.score-input[data-court="${id}"][data-team="${team}"]`);
   if(!input)return;
+  const target=getEventRaceTarget();
   const current=Math.max(0,parseInt(input.value||'0',10)||0);
-  input.value=Math.max(0,current+delta);
+  input.value=Math.min(target,Math.max(0,current+delta));
   c.scores[team-1]=Number(input.value);
   saveState();
   updateSubmitState(id);
@@ -3630,8 +3650,6 @@ function requestSubmitScore(id){
 
 function cancelSubmitScore(id){
   const c=court(id); if(!c||!c.playing)return;
-  const s=scoreState(id);
-  const score=`${s.nums[0]}-${s.nums[1]}`;
   const footer=document.querySelector(`.live-footer[data-court="${id}"]`);
   if(!footer)return;
   footer.classList.remove('submit-confirming');
@@ -3644,7 +3662,6 @@ function confirmSubmitScore(id){
   const currentScore=`${s.nums[0]}-${s.nums[1]}`;
   const footer=document.querySelector(`.live-footer[data-court="${id}"]`);
   if(!footer)return;
-  const confirmScore=footer.querySelector('.submit-score-confirm-btn')?.dataset?.score || null;
   const scoreAtConfirmation=footer.dataset.confirmScore || currentScore;
   if(scoreAtConfirmation!==currentScore){
     footer.classList.remove('submit-confirming');
@@ -4804,8 +4821,10 @@ function renderCourts(){
     const selected=state.selectedCourt===c.id;
 
     if(c.playing){
-      const score1=c.scores[0]||0;
-      const score2=c.scores[1]||0;
+      const scoreLimit=getEventRaceTarget();
+      const score1=Math.min(scoreLimit,Math.max(0,Math.trunc(Number(c.scores?.[0])||0)));
+      const score2=Math.min(scoreLimit,Math.max(0,Math.trunc(Number(c.scores?.[1])||0)));
+      if(!Array.isArray(c.scores)||Number(c.scores[0])!==score1||Number(c.scores[1])!==score2)c.scores=[score1,score2];
       return `<div class="court-card court-live-card" data-queue-key="court-${c.id}">
         <div class="court-box live-box">
           <div class="court-head live-head">
@@ -4821,7 +4840,7 @@ function renderCourts(){
                 ${renderMatchPlayer(team1[0],'Player 1','orange')}
                 ${singlesMode?'':renderMatchPlayer(team1[1],'Player 2','orange-light',true)}
               </div>
-              ${state.recordScores ? `<div class="score-control"><button onclick="setScore(${c.id},1,-1)">−</button><input class="score-input" data-court="${c.id}" data-team="1" type="number" min="0" step="1" value="${score1}" oninput="updateSubmitState(${c.id})"><button class="score-plus" onclick="setScore(${c.id},1,1)">+</button></div>` : `<button type="button" class="team-win-btn team-one-win-btn" onclick="recordMatchWin(${c.id},1)" aria-label="Record ${singlesMode?'Player 1':'Team 1'} win">🏆${singlesMode?'Player 1':'Team 1'} Win</button>`}
+              ${state.recordScores ? `<div class="score-control"><button onclick="setScore(${c.id},1,-1)">−</button><input class="score-input" data-court="${c.id}" data-team="1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" aria-label="Team 1 score" value="${score1}" onfocus="selectCourtScoreInput(this)" onclick="selectCourtScoreInput(this)" oninput="handleCourtScoreInput(this,${c.id})"><button class="score-plus" onclick="setScore(${c.id},1,1)">+</button></div>` : `<button type="button" class="team-win-btn team-one-win-btn" onclick="recordMatchWin(${c.id},1)" aria-label="Record ${singlesMode?'Player 1':'Team 1'} win">🏆${singlesMode?'Player 1':'Team 1'} Win</button>`}
             </div>
 
             <div class="match-vs">VS</div>
@@ -4831,7 +4850,7 @@ function renderCourts(){
                 ${renderMatchPlayer(team2[0],'Player 3','gray')}
                 ${singlesMode?'':renderMatchPlayer(team2[1],'Player 4','gray-light',true)}
               </div>
-              ${state.recordScores ? `<div class="score-control"><button onclick="setScore(${c.id},2,-1)">−</button><input class="score-input" data-court="${c.id}" data-team="2" type="number" min="0" step="1" value="${score2}" oninput="updateSubmitState(${c.id})"><button class="score-plus" onclick="setScore(${c.id},2,1)">+</button></div>` : `<button type="button" class="team-win-btn team-two-win-btn" onclick="recordMatchWin(${c.id},2)" aria-label="Record ${singlesMode?'Player 2':'Team 2'} win">🏆${singlesMode?'Player 2':'Team 2'} Win</button>`}
+              ${state.recordScores ? `<div class="score-control"><button onclick="setScore(${c.id},2,-1)">−</button><input class="score-input" data-court="${c.id}" data-team="2" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" aria-label="Team 2 score" value="${score2}" onfocus="selectCourtScoreInput(this)" onclick="selectCourtScoreInput(this)" oninput="handleCourtScoreInput(this,${c.id})"><button class="score-plus" onclick="setScore(${c.id},2,1)">+</button></div>` : `<button type="button" class="team-win-btn team-two-win-btn" onclick="recordMatchWin(${c.id},2)" aria-label="Record ${singlesMode?'Player 2':'Team 2'} win">🏆${singlesMode?'Player 2':'Team 2'} Win</button>`}
             </div>
           </div>
 
@@ -5208,8 +5227,8 @@ function leaderboardMatchCountPassesFilter(matchCount, selectedFilter){
   const matches=Math.max(0,Math.floor(Number(matchCount)||0));
   if(selectedFilter==='ALL')return true;
   if(selectedFilter==='1-3')return matches>=1&&matches<=3;
-  if(selectedFilter==='1-6')return matches>=1&&matches<=6;
-  if(selectedFilter==='1-9')return matches>=1&&matches<=9;
+  if(selectedFilter==='3-6')return matches>=3&&matches<=6;
+  if(selectedFilter==='6-9')return matches>=6&&matches<=9;
   if(selectedFilter==='9+')return matches>=9;
   return true;
 }
@@ -5872,7 +5891,14 @@ function cycleEventRule(kind){
   // changes can start with an old target and save the wrong Race to value in
   // the history detail-meta-grid.
   state.courts.forEach(c=>{
-    if(kind==='target') c.target=state.eventRules.target;
+    if(kind==='target'){
+      c.target=state.eventRules.target;
+      if(c.playing){
+        const target=getEventRaceTarget();
+        c.scores=(Array.isArray(c.scores)?c.scores:[0,0]).slice(0,2).map(score=>Math.min(target,Math.max(0,Math.trunc(Number(score)||0))));
+        while(c.scores.length<2)c.scores.push(0);
+      }
+    }
     if(kind==='winBy') c.winBy=state.eventRules.winBy;
   });
   saveState(); render();

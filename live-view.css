@@ -7376,4 +7376,13 @@ html[data-theme="light"] body .section-card .live-ranking-filter-controls .live-
   background: transparent;
   color: #986300;
 }
-
+/* LIVE RANKING + MATCHES LIST SPACING — identical on phones, tablets, and desktop. */
+html body.live-view-page .section-card.live-tab-card > .live-ranking-searchbar,
+html body.live-view-page .section-card.live-tab-card > .live-matches-searchbar {
+  margin: 0 0 12px !important;
+}
+html body.live-view-page .section-card.live-tab-card > #pageRankingList,
+html body.live-view-page .section-card.live-tab-card > #matchesList {
+  margin: 0 !important;
+  padding-block-start: 0 !important;
+}

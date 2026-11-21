@@ -61,6 +61,7 @@ const state = {
 };
 
 let pendingPlayerImport = null;
+let pendingCourtImport = null;
 let pendingSessionImport = null;
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -3199,7 +3200,7 @@ function renderCourts() {
   const courts = state.data.courts;
   const registeredCourts = asArray(state.data.registeredCourts);
   const registeredCourtCards = registeredCourts.length ? `<div class="registered-court-grid">${registeredCourts.map(court => `<article class="registered-court-card"><button type="button" class="registered-court-logo" data-map-focus-court-id="${escapeHTML(court.id)}" aria-label="Focus map on ${escapeHTML(court.name)}" title="Show ${escapeHTML(court.name)} on map">${court.logo ? `<img src="${escapeHTML(court.logo)}" alt="">` : icon('court')}</button><span class="registered-court-copy"><strong>${escapeHTML(court.name)}</strong><small>${escapeHTML(court.location)}</small><small class="registered-court-owner">Registered by ${escapeHTML(court.ownerName)}</small><span class="registered-court-actions"><button type="button" class="registered-court-edit" data-action="edit-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('edit')} Edit</button><button type="button" class="registered-court-delete" data-action="delete-registered-court" data-court-id="${escapeHTML(court.id)}">${icon('trash')} Delete</button></span></span></article>`).join('')}</div>` : emptyState('No registered courts yet', 'Registered courts shared by organizers will appear here and on the CourtMap.');
-  const courtPageActions = `<div class="court-page-actions"><button type="button" class="btn btn-sm btn-primary court-action-pill" data-action="register-court">${icon('plus')} Register Court</button><a class="btn btn-primary court-action-pill" href="/queueing" target="_blank" rel="noopener">Manage in Queueing ${icon('external')}</a></div>`;
+  const courtPageActions = `<div class="court-page-actions"><button type="button" class="btn" data-action="import-courts">${icon('upload')} Import CSV</button><button type="button" class="btn" data-action="export-courts">${icon('download')} Export CSV</button><button type="button" class="btn btn-primary" data-action="register-court">${icon('plus')} Register Court</button><input id="courtCsvImportFile" type="file" accept=".csv,text/csv" hidden></div>`;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / VENUES', 'Courts & Locations', 'Current court activity is read directly from the live queueing session.', courtPageActions)}
     <div class="metric-grid"><div class="metric-tile"><span>Total courts</span>${metricCount('courts', 'total-courts', registeredCourts.length)}</div><div class="metric-tile"><span>In play</span>${metricCount('courts', 'in-play', courts.filter(court => court.status === 'Active').length)}</div><div class="metric-tile"><span>Ready / assigned</span>${metricCount('courts', 'ready-assigned', courts.filter(court => court.status === 'Ready').length)}</div><div class="metric-tile"><span>Waiting courts</span>${metricCount('courts', 'waiting-courts', courts.filter(court => court.status === 'Waiting').length)}</div></div>
     <div class="registered-courts-map-layout">
@@ -3262,6 +3263,221 @@ function parseCsvRows(text) {
 const normalizeCsvHeader = value => String(value || '').trim().toLocaleLowerCase().replace(/[^a-z0-9]/g, '');
 const csvColumnIndex = (headers, aliases) => headers.findIndex(header => aliases.includes(header));
 const csvValueAt = (values, column) => column < 0 ? '' : String(values[column] ?? '').trim();
+
+function parseCourtImportCsv(text) {
+  const rows = parseCsvRows(text);
+  if (rows.length < 2) throw new Error('The CSV does not contain any court rows.');
+  const headers = rows.shift().map(normalizeCsvHeader);
+  const columns = {
+    name: csvColumnIndex(headers, ['courtname','name','venuename','venue']),
+    location: csvColumnIndex(headers, ['location','address','courtlocation','venuelocation']),
+    latitude: csvColumnIndex(headers, ['latitude','lat']),
+    longitude: csvColumnIndex(headers, ['longitude','lon','lng']),
+    logo: csvColumnIndex(headers, ['logo','courtlogo','logodata','logodataurl']),
+    coordinates: csvColumnIndex(headers, ['locationcoordinatesjson','locationcoordinates','coordinatesjson','coordinates']),
+    registeredAt: csvColumnIndex(headers, ['registeredat','createdat'])
+  };
+  if (columns.name < 0 || columns.location < 0) throw new Error('The CSV needs Court Name and Location columns. Use Export CSV to download a ready-to-use template.');
+
+  const courts = [];
+  rows.forEach((values, index) => {
+    const name = csvValueAt(values, columns.name).normalize('NFC').replace(/\s+/g, ' ').trim();
+    const location = csvValueAt(values, columns.location).normalize('NFC').replace(/\s+/g, ' ').trim();
+    if (!name && !location) return;
+    if (!name || !location) throw new Error(`Row ${index + 2} needs both a Court Name and Location.`);
+
+    let coordinates = {};
+    const coordinatesJson = csvValueAt(values, columns.coordinates);
+    if (coordinatesJson) {
+      try {
+        const parsed = JSON.parse(coordinatesJson);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid');
+        coordinates = parsed;
+      } catch (_) {
+        throw new Error(`Row ${index + 2} has invalid Location Coordinates JSON.`);
+      }
+    }
+    const latitude = Number(coordinates.lat ?? coordinates.latitude ?? csvValueAt(values, columns.latitude));
+    const longitude = Number(coordinates.lon ?? coordinates.lng ?? coordinates.longitude ?? csvValueAt(values, columns.longitude));
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < 4 || latitude > 22.4 || longitude < 115.5 || longitude > 128.6) {
+      throw new Error(`Row ${index + 2} needs valid Philippine Latitude and Longitude coordinates.`);
+    }
+    const logo = csvValueAt(values, columns.logo);
+    if (logo && (logo.length > 450000 || !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/i.test(logo))) {
+      throw new Error(`Row ${index + 2} has an invalid logo. Use a PNG, JPG, or WebP data image.`);
+    }
+    courts.push({
+      name,
+      location,
+      logo,
+      locationCoordinates: {
+        lat: latitude,
+        lon: longitude,
+        label: String(coordinates.label || location),
+        countrycode: 'PH',
+        source: String(coordinates.source || 'csv-import'),
+        verified: coordinates.verified === true,
+        placeId: String(coordinates.placeId || ''),
+        pinId: String(coordinates.pinId || ''),
+        osmId: String(coordinates.osmId || '')
+      },
+      registeredAt: csvValueAt(values, columns.registeredAt)
+    });
+  });
+  if (!courts.length) throw new Error('The CSV does not contain any complete court rows.');
+  if (courts.length > 500) throw new Error('A maximum of 500 court rows can be imported at one time.');
+  return courts;
+}
+
+function analyzeCourtImportRows(courts) {
+  const cleanKey = (value, maxLength) => String(value ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').slice(0, maxLength).toLocaleLowerCase();
+  const seen = new Set(asArray(state.data?.registeredCourts).map(court => `${cleanKey(court?.name, 100)}|${cleanKey(court?.location, 250)}`));
+  return asArray(courts).map((court, index) => {
+    const key = `${cleanKey(court.name, 100)}|${cleanKey(court.location, 250)}`;
+    const duplicate = seen.has(key);
+    if (!duplicate) seen.add(key);
+    return {
+      rowNumber: index + 2,
+      court,
+      status: duplicate ? 'duplicate' : 'ready',
+      reason: duplicate ? 'Same court name and location already exists' : ''
+    };
+  });
+}
+
+function courtImportCounts(rows = asArray(pendingCourtImport?.rows)) {
+  return {
+    all: rows.length,
+    ready: rows.filter(row => row.status === 'ready').length,
+    duplicate: rows.filter(row => row.status === 'duplicate').length
+  };
+}
+
+function applyCourtImportPreviewFilters() {
+  const root = $('#modalRoot');
+  if (!root || !pendingCourtImport) return;
+  const selectedFilter = pendingCourtImport.filter || 'all';
+  const rows = $$('.court-import-table tbody tr[data-court-import-row]', root);
+  let visibleCount = 0;
+  rows.forEach(row => {
+    const visible = selectedFilter === 'all' || row.dataset.status === selectedFilter;
+    row.hidden = !visible;
+    if (visible) visibleCount += 1;
+  });
+  const countLabel = $('.court-import-visible-count', root);
+  if (countLabel) countLabel.textContent = `Showing ${visibleCount} of ${asArray(pendingCourtImport.rows).length} courts`;
+  const emptyRow = $('.court-import-empty-row', root);
+  if (emptyRow) emptyRow.hidden = visibleCount !== 0;
+  $$('.court-import-tab', root).forEach(button => {
+    const active = button.dataset.courtImportFilter === selectedFilter;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+
+function courtImportReviewMarkup() {
+  const rows = asArray(pendingCourtImport?.rows);
+  const counts = courtImportCounts(rows);
+  const filter = pendingCourtImport?.filter || 'all';
+  const tableRows = rows.map((row, index) => {
+    const court = row.court || {};
+    const coordinates = normalizeMapLocationCoordinates(court.locationCoordinates || court.coordinates || court);
+    const coordinatesLabel = coordinates && Number.isFinite(Number(coordinates.lat)) && Number.isFinite(Number(coordinates.lon))
+      ? `${Number(coordinates.lat).toFixed(5)}, ${Number(coordinates.lon).toFixed(5)}`
+      : '—';
+    const statusClass = row.status === 'ready' ? 'ready' : 'duplicate';
+    const statusLabel = row.status === 'ready' ? 'Ready to import' : 'Duplicate · will be skipped';
+    const courtLogo = registeredCourtLogo(court);
+    const courtLogoMarkup = courtLogo
+      ? `<img src="${escapeHTML(courtLogo)}" alt="${escapeHTML(court.name || 'Court')} logo">`
+      : icon('court');
+    return `<tr data-court-import-row data-status="${statusClass}"><td class="player-import-row-number">${index + 1}</td><td class="court-import-logo-cell"><span class="court-import-logo">${courtLogoMarkup}</span></td><td class="court-import-name"><strong>${escapeHTML(court.name || '—')}</strong><small>CSV row ${row.rowNumber}</small></td><td class="court-import-location">${escapeHTML(court.location || '—')}</td><td class="court-import-coordinates">${escapeHTML(coordinatesLabel)}</td><td><span class="court-import-status ${statusClass}">${escapeHTML(statusLabel)}</span></td></tr>`;
+  }).join('');
+  const tabs = [
+    ['all', `All (${counts.all})`],
+    ['ready', `Ready (${counts.ready})`],
+    ['duplicate', `Duplicates (${counts.duplicate})`]
+  ].map(([key, label]) => `<button type="button" class="player-import-tab court-import-tab ${filter === key ? 'is-active' : ''}" data-court-import-filter="${key}" aria-pressed="${filter === key}">${label}</button>`).join('');
+
+  return `<div class="player-import-layout court-import-layout">
+    <div class="player-import-filterbar"><div class="player-import-tabs" role="group" aria-label="Filter CSV court rows">${tabs}</div></div>
+    <div class="player-import-searchbar court-import-meta-bar"><div class="player-import-meta"><strong>${counts.all} CSV court${counts.all === 1 ? '' : 's'}</strong><span class="court-import-visible-count">Showing ${counts.all} of ${counts.all} courts</span><small>${escapeHTML(pendingCourtImport?.filename || 'Selected CSV file')}</small></div></div>
+    ${counts.duplicate ? `<div class="player-import-alert"><span class="player-import-alert-icon">${icon('info')}</span><div><strong>${counts.duplicate} duplicate court${counts.duplicate === 1 ? '' : 's'} will be skipped</strong><span>Duplicates are matched by court name and location in the shared directory or within this CSV.</span></div></div>` : `<div class="player-import-success-note">${icon('check')} All ${counts.ready} court rows are ready to import. They will be saved to the shared directory.</div>`}
+    <div class="player-import-table-wrap court-import-table-wrap"><table class="data-table players-table player-import-table court-import-table"><colgroup><col style="width:5%"><col style="width:10%"><col style="width:21%"><col style="width:27%"><col style="width:19%"><col style="width:18%"></colgroup><thead><tr><th scope="col">#</th><th scope="col">Logo</th><th scope="col">Court Name</th><th scope="col">Location</th><th scope="col">GPS Coordinates</th><th scope="col">Status</th></tr></thead><tbody>${tableRows}<tr class="player-import-empty-row court-import-empty-row" hidden><td colspan="6">No court rows match the selected filter.</td></tr></tbody></table></div>
+    <div class="player-import-footer"><span><strong>${counts.ready} Ready</strong> court${counts.ready === 1 ? '' : 's'} will be saved. Duplicate rows are excluded.</span><div><button type="button" class="btn" data-action="close-modal">Close</button><button type="button" class="btn btn-primary" data-action="confirm-court-import" ${counts.ready ? '' : 'disabled'}>${icon('download')} Import ${counts.ready} Court${counts.ready === 1 ? '' : 's'}</button></div></div>
+  </div>`;
+}
+
+function openCourtImportReview(filename, courts) {
+  pendingCourtImport = { filename, rows: analyzeCourtImportRows(courts), filter: 'all' };
+  modal('Import Courts & Locations', courtImportReviewMarkup(), {
+    wide: true,
+    className: 'player-import-modal court-import-modal',
+    subtitle: 'Review the selected CSV before adding courts to your shared directory.'
+  });
+}
+
+async function handleCourtCsvFile(file) {
+  if (!file) return;
+  if (!/\.csv$/i.test(file.name) && file.type && !/csv|comma-separated/i.test(file.type)) {
+    toast('Please choose a CSV file.', 'error');
+    return;
+  }
+  try {
+    const courts = parseCourtImportCsv(await file.text());
+    openCourtImportReview(file.name, courts);
+  } catch (error) {
+    toast(error.message || 'Unable to read Courts & Locations CSV.', 'error');
+  }
+}
+
+async function confirmCourtImport(button) {
+  const readyCourts = asArray(pendingCourtImport?.rows).filter(row => row.status === 'ready').map(row => row.court);
+  if (!readyCourts.length) return;
+  button.disabled = true;
+  button.innerHTML = 'Importing…';
+  try {
+    const response = await api('/api/organizer-dashboard/courts/import', {
+      method: 'POST',
+      body: JSON.stringify({ courts: readyCourts })
+    });
+    await refreshData({ silent: true });
+    closeModal();
+    pendingCourtImport = null;
+    const imported = Number(response.importedCount) || 0;
+    const duplicates = Number(response.duplicateCount) || 0;
+    const parts = [`Imported ${imported} court${imported === 1 ? '' : 's'}`];
+    if (duplicates) parts.push(`${duplicates} duplicate${duplicates === 1 ? '' : 's'} skipped`);
+    toast(`${parts.join(' · ')}. Shared with all devices.`);
+  } catch (error) {
+    toast(error.message || 'Unable to import Courts & Locations.', 'error');
+    if (button.isConnected) {
+      button.disabled = false;
+      const count = readyCourts.length;
+      button.innerHTML = `${icon('download')} Import ${count} Court${count === 1 ? '' : 's'}`;
+    }
+  }
+}
+
+function exportCourts() {
+  const headers = ['Court ID', 'Court Name', 'Location', 'Latitude', 'Longitude', 'Logo', 'Location Coordinates JSON', 'Registered At'];
+  const courts = asArray(state.data?.registeredCourts);
+  const rows = courts.map(court => {
+    const coordinates = normalizeMapLocationCoordinates(court.locationCoordinates || court.coordinates || court);
+    return [
+      court.id || '',
+      court.name || '',
+      court.location || '',
+      coordinates?.lat ?? '',
+      coordinates?.lon ?? '',
+      registeredCourtLogo(court),
+      coordinates ? JSON.stringify(coordinates) : '',
+      court.registeredAt || ''
+    ];
+  });
+  downloadCSV('pickle-point-match-courts-locations.csv', headers, rows);
+  toast(`Exported ${rows.length} court location${rows.length === 1 ? '' : 's'}.`);
+}
 
 function parsePlayerImportCsv(text) {
   const rows = parseCsvRows(text);
@@ -4129,6 +4345,7 @@ function modal(title, body, options = {}) {
   if (focusable) window.setTimeout(() => focusable.focus(), 20);
 }
 function closeModal() {
+  if (state.modal === 'Import Courts & Locations') pendingCourtImport = null;
   for (const mapId of ['sessionMapModal', 'courtLocationPinMap', 'sessionDetailsMiniMap']) {
     const map = state.mapInstances.get(mapId);
     if (map) { try { map.remove(); } catch (_) {} state.mapInstances.delete(mapId); }
@@ -4625,6 +4842,12 @@ document.addEventListener('click', async event => {
     }
     return;
   }
+  const courtImportFilter = event.target.closest('[data-court-import-filter]');
+  if (courtImportFilter && pendingCourtImport) {
+    pendingCourtImport.filter = courtImportFilter.dataset.courtImportFilter || 'all';
+    applyCourtImportPreviewFilters();
+    return;
+  }
   const playerImportFilter = event.target.closest('[data-player-import-filter]');
   if (playerImportFilter && pendingPlayerImport) {
     pendingPlayerImport.filter = playerImportFilter.dataset.playerImportFilter || 'all';
@@ -4705,6 +4928,9 @@ document.addEventListener('click', async event => {
       }
       return;
     }
+    if (action === 'import-courts') { $('#courtCsvImportFile')?.click(); return; }
+    if (action === 'confirm-court-import') { await confirmCourtImport(actionButton); return; }
+    if (action === 'export-courts') { exportCourts(); return; }
     if (action === 'import-players') { $('#playerCsvImportFile')?.click(); return; }
     if (action === 'confirm-player-import') { await confirmPlayerImport(actionButton); return; }
     if (action === 'export-players') { exportPlayers(); return; }
@@ -5178,6 +5404,12 @@ document.addEventListener('keydown', event => {
 });
 document.addEventListener('change', async event => {
   const target = event.target;
+  if (target.id === 'courtCsvImportFile') {
+    const file = target.files?.[0];
+    target.value = '';
+    await handleCourtCsvFile(file);
+    return;
+  }
   if (target.id === 'playerCsvImportFile') {
     const file = target.files?.[0];
     target.value = '';
