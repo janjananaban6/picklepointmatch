@@ -7386,3 +7386,97 @@ html body.live-view-page .section-card.live-tab-card > #matchesList {
   margin: 0 !important;
   padding-block-start: 0 !important;
 }
+
+
+/* Minimal centered organizer identity popup, opened from the live session header. */
+html body.live-view-page .mobile-session-organizer[role="button"] {
+  cursor: pointer !important;
+  -webkit-tap-highlight-color: transparent;
+}
+html body.live-view-page .mobile-session-organizer[role="button"]:focus-visible {
+  outline: 1px solid rgba(198, 167, 248, .72) !important;
+  outline-offset: 2px !important;
+  border-radius: 4px !important;
+}
+html body.live-view-page .mobile-organizer-dialog[hidden] {
+  display: none !important;
+}
+html body.live-view-page .mobile-organizer-dialog {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 100000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 18px !important;
+  box-sizing: border-box !important;
+}
+html body.live-view-page .mobile-organizer-dialog-backdrop {
+  position: absolute !important;
+  inset: 0 !important;
+  background: rgba(3, 15, 20, .48) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+  backdrop-filter: blur(3px) !important;
+}
+html body.live-view-page .mobile-organizer-dialog-card {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  width: fit-content !important;
+  min-width: 176px !important;
+  max-width: min(320px, calc(100vw - 36px)) !important;
+  padding: 22px 26px 20px !important;
+  border: 1px solid rgba(110, 175, 177, .32) !important;
+  border-radius: 17px !important;
+  background: rgba(9, 39, 46, .97) !important;
+  color: #effffc !important;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, .30), inset 0 1px 0 rgba(255, 255, 255, .08) !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+  outline: none !important;
+}
+html body.live-view-page .mobile-organizer-dialog-logo {
+  display: block !important;
+  width: 104px !important;
+  height: 104px !important;
+  max-width: min(104px, calc(100vw - 100px)) !important;
+  max-height: min(104px, calc(100vw - 100px)) !important;
+  object-fit: contain !important;
+  border-radius: 13px !important;
+  background: rgba(255, 255, 255, .96) !important;
+  padding: 5px !important;
+  box-sizing: border-box !important;
+}
+html body.live-view-page .mobile-organizer-dialog-logo[hidden] {
+  display: none !important;
+}
+html body.live-view-page .mobile-organizer-dialog-name {
+  max-width: 260px !important;
+  color: inherit !important;
+  font-size: 14px !important;
+  font-weight: 750 !important;
+  line-height: 1.35 !important;
+  overflow-wrap: anywhere !important;
+  text-align: center !important;
+}
+html[data-theme="light"] body.live-view-page .mobile-organizer-dialog-card {
+  border-color: rgba(95, 132, 139, .24) !important;
+  background: rgba(255, 255, 255, .98) !important;
+  color: #18353b !important;
+  box-shadow: 0 16px 44px rgba(21, 49, 56, .20), inset 0 1px 0 rgba(255, 255, 255, .95) !important;
+}
+@media (max-width: 380px) {
+  html body.live-view-page .mobile-organizer-dialog-card {
+    min-width: 160px !important;
+    padding: 18px 20px 17px !important;
+  }
+  html body.live-view-page .mobile-organizer-dialog-logo {
+    width: 88px !important;
+    height: 88px !important;
+    max-width: min(88px, calc(100vw - 100px)) !important;
+    max-height: min(88px, calc(100vw - 100px)) !important;
+  }
+}
