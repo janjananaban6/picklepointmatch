@@ -84,7 +84,7 @@ svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColo
 .page-heading { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
 .heading-copy { min-width: 0; }
 .eyebrow { display: inline-flex; align-items: center; gap: 6px; color: var(--green-700); font-size: 9px; font-weight: 850; letter-spacing: 1px; text-transform: uppercase; }
-.eyebrow::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--green-600); box-shadow: 0 0 0 3px rgba(85,201,76,.12); }
+.eyebrow::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--green-600); }
 h1 { margin: 4px 0 3px; color: #13281d; font-size: clamp(22px, 2vw, 28px); line-height: 1.08; letter-spacing: -.9px; }
 .subtitle { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .heading-actions { flex: 0 0 auto; display: flex; align-items: center; gap: 7px; }
@@ -148,10 +148,6 @@ h1 { margin: 4px 0 3px; color: #13281d; font-size: clamp(22px, 2vw, 28px); line-
 .court-tile strong { font-size: 13px; }
 .court-tile span { display: inline-flex; align-items: center; gap: 4px; font-size: 8px; color: #5b7861; }
 .court-tile span::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #2eb34d; }
-.court-tile.available { border-color: #e8ece7; color: #525c55; background: #f7f8f6; }
-.court-tile.available span::before { background: #a2ada4; }
-.court-tile.maintenance { border-color: #f3dfbc; color: #8d641e; background: #fff9ed; }
-.court-tile.maintenance span::before { background: #d79b2b; }
 .recent-panel { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; }
 .compact-table { width: 100%; border-collapse: collapse; font-size: 9px; }
 .compact-table th { padding: 6px 5px; color: #8a958d; border-bottom: 1px solid #edf1ec; font-weight: 700; text-align: left; white-space: nowrap; }
@@ -160,7 +156,6 @@ h1 { margin: 4px 0 3px; color: #13281d; font-size: clamp(22px, 2vw, 28px); line-
 .compact-table .primary-cell { color: #2c3a30; font-weight: 700; }
 .score-pill, .status-pill { display: inline-flex; align-items: center; padding: 3px 7px; border-radius: 999px; color: #216231; background: #eaf8e3; font-size: 9px; font-weight: 800; white-space: nowrap; }
 .status-pill.gray { color: #667269; background: #f0f3ef; }
-.status-pill.amber { color: #956518; background: #fff5df; }
 .page-stack { display: grid; gap: 14px; }
 .page-stack .page-heading { margin-bottom: 1px; }
 .session-list { display: grid; gap: 9px; }
@@ -290,10 +285,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .map-count { color: #809087; font-size: 9px; font-weight: 700; white-space: nowrap; }
 .interactive-map { height: 178px; min-height: 150px; border: 1px solid #e5eee1; border-radius: 11px; background: #eaf2e8; }
 .map-loading { display: grid; place-items: center; width: 100%; height: 100%; padding: 12px; color: #758279; font-size: 10px; text-align: center; }
-.interactive-map .leaflet-container { width: 100%; height: 100%; background: #eaf2e8; font: inherit; }
-.interactive-map .leaflet-control-attribution { font-size: 8px; }
-.interactive-map .leaflet-popup-content-wrapper { border-radius: 9px; }
-.interactive-map .leaflet-popup-content { margin: 9px 11px; font-size: 10px; line-height: 1.4; }
 .map-popup strong { display: block; margin-bottom: 4px; color: #23362a; }
 .map-popup small { display: block; margin-top: 4px; color: #829087; }
 .map-status { min-height: 24px; margin: 7px 0 0; color: #839087; font-size: 9px; line-height: 1.45; }
@@ -359,8 +350,8 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 }
 @media (max-width: 840px) {
   body { overflow: hidden; }
-  .app-shell { width: 100%; height: 100dvh; min-height: 0; margin: 0; border: 0; border-radius: 0; grid-template-columns: minmax(0,1fr); }
-  .sidebar { position: fixed; z-index: 80; inset: 0 auto 0 0; width: 258px; max-width: calc(100vw - 62px); padding-top: 17px; box-shadow: 12px 0 34px rgba(0,0,0,.1); transform: translateX(-105%); transition: transform .2s ease; }
+  .app-shell { width: 100%; min-height: 0; margin: 0; border: 0; border-radius: 0; grid-template-columns: minmax(0,1fr); height: 100vh; height: 100svh; }
+  .sidebar { position: fixed; z-index: 80; inset: 0 auto 0 0; width: 258px; height: 100vh; height: 100svh; max-width: calc(100vw - 62px); padding-top: 17px; box-shadow: 12px 0 34px rgba(0,0,0,.1); transform: translateX(-105%); transition: transform .2s ease; }
   .sidebar.mobile-open { transform: translateX(0); }
   .main-area { grid-column: 1; }
   .topbar { flex-basis: 54px; padding: 0 12px; gap: 8px; }
@@ -428,9 +419,8 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .live-session-banner strong{display:block;font-size:14px;color:#183c25}
 .live-session-banner p{margin:4px 0 0;font-size:12px;color:#62746a}
 .live-session-actions{display:flex;flex-wrap:wrap;gap:8px}
-.status-pill.live{background:#e6f7ec;color:#176c38}
-.live-session-banner .status-pill.live{display:inline-flex;align-items:center;gap:5px;vertical-align:middle}
-.live-session-banner .live-status-dot{width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:#20a052;box-shadow:0 0 0 3px rgba(32,160,82,.13)}
+.status-pill.live{display:inline-flex;align-items:center;gap:5px;vertical-align:middle;background:#e6f7ec;color:#176c38}
+.live-status-dot{width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:#20a052;box-shadow:none;animation:dashboard-live-dot-fade 2.4s ease-in-out infinite}
 .status-pill.ended{background:#eef1ef;color:#68736c}
 .status-pill.dupr{background:#e7f1ff;color:#1d5fae}
 .detail-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -462,10 +452,8 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .side-stack { grid-column: 1; grid-row: 2; }
 }
 @media (max-width: 840px) {
-  .app-shell { height: 100vh; height: 100svh; }
   .page-content { overflow-y: auto; }
   .dashboard-grid .recent-panel, .trend-panel, .ranking-panel, .side-stack { grid-column: 1; grid-row: auto; }
-  .sidebar { height: 100vh; height: 100svh; }
 }
 
 .session-podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 14px; }
@@ -684,7 +672,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   gap: 6px; padding: 8px 9px; border: 1px solid #d9efcf; border-radius: 9px;
   color: #1c5d2b; background: #f0faec; scroll-snap-align: center;
 }
-.court-tile.available, .court-tile-ready { border-color: #e3ebe0; color: #4d5d51; background: #f8faf7; }
+.court-tile-ready { border-color: #e3ebe0; color: #4d5d51; background: #f8faf7; }
 .court-tile-playing { border-color: #cde8c4; color: #1c5d2b; background: #f0faec; }
 .court-tile-up-next { border-color: #f0dfb8; color: #89621e; background: #fffaf0; }
 .court-tile-waiting { border-color: #d9e5f2; color: #355c7a; background: #f4f8fc; }
@@ -1731,12 +1719,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 .court-location-option small, .court-location-no-results { color: #7f8b82; font-size: 9px; line-height: 1.4; }
 .court-location-no-results { padding: 10px; }
 /* Keep registered court imagery compact in the location rows and map popup. */
-.map-popup-courts { display: grid; gap: 4px; margin: 2px 0 5px; }
-.map-popup-court { display: flex; align-items: center; gap: 5px; padding: 4px 5px; border: 1px solid #e8eee7; border-radius: 6px; background: #f9fcf8; }
-.map-popup-court img { width: 22px; height: 22px; flex: 0 0 22px; border: 1px solid #e5ece2; border-radius: 5px; background: #fff; object-fit: contain; }
-.map-popup-court span { min-width: 0; display: grid; gap: 1px; }
-.map-popup-court strong { overflow-wrap: anywhere; font-size: 9px; }
-.map-popup-court small { color: #77847a; font-size: 7px; }
 .map-popup-correct-pin:hover { text-decoration: underline; }
 .map-location-pin img { width: 22px; height: 22px; border-radius: 6px; object-fit: contain; }
 .map-location-row.is-static { cursor: pointer; }
@@ -1749,12 +1731,10 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 @media (max-width: 640px) {
   .registered-court-grid { grid-template-columns: minmax(0, 1fr); }
   .registered-court-card { padding: 10px; }
-  .court-page-actions { justify-content: flex-start; }
 }
 
 
 /* Courts & Locations action alignment. */
-.court-page-actions { justify-content: flex-start; }
 .court-location-field { min-width: 0; }
 .court-location-map-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
 .court-location-map-heading strong { color: #304637; font-size: 11px; }
@@ -3631,18 +3611,6 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   color: #6e8172;
   font-size: 8px;
 }
-.registered-court-readonly {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  margin-top: 3px;
-  padding: 3px 6px;
-  border-radius: 999px;
-  color: #617568;
-  background: #edf3ed;
-  font-size: 8px;
-  font-weight: 700;
-}
 
 
 /* Workspace settings polish: keep Organizer Profile and Connected Queueing Tools side by side. */
@@ -3660,19 +3628,27 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   border-radius: 99px;
 }
 
-/* Soft color-fade animation for dashboard eyebrow indicator dots. */
+/* Soft color-fade animations for dashboard eyebrow and live-status dots. */
 .eyebrow::before {
   animation: dashboard-eyebrow-dot-fade 2.4s ease-in-out infinite;
 }
 @keyframes dashboard-eyebrow-dot-fade {
   0%, 100% {
     background-color: #188447;
-    box-shadow: 0 0 0 3px rgba(32, 166, 78, .12);
     opacity: .68;
   }
   50% {
     background-color: #a8d96f;
-    box-shadow: 0 0 0 4px rgba(168, 217, 111, .22);
+    opacity: 1;
+  }
+}
+@keyframes dashboard-live-dot-fade {
+  0%, 100% {
+    background-color: #188447;
+    opacity: .68;
+  }
+  50% {
+    background-color: #8fd36e;
     opacity: 1;
   }
 }
@@ -4028,6 +4004,13 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   cursor: pointer;
   transition: color .13s ease, background .13s ease, border-color .13s ease;
 }
+.custom-select-option.is-default:not([aria-selected="true"]),
+.custom-select-option.is-default:not([aria-selected="true"]):hover,
+.custom-select-option.is-default:not([aria-selected="true"]):focus-visible {
+  border-color: #e2e7e2;
+  color: #657068;
+  background: #eef1ee;
+}
 .custom-select-option:hover,
 .custom-select-option:focus-visible {
   outline: 0;
@@ -4074,7 +4057,7 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 }
 @media (max-width: 840px) {
   .toolbar .select-control-shell { flex: 1 1 0; min-width: 0; }
-  .toolbar .ranking-session-filter { width: 100%; min-width: 0; max-width: none; }
+  .toolbar .ranking-session-filter { max-width: none; }
   .toolbar .select-control-trigger { min-width: 0; height: 29px; min-height: 29px; }
 }
 @media (max-width: 440px) {
@@ -4084,3 +4067,460 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
 @media (prefers-reduced-motion: reduce) {
   .custom-select-menu { animation: none; }
 }
+
+
+/* Session-specific DUPR export review. Reuses the Registered Player CSV import modal design. */
+.dupr-export-modal .modal-body { min-height: 0; }
+.dupr-export-layout { width: 100%; min-height: 0; flex: 1 1 auto; overflow: hidden; }
+.dupr-export-sessionbar {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, .95fr) minmax(0, 1.3fr) 108px;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid #edf1ec;
+  background: #fbfdfb;
+}
+.dupr-export-session-copy { min-width: 0; display: grid; gap: 3px; align-content: center; }
+.dupr-export-session-copy strong { color: #34483a; font-size: 10px; font-weight: 800; }
+.dupr-export-session-copy small { color: #849187; font-size: 8px; line-height: 1.4; }
+.dupr-export-sessionbar .select-control-shell { width: 100%; min-width: 0; max-width: none; }
+.dupr-export-control-group { min-width: 0; display: grid; grid-template-rows: 10px 34px; gap: 3px; align-content: center; }
+.dupr-export-control-group > label { display: block; min-width: 0; line-height: 10px; }
+#duprExportSessionSummary { grid-column: 1 / -1; min-width: 0; width: 100%; }
+.dupr-export-scoretype-group { width: 108px; max-width: 108px; justify-self: start; }
+.dupr-export-sessionbar .dupr-export-scoretype-select.select-control-shell { width: 108px; min-width: 108px; max-width: 108px; }
+.dupr-export-scoretype-select .select-control-trigger { width: 100%; }
+.dupr-export-control-group > label { color: #748278; font-size: 8px; font-weight: 750; }
+.dupr-export-sessionbar .dupr-export-control-group .select-control-trigger { min-width: 0; }
+.dupr-export-sessionbar .select-control-trigger {
+  width: 100%;
+  min-height: 34px;
+  height: 34px;
+  border: 1px solid #dfe8df;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 9px;
+}
+.dupr-export-session-stats {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.dupr-export-session-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  padding: 3px 8px;
+  border: 1px solid #e5ebe6;
+  border-radius: 99px;
+  color: #718078;
+  background: #fff;
+  font-size: 8px;
+  font-weight: 700;
+}
+.dupr-export-session-stats strong { color: #35463b; font-size: 9px; font-weight: 850; font-variant-numeric: tabular-nums; }
+.dupr-export-session-stats .is-ready { color: #26743e; border-color: #d8ebd1; background: #f4fbf1; }
+.dupr-export-session-stats .is-ready strong { color: #26743e; }
+.dupr-export-session-stats .is-missing { color: #a54242; border-color: #f1d9d9; background: #fff7f7; }
+.dupr-export-session-stats .is-missing strong { color: #a54242; }
+.dupr-export-alert { margin-top: 7px; margin-bottom: 7px; }
+.dupr-export-success { margin-top: 7px; margin-bottom: 7px; }
+.dupr-export-table-wrap {
+  min-height: 100px;
+  max-height: min(42dvh, 390px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.dupr-export-table { min-width: 850px; }
+.dupr-export-table thead th { z-index: 3; }
+.dupr-export-table tbody td { vertical-align: top; }
+.dupr-export-table .dupr-export-match-cell { text-align: left; }
+.dupr-export-match-cell > strong { display: block; color: #35463b; font-size: 8px; font-weight: 800; line-height: 1.35; }
+.dupr-export-versus { display: block; margin: 2px 0; color: #8b978e; font-size: 7px; font-weight: 700; }
+.dupr-export-match-cell > small,
+.dupr-export-time { display: block; margin-top: 3px; color: #91a097; font-size: 7px; line-height: 1.3; }
+.dupr-export-player-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 6px; }
+.dupr-export-player { min-width: 0; display: grid; gap: 2px; padding: 4px 5px; border: 1px solid #e5ece5; border-radius: 6px; background: #fbfdfb; }
+.dupr-export-player strong { color: #435349; font-size: 7px; font-weight: 750; line-height: 1.25; overflow-wrap: anywhere; }
+.dupr-export-player small { color: #17866c; font-size: 7px; font-weight: 850; letter-spacing: .1px; overflow-wrap: anywhere; }
+.dupr-export-player.is-missing { border-color: #f0d5d5; background: #fff7f7; }
+.dupr-export-player.is-missing small { color: #ad4c4c; }
+.dupr-export-no-players { color: #9a7561; font-size: 7px; }
+.dupr-export-table .player-import-row-detail { display: block; max-width: 190px; margin-top: 3px; }
+.dupr-export-table .player-import-row-invalid td { background: #fffafa; }
+.dupr-export-table .player-import-row-duplicate td { background: #fffdf7; }
+.dupr-export-empty { margin: 0 16px; padding: 28px 12px; border: 1px solid #e6ece5; border-radius: 8px; color: #87948b; background: #fbfdfb; font-size: 9px; text-align: center; }
+.dupr-export-footer > span { max-width: 490px; }
+.dupr-export-footer .btn-primary { border-radius: 99px; }
+@media (max-width: 850px) {
+  .dupr-export-sessionbar { grid-template-columns: minmax(0, 1fr) 108px; gap: 6px 9px; }
+  .dupr-export-session-copy { grid-column: 1 / -1; }
+  #duprExportSessionSummary { grid-column: 1 / -1; }
+  .dupr-export-table { min-width: 820px; }
+}
+@media (max-width: 700px) and (orientation: portrait) {
+  .dupr-export-sessionbar { padding: 7px 9px; }
+  .dupr-export-session-copy strong { font-size: 9px; }
+  .dupr-export-session-copy small { font-size: 7px; }
+  .dupr-export-sessionbar .select-control-trigger { min-height: 31px; height: 31px; font-size: 8px; }
+  .dupr-export-session-stats { gap: 4px; }
+  .dupr-export-session-stats span { min-height: 20px; padding: 2px 6px; font-size: 7px; }
+  .dupr-export-session-stats strong { font-size: 8px; }
+  .dupr-export-table-wrap { min-height: 70px; max-height: 32dvh; margin: 0 9px; overflow: auto; }
+  .dupr-export-table { min-width: 760px; }
+  .dupr-export-table .player-import-row-detail { display: block !important; }
+  .dupr-export-player-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dupr-export-footer > span { max-width: none; }
+}
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  .dupr-export-sessionbar { grid-template-columns: minmax(0, .95fr) minmax(0, 1.3fr) 108px; gap: 6px 10px; padding: 5px 11px; }
+  .dupr-export-session-copy { grid-column: auto; }
+  .dupr-export-session-copy small { font-size: 7px; }
+  #duprExportSessionSummary { grid-column: 1 / -1; }
+  .dupr-export-table-wrap { max-height: 29dvh; margin: 0 11px; }
+  .dupr-export-table { min-width: 780px; }
+}
+/* DUPR export has more columns than the player importer; keep its table swipe-scrollable on small screens. */
+.dupr-export-modal .dupr-export-table-wrap { overflow: auto; }
+
+/* DUPR export modal: preserve the original Player CSV import modal width and light theme.
+   The screenshot is used for column order only; the existing dashboard styling remains. */
+.player-import-modal .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.player-import-modal .player-import-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.player-import-modal:not(.dupr-export-modal) .player-import-footer {
+  margin-top: auto;
+}
+.player-import-modal .player-import-footer {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  box-sizing: border-box;
+}
+.dupr-export-modal .modal-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+.dupr-export-layout {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+#duprExportTableContainer {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+#duprExportFooter {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+.dupr-export-modal .dupr-export-table-wrap {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 110px;
+  max-height: none;
+  flex: 1 1 auto;
+  margin: 0 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: auto;
+}
+.dupr-export-modal table.dupr-export-table {
+  display: table;
+  width: 100%;
+  min-width: 0 !important;
+  max-width: 100%;
+  table-layout: fixed;
+}
+.dupr-export-modal .dupr-export-table thead th {
+  min-width: 0;
+  padding: 6px 2px;
+  font-size: clamp(6px, .72vw, 7.5px);
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+.dupr-export-modal .dupr-export-table tbody td {
+  min-width: 0;
+  padding: 5px 2px;
+  font-size: clamp(6.5px, .76vw, 8px);
+  line-height: 1.2;
+  vertical-align: middle;
+  overflow: hidden;
+}
+.dupr-export-modal .dupr-export-table .dupr-export-row-number,
+.dupr-export-modal .dupr-export-table .dupr-export-type,
+.dupr-export-modal .dupr-export-table .dupr-export-score {
+  text-align: center;
+  white-space: nowrap;
+}
+.dupr-export-modal .dupr-export-table .dupr-export-row-number {
+  font-size: 7px;
+  font-weight: 800;
+}
+.dupr-export-modal .dupr-export-table .dupr-export-date {
+  white-space: nowrap;
+  font-size: 7px;
+}
+.dupr-export-modal .dupr-export-table .dupr-export-player-name {
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+}
+.dupr-export-modal .dupr-export-table .dupr-export-player-name span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: #2d3d32;
+  font-size: 7px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dupr-export-modal .dupr-export-table .dupr-export-id-cell {
+  white-space: nowrap;
+}
+.dupr-export-modal .dupr-export-table .dupr-export-id {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: #17866c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 6.5px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dupr-export-modal .dupr-export-table .dupr-export-id.is-missing {
+  color: #a54242;
+}
+.dupr-export-modal .dupr-export-table .dupr-export-score {
+  font-size: 8px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.dupr-export-modal .dupr-export-table .player-import-empty-row td {
+  padding: 18px 5px;
+  text-align: center;
+}
+.dupr-export-footer {
+  display: flex;
+  flex: 0 0 auto;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  padding: 9px 16px 11px;
+  border-top: 1px solid #edf1ec;
+  background: #fcfdfb;
+}
+@media (max-width: 850px) {
+  .dupr-export-modal .dupr-export-table-wrap {
+    margin-inline: 9px;
+  }
+  .dupr-export-modal .dupr-export-table thead th {
+    padding-inline: 1px;
+    font-size: 6.5px;
+  }
+  .dupr-export-modal .dupr-export-table tbody td {
+    padding-inline: 1px;
+    font-size: 6.5px;
+  }
+  .dupr-export-modal .dupr-export-table .dupr-export-player-name span {
+    font-size: 6.5px;
+  }
+  .dupr-export-modal .dupr-export-table .dupr-export-id {
+    font-size: 6px;
+  }
+  #duprExportFooter { align-items: stretch; }
+}
+@media (max-width: 560px) {
+  .dupr-export-modal .dupr-export-table-wrap {
+    overflow-x: auto;
+    margin-inline: 9px;
+  }
+  .dupr-export-modal table.dupr-export-table {
+    min-width: 680px !important;
+  }
+  .dupr-export-footer {
+    min-height: 0;
+    padding: 7px 9px 8px;
+  }
+  .dupr-export-footer > span { max-width: none; }
+  .dupr-export-footer > div { width: 100%; flex-wrap: wrap; }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .dupr-export-modal .dupr-export-table-wrap { min-height: 65px; }
+  .dupr-export-footer { min-height: 0; padding-block: 5px; }
+}
+
+
+/* DUPR export table header alignment: match data-cell start positions. */
+.dupr-export-modal .dupr-export-table thead th {
+  text-align: left;
+}
+.dupr-export-modal .dupr-export-table thead th:nth-child(1),
+.dupr-export-modal .dupr-export-table thead th:nth-child(12),
+.dupr-export-modal .dupr-export-table thead th:nth-child(13) {
+  text-align: center;
+}
+
+/* DUPR export filter tabs: add real breathing room below the session-bar divider. */
+.dupr-export-layout .player-import-filterbar {
+  padding: 12px 16px;
+}
+.dupr-export-layout #duprExportFilterbar .player-import-tab {
+  min-height: 22px;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 8px;
+}
+@media (max-width: 850px) {
+  .dupr-export-layout .player-import-filterbar { padding: 12px 9px; }
+}
+@media (max-width: 700px) and (orientation: portrait) {
+  .dupr-export-control-group > label { font-size: 7px; }
+  .dupr-export-sessionbar .dupr-export-control-group .select-control-trigger {
+    min-height: 29px;
+    height: 29px;
+    font-size: 8px;
+  }
+  .dupr-export-layout #duprExportFilterbar .player-import-tab {
+    min-height: 21px;
+    padding-inline: 7px;
+    font-size: 7px;
+  }
+}
+
+/* Player CSV import: keep a clear, comfortable gap between filter tabs and divider.
+   Scope this to the Player Import modal; DUPR and other import modals stay unchanged. */
+.player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-filterbar {
+  padding-bottom: 12px !important;
+}
+.player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-tabs {
+  margin-bottom: 0;
+}
+
+/* Keep CSV preview tables to ten visible body rows, then scroll inside the table area. */
+.player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table-wrap {
+  min-height: 0;
+  max-height: 484px; /* 24px header + 10 × 46px rows */
+  flex: 0 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table tbody tr[data-player-import-row],
+.player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table tbody tr[data-player-import-row] td {
+  height: 46px;
+  max-height: 46px;
+}
+.player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table tbody tr[data-player-import-row] td {
+  padding-block: 4px !important;
+  overflow: hidden;
+  vertical-align: middle;
+}
+.player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table .player-import-person-cell > strong {
+  display: block;
+  overflow: hidden;
+  line-height: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table .player-import-person-cell .player-import-status {
+  max-height: 13px;
+  margin-top: 2px;
+  padding: 1px 4px;
+  line-height: 9px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table .player-import-row-detail {
+  display: block;
+  max-width: 100%;
+  max-height: 9px;
+  margin-top: 1px;
+  overflow: hidden;
+  line-height: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table tbody td > span,
+.player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table .player-import-dupr-id {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media screen and (max-width: 700px) and (orientation: portrait) {
+  .player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table-wrap {
+    max-height: 360px; /* 20px header + 10 × 34px compact rows */
+  }
+  .player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table tbody tr[data-player-import-row],
+  .player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table tbody tr[data-player-import-row] td {
+    height: 34px;
+    max-height: 34px;
+  }
+  .player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table tbody tr[data-player-import-row] td {
+    padding-block: 3px !important;
+  }
+  .player-import-modal:not(.dupr-export-modal):not(.court-import-modal) .player-import-table .player-import-person-cell > strong {
+    line-height: 9px;
+  }
+}
+
+/* DUPR export: show ten compact match rows before the table itself scrolls. */
+#duprExportTableContainer {
+  flex: 0 1 auto;
+}
+.dupr-export-modal .dupr-export-table-wrap {
+  min-height: 0;
+  max-height: 222px; /* 22px header + 10 × 20px rows */
+  flex: 0 1 auto;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+.dupr-export-modal .dupr-export-table thead tr {
+  height: 22px;
+}
+.dupr-export-modal .dupr-export-table thead th {
+  height: 22px;
+  padding-block: 4px;
+}
+.dupr-export-modal .dupr-export-table tbody tr[data-dupr-export-row],
+.dupr-export-modal .dupr-export-table tbody tr[data-dupr-export-row] td {
+  height: 20px;
+  max-height: 20px;
+}
+.dupr-export-modal .dupr-export-table tbody tr[data-dupr-export-row] td {
+  padding-block: 4px;
+}
+#duprExportFooter {
+  margin-top: auto;
+}
+

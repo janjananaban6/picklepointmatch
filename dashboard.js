@@ -63,6 +63,7 @@ const state = {
 let pendingPlayerImport = null;
 let pendingCourtImport = null;
 let pendingSessionImport = null;
+let pendingDuprExport = null;
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -108,6 +109,15 @@ function buildCustomSelectOptions(instance) {
     item.tabIndex = -1;
     item.setAttribute('role', 'option');
     item.setAttribute('aria-selected', String(index === select.selectedIndex));
+    // Keep universal default choices subtly visible whenever another option
+    // is selected. Match by the visible option label, not by a particular
+    // select class or value, so every dashboard custom dropdown is covered.
+    const optionLabel = String(option.textContent || option.label || '').trim();
+    const isAllSessionsDefault = /^all\s+sessions$/i.test(optionLabel);
+    const isAllCategoryDefault = /^all\s+categor(?:y|ies)$/i.test(optionLabel);
+    if ((isAllSessionsDefault || isAllCategoryDefault) && index !== select.selectedIndex) {
+      item.classList.add('is-default');
+    }
     const text = document.createElement('span');
     text.className = 'custom-select-option-label';
     text.textContent = String(option.textContent || option.label || '').trim();
@@ -151,9 +161,20 @@ function closeCustomSelect(instance = activeCustomSelect, restoreFocus = false) 
   if (restoreFocus && instance.trigger.isConnected) instance.trigger.focus({ preventScroll: true });
 }
 
+// Only one shared custom-select overlay may remain open at a time. Clean up
+// stale/orphaned overlays too, in case a page was rendered while one was open.
+function closeAllCustomSelectMenus(exceptInstance = null) {
+  if (activeCustomSelect && activeCustomSelect !== exceptInstance) closeCustomSelect(activeCustomSelect);
+  $$('.custom-select-menu').forEach(menu => {
+    const instance = menu._customSelectInstance;
+    if (instance && instance !== exceptInstance) closeCustomSelect(instance);
+    else if (!instance && menu !== exceptInstance?.menu) { menu.hidden = true; menu.remove(); }
+  });
+}
+
 function openCustomSelect(instance, focusSelected = true) {
   if (!instance || instance.select.disabled) return;
-  if (activeCustomSelect && activeCustomSelect !== instance) closeCustomSelect(activeCustomSelect);
+  closeAllCustomSelectMenus(instance);
   buildCustomSelectOptions(instance);
   document.body.append(instance.menu);
   instance.menu.hidden = false;
@@ -245,7 +266,7 @@ document.addEventListener('click', event => {
     const instance = trigger._customSelectInstance;
     if (!instance) return;
     event.preventDefault();
-    if (activeCustomSelect === instance && !instance.menu.hidden) closeCustomSelect(instance);
+    if (!instance.menu.hidden && instance.menu.isConnected) closeCustomSelect(instance);
     else openCustomSelect(instance, true);
     return;
   }
@@ -258,9 +279,10 @@ document.addEventListener('click', event => {
     }
     return;
   }
-  if (activeCustomSelect && !activeCustomSelect.wrapper.contains(event.target) && !activeCustomSelect.menu.contains(event.target)) {
-    closeCustomSelect(activeCustomSelect);
-  }
+  // Keep the menu open when its padding is clicked; clicks elsewhere close
+  // any active or orphaned overlay.
+  if (event.target.closest('.custom-select-menu')) return;
+  closeAllCustomSelectMenus();
 });
 
 document.addEventListener('keydown', event => {
@@ -985,8 +1007,10 @@ function getFilteredRegisteredPlayers() {
 }
 function sessionStatus(session) { return session.isLive ? 'Live' : 'Completed'; }
 function sessionStatusBadge(status) {
-  const cls = status === 'Live' ? 'live' : 'ended';
-  return `<span class="status-pill ${cls}">${escapeHTML(status)}</span>`;
+  const isLive = status === 'Live';
+  const cls = isLive ? 'live' : 'ended';
+  const liveDot = isLive ? '<span class="live-status-dot" aria-hidden="true"></span>' : '';
+  return `<span class="status-pill ${cls}">${liveDot}${escapeHTML(status)}</span>`;
 }
 function sessionDateLabel(session) { return session.date ? fmtDate(session.date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Date unavailable'; }
 function sessionTimeLabel(session) { return session.startTime ? `${session.startTime}${session.endTime ? ` – ${session.endTime}` : session.isLive ? ' · In progress' : ''}` : (session.isLive ? 'In progress' : 'Time unavailable'); }
@@ -2926,7 +2950,7 @@ function mapSessionDetailsMarkup(session) {
   const courts = asArray(session.courtNames).join(', ') || 'No court details saved';
   const created = session.startedAt ? fmtDate(session.startedAt, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Not available';
   const location = String(session.location || '').trim();
-  return `<div class="map-session-detail"><div class="map-session-status"><span class="status-pill ${session.isLive ? 'live' : 'ended'}">${session.isLive ? 'LIVE NOW' : 'COMPLETED'}</span><span>${escapeHTML(sessionDateLabel(session))}</span></div><h3>${escapeHTML(session.title)}</h3><div class="map-session-facts"><div><span>Session time</span><strong>${escapeHTML(sessionTimeLabel(session))}</strong></div><div><span>Created / started</span><strong>${escapeHTML(created)}</strong></div><div><span>Location</span><strong>${escapeHTML(location || 'Location not saved')}</strong></div><div><span>Courts</span><strong>${escapeHTML(courts)}</strong></div><div class="map-session-metrics"><span><strong>${(session.attendees || []).length}</strong> players</span><span><strong>${matches}</strong> matches</span></div></div><p class="map-pin-note">${location ? 'The pin on the map is matched from this session’s saved Location field.' : 'This session has no saved location, so it cannot have a map pin yet.'}</p><button type="button" class="btn btn-sm btn-primary" data-map-open-session="${escapeHTML(session.id)}">View full session details</button></div>`;
+  return `<div class="map-session-detail"><div class="map-session-status"><span class="status-pill ${session.isLive ? 'live' : 'ended'}">${session.isLive ? '<span class=\"live-status-dot\" aria-hidden=\"true\"></span>LIVE NOW' : 'COMPLETED'}</span><span>${escapeHTML(sessionDateLabel(session))}</span></div><h3>${escapeHTML(session.title)}</h3><div class="map-session-facts"><div><span>Session time</span><strong>${escapeHTML(sessionTimeLabel(session))}</strong></div><div><span>Created / started</span><strong>${escapeHTML(created)}</strong></div><div><span>Location</span><strong>${escapeHTML(location || 'Location not saved')}</strong></div><div><span>Courts</span><strong>${escapeHTML(courts)}</strong></div><div class="map-session-metrics"><span><strong>${(session.attendees || []).length}</strong> players</span><span><strong>${matches}</strong> matches</span></div></div><p class="map-pin-note">${location ? 'The pin on the map is matched from this session’s saved Location field.' : 'This session has no saved location, so it cannot have a map pin yet.'}</p><button type="button" class="btn btn-sm btn-primary" data-map-open-session="${escapeHTML(session.id)}">View full session details</button></div>`;
 }
 function mapModalMarkup(selectedSessionId, includeRegisteredCourts = false) {
   const sessions = state.data?.sessions || [];
@@ -3211,7 +3235,7 @@ function renderSessions() {
   const sessionActions = `<button class="btn" type="button" data-action="import-sessions">${icon('upload')} Import CSV</button><button class="btn" type="button" data-action="export-sessions">${icon('download')} Export CSV</button><a class="btn btn-primary" href="/session" target="_blank" rel="noopener">${icon('plus')} Start Open Play</a><input id="sessionCsvImportFile" type="file" accept=".csv,text/csv" hidden>`;
   return `<div class="page-stack">${pageHeading('HUSAY DINKERS / OPEN PLAY', 'Open Play Sessions', 'Session history and live attendance synced from your original queueing system.', sessionActions)}
     <div class="metric-grid"><div class="metric-tile"><span>Live sessions</span>${metricCount('sessions', 'live-sessions', liveCount)}</div><div class="metric-tile"><span>Completed sessions</span>${metricCount('sessions', 'completed-sessions', completedCount)}</div><div class="metric-tile"><span>Total attendance</span>${metricCount('sessions', 'total-attendance', attendanceCount)}</div><div class="metric-tile"><span>Recorded matches</span>${metricCount('sessions', 'recorded-matches', state.data.matches.length)}</div></div>
-    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Session History', 'calendar')}<div class="toolbar">${rankingSessionFilterMarkup(currentRankingSessionId())}<div class="match-type-filter session-status-filter" id="sessionStatusFilter" data-active="${escapeHTML(sessionStatus)}" role="group" aria-label="Filter sessions by status"><button class="match-type-option" type="button" data-session-status-filter="all" aria-pressed="${sessionStatus === 'all'}">ALL</button><button class="match-type-option" type="button" data-session-status-filter="Live" aria-pressed="${sessionStatus === 'live'}">LIVE</button><button class="match-type-option" type="button" data-session-status-filter="Completed" aria-pressed="${sessionStatus === 'completed'}">COMPLETED</button></div></div></div><div class="session-list">${sessionHistoryListMarkup()}</div></section>
+    <section class="panel panel-pad"><div class="panel-heading">${panelTitle('Session History', 'calendar')}<div class="toolbar">${rankingSessionFilterMarkup(currentRankingSessionId(), true)}<div class="match-type-filter session-status-filter" id="sessionStatusFilter" data-active="${escapeHTML(sessionStatus)}" role="group" aria-label="Filter sessions by status"><button class="match-type-option" type="button" data-session-status-filter="all" aria-pressed="${sessionStatus === 'all'}">ALL</button><button class="match-type-option" type="button" data-session-status-filter="Live" aria-pressed="${sessionStatus === 'live'}">LIVE</button><button class="match-type-option" type="button" data-session-status-filter="Completed" aria-pressed="${sessionStatus === 'completed'}">COMPLETED</button></div></div></div><div class="session-list">${sessionHistoryListMarkup()}</div></section>
     <p class="page-note">The original queueing system creates a session when an organizer starts Open Play. Session CSV files include attendance and linked match records so their session IDs remain connected on import. Imported sessions are saved as completed history and do not start a live queue.</p></div>`;
 }
 function playersTable(players) {
@@ -3322,7 +3346,7 @@ function renderMatches() {
   const sessionsById = new Map(state.data.sessions.map(session => [String(session.id), session]));
   const duprMatchesCount = state.data.matches.filter(match => matchIsDupr(match, sessionsById.get(String(match.sessionId || '')))).length;
   const nonDuprMatchesCount = state.data.matches.length - duprMatchesCount;
-  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / MATCH HISTORY', 'Match Records', 'Results recorded from Court Queueing, including scored and win/loss matches.', `<button class="btn" data-action="export-dupr">${icon('download')} Export DUPR CSV</button><a class="btn btn-primary" href="/queueing" target="_blank" rel="noopener">${icon('plus')} Record in Queue</a>`)}
+  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / MATCH HISTORY', 'Match Records', 'Results recorded from Court Queueing, including scored and win/loss matches.', `<button type="button" class="btn" data-action="export-dupr">${icon('download')} Export DUPR CSV</button><a class="btn btn-primary" href="/queueing" target="_blank" rel="noopener">${icon('plus')} Record in Queue</a>`)}
     <div class="metric-grid"><div class="metric-tile"><span>Match records</span>${metricCount('matches', 'recorded-matches', matches.length)}</div><div class="metric-tile"><span>Players involved</span>${metricCount('matches', 'players-involved', playersInMatches)}</div><div class="metric-tile"><span>DUPR matches</span>${metricCount('matches', 'dupr-matches', duprMatchesCount)}</div><div class="metric-tile"><span>Non DUPR matches</span>${metricCount('matches', 'non-dupr-matches', nonDuprMatchesCount)}</div></div>
     <section class="panel panel-pad"><div class="panel-heading">${panelTitle('All Match Records', 'trophy')}<div class="toolbar">${rankingSessionFilterMarkup(currentRankingSessionId())}<div class="match-type-filter" data-active="${escapeHTML(matchType)}" role="group" aria-label="Filter match records by type"><button class="match-type-option" type="button" data-match-type-filter="all" aria-pressed="${matchType === 'all'}">ALL</button><button class="match-type-option" type="button" data-match-type-filter="dupr" aria-pressed="${matchType === 'dupr'}">DUPR</button><button class="match-type-option" type="button" data-match-type-filter="non-dupr" aria-pressed="${matchType === 'non-dupr'}">NON-DUPR</button></div></div></div><div id="matchRecordsTableWrap">${matchesTable(matches)}</div></section>
     <p class="page-note">Match creation and player lineups remain in the original Queueing page, which updates this history automatically.</p></div>`;
@@ -3418,30 +3442,41 @@ function currentRankingSessionId() {
 }
 function rankingSessionType(session) {
   const raw = session?.raw || {};
-  const names = [raw.sessionName, raw.name, session?.sessionName, session?.title].map(value => String(value || '').trim()).filter(Boolean);
-  const markedName = names.find(value => /^\((?:NON[\s-]+)?DUPR\s+MATCH\)/i.test(value));
-  if (markedName) return /^\(NON[\s-]+DUPR\s+MATCH\)/i.test(markedName) ? 'NON-DUPR' : 'DUPR';
+  const names = [raw.sessionName, raw.name, session?.sessionName, session?.title]
+    .map(value => String(value || '').trim()).filter(Boolean);
+  const hasNonDuprMarker = names.some(value => /^\(NON[\s-]+DUPR\s+MATCH\)/i.test(value));
+  const hasDuprMarker = names.some(value => /^\(DUPR\s+MATCH\)/i.test(value));
   const sessionMatches = (state.data?.matches || []).filter(match => String(match.sessionId) === String(session.id));
+
+  // A session explicitly saved as Non-DUPR must remain Non-DUPR, even if an
+  // old title or an incorrectly flagged match says otherwise.
+  if (hasNonDuprMarker || raw.duprMatch === false || session?.duprMatch === false) return 'NON-DUPR';
+
+  // Evaluate saved match-level flags for mixed sessions; only actual DUPR
+  // matches make a session eligible for the DUPR export selector.
   if (sessionMatches.length) {
-    const hasDupr = sessionMatches.some(match => matchIsDupr(match, session));
-    const hasNonDupr = sessionMatches.some(match => !matchIsDupr(match, session));
+    const statuses = sessionMatches.map(match => matchIsDupr(match, session));
+    const hasDupr = statuses.some(Boolean);
+    const hasNonDupr = statuses.some(value => !value);
     if (hasDupr && hasNonDupr) return 'MIXED';
     return hasDupr ? 'DUPR' : 'NON-DUPR';
   }
+  if (hasNonDuprMarker) return 'NON-DUPR';
   if (typeof raw.duprMatch === 'boolean') return raw.duprMatch ? 'DUPR' : 'NON-DUPR';
+  if (hasDuprMarker) return 'DUPR';
   return 'NON-DUPR';
 }
 function rankingSessionTitle(session) {
   return String(session?.title || session?.sessionName || 'Open Play Session')
     .replace(/^\((?:NON[\s-]+)?DUPR\s+MATCH\)\s*/i, '').trim() || 'Open Play Session';
 }
-function rankingSessionFilterMarkup(selectedSessionId = currentRankingSessionId()) {
+function rankingSessionFilterMarkup(selectedSessionId = currentRankingSessionId(), highlightAllSessions = false) {
   const sessionOptions = sortedSessions().map(session => {
     const sessionType = rankingSessionType(session);
     const optionLabel = `(${sessionType}) ${rankingSessionTitle(session)} — ${sessionDateLabel(session)} · ${sessionStatus(session)}`;
     return `<option value="${escapeHTML(session.id)}" ${selectedSessionId === String(session.id) ? 'selected' : ''}>${escapeHTML(optionLabel)}</option>`;
   }).join('');
-  return `<select class="select-control ranking-session-filter" id="rankingSessionFilter"><option value="all" ${selectedSessionId === 'all' ? 'selected' : ''}>All Sessions</option>${sessionOptions}</select>`;
+  return `<select class="select-control ranking-session-filter${highlightAllSessions ? ' session-history-filter' : ''}" id="rankingSessionFilter"><option value="all" ${selectedSessionId === 'all' ? 'selected' : ''}>All Sessions</option>${sessionOptions}</select>`;
 }
 function getRankingPlayersForCurrentView() {
   const selectedSessionId = currentRankingSessionId();
@@ -4241,16 +4276,24 @@ function exportPlayers() {
 }
 const DUPR_EXPORT_COLUMNS = ['matchType','event','date','playerA1','playerA1DuprId','playerA1ExternalId','playerA2','playerA2DuprId','playerA2ExternalId','playerB1','playerB1DuprId','playerB1ExternalId','playerB2','playerB2DuprId','playerB2ExternalId','teamAGame1','teamBGame1','teamAGame2','teamBGame2','teamAGame3','teamBGame3','teamAGame4','teamBGame4','teamAGame5','teamBGame5','scoreType','location'];
 function matchIsDupr(match, session) {
-  const log = match.raw || {};
+  const log = match?.raw || {};
   const sessionRaw = session?.raw || {};
-  const matchName = String(log.sessionName || '').trim();
-  if (/^\(NON\s+DUPR\s+MATCH\)/i.test(matchName)) return false;
-  if (/^\(DUPR\s+MATCH\)/i.test(matchName)) return true;
+  // An explicit match flag is the most specific source and remains
+  // authoritative inside a mixed session.
   if (typeof log.duprMatch === 'boolean') return log.duprMatch;
-  const sessionName = String(sessionRaw.sessionName || sessionRaw.name || '').trim();
-  if (/^\(NON\s+DUPR\s+MATCH\)/i.test(sessionName)) return false;
-  if (/^\(DUPR\s+MATCH\)/i.test(sessionName)) return true;
-  return sessionRaw.duprMatch === true;
+  const matchName = String(log.sessionName || '').trim();
+  const sessionNames = [sessionRaw.sessionName, sessionRaw.name, session?.sessionName, session?.title]
+    .map(value => String(value || '').trim()).filter(Boolean);
+  const hasNonDuprMarker = /^\(NON[\s-]+DUPR\s+MATCH\)/i.test(matchName)
+    || sessionNames.some(value => /^\(NON[\s-]+DUPR\s+MATCH\)/i.test(value));
+  if (hasNonDuprMarker) return false;
+  // The saved session boolean takes precedence over old/inherited title text;
+  // otherwise legacy titles can make every option look like a DUPR session.
+  if (typeof sessionRaw.duprMatch === 'boolean') return sessionRaw.duprMatch;
+  if (typeof session?.duprMatch === 'boolean') return session.duprMatch;
+  if (/^\(DUPR\s+MATCH\)/i.test(matchName)) return true;
+  if (sessionNames.some(value => /^\(DUPR\s+MATCH\)/i.test(value))) return true;
+  return false;
 }
 function matchDuprPlayer(match, side, index) {
   const log = match.raw || {};
@@ -4269,21 +4312,37 @@ function matchDuprPlayer(match, side, index) {
   const duprId = String(registered?.duprId || snapshot.duprId || snapshot.duprID || snapshot.dupr_id || snapshot.dupr || '').trim().toUpperCase();
   return { name, duprId };
 }
-function duprRowForMatch(match) {
-  const session = state.data.sessions.find(item => item.id === match.sessionId);
-  if (!session || !matchIsDupr(match, session)) return { row: null, reason: 'nonDupr' };
+function duprRowForMatch(match, knownSession = null) {
+  const sessionId = String(match?.sessionId ?? '');
+  const session = knownSession || state.data.sessions.find(item => String(item.id) === sessionId);
+  if (!session) return { row: null, reason: 'noSession', players: [] };
+
+  const teamANames = asArray(match.teamANames);
+  const teamBNames = asArray(match.teamBNames);
+  const teamA = teamANames.map((_, index) => matchDuprPlayer(match, 'team1', index));
+  const teamB = teamBNames.map((_, index) => matchDuprPlayer(match, 'team2', index));
+  const players = [...teamA, ...teamB];
+
+  if (!matchIsDupr(match, session)) return { row: null, reason: 'nonDupr', players };
+
   const log = match.raw || {};
-  const score = String(log.score || '').trim().match(/^(\d+)\s*-\s*(\d+)$/);
-  if (String(log.recordingMode || '').toLowerCase() === 'win-only' || !score || Number(score[1]) === Number(score[2])) return { row: null, reason: 'unscored' };
-  const type = String(log.type || match.type || 'Doubles').toLowerCase();
+  const type = String(log.type || match.type || (teamANames.length === 1 ? 'Singles' : 'Doubles')).toLowerCase();
   const singles = type.includes('single');
-  if (!singles && !type.includes('double')) return { row: null, reason: 'incomplete' };
-  const teamA = match.teamANames.map((_, index) => matchDuprPlayer(match, 'team1', index));
-  const teamB = match.teamBNames.map((_, index) => matchDuprPlayer(match, 'team2', index));
+  if (!singles && !type.includes('double')) return { row: null, reason: 'incomplete', players };
   const expected = singles ? 1 : 2;
-  if (teamA.length !== expected || teamB.length !== expected || [...teamA, ...teamB].some(player => !player.name || !player.duprId)) return { row: null, reason: 'incomplete' };
+  if (teamA.length !== expected || teamB.length !== expected || players.some(player => !player.name)) {
+    return { row: null, reason: 'incomplete', players };
+  }
+
+  const missingDuprPlayers = players.filter(player => !player.duprId);
+
+  const score = String(log.score || '').trim().match(/^(\d+)\s*-\s*(\d+)$/);
+  if (String(log.recordingMode || '').toLowerCase() === 'win-only' || !score || Number(score[1]) === Number(score[2])) {
+    return { row: null, reason: 'unscored', players };
+  }
+
   const sessionRaw = session.raw || {};
-  const event = String(log.sessionName || sessionRaw.sessionName || session.title || 'Open Play').replace(/^\((?:NON\s+)?DUPR\s+MATCH\)\s*/i, '').trim() || 'Open Play';
+  const event = rankingSessionTitle(session) || 'Open Play';
   const playedAt = new Date(log.endedAt || log.startedAt || sessionRaw.endedAt || sessionRaw.startedAt || match.playedAt || '');
   const date = Number.isNaN(playedAt.getTime()) ? '' : `${playedAt.getFullYear()}-${String(playedAt.getMonth() + 1).padStart(2, '0')}-${String(playedAt.getDate()).padStart(2, '0')}`;
   const row = {
@@ -4294,22 +4353,295 @@ function duprRowForMatch(match) {
     playerB2: teamB[1]?.name || '', playerB2DuprId: teamB[1]?.duprId || '', playerB2ExternalId: '',
     teamAGame1: Number(score[1]), teamBGame1: Number(score[2]),
     teamAGame2: '', teamBGame2: '', teamAGame3: '', teamBGame3: '', teamAGame4: '', teamBGame4: '', teamAGame5: '', teamBGame5: '',
-    scoreType: String(log.scoreType || (Number(log.target) === 21 ? 'Rally' : 'Sideout')),
+    scoreType: duprMatchScoreType(match),
     location: String(sessionRaw.duprLocation || sessionRaw.location || session.location || sessionRaw.venue || '').trim()
   };
-  return { row, reason: '' };
+  if (missingDuprPlayers.length) return { row, reason: 'missingDupr', players, missingDuprPlayers };
+  return { row, reason: '', players };
+}
+const DUPR_SCORE_TYPES = ['Sideout', 'Rally'];
+function duprMatchScoreType(match) {
+  const log = match?.raw || {};
+  const recordedType = String(log.scoreType || '').trim().toLowerCase();
+  return recordedType.includes('rally') || Number(log.target) === 21 ? 'Rally' : 'Sideout';
+}
+function duprExportScoreTypes() {
+  return [...DUPR_SCORE_TYPES];
+}
+function duprExportSessions() {
+  const matchesBySession = new Map();
+  asArray(state.data?.matches).forEach(match => {
+    const id = String(match.sessionId ?? '');
+    if (!id) return;
+    if (!matchesBySession.has(id)) matchesBySession.set(id, []);
+    matchesBySession.get(id).push(match);
+  });
+  return asArray(state.data?.sessions).map(session => {
+    const matches = matchesBySession.get(String(session.id)) || [];
+    const duprMatchCount = matches.filter(match => matchIsDupr(match, session)).length;
+    return { ...session, exportMatchCount: duprMatchCount, sessionMatchCount: matches.length };
+  }).filter(session => rankingSessionType(session) !== 'NON-DUPR' && session.exportMatchCount > 0);
+}
+function duprExportItems(sessionId = pendingDuprExport?.sessionId, applyScoreType = true) {
+  const session = asArray(state.data?.sessions).find(item => String(item.id) === String(sessionId || ''));
+  if (!session || rankingSessionType(session) === 'NON-DUPR') return [];
+  const scoreType = applyScoreType ? String(pendingDuprExport?.scoreType || 'Sideout') : 'all';
+  return asArray(state.data?.matches)
+    .filter(match => String(match.sessionId ?? '') === String(session.id))
+    .filter(match => scoreType === 'all' || normalizeName(duprMatchScoreType(match)) === normalizeName(scoreType))
+    .map(match => ({ match, assessment: duprRowForMatch(match, session) }));
+}
+function duprExportCounts(items = duprExportItems()) {
+  const counts = { all: items.length, ready: 0, missing: 0, excluded: 0 };
+  items.forEach(({ assessment }) => {
+    if (!assessment.reason) counts.ready += 1;
+    else if (assessment.reason === 'missingDupr') counts.missing += 1;
+    else counts.excluded += 1;
+  });
+  return counts;
+}
+function duprExportSessionSummaryMarkup() {
+  const items = duprExportItems();
+  const counts = duprExportCounts(items);
+  return `<div class="dupr-export-session-stats" aria-label="Selected session match counts">
+    <span><strong>${counts.all}</strong> Total matches</span>
+    <span class="is-ready"><strong>${counts.ready}</strong> Ready</span>
+    <span class="is-missing"><strong>${counts.missing}</strong> Missing DUPR</span>
+    <span><strong>${counts.excluded}</strong> Excluded</span>
+  </div>`;
+}
+function duprExportFilterTabsMarkup() {
+  const items = duprExportItems();
+  const counts = duprExportCounts(items);
+  const filter = pendingDuprExport?.filter || 'all';
+  return [
+    ['all', `All (${counts.all})`],
+    ['ready', `Ready (${counts.ready})`],
+    ['missing', `Missing DUPR (${counts.missing})`],
+    ['excluded', `Excluded (${counts.excluded})`]
+  ].map(([key, label]) => `<button type="button" class="player-import-tab ${filter === key ? 'is-active' : ''}" data-dupr-export-filter="${key}" aria-pressed="${filter === key}">${label}</button>`).join('');
+}
+function duprExportNoticeMarkup() {
+  const items = duprExportItems();
+  const counts = duprExportCounts(items);
+  if (counts.missing) {
+    return `<div class="player-import-alert dupr-export-alert"><span class="player-import-alert-icon">${icon('info')}</span><div><strong>${counts.missing} DUPR match${counts.missing === 1 ? '' : 'es'} ${counts.missing === 1 ? 'has' : 'have'} missing player DUPR ID${counts.missing === 1 ? '' : 's'}</strong><span>These matches will be included in the CSV with blank DUPR ID fields so you can correct them in the exported file.</span></div></div>`;
+  }
+  if (counts.ready) {
+    return `<div class="player-import-success-note dupr-export-success">${icon('check')} All ${counts.ready} exportable match${counts.ready === 1 ? '' : 'es'} in this session have the required player DUPR IDs.</div>`;
+  }
+  return `<div class="player-import-alert dupr-export-alert"><span class="player-import-alert-icon">${icon('info')}</span><div><strong>No DUPR matches are exportable with the current filters.</strong><span>Only DUPR sessions and DUPR matches with a valid score and complete player lineups can be exported. Non-DUPR, win-only, and incomplete records are excluded.</span></div></div>`;
+}
+function duprExportStatusDetails(assessment) {
+  const reason = assessment.reason;
+  if (!reason) return { label: 'Ready', className: 'ready', rowClass: '', filterStatus: 'ready', detail: 'All players have DUPR IDs; scored match is ready to export.' };
+  if (reason === 'missingDupr') {
+    const names = asArray(assessment.missingDuprPlayers).map(player => player.name || 'Unnamed player');
+    return { label: 'Missing DUPR', className: 'invalid', rowClass: 'player-import-row-invalid', filterStatus: 'missing', detail: `Missing DUPR ID: ${names.join(', ')}` };
+  }
+  if (reason === 'nonDupr') return { label: 'Non-DUPR', className: 'duplicate', rowClass: 'player-import-row-duplicate', filterStatus: 'excluded', detail: 'This match is marked as Non-DUPR.' };
+  if (reason === 'unscored') return { label: 'No score', className: 'duplicate', rowClass: 'player-import-row-duplicate', filterStatus: 'excluded', detail: 'A valid scored result is required; win-only records are excluded.' };
+  if (reason === 'noSession') return { label: 'No session', className: 'invalid', rowClass: 'player-import-row-invalid', filterStatus: 'excluded', detail: 'The linked session could not be found.' };
+  return { label: 'Incomplete', className: 'invalid', rowClass: 'player-import-row-invalid', filterStatus: 'excluded', detail: 'Check that the match type and player lineup are complete.' };
+}
+function duprExportTableMarkup() {
+  const items = duprExportItems();
+  if (!items.length) {
+    return `<div class="dupr-export-empty">No match records are linked to this session.</div>`;
+  }
+  const tableRows = items.map(({ match, assessment }, index) => {
+    const status = duprExportStatusDetails(assessment);
+    const players = asArray(assessment.players);
+    const teamACount = asArray(match.teamANames).length;
+    const teamA = players.slice(0, teamACount);
+    const teamB = players.slice(teamACount);
+    const playerAt = (list, playerIndex) => list[playerIndex] || { name: '', duprId: '' };
+    const playerCell = player => {
+      const name = String(player?.name || '').trim();
+      const duprId = String(player?.duprId || '').trim();
+      const missing = !duprId;
+      return {
+        name: name || '—',
+        id: duprId || (name ? 'MISSING' : '—'),
+        missing: Boolean(name && missing),
+        nameTitle: name || 'No player recorded'
+      };
+    };
+    const a1 = playerCell(playerAt(teamA, 0));
+    const a2 = playerCell(playerAt(teamA, 1));
+    const b1 = playerCell(playerAt(teamB, 0));
+    const b2 = playerCell(playerAt(teamB, 1));
+    const typeSource = String(match.raw?.type || match.type || '').toLowerCase();
+    const typeCode = assessment.row?.matchType || (typeSource.includes('single') || teamACount === 1 ? 'S' : 'D');
+    const dateValue = String(match.date || assessment.row?.date || '—');
+    const parsedScore = String(match.raw?.score || match.scoreLabel || '').match(/(\d+)\s*[-–:]\s*(\d+)/);
+    const scoreA = Number.isFinite(Number(match.scoreA)) && match.scoreA !== null && match.scoreA !== ''
+      ? Number(match.scoreA) : (parsedScore ? Number(parsedScore[1]) : null);
+    const scoreB = Number.isFinite(Number(match.scoreB)) && match.scoreB !== null && match.scoreB !== ''
+      ? Number(match.scoreB) : (parsedScore ? Number(parsedScore[2]) : null);
+    const scoreAValue = scoreA === null ? '—' : String(scoreA);
+    const scoreBValue = scoreB === null ? '—' : String(scoreB);
+    const searchText = normalizeName([
+      typeCode, dateValue, match.courtName, match.scoreLabel,
+      a1.name, a1.id, a2.name, a2.id, b1.name, b1.id, b2.name, b2.id,
+      status.label, status.detail
+    ].join(' '));
+    const cell = player => `<td class="dupr-export-player-name" title="${escapeHTML(player.nameTitle)}"><span>${escapeHTML(player.name)}</span></td><td class="dupr-export-id-cell"><span class="dupr-export-id ${player.missing ? 'is-missing' : ''}" title="${player.missing ? 'Missing player DUPR ID' : 'DUPR ID'}">${escapeHTML(player.id)}</span></td>`;
+    return `<tr class="${status.rowClass}" data-dupr-export-row="true" data-filter-status="${status.filterStatus}" data-search="${escapeHTML(searchText)}" title="${escapeHTML(status.detail)}">
+      <td class="dupr-export-row-number">${index + 1}</td>
+      <td class="dupr-export-type"><span>${escapeHTML(typeCode)}</span></td>
+      <td class="dupr-export-date">${escapeHTML(dateValue)}</td>
+      ${cell(a1)}
+      ${cell(a2)}
+      ${cell(b1)}
+      ${cell(b2)}
+      <td class="dupr-export-score dupr-export-score-a">${escapeHTML(scoreAValue)}</td>
+      <td class="dupr-export-score dupr-export-score-b">${escapeHTML(scoreBValue)}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="player-import-table-wrap dupr-export-table-wrap"><table class="data-table player-import-table dupr-export-table"><colgroup>
+    <col style="width:3%"><col style="width:4%"><col style="width:9%">
+    <col style="width:11%"><col style="width:7%"><col style="width:11%"><col style="width:7%">
+    <col style="width:11%"><col style="width:7%"><col style="width:11%"><col style="width:7%">
+    <col style="width:6%"><col style="width:6%">
+  </colgroup><thead><tr><th>#</th><th>TYPE</th><th>DATE</th><th>PLAYER A1</th><th>DUPR ID</th><th>PLAYER A2</th><th>DUPR ID</th><th>PLAYER B1</th><th>DUPR ID</th><th>PLAYER B2</th><th>DUPR ID</th><th>A</th><th>B</th></tr></thead><tbody>${tableRows}<tr class="player-import-empty-row dupr-export-empty-row" hidden><td colspan="13">No matches match your search or selected filter.</td></tr></tbody></table></div>`;
+}
+function duprExportFooterMarkup() {
+  const items = duprExportItems();
+  const counts = duprExportCounts(items);
+  const exportable = counts.ready + counts.missing;
+  const session = asArray(state.data?.sessions).find(item => String(item.id) === String(pendingDuprExport?.sessionId || ''));
+  const sessionTitle = session ? rankingSessionTitle(session) : 'selected session';
+  return `<span><strong>${exportable} DUPR match${exportable === 1 ? '' : 'es'}</strong> from <strong>${escapeHTML(sessionTitle)}</strong> will be exported, including matches with missing DUPR IDs. Non-DUPR and incomplete records are excluded.</span><div><button type="button" class="btn" data-action="close-modal">Close</button><button type="button" class="btn btn-primary" data-action="confirm-dupr-export" ${exportable ? '' : 'disabled'}>${icon('download')} Export ${exportable} DUPR Match${exportable === 1 ? '' : 'es'}</button></div>`;
+}
+function duprExportReviewMarkup() {
+  const sessions = duprExportSessions();
+  const selectedSession = sessions.find(session => String(session.id) === String(pendingDuprExport?.sessionId || ''));
+  const counts = duprExportCounts(duprExportItems(selectedSession?.id));
+  const options = sessions.map(session => {
+    const dateLabel = session.date ? ` · ${fmtDate(session.date)}` : '';
+    const sessionLabel = `(${rankingSessionType(session)}) ${rankingSessionTitle(session)}`;
+    return `<option value="${escapeHTML(session.id)}" ${selectedSession && String(selectedSession.id) === String(session.id) ? 'selected' : ''}>${escapeHTML(sessionLabel)}${dateLabel} · ${session.exportMatchCount} DUPR match${session.exportMatchCount === 1 ? '' : 'es'}</option>`;
+  }).join('');
+  const scoreTypes = duprExportScoreTypes(selectedSession?.id);
+  const selectedScoreType = DUPR_SCORE_TYPES.includes(String(pendingDuprExport?.scoreType || 'Sideout'))
+    ? String(pendingDuprExport?.scoreType || 'Sideout') : 'Sideout';
+  const scoreTypeOptions = scoreTypes.map(type => `<option value="${escapeHTML(type)}" ${selectedScoreType === type ? 'selected' : ''}>${escapeHTML(type)}</option>`).join('');
+  return `<div class="player-import-layout dupr-export-layout">
+    <div class="dupr-export-sessionbar">
+      <div class="dupr-export-session-copy"><strong>Choose DUPR session</strong><small>Only DUPR sessions and DUPR matches can be exported. Missing DUPR IDs remain blank in the CSV.</small></div>
+      <div class="dupr-export-control-group"><label for="duprExportSessionSelect">Filter Session</label><select class="select-control dupr-export-session-select" id="duprExportSessionSelect" aria-label="Filter session to export" ${sessions.length ? '' : 'disabled'}>${options || '<option value="">No DUPR sessions with matches</option>'}</select></div>
+      <div class="dupr-export-control-group dupr-export-scoretype-group"><label for="duprExportScoreTypeSelect">Score Type</label><select class="select-control dupr-export-scoretype-select" id="duprExportScoreTypeSelect" aria-label="Filter by DUPR score type">${scoreTypeOptions}</select></div>
+      <div id="duprExportSessionSummary">${duprExportSessionSummaryMarkup()}</div>
+    </div>
+    <div class="player-import-filterbar"><div class="player-import-tabs" id="duprExportFilterbar" role="group" aria-label="Filter DUPR export matches">${duprExportFilterTabsMarkup()}</div></div>
+    <div class="player-import-searchbar">
+      <label class="player-import-search" for="duprExportSearch">${icon('search')}<input id="duprExportSearch" type="search" autocomplete="off" placeholder="Search players, DUPR ID, court or score…" value="${escapeHTML(pendingDuprExport?.query || '')}"></label>
+      <div class="player-import-meta"><strong>${counts.all} session match${counts.all === 1 ? '' : 'es'}</strong><span class="dupr-export-visible-count">Showing ${counts.all} of ${counts.all} matches</span></div>
+    </div>
+    <div id="duprExportNotice">${duprExportNoticeMarkup()}</div>
+    <div id="duprExportTableContainer">${duprExportTableMarkup()}</div>
+    <div id="duprExportFooter" class="player-import-footer dupr-export-footer">${duprExportFooterMarkup()}</div>
+  </div>`;
+}
+function applyDuprExportPreviewFilters() {
+  const root = $('#modalRoot');
+  if (!root || !pendingDuprExport) return;
+  const search = normalizeName($('#duprExportSearch', root)?.value || '');
+  const selectedFilter = pendingDuprExport.filter || 'all';
+  const rows = $$('[data-dupr-export-row]', root);
+  let visibleCount = 0;
+  rows.forEach(row => {
+    const status = row.dataset.filterStatus || 'excluded';
+    const matchesFilter = selectedFilter === 'all' || (selectedFilter === 'excluded' ? status === 'excluded' : status === selectedFilter);
+    const matchesSearch = !search || String(row.dataset.search || '').includes(search);
+    const visible = matchesFilter && matchesSearch;
+    row.hidden = !visible;
+    if (visible) visibleCount += 1;
+  });
+  const countLabel = $('.dupr-export-visible-count', root);
+  if (countLabel) countLabel.textContent = `Showing ${visibleCount} of ${rows.length} matches`;
+  const emptyRow = $('.dupr-export-empty-row', root);
+  if (emptyRow) emptyRow.hidden = visibleCount !== 0;
+  $$('[data-dupr-export-filter]', root).forEach(button => {
+    const active = button.dataset.duprExportFilter === selectedFilter;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+function refreshDuprExportSessionPreview({ resetView = false } = {}) {
+  if (!pendingDuprExport) return;
+  const summary = $('#duprExportSessionSummary');
+  const filterbar = $('#duprExportFilterbar');
+  const search = $('#duprExportSearch');
+  const meta = $('.dupr-export-visible-count');
+  const notice = $('#duprExportNotice');
+  const table = $('#duprExportTableContainer');
+  const footer = $('#duprExportFooter');
+  const session = asArray(state.data?.sessions).find(item => String(item.id) === String(pendingDuprExport.sessionId || ''));
+  const scoreTypeSelect = $('#duprExportScoreTypeSelect');
+  if (scoreTypeSelect && session) {
+    const availableTypes = duprExportScoreTypes(session.id);
+    const requestedType = String(pendingDuprExport.scoreType || 'Sideout');
+    const currentType = DUPR_SCORE_TYPES.includes(requestedType) ? requestedType : 'Sideout';
+    pendingDuprExport.scoreType = currentType;
+    scoreTypeSelect.innerHTML = availableTypes.map(type => `<option value="${escapeHTML(type)}" ${type === currentType ? 'selected' : ''}>${escapeHTML(type)}</option>`).join('');
+    scoreTypeSelect.disabled = false;
+    const customSelect = customSelectInstances.get(scoreTypeSelect);
+    if (customSelect) syncCustomSelect(customSelect);
+  }
+  if (resetView) {
+    pendingDuprExport.filter = 'all';
+    pendingDuprExport.query = '';
+    if (search) search.value = '';
+  }
+  const items = duprExportItems();
+  const counts = duprExportCounts(items);
+  if (summary) summary.innerHTML = duprExportSessionSummaryMarkup();
+  if (filterbar) filterbar.innerHTML = duprExportFilterTabsMarkup();
+  const metaStrong = $('.player-import-meta strong', $('#modalRoot'));
+  if (metaStrong) metaStrong.textContent = `${counts.all} session match${counts.all === 1 ? '' : 'es'}`;
+  if (meta) meta.textContent = `Showing ${counts.all} of ${counts.all} matches`;
+  if (notice) notice.innerHTML = duprExportNoticeMarkup();
+  if (table) table.innerHTML = duprExportTableMarkup();
+  if (footer) footer.innerHTML = duprExportFooterMarkup();
+  applyDuprExportPreviewFilters();
+}
+function openDuprExportReview() {
+  const sessions = duprExportSessions();
+  const currentFilterSessionId = currentRankingSessionId();
+  const preferred = sessions.find(session => String(session.id) === String(currentFilterSessionId || ''));
+  pendingDuprExport = { sessionId: String((preferred || sessions[0])?.id || ''), filter: 'all', query: '', scoreType: 'Sideout' };
+  modal('Export DUPR CSV', duprExportReviewMarkup(), {
+    wide: true,
+    className: 'player-import-modal dupr-export-modal',
+    subtitle: 'Review matches by session and check missing player DUPR IDs before exporting.'
+  });
 }
 function exportDuprMatches() {
-  const results = state.data.matches.map(match => duprRowForMatch(match));
-  const rows = results.filter(result => result.row).map(result => result.row);
-  const excluded = results.reduce((counts, result) => { if (result.reason) counts[result.reason] += 1; return counts; }, { nonDupr: 0, unscored: 0, incomplete: 0 });
-  if (!rows.length) {
-    toast('No matches currently meet DUPR export requirements. Check DUPR match flags, scores, match type, and all player DUPR IDs.', 'error');
+  const session = asArray(state.data?.sessions).find(item => String(item.id) === String(pendingDuprExport?.sessionId || ''));
+  if (!session) {
+    toast('Choose a session with match records before exporting.', 'error');
     return;
   }
-  downloadCSV('husay-dinkers-dupr-matches.csv', DUPR_EXPORT_COLUMNS, rows.map(row => DUPR_EXPORT_COLUMNS.map(column => row[column])));
-  const warningCount = excluded.nonDupr + excluded.unscored + excluded.incomplete;
-  toast(`Downloaded ${rows.length} DUPR match${rows.length === 1 ? '' : 'es'}${warningCount ? `; ${warningCount} other record(s) were excluded` : ''}.`);
+  if (rankingSessionType(session) === 'NON-DUPR') {
+    toast('Non-DUPR sessions cannot be exported. Choose a DUPR session.', 'error');
+    return;
+  }
+  const selectedScoreType = String(pendingDuprExport?.scoreType || 'Sideout');
+  const results = duprExportItems(session.id).filter(({ match }) => matchIsDupr(match, session)
+    && normalizeName(duprMatchScoreType(match)) === normalizeName(selectedScoreType))
+    .map(item => item.assessment);
+  const rows = results.filter(result => result.row && (result.reason === '' || result.reason === 'missingDupr')).map(result => result.row);
+  if (!rows.length) {
+    toast('This DUPR session has no exportable scored matches for the selected score type.', 'error');
+    return;
+  }
+  const safeSessionName = String(rankingSessionTitle(session) || 'session').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'session';
+  downloadCSV(`husay-dinkers-dupr-${safeSessionName}.csv`, DUPR_EXPORT_COLUMNS, rows.map(row => DUPR_EXPORT_COLUMNS.map(column => row[column])));
+  closeModal();
+  toast(`Downloaded ${rows.length} DUPR match${rows.length === 1 ? '' : 'es'} from “${session.title || 'selected session'}” only.`);
 }
 function exportRankings() {
   const players = getRankingPlayersForCurrentView();
@@ -4562,7 +4894,7 @@ function renderPage(preserveScroll = true) {
   const oldScroll = preserveScroll ? container.scrollTop : 0;
   const activeElement = preserveScroll && container.contains(document.activeElement) ? document.activeElement : null;
   const activeId = activeElement?.id || '';
-  if (activeCustomSelect) closeCustomSelect(activeCustomSelect);
+  closeAllCustomSelectMenus();
   const previousMaps = preserveScroll
     ? new Map($$('.interactive-map', container).map(node => [node.id, {
         node,
@@ -4694,6 +5026,7 @@ function toast(message, type = 'success') {
   window.setTimeout(() => node.remove(), 3400);
 }
 function modal(title, body, options = {}) {
+  closeAllCustomSelectMenus();
   for (const mapId of ['sessionMapModal', 'courtLocationPinMap', 'sessionDetailsMiniMap']) {
     const existingMap = state.mapInstances.get(mapId);
     if (existingMap) { try { existingMap.remove(); } catch (_) {} state.mapInstances.delete(mapId); }
@@ -4708,7 +5041,8 @@ function modal(title, body, options = {}) {
   if (focusable) window.setTimeout(() => focusable.focus(), 20);
 }
 function closeModal() {
-  if (activeCustomSelect) closeCustomSelect(activeCustomSelect);
+  closeAllCustomSelectMenus();
+  pendingDuprExport = null;
   if (state.modal === 'Import Courts & Locations') pendingCourtImport = null;
   for (const mapId of ['sessionMapModal', 'courtLocationPinMap', 'sessionDetailsMiniMap']) {
     const map = state.mapInstances.get(mapId);
@@ -4815,7 +5149,7 @@ function openSessionDetails(sessionId) {
         <div class="modal-heading-copy">
           <div class="session-details-heading-meta">
             <span class="session-details-eyebrow">SESSIONS</span>
-            <span class="status-pill ${statusClass}">${statusLabel}</span>
+            <span class="status-pill ${statusClass}">${session.isLive ? '<span class="live-status-dot" aria-hidden="true"></span>' : ''}${statusLabel}</span>
           </div>
           <h2 id="sessionDetailsHeading">${escapeHTML(session.title)}</h2>
         </div>
@@ -5078,6 +5412,26 @@ function getMatchByKey(key) { return state.data.matches.find(match => match.key 
 function populateStaticIcons() { $$('[data-icon]').forEach(element => { element.innerHTML = icon(element.dataset.icon); }); }
 function closeMobileNav() { $('#sidebar').classList.remove('mobile-open'); $('#mobileScrim').classList.remove('visible'); }
 
+// Export DUPR is handled in the capture phase because Match Records is rebuilt
+// dynamically after navigation/refresh. This keeps the export button reliable
+// even when other delegated page handlers are changed or stop bubbling.
+document.addEventListener('click', event => {
+  const exportButton = event.target?.closest?.('button[data-action="export-dupr"]');
+  if (!exportButton) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  try {
+    openDuprExportReview();
+    const modalRoot = $('#modalRoot');
+    if (!modalRoot?.querySelector('.dupr-export-modal')) {
+      throw new Error('The DUPR export review window could not be displayed.');
+    }
+  } catch (error) {
+    console.error('Unable to open the DUPR export review:', error);
+    toast(error?.message || 'Unable to open the DUPR export review. Please refresh and try again.', 'error');
+  }
+}, true);
+
 // Main click delegation keeps controls stable when view HTML is refreshed.
 // Mouse users can drag the horizontal court strip just like a touch swipe.
 let courtStripDrag = null;
@@ -5218,6 +5572,12 @@ document.addEventListener('click', async event => {
     applyPlayerImportPreviewFilters();
     return;
   }
+  const duprExportFilter = event.target.closest('[data-dupr-export-filter]');
+  if (duprExportFilter && pendingDuprExport) {
+    pendingDuprExport.filter = duprExportFilter.dataset.duprExportFilter || 'all';
+    applyDuprExportPreviewFilters();
+    return;
+  }
 
   const playerMetricFilterButton = event.target.closest('[data-player-metric-filter]');
   if (playerMetricFilterButton && state.page === 'players') {
@@ -5315,7 +5675,8 @@ document.addEventListener('click', async event => {
     if (action === 'import-sessions') { $('#sessionCsvImportFile')?.click(); return; }
     if (action === 'confirm-session-import') { await confirmSessionImport(actionButton); return; }
     if (action === 'export-sessions') { exportSessions(); return; }
-    if (action === 'export-dupr') { exportDuprMatches(); return; }
+    if (action === 'export-dupr') { openDuprExportReview(); return; }
+    if (action === 'confirm-dupr-export') { exportDuprMatches(); return; }
     if (action === 'edit-settings') { openOrganizerSettings(); return; }
     if (action === 'register-court') { openRegisterCourtModal(); return; }
     if (action === 'edit-registered-court') { openEditRegisteredCourtModal(actionButton.dataset.courtId || ''); return; }
@@ -5657,6 +6018,11 @@ document.addEventListener('input', event => {
     applyPlayerImportPreviewFilters();
     return;
   }
+  if (event.target?.id === 'duprExportSearch' && pendingDuprExport) {
+    pendingDuprExport.query = event.target.value || '';
+    applyDuprExportPreviewFilters();
+    return;
+  }
   const input = event.target.closest('[data-court-location-input]');
   if (!input) return;
   const form = input.closest('form');
@@ -5782,6 +6148,17 @@ document.addEventListener('keydown', event => {
 });
 document.addEventListener('change', async event => {
   const target = event.target;
+  if (target?.id === 'duprExportSessionSelect' && pendingDuprExport) {
+    pendingDuprExport.sessionId = String(target.value || '');
+    pendingDuprExport.scoreType = 'Sideout';
+    refreshDuprExportSessionPreview({ resetView: true });
+    return;
+  }
+  if (target?.id === 'duprExportScoreTypeSelect' && pendingDuprExport) {
+    pendingDuprExport.scoreType = DUPR_SCORE_TYPES.includes(String(target.value || '')) ? String(target.value) : 'Sideout';
+    refreshDuprExportSessionPreview();
+    return;
+  }
   if (target.id === 'courtCsvImportFile') {
     const file = target.files?.[0];
     target.value = '';
