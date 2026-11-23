@@ -5,7 +5,7 @@ const { URL } = require('node:url');
 const crypto = require('node:crypto');
 
 const ROOT = __dirname;
-const APP_BUILD_VERSION = 'ppm-shared-registered-courts-global-manage-20261120-v2';
+const APP_BUILD_VERSION = 'ppm-organizer-profile-card-settings-20261123-v2';
 const SESSION_IMPORT_API_PATH = '/api/organizer-dashboard/sessions/import';
 const DATA_DIR = process.env.PICKLE_DATA_DIR ? path.resolve(process.env.PICKLE_DATA_DIR) : path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'live-state.json');
@@ -396,6 +396,58 @@ function safeOrganizerLogo(value) {
 }
 function organizerLogoFor(account) {
   return safeOrganizerLogo(account?.profileImage) || safeOrganizerLogo(account?.organizerLogo) || safeOrganizerLogo(account?.logoData) || safeOrganizerLogo(account?.logo);
+}
+function safeOrganizerProfileImage(value) {
+  const image = typeof value === 'string' ? value.trim() : '';
+  if (!image || image.length > 5 * 1024 * 1024) return null;
+  if (/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/i.test(image)) return image;
+  try {
+    const parsed = new URL(image);
+    return parsed.protocol === 'https:' ? parsed.href : null;
+  } catch (_) {
+    return null;
+  }
+}
+function safeOrganizerProfileLink(value) {
+  const link = typeof value === 'string' ? value.trim() : '';
+  if (!link || link.length > 1000) return null;
+  try {
+    const parsed = new URL(link);
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) return null;
+    return parsed.href;
+  } catch (_) {
+    return null;
+  }
+}
+function organizerProfileDetailsFor(account) {
+  return {
+    background: safeOrganizerProfileImage(account?.profileBackground || account?.backgroundImage || account?.coverImage || account?.profileBanner),
+    notes: String(account?.organizerNotes || account?.profileNotes || account?.notes || account?.description || '').normalize('NFC').trim().slice(0, 100),
+    reclubUrl: safeOrganizerProfileLink(account?.reclubUrl || account?.reclubLink),
+    facebookUrl: safeOrganizerProfileLink(account?.facebookUrl || account?.facebookLink)
+  };
+}
+function organizerLiveProfileStatsFor(organizerId) {
+  const records = sharedCloudRecords || {players:[],logs:[],sessions:[]};
+  const allPlayers = Array.isArray(records.players) ? records.players : [];
+  const registeredPlayerCount = allPlayers.filter(player => player && player.historicalOnly !== true).length;
+  const allSessions = Array.isArray(records.sessions) ? records.sessions : [];
+  const activeOrganizers = organizerAccounts
+    .filter(item => item && item.active === true && effectiveApprovalStatus(item) === 'approved')
+    .sort((a,b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+  const legacyOwnerId = activeOrganizers[0]?.id || null;
+  const sessions = allSessions.filter(session =>
+    String(session?.organizerId || '') === organizerId || (!session?.organizerId && legacyOwnerId === organizerId)
+  );
+  const sessionIds = new Set(sessions.map(session => String(session?.id || '')).filter(Boolean));
+  const allLogs = Array.isArray(records.logs) ? records.logs : [];
+  const recordedMatchCount = allLogs.filter(log =>
+    String(log?.organizerId || '') === organizerId || (log?.sessionId && sessionIds.has(String(log.sessionId)))
+  ).length;
+  const appState = getOrganizerAppEntry(organizerId)?.state;
+  const liveSessionId = appState?.sessionActive === true && !isEndedSessionState(appState) ? getSessionId(appState) : '';
+  const sessionCount = sessions.length + (liveSessionId && !sessionIds.has(liveSessionId) ? 1 : 0);
+  return {registeredPlayerCount, recordedMatchCount, sessionCount};
 }
 function organizerPublicRecord(account) {
   const approvalStatus = effectiveApprovalStatus(account);
@@ -1326,7 +1378,7 @@ function broadcast(snapshot = latestState, organizerId = null) {
 }
 function broadcastNamedEvent(eventName, payload, organizerId = null) {
   for (const res of sharedSubscribers) {
-    if (eventName === 'app-state' && (sharedSubscriberScopes.get(res) || null) !== (organizerId || null)) continue;
+    if (['app-state','organizer-profile'].includes(eventName) && (sharedSubscriberScopes.get(res) || null) !== (organizerId || null)) continue;
     const outgoing = sharedSubscriberPublic.get(res) === true ? publicSharedEventPayload(eventName, payload) : payload;
     const packet = `event: ${eventName}\ndata: ${JSON.stringify(outgoing)}\n\n`;
     try { res.write(packet); } catch (_) {
@@ -1339,6 +1391,15 @@ function broadcastNamedEvent(eventName, payload, organizerId = null) {
 function broadcastTheme() {
   const packet = `event: live-theme\ndata: ${liveTheme}\n\n`;
   for (const res of subscribers) { try { res.write(packet); } catch (_) { subscribers.delete(res); liveSubscriberScopes.delete(res); } }
+}
+function broadcastOrganizerProfileUpdate(organizerId) {
+  if (!organizerId) return;
+  const packet = `event: organizer-profile\ndata: ${JSON.stringify({updatedAt:new Date().toISOString()})}\n\n`;
+  for (const res of subscribers) {
+    if ((liveSubscriberScopes.get(res) || null) !== organizerId) continue;
+    try { res.write(packet); } catch (_) { subscribers.delete(res); liveSubscriberScopes.delete(res); }
+  }
+  broadcastNamedEvent('organizer-profile',{updatedAt:new Date().toISOString()},organizerId);
 }
 async function persistState(snapshot) {
   latestState = snapshot;
@@ -2080,9 +2141,10 @@ async function handle(req, res) {
       if (hasSavedAttendance || bucket.participants.length) attendanceBySession[liveSessionId] = bucket.participants;
     }
     if (attendanceChanged) await saveOrganizerAttendance(organizerId,attendance);
+    const organizerProfile = organizerProfileDetailsFor(account);
     return sendJson(res,200,{
       ok:true,
-      organizer:{id:organizerId,slug:String(account?.slug || ''),username:auth.username || account?.username || '',displayName:account?.displayName || auth.displayName || auth.username || 'Organizer',logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account?.showOnLeaderboard !== false,registeredCourts:publicRegisteredCourtsFor(organizerId)},
+      organizer:{id:organizerId,slug:String(account?.slug || ''),username:auth.username || account?.username || '',displayName:account?.displayName || auth.displayName || auth.username || 'Organizer',logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account?.showOnLeaderboard !== false,organizerBackground:organizerProfile.background,organizerNotes:organizerProfile.notes,organizerReclubUrl:organizerProfile.reclubUrl,organizerFacebookUrl:organizerProfile.facebookUrl,registeredCourts:publicRegisteredCourtsFor(organizerId)},
       appState:appEntry.state || null,
       appRevision:appEntry.revision || 0,
       records:{players,sessions,logs,attendanceBySession},
@@ -2700,10 +2762,13 @@ async function handle(req, res) {
       const account = accountById(auth.organizerId);
       if (!account) return sendJson(res,404,{ok:false,error:'Organizer account not found.'});
       if (req.method === 'GET') {
-        return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName || account.username,slug:String(account.slug || ''),logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard !== false}});
+        const profile = organizerProfileDetailsFor(account);
+        return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName || account.username,slug:String(account.slug || ''),logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard !== false,organizerBackground:profile.background,organizerNotes:profile.notes,organizerReclubUrl:profile.reclubUrl,organizerFacebookUrl:profile.facebookUrl}});
       }
       const body = await readBody(req,4 * 1024 * 1024);
-      const displayName = String(body?.displayName || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,80);
+      const displayName = body?.displayName !== undefined
+        ? String(body.displayName || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,80)
+        : String(account.displayName || account.username || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,80);
       if (!displayName) return sendJson(res,400,{ok:false,error:'Club or organizer name cannot be blank.'});
       let duprId;
       const submittedDuprId = body?.duprId ?? body?.personalDuprId ?? body?.dupr_id;
@@ -2726,13 +2791,36 @@ async function handle(req, res) {
         }
         account.profileImage = profileImage || null;
       }
-      account.displayName = displayName;
+      if (body?.organizerBackground !== undefined) {
+        const rawBackground = body.organizerBackground === null ? '' : String(body.organizerBackground || '').trim();
+        const background = rawBackground ? safeOrganizerProfileImage(rawBackground) : null;
+        if (rawBackground && !background) return sendJson(res,400,{ok:false,error:'Choose a valid HTTPS image URL or PNG, JPG, or WebP background image no larger than 2 MB.'});
+        account.profileBackground = background;
+      }
+      if (body?.organizerNotes !== undefined) {
+        account.organizerNotes = String(body.organizerNotes || '').normalize('NFC').trim().slice(0,100);
+      }
+      if (body?.organizerReclubUrl !== undefined) {
+        const rawLink = String(body.organizerReclubUrl || '').trim();
+        const link = rawLink ? safeOrganizerProfileLink(rawLink) : null;
+        if (rawLink && !link) return sendJson(res,400,{ok:false,error:'Enter a valid HTTPS Reclub profile link.'});
+        account.reclubUrl = link;
+      }
+      if (body?.organizerFacebookUrl !== undefined) {
+        const rawLink = String(body.organizerFacebookUrl || '').trim();
+        const link = rawLink ? safeOrganizerProfileLink(rawLink) : null;
+        if (rawLink && !link) return sendJson(res,400,{ok:false,error:'Enter a valid HTTPS Facebook page link.'});
+        account.facebookUrl = link;
+      }
+      if (body?.displayName !== undefined) account.displayName = displayName;
       if (duprId !== undefined) account.duprId = duprId;
-      account.showOnLeaderboard = body?.showOnLeaderboard !== false;
+      if (body?.showOnLeaderboard !== undefined) account.showOnLeaderboard = body.showOnLeaderboard !== false;
       await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
-      return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName,slug:String(account.slug || ''),logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard}});
+      const profile = organizerProfileDetailsFor(account);
+      broadcastOrganizerProfileUpdate(account.id);
+      return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName,slug:String(account.slug || ''),logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard,organizerBackground:profile.background,organizerNotes:profile.notes,organizerReclubUrl:profile.reclubUrl,organizerFacebookUrl:profile.facebookUrl}});
     } catch (err) {
-      return sendJson(res,err.statusCode || 500,{ok:false,error:err.statusCode===413?'Logo file is too large.':err.message||'Unable to save organizer settings.'});
+      return sendJson(res,err.statusCode || 500,{ok:false,error:err.statusCode===413?'The selected image is too large. Choose an image no larger than 2 MB.':err.message||'Unable to save organizer settings.'});
     }
   }
 
@@ -3380,7 +3468,18 @@ async function handle(req, res) {
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     const organizer = organizerId ? accountById(organizerId) : null;
     const liveState = enrichLiveStateAvatars(enrichLiveStateLockedPartners(getOrganizerLiveState(organizerId), organizerId));
-    return sendJson(res, 200, {ok:true,state:liveState,organizerId,organizerName:organizer ? String(organizer.displayName || organizer.username) : null,organizerLogo:organizer ? organizerLogoFor(organizer) : null});
+    const profileDetails = organizer ? organizerProfileDetailsFor(organizer) : {background:null,notes:'',reclubUrl:null,facebookUrl:null};
+    const profileStats = organizer ? organizerLiveProfileStatsFor(organizerId) : {registeredPlayerCount:0,recordedMatchCount:0,sessionCount:0};
+    return sendJson(res, 200, {
+      ok:true,state:liveState,organizerId,
+      organizerName:organizer ? String(organizer.displayName || organizer.username) : null,
+      organizerLogo:organizer ? organizerLogoFor(organizer) : null,
+      organizerBackground:profileDetails.background,
+      organizerNotes:profileDetails.notes,
+      organizerReclubUrl:profileDetails.reclubUrl,
+      organizerFacebookUrl:profileDetails.facebookUrl,
+      organizerProfileStats:profileStats
+    });
   }
   if (url.pathname === '/api/live-state' && req.method === 'POST') {
     try {

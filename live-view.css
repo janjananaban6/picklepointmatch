@@ -7388,7 +7388,7 @@ html body.live-view-page .section-card.live-tab-card > #matchesList {
 }
 
 
-/* Minimal centered organizer identity popup, opened from the live session header. */
+/* Organizer profile card — responsive on phone, tablet, and desktop. */
 html body.live-view-page .mobile-session-organizer[role="button"] {
   cursor: pointer !important;
   -webkit-tap-highlight-color: transparent;
@@ -7408,13 +7408,15 @@ html body.live-view-page .mobile-organizer-dialog {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  padding: 18px !important;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) !important;
   box-sizing: border-box !important;
 }
 html body.live-view-page .mobile-organizer-dialog-backdrop {
   position: absolute !important;
   inset: 0 !important;
   background: rgba(3, 15, 20, .48) !important;
+  opacity: 0 !important;
+  transition: opacity .2s ease-out !important;
   -webkit-backdrop-filter: blur(3px) !important;
   backdrop-filter: blur(3px) !important;
 }
@@ -7422,61 +7424,262 @@ html body.live-view-page .mobile-organizer-dialog-card {
   position: relative !important;
   display: flex !important;
   flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 12px !important;
-  width: fit-content !important;
-  min-width: 176px !important;
-  max-width: min(320px, calc(100vw - 36px)) !important;
-  padding: 22px 26px 20px !important;
-  border: 1px solid rgba(110, 175, 177, .32) !important;
-  border-radius: 17px !important;
-  background: rgba(9, 39, 46, .97) !important;
-  color: #effffc !important;
-  box-shadow: 0 16px 44px rgba(0, 0, 0, .30), inset 0 1px 0 rgba(255, 255, 255, .08) !important;
+  align-items: stretch !important;
+  width: min(390px, calc(100vw - 32px)) !important;
+  min-width: 0 !important;
+  max-width: 390px !important;
+  max-height: calc(100dvh - 32px) !important;
+  overflow: auto !important;
+  padding: 0 0 15px !important;
+  border: 1px solid rgba(151, 174, 180, .25) !important;
+  border-radius: 30px !important;
+  background: #fff !important;
+  color: #171b1d !important;
+  box-shadow: 0 20px 58px rgba(0, 0, 0, .23), 0 2px 8px rgba(0, 0, 0, .05) !important;
   box-sizing: border-box !important;
   text-align: center !important;
   outline: none !important;
+  opacity: 0 !important;
+  transform: translateY(12px) scale(.985) !important;
+  transition: opacity .2s ease, transform .2s ease !important;
+  overscroll-behavior: contain !important;
+  scrollbar-width: none !important;
+}
+html body.live-view-page .mobile-organizer-dialog-card::-webkit-scrollbar {
+  display: none !important;
+}
+html body.live-view-page .mobile-organizer-dialog-cover {
+  position: relative !important;
+  display: block !important;
+  flex: 0 0 178px !important;
+  width: calc(100% - 18px) !important;
+  height: 178px !important;
+  margin: 9px auto 0 !important;
+  overflow: hidden !important;
+  border-radius: 27px !important;
+  background: linear-gradient(135deg, #dce9ee 0%, #c8dce5 52%, #e6eef0 100%) !important;
+}
+html body.live-view-page .mobile-organizer-dialog-background {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+}
+html body.live-view-page .mobile-organizer-dialog-background[hidden] {
+  display: none !important;
+}
+html body.live-view-page .mobile-organizer-dialog-identity {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  margin: -48px 0 0 !important;
+  padding: 0 22px !important;
+  box-sizing: border-box !important;
 }
 html body.live-view-page .mobile-organizer-dialog-logo {
   display: block !important;
-  width: 104px !important;
-  height: 104px !important;
-  max-width: min(104px, calc(100vw - 100px)) !important;
-  max-height: min(104px, calc(100vw - 100px)) !important;
+  width: 148px !important;
+  height: 98px !important;
+  max-width: min(148px, calc(100vw - 88px)) !important;
+  max-height: 98px !important;
+  margin: 0 0 5px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
   object-fit: contain !important;
-  border-radius: 13px !important;
-  background: rgba(255, 255, 255, .96) !important;
-  padding: 5px !important;
   box-sizing: border-box !important;
 }
 html body.live-view-page .mobile-organizer-dialog-logo[hidden] {
   display: none !important;
 }
-html body.live-view-page .mobile-organizer-dialog-name {
-  max-width: 260px !important;
-  color: inherit !important;
-  font-size: 14px !important;
+html body.live-view-page .mobile-organizer-dialog-label {
+  margin: 0 0 5px !important;
+  color: #8b9699 !important;
+  font-size: 10px !important;
   font-weight: 750 !important;
-  line-height: 1.35 !important;
+  line-height: 1.2 !important;
+  letter-spacing: .13em !important;
+  text-transform: uppercase !important;
+}
+html body.live-view-page .mobile-organizer-dialog-name {
+  max-width: 330px !important;
+  color: #171b1d !important;
+  font-size: clamp(20px, 5vw, 25px) !important;
+  font-weight: 760 !important;
+  line-height: 1.22 !important;
+  letter-spacing: -.035em !important;
   overflow-wrap: anywhere !important;
   text-align: center !important;
 }
-html[data-theme="light"] body.live-view-page .mobile-organizer-dialog-card {
-  border-color: rgba(95, 132, 139, .24) !important;
-  background: rgba(255, 255, 255, .98) !important;
-  color: #18353b !important;
-  box-shadow: 0 16px 44px rgba(21, 49, 56, .20), inset 0 1px 0 rgba(255, 255, 255, .95) !important;
+html body.live-view-page .mobile-organizer-dialog-notes {
+  max-width: 310px !important;
+  margin: 10px 0 0 !important;
+  color: #657074 !important;
+  font-size: 13px !important;
+  font-weight: 450 !important;
+  line-height: 1.55 !important;
+  overflow-wrap: anywhere !important;
+  white-space: pre-line !important;
+}
+html body.live-view-page .mobile-organizer-dialog-notes[hidden] {
+  display: none !important;
+}
+html body.live-view-page .mobile-organizer-dialog-stats {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+  gap: 5px !important;
+  margin: 26px 10px 0 !important;
+  padding: 17px 7px 16px !important;
+  border: 1px solid #e5e7e8 !important;
+  border-radius: 21px !important;
+  background: #fafafa !important;
+  box-shadow: 0 2px 5px rgba(20, 30, 34, .06), inset 0 1px 0 rgba(255, 255, 255, .9) !important;
+  box-sizing: border-box !important;
+}
+html body.live-view-page .mobile-organizer-dialog-stat {
+  display: flex !important;
+  min-width: 0 !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+}
+html body.live-view-page .mobile-organizer-dialog-stat strong {
+  color: #15191b !important;
+  font-size: clamp(17px, 4.7vw, 21px) !important;
+  font-weight: 780 !important;
+  font-variant-numeric: tabular-nums !important;
+  line-height: 1.15 !important;
+}
+html body.live-view-page .mobile-organizer-dialog-stat span {
+  max-width: 100% !important;
+  color: #657074 !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+  overflow-wrap: anywhere !important;
+}
+html body.live-view-page .mobile-organizer-dialog-socials {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 22px !important;
+  min-height: 30px !important;
+  margin: 13px 0 0 !important;
+  padding: 0 12px !important;
+}
+html body.live-view-page .mobile-organizer-dialog-social-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: #15191b !important;
+  text-decoration: none !important;
+  transition: opacity .16s ease, transform .16s ease !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+html body.live-view-page .mobile-organizer-dialog-social-link:hover {
+  opacity: .68 !important;
+  transform: translateY(-1px) !important;
+}
+html body.live-view-page .mobile-organizer-dialog-social-link:focus-visible {
+  outline: 2px solid rgba(8, 127, 128, .55) !important;
+  outline-offset: 3px !important;
+}
+html body.live-view-page .mobile-organizer-dialog-social-link[aria-disabled="true"] {
+  cursor: default !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+html body.live-view-page .mobile-organizer-dialog-reclub img {
+  display: block !important;
+  width: 88px !important;
+  height: auto !important;
+  max-height: 25px !important;
+  object-fit: contain !important;
+}
+html body.live-view-page .mobile-organizer-dialog-facebook svg {
+  display: block !important;
+  width: 24px !important;
+  height: 24px !important;
+  fill: #1877f2 !important;
+}
+html body.live-view-page .mobile-organizer-dialog.is-open .mobile-organizer-dialog-backdrop {
+  opacity: 1 !important;
+}
+html body.live-view-page .mobile-organizer-dialog.is-open .mobile-organizer-dialog-card {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+}
+html body.live-view-page .mobile-organizer-dialog.is-closing .mobile-organizer-dialog-backdrop {
+  opacity: 0 !important;
+}
+html body.live-view-page .mobile-organizer-dialog.is-closing .mobile-organizer-dialog-card {
+  opacity: 0 !important;
+  transform: translateY(9px) scale(.99) !important;
+}
+html:not([data-theme="light"]) body.live-view-page .mobile-organizer-dialog-card {
+  border-color: rgba(109, 135, 142, .24) !important;
+  background: #15242a !important;
+  color: #f1f7f6 !important;
+}
+html:not([data-theme="light"]) body.live-view-page .mobile-organizer-dialog-label {
+  color: #91a6aa !important;
+}
+html:not([data-theme="light"]) body.live-view-page .mobile-organizer-dialog-name,
+html:not([data-theme="light"]) body.live-view-page .mobile-organizer-dialog-stat strong,
+html:not([data-theme="light"]) body.live-view-page .mobile-organizer-dialog-social-link {
+  color: #f1f7f6 !important;
+}
+html:not([data-theme="light"]) body.live-view-page .mobile-organizer-dialog-notes,
+html:not([data-theme="light"]) body.live-view-page .mobile-organizer-dialog-stat span {
+  color: #aabdc0 !important;
+}
+html:not([data-theme="light"]) body.live-view-page .mobile-organizer-dialog-stats {
+  border-color: rgba(158, 187, 191, .18) !important;
+  background: #1b2d34 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04) !important;
 }
 @media (max-width: 380px) {
-  html body.live-view-page .mobile-organizer-dialog-card {
-    min-width: 160px !important;
-    padding: 18px 20px 17px !important;
+  html body.live-view-page .mobile-organizer-dialog-cover {
+    flex-basis: 154px !important;
+    height: 154px !important;
+  }
+  html body.live-view-page .mobile-organizer-dialog-identity {
+    margin-top: -42px !important;
+    padding-inline: 16px !important;
   }
   html body.live-view-page .mobile-organizer-dialog-logo {
-    width: 88px !important;
-    height: 88px !important;
-    max-width: min(88px, calc(100vw - 100px)) !important;
-    max-height: min(88px, calc(100vw - 100px)) !important;
+    width: 128px !important;
+    height: 84px !important;
+    max-width: min(128px, calc(100vw - 88px)) !important;
+    max-height: 84px !important;
+    margin-bottom: 5px !important;
+  }
+  html body.live-view-page .mobile-organizer-dialog-stats {
+    margin-inline: 8px !important;
+    padding: 15px 4px 14px !important;
+  }
+  html body.live-view-page .mobile-organizer-dialog-stat span {
+    font-size: 9px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body.live-view-page .mobile-organizer-dialog-backdrop,
+  html body.live-view-page .mobile-organizer-dialog-card {
+    transition-duration: .01ms !important;
   }
 }

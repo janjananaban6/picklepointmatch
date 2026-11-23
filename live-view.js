@@ -888,6 +888,17 @@
       if (responseOrganizerId) resolvedOrganizerId = responseOrganizerId;
       const organizerName = String(data?.organizerName || '').trim();
       const organizerLogo = String(data?.organizerLogo || '').trim();
+      document.dispatchEvent(new CustomEvent('ppm:organizer-profile-update', {
+        detail: {
+          organizerName,
+          organizerLogo,
+          organizerBackground: data?.organizerBackground || '',
+          organizerNotes: data?.organizerNotes || '',
+          organizerReclubUrl: data?.organizerReclubUrl || '',
+          organizerFacebookUrl: data?.organizerFacebookUrl || '',
+          organizerProfileStats: data?.organizerProfileStats || {}
+        }
+      }));
       const organizerStat = $('sessionOrganizerStat');
       const organizerNameLabel = $('sessionOrganizerName');
       const organizerLogoImage = $('sessionOrganizerLogo');
@@ -967,6 +978,11 @@
         const theme = String(event.data || '').trim();
         if (!hadLocalThemePreference && !localThemeChangedByUser && (theme === 'light' || theme === 'night')) applyTheme(theme);
       });
+      source.addEventListener('organizer-profile', () => {
+        // The organizer changed the card in Dashboard Settings. Refresh its
+        // public profile fields on every connected Live View device.
+        window.setTimeout(() => refreshRemoteState(), 180);
+      });
       source.onopen = () => markServerConnected();
       source.onerror = () => {
         markServerDisconnected();
@@ -982,6 +998,10 @@
       scheduleReconnect();
     }
   }
+
+  document.addEventListener('ppm:organizer-profile-refresh-request', () => {
+    refreshRemoteState();
+  });
 
   async function connectServer() {
     if (!isHttpPage()) {

@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="/pickleball-p-emblem.png">
-  <link rel="stylesheet" href="/live-view.css?v=live-audit-cleanup-20261109-1&queue-search-compact-height-20261023-1&filter-list-toggle-state-20261109-1&mzoom=20261024-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-compact-collapse-20261105-2&livetabs=radius15-min35-responsive-20261024-5&organizer-logo=20261024-2&organizer-stat-match=20261024-1&avatar-sync=20261029-2&live-width-440-responsive-stack-20261104-2&court-scroll-all-devices-20261104-2&live-header-brand-scrollbar-flat-sections-20261105-5&card-surface-scrollbar-hotfix-20261105-6&court-header-timer-inline-20261105-2&court-mini-timer-mobile-stable-20261105-1&court-collapse-fixed-shell-20261106-1&court-heading-actions-20261105-2&court-timer-summary-stability-20261105-1&court-heading-toggle-threshold-20261105-1&live-ranking-filter-pill-20261106-1&matches-matchup-search-20261107-1&queue-court-pill-controls-20261106-1&court-expanded-flow-layout-20261106-1&matchup-search=20261107-2&search-filter-blue-static=20261107-1&search-hover-neutral-gray-surface=20261107-2&ranking-lock-inline=20261107-3&queue-lock-partner-snapshot=20261107-1&ranking-podium-background=20261109-1&desktop-filter-circle-theme-toggle=20261109-1&header-no-bounce-glass-badges=20261109-1&dark-glass-ranking-status=20261109-1&light-badge-parity-matches-toggle-circle=20261109-1&court-player-white-glass-ranking-circle-seam-fix=20261109-1&court-layout-collapse-svg-icons=20261109-1&live-heading-empty-svg-icons=20261109-1&court-category-light-contrast=20261109-1&live-ranking-eligibility-note-20261113-2&live-list-gap-stability-20261121-1&organizer-popup-20261121-1">
+  <link rel="stylesheet" href="/live-view.css?v=live-audit-cleanup-20261109-1&queue-search-compact-height-20261023-1&filter-list-toggle-state-20261109-1&mzoom=20261024-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-compact-collapse-20261105-2&livetabs=radius15-min35-responsive-20261024-5&organizer-logo=20261024-2&organizer-stat-match=20261024-1&avatar-sync=20261029-2&live-width-440-responsive-stack-20261104-2&court-scroll-all-devices-20261104-2&live-header-brand-scrollbar-flat-sections-20261105-5&card-surface-scrollbar-hotfix-20261105-6&court-header-timer-inline-20261105-2&court-mini-timer-mobile-stable-20261105-1&court-collapse-fixed-shell-20261106-1&court-heading-actions-20261105-2&court-timer-summary-stability-20261105-1&court-heading-toggle-threshold-20261105-1&live-ranking-filter-pill-20261106-1&matches-matchup-search-20261107-1&queue-court-pill-controls-20261106-1&court-expanded-flow-layout-20261106-1&matchup-search=20261107-2&search-filter-blue-static=20261107-1&search-hover-neutral-gray-surface=20261107-2&ranking-lock-inline=20261107-3&queue-lock-partner-snapshot=20261107-1&ranking-podium-background=20261109-1&desktop-filter-circle-theme-toggle=20261109-1&header-no-bounce-glass-badges=20261109-1&dark-glass-ranking-status=20261109-1&light-badge-parity-matches-toggle-circle=20261109-1&court-player-white-glass-ranking-circle-seam-fix=20261109-1&court-layout-collapse-svg-icons=20261109-1&live-heading-empty-svg-icons=20261109-1&court-category-light-contrast=20261109-1&live-ranking-eligibility-note-20261113-2&live-list-gap-stability-20261121-1&organizer-profile-card-20261123-1&organizer-ui-polish-20261123-1">
   <link rel="stylesheet" href="/searchbar-device-fix.css?v=searchbar-device-fix-20261023-1&mzoom=20261024-1&live-search-border-parity=20261106-2-blue">
   <link rel="stylesheet" href="/network-skeleton.css?v=network-validation-20261027-1">
   <script src="/network-skeleton.js?v=network-skeleton-20261024-1"></script>
@@ -60,8 +60,37 @@
   <div id="mobileOrganizerDialog" class="mobile-organizer-dialog" hidden aria-hidden="true">
     <div class="mobile-organizer-dialog-backdrop" data-organizer-dialog-dismiss></div>
     <section class="mobile-organizer-dialog-card" role="dialog" aria-modal="true" aria-labelledby="mobileOrganizerDialogName" tabindex="-1">
-      <img id="mobileOrganizerDialogLogo" class="mobile-organizer-dialog-logo" alt="" hidden>
-      <div id="mobileOrganizerDialogName" class="mobile-organizer-dialog-name"></div>
+      <div class="mobile-organizer-dialog-cover">
+        <img id="mobileOrganizerDialogBackground" class="mobile-organizer-dialog-background" alt="" aria-hidden="true" hidden>
+      </div>
+      <div class="mobile-organizer-dialog-identity">
+        <img id="mobileOrganizerDialogLogo" class="mobile-organizer-dialog-logo" alt="" hidden>
+        <div class="mobile-organizer-dialog-label">ORGANIZER</div>
+        <div id="mobileOrganizerDialogName" class="mobile-organizer-dialog-name"></div>
+        <p id="mobileOrganizerDialogNotes" class="mobile-organizer-dialog-notes" hidden></p>
+      </div>
+      <div class="mobile-organizer-dialog-stats" aria-label="Organizer statistics">
+        <div class="mobile-organizer-dialog-stat">
+          <strong id="mobileOrganizerRegisteredPlayers">0</strong>
+          <span>Registered Players</span>
+        </div>
+        <div class="mobile-organizer-dialog-stat">
+          <strong id="mobileOrganizerRecordedMatches">0</strong>
+          <span>Recorded Matches</span>
+        </div>
+        <div class="mobile-organizer-dialog-stat">
+          <strong id="mobileOrganizerTotalSessions">0</strong>
+          <span>Total Sessions</span>
+        </div>
+      </div>
+      <nav class="mobile-organizer-dialog-socials" aria-label="Organizer social links">
+        <a id="mobileOrganizerReclubLink" class="mobile-organizer-dialog-social-link mobile-organizer-dialog-reclub" target="_blank" rel="noopener noreferrer" aria-label="Open organizer Reclub profile" title="Reclub" aria-disabled="true" tabindex="-1">
+          <img src="data:image/png;base64,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" alt="" aria-hidden="true" decoding="async" width="437" height="115">
+        </a>
+        <a id="mobileOrganizerFacebookLink" class="mobile-organizer-dialog-social-link mobile-organizer-dialog-facebook" target="_blank" rel="noopener noreferrer" aria-label="Open organizer Facebook page" title="Facebook" aria-disabled="true" tabindex="-1">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M13.6 21v-8.2h2.8l.42-3.2H13.6V7.55c0-.93.26-1.56 1.6-1.56h1.72V3.12c-.3-.04-1.33-.12-2.54-.12-2.51 0-4.23 1.53-4.23 4.34V9.6H7.3v3.2h2.85V21h3.45Z"/></svg>
+        </a>
+      </nav>
     </section>
   </div>
 
@@ -198,7 +227,7 @@
     <footer class="page-footer"><span>● PICKLE POINT MATCH</span></footer>
     </main>
   </div>
-  <script src="/live-view.js?v=live-audit-cleanup-20261109-1&avatar-sync-20261029-2&court-scroll-all-devices-20261104-2&mouse-drag-scroll-20261104-1&live-header-unified-transparent-icons-20261105-4&court-layout-mobile-no-flip-20261105-2&court-layout-scroll-anchor-stable-20261105-1&court-collapse-status-diagram-20261105-1&court-timer-refresh-stability-20261105-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-card-collapse-20261105-2&court-heading-toggle-threshold-20261105-1&court-fixed-shell-20261106-1&live-connection-single-source-20261106-1&live-ranking-filters-20261106-1&court-expanded-flow-layout-20261106-1&matchup-search=20261107-3&matchup-search-highlight=20261107-1&live-stable-search-theme-20261107-1&ranking-lock-inline=20261107-3&queue-lock-partner-snapshot=20261107-1&queue-player-mobile-wrap=20261109-1&live-header-theme-icon=20261109-1&court-layout-collapse-svg-icons=20261109-1&live-heading-empty-svg-icons=20261109-1&matches-single-renderer-20261109-1&live-search-empty-state-svg-icons-20261109-2&live-ranking-scope-20261113-1" defer></script>
+  <script src="/live-view.js?v=live-audit-cleanup-20261109-1&avatar-sync-20261029-2&court-scroll-all-devices-20261104-2&mouse-drag-scroll-20261104-1&live-header-unified-transparent-icons-20261105-4&court-layout-mobile-no-flip-20261105-2&court-layout-scroll-anchor-stable-20261105-1&court-collapse-status-diagram-20261105-1&court-timer-refresh-stability-20261105-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-card-collapse-20261105-2&court-heading-toggle-threshold-20261105-1&court-fixed-shell-20261106-1&live-connection-single-source-20261106-1&live-ranking-filters-20261106-1&court-expanded-flow-layout-20261106-1&matchup-search=20261107-3&matchup-search-highlight=20261107-1&live-stable-search-theme-20261107-1&ranking-lock-inline=20261107-3&queue-lock-partner-snapshot=20261107-1&queue-player-mobile-wrap=20261109-1&live-header-theme-icon=20261109-1&court-layout-collapse-svg-icons=20261109-1&live-heading-empty-svg-icons=20261109-1&matches-single-renderer-20261109-1&live-search-empty-state-svg-icons-20261109-2&live-ranking-scope-20261113-1&organizer-profile-stats-20261123-1&organizer-ui-polish-20261123-1" defer></script>
 
   <script id="live-page-only-interaction-fixes">
     (() => {
@@ -932,41 +961,160 @@
       const dialog = document.getElementById('mobileOrganizerDialog');
       const dialogCard = dialog?.querySelector('.mobile-organizer-dialog-card');
       const dialogLogo = document.getElementById('mobileOrganizerDialogLogo');
+      const dialogBackground = document.getElementById('mobileOrganizerDialogBackground');
       const dialogName = document.getElementById('mobileOrganizerDialogName');
+      const dialogNotes = document.getElementById('mobileOrganizerDialogNotes');
+      const registeredPlayers = document.getElementById('mobileOrganizerRegisteredPlayers');
+      const recordedMatches = document.getElementById('mobileOrganizerRecordedMatches');
+      const totalSessions = document.getElementById('mobileOrganizerTotalSessions');
+      const reclubLink = document.getElementById('mobileOrganizerReclubLink');
+      const facebookLink = document.getElementById('mobileOrganizerFacebookLink');
       const sourceLogo = document.getElementById('sessionOrganizerLogo');
       const sourceName = document.getElementById('sessionOrganizerName');
       if (!trigger || !dialog || !dialogCard || !dialogLogo || !dialogName) return;
 
+      let closeTimer = 0;
+      let closeSequence = 0;
+      let latestProfile = null;
+      const countFrames = new WeakMap();
       const isOpen = () => !dialog.hidden;
-
-      const closeDialog = (restoreFocus = true) => {
-        if (!isOpen()) return;
-        dialog.hidden = true;
-        dialog.setAttribute('aria-hidden', 'true');
-        trigger.setAttribute('aria-expanded', 'false');
-        if (restoreFocus) trigger.focus({ preventScroll: true });
+      const formatCount = value => {
+        const count = Math.max(0, Math.floor(Number(value) || 0));
+        return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(count);
       };
+      const setCountImmediately = (element, value) => {
+        if (!element) return;
+        const target = Math.max(0, Math.floor(Number(value) || 0));
+        const activeFrame = countFrames.get(element);
+        if (activeFrame) cancelAnimationFrame(activeFrame);
+        countFrames.delete(element);
+        element.dataset.countValue = String(target);
+        element.dataset.countTarget = String(target);
+        element.textContent = formatCount(target);
+      };
+      const animateCount = (element, value, restart = false) => {
+        if (!element) return;
+        const target = Math.max(0, Math.floor(Number(value) || 0));
+        if (!restart && element.dataset.countTarget === String(target)) return;
+        const activeFrame = countFrames.get(element);
+        if (activeFrame) cancelAnimationFrame(activeFrame);
+        countFrames.delete(element);
 
+        const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+        const start = restart ? 0 : Math.max(0, Number(element.dataset.countValue) || 0);
+        element.dataset.countTarget = String(target);
+        if (reducedMotion || start === target) {
+          setCountImmediately(element, target);
+          return;
+        }
+
+        element.dataset.countValue = String(start);
+        element.textContent = formatCount(start);
+        const delta = Math.abs(target - start);
+        const duration = Math.min(1450, Math.max(760, 650 + Math.log10(delta + 1) * 170));
+        let startedAt = 0;
+        const tick = timestamp => {
+          if (!startedAt) startedAt = timestamp;
+          const progress = Math.min(1, (timestamp - startedAt) / duration);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const current = Math.round(start + (target - start) * eased);
+          element.dataset.countValue = String(current);
+          element.textContent = formatCount(current);
+          if (progress < 1) {
+            countFrames.set(element, requestAnimationFrame(tick));
+          } else {
+            element.dataset.countValue = String(target);
+            element.dataset.countTarget = String(target);
+            element.textContent = formatCount(target);
+            countFrames.delete(element);
+          }
+        };
+        countFrames.set(element, requestAnimationFrame(tick));
+      };
+      const setImage = (image, value) => {
+        if (!image) return;
+        const url = String(value || '').trim();
+        image.onerror = () => {
+          image.hidden = true;
+          image.removeAttribute('src');
+        };
+        if (!url) {
+          image.hidden = true;
+          image.removeAttribute('src');
+          return;
+        }
+        if (image.getAttribute('src') !== url) image.src = url;
+        image.hidden = false;
+      };
+      const setLink = (link, value) => {
+        if (!link) return;
+        const url = String(value || '').trim();
+        link.hidden = false;
+        if (!url) {
+          link.removeAttribute('href');
+          link.setAttribute('aria-disabled', 'true');
+          link.setAttribute('tabindex', '-1');
+          return;
+        }
+        link.href = url;
+        link.removeAttribute('aria-disabled');
+        link.removeAttribute('tabindex');
+      };
+      const applyProfile = (profile, animateStats = isOpen(), restartStats = false) => {
+        if (!profile || typeof profile !== 'object') return;
+        latestProfile = profile;
+        const name = String(profile.organizerName || trigger.textContent || sourceName?.textContent || '').trim();
+        if (name) dialogName.textContent = name;
+        setImage(dialogLogo, profile.organizerLogo || sourceLogo?.getAttribute('src') || '');
+        setImage(dialogBackground, profile.organizerBackground || '');
+        if (dialogNotes) {
+          dialogNotes.textContent = String(profile.organizerNotes || '').trim();
+          dialogNotes.hidden = !dialogNotes.textContent;
+        }
+        const stats = profile.organizerProfileStats || profile.stats || {};
+        if (animateStats) {
+          animateCount(registeredPlayers, stats.registeredPlayerCount, restartStats);
+          animateCount(recordedMatches, stats.recordedMatchCount, restartStats);
+          animateCount(totalSessions, stats.sessionCount, restartStats);
+        } else {
+          setCountImmediately(registeredPlayers, stats.registeredPlayerCount);
+          setCountImmediately(recordedMatches, stats.recordedMatchCount);
+          setCountImmediately(totalSessions, stats.sessionCount);
+        }
+        setLink(reclubLink, profile.organizerReclubUrl || '');
+        setLink(facebookLink, profile.organizerFacebookUrl || '');
+      };
+      const closeDialog = (restoreFocus = true) => {
+        if (!isOpen() || dialog.classList.contains('is-closing')) return;
+        const sequence = ++closeSequence;
+        dialog.classList.remove('is-open');
+        dialog.classList.add('is-closing');
+        trigger.setAttribute('aria-expanded', 'false');
+        window.clearTimeout(closeTimer);
+        closeTimer = window.setTimeout(() => {
+          if (sequence !== closeSequence) return;
+          dialog.hidden = true;
+          dialog.setAttribute('aria-hidden', 'true');
+          dialog.classList.remove('is-closing');
+          if (restoreFocus) trigger.focus({ preventScroll: true });
+        }, 210);
+      };
       const openDialog = () => {
         const name = String(trigger.textContent || sourceName?.textContent || '').trim();
         if (!name) return;
-
-        const logoUrl = String(sourceLogo?.getAttribute('src') || '').trim();
+        window.clearTimeout(closeTimer);
+        closeSequence += 1;
+        dialog.classList.remove('is-closing');
         dialogName.textContent = name;
-        if (logoUrl) {
-          if (dialogLogo.getAttribute('src') !== logoUrl) dialogLogo.src = logoUrl;
-          dialogLogo.hidden = false;
-        } else {
-          dialogLogo.removeAttribute('src');
-          dialogLogo.hidden = true;
-        }
-
+        setImage(dialogLogo, sourceLogo?.getAttribute('src') || '');
         dialog.hidden = false;
         dialog.setAttribute('aria-hidden', 'false');
         trigger.setAttribute('aria-expanded', 'true');
+        if (latestProfile) applyProfile(latestProfile, true, true);
+        requestAnimationFrame(() => dialog.classList.add('is-open'));
+        document.dispatchEvent(new Event('ppm:organizer-profile-refresh-request'));
         dialogCard.focus({ preventScroll: true });
       };
-
       const toggleDialog = () => isOpen() ? closeDialog() : openDialog();
       trigger.addEventListener('click', toggleDialog);
       trigger.addEventListener('keydown', event => {
@@ -975,9 +1123,7 @@
         toggleDialog();
       });
       dialog.addEventListener('click', event => {
-        if (event.target === dialog || event.target.closest('[data-organizer-dialog-dismiss]')) {
-          closeDialog();
-        }
+        if (event.target === dialog || event.target.closest('[data-organizer-dialog-dismiss]')) closeDialog();
       });
       document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && isOpen()) {
@@ -985,6 +1131,7 @@
           closeDialog();
         }
       });
+      document.addEventListener('ppm:organizer-profile-update', event => applyProfile(event.detail));
     })();
   </script>
 

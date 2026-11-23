@@ -21,6 +21,7 @@ const ICONS = {
   'chevron-down': '<path d="m6 9 6 6 6-6"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   download: '<path d="M12 3v12m-5-5 5 5 5-5M4 19h16"/>',
+  logout: '<path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/>',
   upload: '<path d="M12 16V4m-5 5 5-5 5 5M4 17v3h16v-3"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   check: '<path d="m5 12 4 4L19 6"/>',
@@ -4704,14 +4705,99 @@ function renderReports() {
 function renderSettings() {
   const organizer = state.organizer || {};
   const live = getLiveSession();
-  return `<div class="page-stack">${pageHeading('HUSAY DINKERS / WORKSPACE', 'Workspace & Tools', 'The new management dashboard is your main organizer workspace. Queueing tools remain connected below.')}
-    <div class="settings-panel-grid">
-      <section class="panel panel-pad settings-organizer-profile">${panelTitle('Organizer Profile', 'users')}<div class="detail-list"><div class="detail-row"><span>Club / organizer</span><strong>${escapeHTML(organizer.displayName || organizer.username || 'HUSAY DINKERS')}</strong></div><div class="detail-row"><span>Username</span><strong>${escapeHTML(organizer.username || '—')}</strong></div><div class="detail-row"><span>Organizer slug</span><strong>${escapeHTML(organizer.slug || '—')}</strong></div><div class="detail-row"><span>DUPR ID</span><strong>${escapeHTML(organizer.duprId || '—')}</strong></div></div><div class="detail-actions"><button class="btn btn-primary" data-action="edit-settings">${icon('edit')} Edit workspace profile</button><button class="btn" data-action="export-backup">${icon('download')} Download Backup</button><button class="btn btn-danger" data-action="logout">Sign Out</button></div></section>
-      <section class="panel panel-pad settings-connected-tools">${panelTitle('Connected Queueing Tools', 'court')}<div class="external-tools-grid"><a class="external-tool-card" href="/session" target="_blank" rel="noopener"><span>${icon('calendar')}</span><span><strong>Session Setup</strong><small>Start or end an open-play session</small></span></a><a class="external-tool-card" href="/queueing" target="_blank" rel="noopener"><span>${icon('court')}</span><span><strong>Live Queueing</strong><small>Manage players, courts and matches</small></span></a><a class="external-tool-card" href="/live" target="_blank" rel="noopener"><span>${icon('external')}</span><span><strong>Public Live View</strong><small>Display queue and match activity</small></span></a>${live && getRegistrationUrl(live) ? `<a class="external-tool-card" href="${escapeHTML(getRegistrationUrl(live))}" target="_blank" rel="noopener"><span>${icon('users')}</span><span><strong>Player Registration</strong><small>Open the current session registration page</small></span></a>` : ''}<a class="external-tool-card" href="/panel"><span>${icon('users')}</span><span><strong>Admin Panel</strong><small>Organizer account administration</small></span></a></div></section>
-    </div>
-    <section class="panel panel-pad">${panelTitle('Data Source', 'report')}<div class="notice-box">This dashboard reads the same organizer-scoped app state, Registered Player, saved sessions, attendance snapshots and match logs used by Queueing. No duplicate player or match database is created.</div></section></div>`;
-}
+  const displayName = String(organizer.displayName || organizer.username || 'Organizer');
+  const background = String(organizer.organizerBackground || '').trim();
+  const logo = String(organizer.logo || organizer.profileImage || '').trim();
+  const notes = String(organizer.organizerNotes || '').slice(0, 100);
+  const reclubUrl = String(organizer.organizerReclubUrl || '');
+  const facebookUrl = String(organizer.organizerFacebookUrl || '');
+  return `<div class="page-stack page-settings">${pageHeading('HUSAY DINKERS / WORKSPACE', 'Workspace & Tools', 'Manage your organizer profile, Live View card, connected tools and data from one organized place.')}
+    <nav class="settings-jump-nav" aria-label="Settings sections">
+      <a href="#settings-workspace"><span>01</span> Workspace profile</a>
+      <a href="#settings-live-card"><span>02</span> Live View card</a>
+      <a href="#settings-tools"><span>03</span> Connected tools</a>
+      <a href="#settings-data"><span>04</span> Data & account</a>
+    </nav>
 
+    <section id="settings-workspace" class="panel panel-pad settings-section settings-workspace-section">
+      <div class="settings-section-heading"><div><span class="settings-section-kicker">WORKSPACE</span><h2>Organizer Profile</h2><p>Review the account and club details used throughout your workspace.</p></div><span class="settings-section-index">01</span></div>
+      <div class="settings-workspace-layout">
+        <div class="settings-workspace-details">
+          <div class="settings-identity-summary">
+            ${logo ? `<img src="${escapeHTML(logo)}" alt="${escapeHTML(displayName)} logo">` : `<span class="settings-identity-fallback">${escapeHTML(displayName.slice(0,2).toUpperCase())}</span>`}
+            <div><strong>${escapeHTML(displayName)}</strong><small>Organizer workspace</small></div>
+          </div>
+          <div class="detail-list">
+            <div class="detail-row"><span>Username</span><strong>${escapeHTML(organizer.username || '—')}</strong></div>
+            <div class="detail-row"><span>Organizer slug</span><strong>${escapeHTML(organizer.slug || '—')}</strong></div>
+            <div class="detail-row"><span>DUPR ID</span><strong>${escapeHTML(organizer.duprId || '—')}</strong></div>
+          </div>
+        </div>
+        <div class="settings-workspace-actions"><p>Update your club name, logo, DUPR ID or account password.</p><button class="btn btn-primary" data-action="edit-settings">${icon('edit')} Edit workspace profile</button></div>
+      </div>
+    </section>
+
+    <section id="settings-live-card" class="panel panel-pad settings-section settings-live-organizer">
+      <div class="settings-section-heading"><div><span class="settings-section-kicker">PUBLIC PROFILE</span><h2>Live View Organizer Card</h2><p>Control how your organizer card appears to players on the public Live View page.</p></div><span class="settings-section-index">02</span></div>
+      <div class="settings-live-layout">
+        <aside class="settings-live-aside">
+          <div class="settings-live-preview" aria-label="Live View organizer card preview">
+            <div class="settings-live-preview-cover" id="liveOrganizerBackgroundPreview">${background ? `<img src="${escapeHTML(background)}" alt="Organizer background preview">` : `<span>Profile background preview</span>`}</div>
+            <div class="settings-live-preview-identity">${logo ? `<img src="${escapeHTML(logo)}" alt="">` : `<span class="settings-live-preview-logo-fallback">${escapeHTML(displayName.slice(0,2).toUpperCase())}</span>`}<div><strong id="liveOrganizerPreviewName">${escapeHTML(displayName)}</strong><small>Organizer details · Live View</small></div></div>
+          </div>
+          <div class="settings-preview-note"><span class="settings-preview-note-icon">${icon('info')}</span><span><strong>Live preview</strong><small>This is a preview of the organizer card. Your registered player, match and session counts are supplied automatically by the system.</small></span></div>
+        </aside>
+
+        <form id="organizerLiveProfileForm" class="settings-live-form">
+          <section class="settings-control-group">
+            <div class="settings-control-heading"><span>1</span><div><h3>Card background</h3><p>Choose the cover image displayed behind your organizer profile.</p></div></div>
+            <div class="settings-control-body">
+              <div class="field full"><label for="organizerBackgroundFile">Upload background image</label><input id="organizerBackgroundFile" name="organizerBackgroundFile" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="organizerBackgroundHelp"><small class="field-help" id="organizerBackgroundHelp">PNG, JPG or WebP, maximum 2 MB. Choose a wide image for the best result.</small></div>
+              ${background ? `<label class="settings-remove-background"><input type="checkbox" name="removeOrganizerBackground"> Remove the current background image</label>` : `<p class="settings-empty-state">No background image is set. Your card will use its default background.</p>`}
+            </div>
+          </section>
+
+          <section class="settings-control-group">
+            <div class="settings-control-heading"><span>2</span><div><h3>Organizer notes</h3><p>Add a short introduction or description for your club.</p></div></div>
+            <div class="settings-control-body">
+              <div class="field full"><label for="organizerLiveNotes">Notes shown below the organizer name</label><textarea id="organizerLiveNotes" name="organizerNotes" rows="3" maxlength="100" placeholder="Tell players a little about your club..." aria-describedby="organizerLiveNotesHelp organizerLiveNotesCount">${escapeHTML(notes)}</textarea><div class="settings-field-foot"><small class="field-help" id="organizerLiveNotesHelp">Up to 100 characters. Leave blank to hide the notes on the Live View card.</small><small class="settings-character-count" id="organizerLiveNotesCount">${notes.length} / 100</small></div></div>
+            </div>
+          </section>
+
+          <section class="settings-control-group">
+            <div class="settings-control-heading"><span>3</span><div><h3>Social links</h3><p>Add the official pages players can open from your organizer card.</p></div></div>
+            <div class="settings-control-body settings-social-fields">
+              <div class="field"><label for="organizerReclubUrl">Reclub profile link</label><input id="organizerReclubUrl" name="organizerReclubUrl" type="url" maxlength="1000" inputmode="url" autocomplete="url" value="${escapeHTML(reclubUrl)}" placeholder="https://reclub.co/..." aria-describedby="organizerReclubHelp"><small class="field-help" id="organizerReclubHelp">Leave blank to hide the Reclub icon.</small></div>
+              <div class="field"><label for="organizerFacebookUrl">Facebook page link</label><input id="organizerFacebookUrl" name="organizerFacebookUrl" type="url" maxlength="1000" inputmode="url" autocomplete="url" value="${escapeHTML(facebookUrl)}" placeholder="https://facebook.com/..." aria-describedby="organizerFacebookHelp"><small class="field-help" id="organizerFacebookHelp">Leave blank to hide the Facebook icon.</small></div>
+            </div>
+          </section>
+
+          <div class="settings-live-actions"><span class="settings-save-hint">Changes are shared with connected Live View devices.</span><button class="btn btn-primary" type="submit">${icon('check')} Save Live View Card</button></div>
+        </form>
+      </div>
+    </section>
+
+    <section id="settings-tools" class="panel panel-pad settings-section settings-connected-tools">
+      <div class="settings-section-heading"><div><span class="settings-section-kicker">WORKFLOW</span><h2>Connected Queueing Tools</h2><p>Open the tools that work with your organizer data.</p></div><span class="settings-section-index">03</span></div>
+      <div class="external-tools-grid">
+        <a class="external-tool-card" href="/session" target="_blank" rel="noopener"><span>${icon('calendar')}</span><span><strong>Session Setup</strong><small>Start or end an open-play session</small></span><span class="settings-tool-arrow">${icon('external')}</span></a>
+        <a class="external-tool-card" href="/queueing" target="_blank" rel="noopener"><span>${icon('court')}</span><span><strong>Live Queueing</strong><small>Manage players, courts and matches</small></span><span class="settings-tool-arrow">${icon('external')}</span></a>
+        <a class="external-tool-card" href="/live" target="_blank" rel="noopener"><span>${icon('external')}</span><span><strong>Public Live View</strong><small>Display queue and match activity</small></span><span class="settings-tool-arrow">${icon('external')}</span></a>
+        ${live && getRegistrationUrl(live) ? `<a class="external-tool-card" href="${escapeHTML(getRegistrationUrl(live))}" target="_blank" rel="noopener"><span>${icon('users')}</span><span><strong>Player Registration</strong><small>Open the current session registration page</small></span><span class="settings-tool-arrow">${icon('external')}</span></a>` : ''}
+        <a class="external-tool-card" href="/panel"><span>${icon('users')}</span><span><strong>Admin Panel</strong><small>Organizer account administration</small></span><span class="settings-tool-arrow">${icon('external')}</span></a>
+      </div>
+    </section>
+
+    <section id="settings-data" class="panel panel-pad settings-section settings-data-section">
+      <div class="settings-section-heading"><div><span class="settings-section-kicker">DATA & ACCESS</span><h2>Data & Account</h2><p>Keep a copy of your records and manage your account access.</p></div><span class="settings-section-index">04</span></div>
+      <div class="settings-data-grid">
+        <div class="settings-data-card"><span class="settings-data-icon">${icon('download')}</span><div><strong>Download data backup</strong><p>Export a backup of your organizer workspace records.</p><button class="btn" data-action="export-backup">${icon('download')} Download Backup</button></div></div>
+        <div class="settings-data-card settings-signout-card"><span class="settings-data-icon">${icon('logout')}</span><div><strong>Sign out</strong><p>End your current organizer session on this device.</p><button class="btn btn-danger" data-action="logout">${icon('logout')} Sign Out</button></div></div>
+      </div>
+      <div class="settings-data-source"><strong>Where your data comes from</strong><p>This dashboard reads the same organizer-scoped app state, Registered Player records, saved sessions, attendance snapshots and match logs used by Queueing. No duplicate player or match database is created.</p></div>
+    </section>
+  </div>`;
+}
 function isDashboardInteractionActive() {
   const container = $('#pageContent');
   const active = document.activeElement;
@@ -5810,6 +5896,45 @@ document.addEventListener('change', event => {
   reader.readAsDataURL(file);
 });
 
+document.addEventListener('input', event => {
+  if (event.target?.id !== 'organizerLiveNotes') return;
+  const counter = document.getElementById('organizerLiveNotesCount');
+  if (counter) counter.textContent = `${String(event.target.value || '').length} / 100`;
+});
+
+document.addEventListener('change', event => {
+  const input = event.target;
+  if (input?.id !== 'organizerBackgroundFile') return;
+  const form = input.closest('#organizerLiveProfileForm');
+  const preview = document.getElementById('liveOrganizerBackgroundPreview');
+  if (!form || !preview) return;
+  const removeCheckbox = form.querySelector('[name="removeOrganizerBackground"]');
+  if (removeCheckbox) removeCheckbox.checked = false;
+  const file = input.files?.[0];
+  if (!file) return;
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+    toast('Choose a PNG, JPG or WebP background image no larger than 2 MB.', 'error');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (!preview.isConnected) return;
+    preview.innerHTML = `<img src="${escapeHTML(String(reader.result || ''))}" alt="Organizer background preview">`;
+  };
+  reader.onerror = () => toast('The selected background image could not be read.', 'error');
+  reader.readAsDataURL(file);
+});
+
+document.addEventListener('change', event => {
+  const checkbox = event.target;
+  if (checkbox?.name !== 'removeOrganizerBackground' || !checkbox.checked) return;
+  const preview = document.getElementById('liveOrganizerBackgroundPreview');
+  if (preview) preview.innerHTML = '<span>Profile background preview</span>';
+  const fileInput = document.getElementById('organizerBackgroundFile');
+  if (fileInput) fileInput.value = '';
+});
+
 document.addEventListener('submit', async event => {
   const form = event.target;
   if (form.id === 'registerCourtForm' || form.id === 'editRegisteredCourtForm') {
@@ -5918,6 +6043,32 @@ document.addEventListener('submit', async event => {
       body.endedAt = endDate.toISOString();
     }
     await withRefresh('Session details updated.', () => api(`/api/organizer-dashboard/sessions/${encodeURIComponent(sessionId)}`, { method: 'PATCH', body: JSON.stringify(body) }), 'sessions');
+  }
+  if (form.id === 'organizerLiveProfileForm') {
+    event.preventDefault();
+    const fd = new FormData(form);
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) { submitButton.disabled = true; submitButton.textContent = 'Saving…'; }
+    try {
+      const body = {
+        organizerNotes: String(fd.get('organizerNotes') || '').normalize('NFC').trim().slice(0, 100),
+        organizerReclubUrl: String(fd.get('organizerReclubUrl') || '').trim(),
+        organizerFacebookUrl: String(fd.get('organizerFacebookUrl') || '').trim()
+      };
+      const backgroundFile = form.querySelector('[name="organizerBackgroundFile"]')?.files?.[0];
+      if (backgroundFile) body.organizerBackground = await readImageFile(backgroundFile);
+      else if (fd.get('removeOrganizerBackground') === 'on') body.organizerBackground = '';
+      const response = await api('/api/organizer-settings', { method: 'PATCH', body: JSON.stringify(body) });
+      state.organizer = { ...(state.organizer || {}), ...(response.organizer || {}) };
+      updateOrganizerProfileDisplay(state.organizer);
+      await refreshData({ silent: true });
+      renderPage(true);
+      toast('Live View organizer card settings saved and shared with connected devices.');
+    } catch (error) {
+      toast(error.message || 'Live View organizer card settings could not be saved.', 'error');
+      if (submitButton && submitButton.isConnected) { submitButton.disabled = false; submitButton.innerHTML = `${icon('check')} Save Live View Card`; }
+    }
+    return;
   }
   if (form.id === 'organizerSettingsForm') {
     event.preventDefault();
@@ -6210,6 +6361,7 @@ function initEventStream() {
   const refresh = () => scheduleDashboardRefresh();
   stream.addEventListener('app-state', refresh);
   stream.addEventListener('cloud-records', refresh);
+  stream.addEventListener('organizer-profile', refresh);
   stream.addEventListener('registered-courts', refresh);
   stream.addEventListener('error', () => { /* EventSource retries automatically. */ });
 }
