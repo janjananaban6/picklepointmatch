@@ -5,7 +5,7 @@ const { URL } = require('node:url');
 const crypto = require('node:crypto');
 
 const ROOT = __dirname;
-const APP_BUILD_VERSION = 'ppm-organizer-profile-card-settings-20261123-v2';
+const APP_BUILD_VERSION = 'ppm-registration-organizer-logo-edge-contour-20261124-v3';
 const SESSION_IMPORT_API_PATH = '/api/organizer-dashboard/sessions/import';
 const DATA_DIR = process.env.PICKLE_DATA_DIR ? path.resolve(process.env.PICKLE_DATA_DIR) : path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'live-state.json');
@@ -1968,8 +1968,9 @@ async function handle(req, res) {
     if (requestedScope && !organizerId) return sendJson(res,404,{ok:false,error:'Organizer account was not found or is inactive.'});
     if (!organizerId) return sendJson(res,401,{ok:false,error:'An organizer-specific registration link or organizer login is required.'});
     const entry = getOrganizerAppEntry(organizerId);
+    const organizerAccount = accountById(organizerId);
     const state = requestedScope ? publicRegistrationAppState(entry.state) : entry.state;
-    return sendJson(res, 200, {ok:true,revision:entry.revision,state,updatedAt:entry.updatedAt,clientId:entry.clientId||null,organizerId,organizerSlug:String(accountById(organizerId)?.slug || '')});
+    return sendJson(res, 200, {ok:true,revision:entry.revision,state,updatedAt:entry.updatedAt,clientId:entry.clientId||null,organizerId,organizerSlug:String(organizerAccount?.slug || ''),organizerLogo:organizerLogoFor(organizerAccount)});
   }
   if (url.pathname === '/api/app-state' && req.method === 'POST') {
     try {
