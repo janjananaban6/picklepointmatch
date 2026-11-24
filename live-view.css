@@ -7481,13 +7481,62 @@ html body.live-view-page .mobile-organizer-dialog-identity {
   padding: 0 22px !important;
   box-sizing: border-box !important;
 }
-html body.live-view-page .mobile-organizer-dialog-logo {
+html body.live-view-page .mobile-organizer-dialog-logo-frame {
+  position: relative !important;
+  isolation: isolate !important;
   display: block !important;
   width: 148px !important;
   height: 98px !important;
   max-width: min(148px, calc(100vw - 88px)) !important;
   max-height: 98px !important;
+  flex: 0 0 auto !important;
   margin: 0 0 5px !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+html body.live-view-page .mobile-organizer-dialog-logo-frame[hidden] {
+  display: none !important;
+}
+html body.live-view-page .mobile-organizer-dialog-logo-frame.has-organizer-edge-mask::before,
+html body.live-view-page .mobile-organizer-dialog-logo-frame.has-organizer-edge-fallback::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2 !important;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none !important;
+  background: conic-gradient(from var(--mobile-organizer-dialog-logo-edge-angle, 0deg),
+    transparent 0deg 238deg,
+    rgba(20, 224, 205, .18) 260deg,
+    #19e6d0 286deg,
+    #ffffff 310deg,
+    #d7ff72 330deg,
+    rgba(25, 230, 208, .9) 346deg,
+    transparent 360deg) !important;
+  -webkit-mask-image: var(--mobile-organizer-dialog-logo-edge-mask) !important;
+  mask-image: var(--mobile-organizer-dialog-logo-edge-mask) !important;
+  -webkit-mask-repeat: no-repeat !important;
+  mask-repeat: no-repeat !important;
+  -webkit-mask-position: center !important;
+  mask-position: center !important;
+  -webkit-mask-size: contain !important;
+  mask-size: contain !important;
+  -webkit-mask-mode: alpha !important;
+  mask-mode: alpha !important;
+  filter: drop-shadow(0 0 2px rgba(15, 225, 205, .96))
+          drop-shadow(0 0 5px rgba(15, 225, 205, .52))
+          drop-shadow(0 0 9px rgba(205, 255, 90, .24)) !important;
+}
+html body.live-view-page .mobile-organizer-dialog-logo {
+  position: relative !important;
+  z-index: 1 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -7495,6 +7544,22 @@ html body.live-view-page .mobile-organizer-dialog-logo {
   box-shadow: none !important;
   object-fit: contain !important;
   box-sizing: border-box !important;
+  filter: drop-shadow(0 0 2px rgba(16, 220, 195, .56)) drop-shadow(0 0 5px rgba(16, 220, 195, .2)) !important;
+}
+html body.live-view-page .mobile-organizer-dialog.is-open .mobile-organizer-dialog-logo-frame.has-organizer-edge-mask::before,
+html body.live-view-page .mobile-organizer-dialog.is-open .mobile-organizer-dialog-logo-frame.has-organizer-edge-fallback::before {
+  animation: mobileOrganizerDialogLogoEdgePulse 2.2s ease-in-out infinite !important;
+}
+html body.live-view-page .mobile-organizer-dialog.is-open .mobile-organizer-dialog-logo-frame .mobile-organizer-dialog-logo {
+  animation: mobileOrganizerDialogLogoImageGlow 2.2s ease-in-out infinite !important;
+}
+@keyframes mobileOrganizerDialogLogoEdgePulse {
+  0%, 100% { opacity: .68; }
+  50% { opacity: 1; }
+}
+@keyframes mobileOrganizerDialogLogoImageGlow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(16, 220, 195, .52)) drop-shadow(0 0 5px rgba(16, 220, 195, .16)); }
+  50% { filter: drop-shadow(0 0 4px rgba(16, 220, 195, .9)) drop-shadow(0 0 9px rgba(184, 255, 63, .35)); }
 }
 html body.live-view-page .mobile-organizer-dialog-logo[hidden] {
   display: none !important;
@@ -7662,7 +7727,7 @@ html:not([data-theme="light"]) body.live-view-page .mobile-organizer-dialog-stat
     margin-top: -42px !important;
     padding-inline: 16px !important;
   }
-  html body.live-view-page .mobile-organizer-dialog-logo {
+  html body.live-view-page .mobile-organizer-dialog-logo-frame {
     width: 128px !important;
     height: 84px !important;
     max-width: min(128px, calc(100vw - 88px)) !important;
@@ -7681,5 +7746,13 @@ html:not([data-theme="light"]) body.live-view-page .mobile-organizer-dialog-stat
   html body.live-view-page .mobile-organizer-dialog-backdrop,
   html body.live-view-page .mobile-organizer-dialog-card {
     transition-duration: .01ms !important;
+  }
+  html body.live-view-page .mobile-organizer-dialog.is-open .mobile-organizer-dialog-logo-frame.has-organizer-edge-mask::before,
+  html body.live-view-page .mobile-organizer-dialog.is-open .mobile-organizer-dialog-logo-frame.has-organizer-edge-fallback::before {
+    animation: none !important;
+    opacity: .9 !important;
+  }
+  html body.live-view-page .mobile-organizer-dialog.is-open .mobile-organizer-dialog-logo-frame .mobile-organizer-dialog-logo {
+    animation: none !important;
   }
 }

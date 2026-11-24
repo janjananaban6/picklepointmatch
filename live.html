@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="/pickleball-p-emblem.png">
-  <link rel="stylesheet" href="/live-view.css?v=live-audit-cleanup-20261109-1&queue-search-compact-height-20261023-1&filter-list-toggle-state-20261109-1&mzoom=20261024-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-compact-collapse-20261105-2&livetabs=radius15-min35-responsive-20261024-5&organizer-logo=20261024-2&organizer-stat-match=20261024-1&avatar-sync=20261029-2&live-width-440-responsive-stack-20261104-2&court-scroll-all-devices-20261104-2&live-header-brand-scrollbar-flat-sections-20261105-5&card-surface-scrollbar-hotfix-20261105-6&court-header-timer-inline-20261105-2&court-mini-timer-mobile-stable-20261105-1&court-collapse-fixed-shell-20261106-1&court-heading-actions-20261105-2&court-timer-summary-stability-20261105-1&court-heading-toggle-threshold-20261105-1&live-ranking-filter-pill-20261106-1&matches-matchup-search-20261107-1&queue-court-pill-controls-20261106-1&court-expanded-flow-layout-20261106-1&matchup-search=20261107-2&search-filter-blue-static=20261107-1&search-hover-neutral-gray-surface=20261107-2&ranking-lock-inline=20261107-3&queue-lock-partner-snapshot=20261107-1&ranking-podium-background=20261109-1&desktop-filter-circle-theme-toggle=20261109-1&header-no-bounce-glass-badges=20261109-1&dark-glass-ranking-status=20261109-1&light-badge-parity-matches-toggle-circle=20261109-1&court-player-white-glass-ranking-circle-seam-fix=20261109-1&court-layout-collapse-svg-icons=20261109-1&live-heading-empty-svg-icons=20261109-1&court-category-light-contrast=20261109-1&live-ranking-eligibility-note-20261113-2&live-list-gap-stability-20261121-1&organizer-profile-card-20261123-1&organizer-ui-polish-20261123-1">
+  <link rel="stylesheet" href="/live-view.css?v=live-audit-cleanup-20261109-1&queue-search-compact-height-20261023-1&filter-list-toggle-state-20261109-1&mzoom=20261024-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-compact-collapse-20261105-2&livetabs=radius15-min35-responsive-20261024-5&organizer-logo=20261024-2&organizer-stat-match=20261024-1&avatar-sync=20261029-2&live-width-440-responsive-stack-20261104-2&court-scroll-all-devices-20261104-2&live-header-brand-scrollbar-flat-sections-20261105-5&card-surface-scrollbar-hotfix-20261105-6&court-header-timer-inline-20261105-2&court-mini-timer-mobile-stable-20261105-1&court-collapse-fixed-shell-20261106-1&court-heading-actions-20261105-2&court-timer-summary-stability-20261105-1&court-heading-toggle-threshold-20261105-1&live-ranking-filter-pill-20261106-1&matches-matchup-search-20261107-1&queue-court-pill-controls-20261106-1&court-expanded-flow-layout-20261106-1&matchup-search=20261107-2&search-filter-blue-static=20261107-1&search-hover-neutral-gray-surface=20261107-2&ranking-lock-inline=20261107-3&queue-lock-partner-snapshot=20261107-1&ranking-podium-background=20261109-1&desktop-filter-circle-theme-toggle=20261109-1&header-no-bounce-glass-badges=20261109-1&dark-glass-ranking-status=20261109-1&light-badge-parity-matches-toggle-circle=20261109-1&court-player-white-glass-ranking-circle-seam-fix=20261109-1&court-layout-collapse-svg-icons=20261109-1&live-heading-empty-svg-icons=20261109-1&court-category-light-contrast=20261109-1&live-ranking-eligibility-note-20261113-2&live-list-gap-stability-20261121-1&organizer-profile-card-20261123-1&organizer-ui-polish-20261123-1&mobile-organizer-logo-edge-rotation=20261124-2">
   <link rel="stylesheet" href="/searchbar-device-fix.css?v=searchbar-device-fix-20261023-1&mzoom=20261024-1&live-search-border-parity=20261106-2-blue">
   <link rel="stylesheet" href="/network-skeleton.css?v=network-validation-20261027-1">
   <script src="/network-skeleton.js?v=network-skeleton-20261024-1"></script>
@@ -64,7 +64,9 @@
         <img id="mobileOrganizerDialogBackground" class="mobile-organizer-dialog-background" alt="" aria-hidden="true" hidden>
       </div>
       <div class="mobile-organizer-dialog-identity">
-        <img id="mobileOrganizerDialogLogo" class="mobile-organizer-dialog-logo" alt="" hidden>
+        <div id="mobileOrganizerDialogLogoFrame" class="mobile-organizer-dialog-logo-frame" hidden>
+          <img id="mobileOrganizerDialogLogo" class="mobile-organizer-dialog-logo" alt="" hidden>
+        </div>
         <div class="mobile-organizer-dialog-label">ORGANIZER</div>
         <div id="mobileOrganizerDialogName" class="mobile-organizer-dialog-name"></div>
         <p id="mobileOrganizerDialogNotes" class="mobile-organizer-dialog-notes" hidden></p>
@@ -961,6 +963,7 @@
       const dialog = document.getElementById('mobileOrganizerDialog');
       const dialogCard = dialog?.querySelector('.mobile-organizer-dialog-card');
       const dialogLogo = document.getElementById('mobileOrganizerDialogLogo');
+      const dialogLogoFrame = document.getElementById('mobileOrganizerDialogLogoFrame');
       const dialogBackground = document.getElementById('mobileOrganizerDialogBackground');
       const dialogName = document.getElementById('mobileOrganizerDialogName');
       const dialogNotes = document.getElementById('mobileOrganizerDialogNotes');
@@ -980,7 +983,191 @@
       const normalizedLogoCache = new Map();
       const pendingLogoConversions = new Map();
       let dialogLogoSequence = 0;
+      let dialogLogoEdgeAnimationFrame = 0;
+      let dialogLogoEdgeLastFrameTime = 0;
+      let dialogLogoEdgeAngle = 0;
       const isOpen = () => !dialog.hidden;
+      const hasMobileOrganizerDialogLogoEdge = () => Boolean(dialogLogoFrame && (
+        dialogLogoFrame.classList.contains('has-organizer-edge-mask') ||
+        dialogLogoFrame.classList.contains('has-organizer-edge-fallback')
+      ));
+
+  function createLiveOrganizerDialogLogoEdgeMask(image) {
+    // Build a thin alpha mask from the actual visible PNG/logo silhouette.
+    // This lets the animated light follow the logo's own outline instead of
+    // drawing a rotating rectangle around the image element.
+    try {
+      if (!image || !image.naturalWidth || !image.naturalHeight) return '';
+      const maxDimension = 360;
+      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+      const width = Math.max(2, Math.round(image.naturalWidth * scale));
+      const height = Math.max(2, Math.round(image.naturalHeight * scale));
+      const sourceCanvas = document.createElement('canvas');
+      sourceCanvas.width = width;
+      sourceCanvas.height = height;
+      const sourceContext = sourceCanvas.getContext('2d', {willReadFrequently:true});
+      if (!sourceContext) return '';
+      sourceContext.clearRect(0, 0, width, height);
+      sourceContext.drawImage(image, 0, 0, width, height);
+      const source = sourceContext.getImageData(0, 0, width, height);
+      const pixels = source.data;
+      const total = width * height;
+      const visible = new Uint8Array(total);
+      let visibleCount = 0;
+      let transparentCount = 0;
+      for (let i = 0; i < total; i++) {
+        const alpha = pixels[i * 4 + 3];
+        if (alpha > 18) { visible[i] = 1; visibleCount++; }
+        else transparentCount++;
+      }
+
+      // Some organizers upload a PNG with a flat white/solid background rather
+      // than transparency. When all four corners agree, remove only that
+      // border-connected background for outline tracing; the displayed logo
+      // itself is never altered.
+      if (transparentCount < total * 0.015 && visibleCount > total * 0.8) {
+        const cornerSamples = [];
+        const patch = Math.max(2, Math.min(12, Math.floor(Math.min(width, height) / 12)));
+        const cornerStarts = [[0,0],[width-patch,0],[0,height-patch],[width-patch,height-patch]];
+        for (const [sx, sy] of cornerStarts) {
+          let r = 0, g = 0, b = 0, n = 0;
+          for (let y = sy; y < sy + patch; y++) for (let x = sx; x < sx + patch; x++) {
+            const at = (y * width + x) * 4;
+            if (pixels[at + 3] > 18) { r += pixels[at]; g += pixels[at + 1]; b += pixels[at + 2]; n++; }
+          }
+          cornerSamples.push(n ? [r/n,g/n,b/n] : null);
+        }
+        const validCorners = cornerSamples.filter(Boolean);
+        if (validCorners.length === 4) {
+          const mean = [0,1,2].map(channel => validCorners.reduce((sum, color) => sum + color[channel], 0) / 4);
+          const cornerSpread = Math.max(...validCorners.map(color => Math.hypot(color[0]-mean[0], color[1]-mean[1], color[2]-mean[2])));
+          if (cornerSpread < 42) {
+            const backgroundLike = index => {
+              const at = index * 4;
+              return Math.hypot(pixels[at]-mean[0], pixels[at+1]-mean[1], pixels[at+2]-mean[2]) < 54;
+            };
+            const queue = new Int32Array(total);
+            let head = 0, tail = 0;
+            const enqueue = index => {
+              if (index < 0 || index >= total || !visible[index] || !backgroundLike(index)) return;
+              visible[index] = 0;
+              queue[tail++] = index;
+            };
+            for (let x = 0; x < width; x++) { enqueue(x); enqueue((height-1)*width+x); }
+            for (let y = 1; y < height-1; y++) { enqueue(y*width); enqueue(y*width+width-1); }
+            while (head < tail) {
+              const index = queue[head++];
+              const x = index % width;
+              if (x > 0) enqueue(index-1);
+              if (x+1 < width) enqueue(index+1);
+              if (index >= width) enqueue(index-width);
+              if (index + width < total) enqueue(index+width);
+            }
+          }
+        }
+      }
+
+      const edgeCanvas = document.createElement('canvas');
+      edgeCanvas.width = width;
+      edgeCanvas.height = height;
+      const edgeContext = edgeCanvas.getContext('2d');
+      if (!edgeContext) return '';
+      const edgeImage = edgeContext.createImageData(width, height);
+      const radius = Math.max(3, Math.round(Math.min(width, height) * 0.027));
+      const directions = [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]];
+      let edgePixels = 0;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const index = y * width + x;
+          if (!visible[index]) continue;
+          let isEdge = false;
+          for (const [dx,dy] of directions) {
+            const nx = x + dx * radius;
+            const ny = y + dy * radius;
+            if (nx < 0 || nx >= width || ny < 0 || ny >= height || !visible[ny * width + nx]) {
+              isEdge = true;
+              break;
+            }
+          }
+          if (isEdge) {
+            const sourceAlpha = pixels[index * 4 + 3];
+            const output = index * 4;
+            edgeImage.data[output] = 255;
+            edgeImage.data[output+1] = 255;
+            edgeImage.data[output+2] = 255;
+            edgeImage.data[output+3] = sourceAlpha;
+            edgePixels++;
+          }
+        }
+      }
+      if (!edgePixels) return '';
+      edgeContext.putImageData(edgeImage, 0, 0);
+      return edgeCanvas.toDataURL('image/png');
+    } catch (_) {
+      // Keep the live dialog usable on browsers that restrict canvas pixel access.
+      return '';
+    }
+  }
+
+
+      const stopMobileOrganizerDialogLogoEdgeAnimation = () => {
+        if (dialogLogoEdgeAnimationFrame) {
+          window.cancelAnimationFrame(dialogLogoEdgeAnimationFrame);
+          dialogLogoEdgeAnimationFrame = 0;
+        }
+        dialogLogoEdgeLastFrameTime = 0;
+      };
+      const startMobileOrganizerDialogLogoEdgeAnimation = () => {
+        stopMobileOrganizerDialogLogoEdgeAnimation();
+        if (!dialogLogoFrame || !hasMobileOrganizerDialogLogoEdge() || !isOpen()) return;
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+          dialogLogoFrame.style.setProperty('--mobile-organizer-dialog-logo-edge-angle', '0deg');
+          return;
+        }
+        const animate = timestamp => {
+          if (!dialogLogoFrame.isConnected || !hasMobileOrganizerDialogLogoEdge()) {
+            stopMobileOrganizerDialogLogoEdgeAnimation();
+            return;
+          }
+          // Start as soon as the dialog is unhidden. Do not wait for its CSS
+          // entrance class: image load and dialog-open transitions can finish
+          // in either order on slower mobile devices.
+          if (!isOpen() || document.hidden) {
+            dialogLogoEdgeAnimationFrame = 0;
+            dialogLogoEdgeLastFrameTime = 0;
+            return;
+          }
+          if (!dialogLogoEdgeLastFrameTime) dialogLogoEdgeLastFrameTime = timestamp;
+          const elapsed = Math.min(64, Math.max(0, timestamp - dialogLogoEdgeLastFrameTime));
+          dialogLogoEdgeLastFrameTime = timestamp;
+          dialogLogoEdgeAngle = (dialogLogoEdgeAngle + elapsed * (360 / 3200)) % 360;
+          dialogLogoFrame.style.setProperty('--mobile-organizer-dialog-logo-edge-angle', `${dialogLogoEdgeAngle.toFixed(2)}deg`);
+          dialogLogoEdgeAnimationFrame = window.requestAnimationFrame(animate);
+        };
+        dialogLogoEdgeAnimationFrame = window.requestAnimationFrame(animate);
+      };
+      const clearMobileOrganizerDialogLogoEffects = () => {
+        stopMobileOrganizerDialogLogoEdgeAnimation();
+        if (!dialogLogoFrame) return;
+        dialogLogoFrame.classList.remove('has-organizer-edge-mask', 'has-organizer-edge-fallback');
+        dialogLogoFrame.style.removeProperty('--mobile-organizer-dialog-logo-edge-mask');
+        dialogLogoFrame.style.removeProperty('--mobile-organizer-dialog-logo-edge-angle');
+      };
+      const activateMobileOrganizerDialogLogoEffects = () => {
+        if (!dialogLogoFrame || !dialogLogo.complete || !dialogLogo.naturalWidth || dialogLogo.hidden) return;
+        const edgeMask = createLiveOrganizerDialogLogoEdgeMask(dialogLogo);
+        clearMobileOrganizerDialogLogoEffects();
+
+        // Prefer the thin outline mask used on Registration. If canvas pixel
+        // access is unavailable on a browser/device, fall back to the image's
+        // own alpha silhouette so the rotating light still remains visible.
+        const silhouetteMask = edgeMask || dialogLogo.currentSrc || dialogLogo.src || dialogLogo.getAttribute('src') || '';
+        if (!silhouetteMask) return;
+        dialogLogoFrame.style.setProperty('--mobile-organizer-dialog-logo-edge-mask', `url("${silhouetteMask}")`);
+        dialogLogoFrame.style.setProperty('--mobile-organizer-dialog-logo-edge-angle', `${dialogLogoEdgeAngle.toFixed(2)}deg`);
+        dialogLogoFrame.classList.add(edgeMask ? 'has-organizer-edge-mask' : 'has-organizer-edge-fallback');
+        startMobileOrganizerDialogLogoEdgeAnimation();
+      };
 
       const convertLiveOrganizerLogoToTransparentPng = value => {
         const url = String(value || '').trim();
@@ -1015,26 +1202,37 @@
         const sequence = ++dialogLogoSequence;
         dialogLogo.onerror = () => {
           if (sequence !== dialogLogoSequence) return;
+          clearMobileOrganizerDialogLogoEffects();
           dialogLogo.hidden = true;
+          if (dialogLogoFrame) dialogLogoFrame.hidden = true;
           dialogLogo.removeAttribute('src');
         };
         if (!url) {
+          clearMobileOrganizerDialogLogoEffects();
           dialogLogo.hidden = true;
+          if (dialogLogoFrame) dialogLogoFrame.hidden = true;
           dialogLogo.removeAttribute('src');
           return;
         }
 
         // Avoid showing an unprocessed white/solid rectangle while conversion runs.
+        clearMobileOrganizerDialogLogoEffects();
         dialogLogo.hidden = true;
+        if (dialogLogoFrame) dialogLogoFrame.hidden = true;
         convertLiveOrganizerLogoToTransparentPng(url).then(normalizedUrl => {
           if (sequence !== dialogLogoSequence || !normalizedUrl) return;
           const nextUrl = normalizedUrl || url;
           if (dialogLogo.getAttribute('src') === nextUrl && dialogLogo.complete && dialogLogo.naturalWidth > 0) {
             dialogLogo.hidden = false;
+            if (dialogLogoFrame) dialogLogoFrame.hidden = false;
+            activateMobileOrganizerDialogLogoEffects();
             return;
           }
           dialogLogo.onload = () => {
-            if (sequence === dialogLogoSequence) dialogLogo.hidden = false;
+            if (sequence !== dialogLogoSequence) return;
+            dialogLogo.hidden = false;
+            if (dialogLogoFrame) dialogLogoFrame.hidden = false;
+            activateMobileOrganizerDialogLogoEffects();
           };
           dialogLogo.src = nextUrl;
         });
@@ -1273,6 +1471,7 @@
       const closeDialog = (restoreFocus = true) => {
         if (!isOpen() || dialog.classList.contains('is-closing')) return;
         const sequence = ++closeSequence;
+        stopMobileOrganizerDialogLogoEdgeAnimation();
         dialog.classList.remove('is-open');
         dialog.classList.add('is-closing');
         trigger.setAttribute('aria-expanded', 'false');
@@ -1297,7 +1496,13 @@
         dialog.setAttribute('aria-hidden', 'false');
         trigger.setAttribute('aria-expanded', 'true');
         if (latestProfile) applyProfile(latestProfile, true, true);
-        requestAnimationFrame(() => dialog.classList.add('is-open'));
+        requestAnimationFrame(() => {
+          dialog.classList.add('is-open');
+          if (dialogLogo.complete && dialogLogo.naturalWidth > 0 && !dialogLogo.hidden) {
+            if (hasMobileOrganizerDialogLogoEdge()) startMobileOrganizerDialogLogoEdgeAnimation();
+            else activateMobileOrganizerDialogLogoEffects();
+          }
+        });
         document.dispatchEvent(new Event('ppm:organizer-profile-refresh-request'));
         dialogCard.focus({ preventScroll: true });
       };
@@ -1316,6 +1521,10 @@
           event.preventDefault();
           closeDialog();
         }
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopMobileOrganizerDialogLogoEdgeAnimation();
+        else if (isOpen() && hasMobileOrganizerDialogLogoEdge()) startMobileOrganizerDialogLogoEdgeAnimation();
       });
       document.addEventListener('ppm:organizer-profile-update', event => applyProfile(event.detail));
     })();
