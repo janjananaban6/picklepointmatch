@@ -3033,3 +3033,74 @@ html body.registration-page-body .registration-page-shell,
 html body.registration-page-body #registrationPagePanel {
   overflow-anchor: none !important;
 }
+
+
+/* Organizer logo edge light: the mask is generated from the PNG alpha silhouette
+   so the rotating glow follows the logo itself, not the square image box. */
+html body.registration-page-body .registration-page-icon-float {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+}
+html body.registration-page-body .registration-page-icon-float.has-organizer-edge-mask::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 70px !important;
+  height: 70px !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+  transform: translate(-50%, -50%) !important;
+  background: conic-gradient(from var(--registration-organizer-edge-angle, 0deg),
+    transparent 0deg 238deg,
+    rgba(20, 224, 205, .18) 260deg,
+    #19e6d0 286deg,
+    #ffffff 310deg,
+    #d7ff72 330deg,
+    rgba(25, 230, 208, .9) 346deg,
+    transparent 360deg) !important;
+  -webkit-mask-image: var(--registration-organizer-edge-mask) !important;
+  mask-image: var(--registration-organizer-edge-mask) !important;
+  -webkit-mask-repeat: no-repeat !important;
+  mask-repeat: no-repeat !important;
+  -webkit-mask-position: center !important;
+  mask-position: center !important;
+  -webkit-mask-size: contain !important;
+  mask-size: contain !important;
+  -webkit-mask-mode: alpha !important;
+  mask-mode: alpha !important;
+  filter: drop-shadow(0 0 2px rgba(15, 225, 205, .96))
+          drop-shadow(0 0 5px rgba(15, 225, 205, .52))
+          drop-shadow(0 0 9px rgba(205, 255, 90, .24)) !important;
+  animation: registrationOrganizerLogoEdgePulse 2.2s ease-in-out infinite !important;
+}
+html body.registration-page-body .registration-page-icon-float.has-organizer-logo .registration-organizer-logo-image {
+  position: relative !important;
+  z-index: 1 !important;
+  display: block !important;
+  width: 70px !important;
+  height: 70px !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  filter: drop-shadow(0 0 2px rgba(16, 220, 195, .56)) drop-shadow(0 0 5px rgba(16, 220, 195, .2)) !important;
+  animation: registrationOrganizerLogoImageGlow 2.2s ease-in-out infinite !important;
+}
+@keyframes registrationOrganizerLogoEdgePulse {
+  0%, 100% { opacity: .68; }
+  50% { opacity: 1; }
+}
+@keyframes registrationOrganizerLogoImageGlow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(16, 220, 195, .52)) drop-shadow(0 0 5px rgba(16, 220, 195, .16)); }
+  50% { filter: drop-shadow(0 0 4px rgba(16, 220, 195, .9)) drop-shadow(0 0 9px rgba(184, 255, 63, .35)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body.registration-page-body .registration-page-icon-float.has-organizer-edge-mask::before {
+    animation: none !important;
+    opacity: .9 !important;
+  }
+  html body.registration-page-body .registration-page-icon-float.has-organizer-logo .registration-organizer-logo-image {
+    animation: none !important;
+  }
+}

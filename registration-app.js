@@ -15,12 +15,221 @@
   let cloudRetryTimer = null;
   let cloudLoadPromise = null;
   const CLOUD_RETRY_DELAY_MS = 5000;
+  let organizerLogoEdgeAnimationFrame = 0;
+  let organizerLogoEdgeLastFrameTime = 0;
+  let organizerLogoEdgeAngle = 0;
+
+  function stopRegistrationOrganizerLogoEdgeAnimation() {
+    if (organizerLogoEdgeAnimationFrame) {
+      window.cancelAnimationFrame(organizerLogoEdgeAnimationFrame);
+      organizerLogoEdgeAnimationFrame = 0;
+    }
+    organizerLogoEdgeLastFrameTime = 0;
+  }
+
+  function startRegistrationOrganizerLogoEdgeAnimation(frame) {
+    stopRegistrationOrganizerLogoEdgeAnimation();
+    if (!frame || !frame.classList.contains('has-organizer-edge-mask')) return;
+
+    // Respect the device accessibility preference. The CSS keeps a steady glow
+    // visible, while browsers with normal motion preferences get the full sweep.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      frame.style.setProperty('--registration-organizer-edge-angle', '0deg');
+      return;
+    }
+
+    const animate = timestamp => {
+      if (!frame.isConnected || !frame.classList.contains('has-organizer-edge-mask')) {
+        stopRegistrationOrganizerLogoEdgeAnimation();
+        return;
+      }
+      if (document.hidden) {
+        organizerLogoEdgeAnimationFrame = 0;
+        organizerLogoEdgeLastFrameTime = 0;
+        return;
+      }
+      if (!organizerLogoEdgeLastFrameTime) organizerLogoEdgeLastFrameTime = timestamp;
+      const elapsed = Math.min(64, Math.max(0, timestamp - organizerLogoEdgeLastFrameTime));
+      organizerLogoEdgeLastFrameTime = timestamp;
+      organizerLogoEdgeAngle = (organizerLogoEdgeAngle + elapsed * (360 / 3200)) % 360;
+      frame.style.setProperty('--registration-organizer-edge-angle', `${organizerLogoEdgeAngle.toFixed(2)}deg`);
+      organizerLogoEdgeAnimationFrame = window.requestAnimationFrame(animate);
+    };
+    organizerLogoEdgeAnimationFrame = window.requestAnimationFrame(animate);
+  }
 
   function scopedApiUrl(path, params = {}) {
     const url = new URL(path, window.location.origin);
     if (organizerScope) url.searchParams.set('organizer', organizerScope);
     Object.entries(params).forEach(([key,value]) => url.searchParams.set(key, String(value)));
     return url.pathname + url.search;
+  }
+
+  function createRegistrationLogoEdgeMask(image) {
+    // Build a thin alpha mask from the actual visible PNG/logo silhouette.
+    // This lets the animated light follow the logo's own outline instead of
+    // drawing a rotating rectangle around the image element.
+    try {
+      if (!image || !image.naturalWidth || !image.naturalHeight) return '';
+      const maxDimension = 360;
+      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+      const width = Math.max(2, Math.round(image.naturalWidth * scale));
+      const height = Math.max(2, Math.round(image.naturalHeight * scale));
+      const sourceCanvas = document.createElement('canvas');
+      sourceCanvas.width = width;
+      sourceCanvas.height = height;
+      const sourceContext = sourceCanvas.getContext('2d', {willReadFrequently:true});
+      if (!sourceContext) return '';
+      sourceContext.clearRect(0, 0, width, height);
+      sourceContext.drawImage(image, 0, 0, width, height);
+      const source = sourceContext.getImageData(0, 0, width, height);
+      const pixels = source.data;
+      const total = width * height;
+      const visible = new Uint8Array(total);
+      let visibleCount = 0;
+      let transparentCount = 0;
+      for (let i = 0; i < total; i++) {
+        const alpha = pixels[i * 4 + 3];
+        if (alpha > 18) { visible[i] = 1; visibleCount++; }
+        else transparentCount++;
+      }
+
+      // Some organizers upload a PNG with a flat white/solid background rather
+      // than transparency. When all four corners agree, remove only that
+      // border-connected background for outline tracing; the displayed logo
+      // itself is never altered.
+      if (transparentCount < total * 0.015 && visibleCount > total * 0.8) {
+        const cornerSamples = [];
+        const patch = Math.max(2, Math.min(12, Math.floor(Math.min(width, height) / 12)));
+        const cornerStarts = [[0,0],[width-patch,0],[0,height-patch],[width-patch,height-patch]];
+        for (const [sx, sy] of cornerStarts) {
+          let r = 0, g = 0, b = 0, n = 0;
+          for (let y = sy; y < sy + patch; y++) for (let x = sx; x < sx + patch; x++) {
+            const at = (y * width + x) * 4;
+            if (pixels[at + 3] > 18) { r += pixels[at]; g += pixels[at + 1]; b += pixels[at + 2]; n++; }
+          }
+          cornerSamples.push(n ? [r/n,g/n,b/n] : null);
+        }
+        const validCorners = cornerSamples.filter(Boolean);
+        if (validCorners.length === 4) {
+          const mean = [0,1,2].map(channel => validCorners.reduce((sum, color) => sum + color[channel], 0) / 4);
+          const cornerSpread = Math.max(...validCorners.map(color => Math.hypot(color[0]-mean[0], color[1]-mean[1], color[2]-mean[2])));
+          if (cornerSpread < 42) {
+            const backgroundLike = index => {
+              const at = index * 4;
+              return Math.hypot(pixels[at]-mean[0], pixels[at+1]-mean[1], pixels[at+2]-mean[2]) < 54;
+            };
+            const queue = new Int32Array(total);
+            let head = 0, tail = 0;
+            const enqueue = index => {
+              if (index < 0 || index >= total || !visible[index] || !backgroundLike(index)) return;
+              visible[index] = 0;
+              queue[tail++] = index;
+            };
+            for (let x = 0; x < width; x++) { enqueue(x); enqueue((height-1)*width+x); }
+            for (let y = 1; y < height-1; y++) { enqueue(y*width); enqueue(y*width+width-1); }
+            while (head < tail) {
+              const index = queue[head++];
+              const x = index % width;
+              if (x > 0) enqueue(index-1);
+              if (x+1 < width) enqueue(index+1);
+              if (index >= width) enqueue(index-width);
+              if (index + width < total) enqueue(index+width);
+            }
+          }
+        }
+      }
+
+      const edgeCanvas = document.createElement('canvas');
+      edgeCanvas.width = width;
+      edgeCanvas.height = height;
+      const edgeContext = edgeCanvas.getContext('2d');
+      if (!edgeContext) return '';
+      const edgeImage = edgeContext.createImageData(width, height);
+      const radius = Math.max(3, Math.round(Math.min(width, height) * 0.027));
+      const directions = [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]];
+      let edgePixels = 0;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const index = y * width + x;
+          if (!visible[index]) continue;
+          let isEdge = false;
+          for (const [dx,dy] of directions) {
+            const nx = x + dx * radius;
+            const ny = y + dy * radius;
+            if (nx < 0 || nx >= width || ny < 0 || ny >= height || !visible[ny * width + nx]) {
+              isEdge = true;
+              break;
+            }
+          }
+          if (isEdge) {
+            const sourceAlpha = pixels[index * 4 + 3];
+            const output = index * 4;
+            edgeImage.data[output] = 255;
+            edgeImage.data[output+1] = 255;
+            edgeImage.data[output+2] = 255;
+            edgeImage.data[output+3] = sourceAlpha;
+            edgePixels++;
+          }
+        }
+      }
+      if (!edgePixels) return '';
+      edgeContext.putImageData(edgeImage, 0, 0);
+      return edgeCanvas.toDataURL('image/png');
+    } catch (_) {
+      // Keep registration usable on browsers that restrict canvas pixel access.
+      return '';
+    }
+  }
+
+  function applyRegistrationOrganizerLogo(value) {
+    const image = $('registrationOrganizerLogo');
+    const frame = $('registrationOrganizerLogoFrame');
+    if (!image) return;
+
+    const clearLogoEffects = () => {
+      stopRegistrationOrganizerLogoEdgeAnimation();
+      if (!frame) return;
+      frame.classList.remove('has-organizer-logo', 'has-organizer-edge-mask');
+      frame.style.removeProperty('--registration-organizer-edge-mask');
+      frame.style.removeProperty('--registration-organizer-edge-angle');
+    };
+    const activateLogoEffects = () => {
+      if (!frame || !image.complete || !image.naturalWidth) return;
+      const edgeMask = createRegistrationLogoEdgeMask(image);
+      clearLogoEffects();
+      if (edgeMask) {
+        frame.style.setProperty('--registration-organizer-edge-mask', `url("${edgeMask}")`);
+        frame.style.setProperty('--registration-organizer-edge-angle', `${organizerLogoEdgeAngle.toFixed(2)}deg`);
+        frame.classList.add('has-organizer-edge-mask');
+      }
+      frame.classList.add('has-organizer-logo');
+      if (edgeMask) startRegistrationOrganizerLogoEdgeAnimation(frame);
+    };
+    const useFallback = () => {
+      clearLogoEffects();
+      image.onerror = null;
+      image.onload = () => activateLogoEffects();
+      const fallback = 'pickleball-p-emblem.png';
+      if (image.getAttribute('src') !== fallback) image.src = fallback;
+      else if (image.complete && image.naturalWidth > 0) activateLogoEffects();
+    };
+
+    const logo = typeof value === 'string' ? value.trim() : '';
+    // The server exposes only validated, public organizer profile images.
+    // Keep the app emblem as a safe fallback for legacy accounts without a logo.
+    if (!/^data:image\/(?:png|jpeg|webp);base64,/i.test(logo)) {
+      useFallback();
+      return;
+    }
+
+    clearLogoEffects();
+    image.onerror = useFallback;
+    image.onload = () => {
+      if (image.getAttribute('src') === logo) activateLogoEffects();
+    };
+    if (image.getAttribute('src') !== logo) image.src = logo;
+    else if (image.complete && image.naturalWidth > 0) activateLogoEffects();
   }
 
   function showRegistrationLinkNotice(message) {
@@ -76,6 +285,7 @@
           return false;
         }
         registrationLinkInvalid = false;
+        applyRegistrationOrganizerLogo(data.organizerLogo);
         organizerValidated = true;
         // Load the organizer's current queue before rendering cloud suggestions,
         // so players already checked in on another device show as completed.
@@ -1274,7 +1484,13 @@
   if (!organizerScope) showRegistrationLinkNotice('This registration page is organizer-specific. Please scan the registration QR code or open the link provided by your organizer.');
   syncRegistrationEyebrowTheme();
   loadCloudRecords();
+  document.addEventListener('visibilitychange', () => {
+    const frame = $('registrationOrganizerLogoFrame');
+    if (document.hidden) stopRegistrationOrganizerLogoEdgeAnimation();
+    else if (frame?.classList.contains('has-organizer-edge-mask')) startRegistrationOrganizerLogoEdgeAnimation(frame);
+  });
   window.addEventListener('pagehide', () => {
+    stopRegistrationOrganizerLogoEdgeAnimation();
     if (cloudRetryTimer) window.clearTimeout(cloudRetryTimer);
     cloudRetryTimer = null;
     if (cloudEvents) cloudEvents.close();
