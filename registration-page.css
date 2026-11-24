@@ -1779,10 +1779,6 @@ html body.registration-page-body .registration-page-intro p {
 }
 html body.registration-page-body .registration-page-icon-float {
   display: flex !important;
-  width: 60px !important;
-  height: 60px !important;
-  min-width: 60px !important;
-  min-height: 60px !important;
   align-items: center !important;
   justify-content: center !important;
   margin: 0 auto 16px !important;
@@ -1796,8 +1792,6 @@ html body.registration-page-body .registration-page-icon-float {
 }
 html body.registration-page-body .registration-page-icon-float img {
   display: block !important;
-  width: 43px !important;
-  height: 47px !important;
   max-width: 100% !important;
   max-height: 100% !important;
   object-fit: contain !important;
@@ -2053,10 +2047,6 @@ html body.registration-page-body .registration-brand .brand-words > small {
 /* Place the standalone P mark in the same position and size as index.html's login avatar. */
 html body.registration-page-body .registration-page-icon-float {
   display: flex !important;
-  width: 60px !important;
-  height: 60px !important;
-  min-width: 60px !important;
-  min-height: 60px !important;
   align-items: center !important;
   justify-content: center !important;
   margin: 0 auto 18px !important;
@@ -2170,10 +2160,6 @@ html body.registration-page-body .registration-brand .brand-words > small {
 /* Start the entire registration stack where the sign-in form begins, well below the brand. */
 html body.registration-page-body .registration-page-icon-float {
   display: flex !important;
-  width: 60px !important;
-  height: 60px !important;
-  min-width: 60px !important;
-  min-height: 60px !important;
   flex: 0 0 auto !important;
   align-items: center !important;
   justify-content: center !important;
@@ -2281,8 +2267,6 @@ html body.registration-page-body .registration-page-icon-float {
   box-shadow: none !important;
 }
 html body.registration-page-body .registration-page-icon-float img {
-  width: 47px !important;
-  height: 47px !important;
   object-fit: contain !important;
   border: 0 !important;
   background: transparent !important;
@@ -3041,14 +3025,20 @@ html body.registration-page-body .registration-page-icon-float {
   position: relative !important;
   isolation: isolate !important;
   overflow: visible !important;
+  width: 82px !important;
+  height: 82px !important;
+  min-width: 82px !important;
+  min-height: 82px !important;
+  flex: 0 0 82px !important;
+  margin-bottom: 8px !important;
 }
 html body.registration-page-body .registration-page-icon-float.has-organizer-edge-mask::before {
   content: "" !important;
   position: absolute !important;
   left: 50% !important;
   top: 50% !important;
-  width: 70px !important;
-  height: 70px !important;
+  width: 82px !important;
+  height: 82px !important;
   z-index: 2 !important;
   pointer-events: none !important;
   transform: translate(-50%, -50%) !important;
@@ -3075,12 +3065,12 @@ html body.registration-page-body .registration-page-icon-float.has-organizer-edg
           drop-shadow(0 0 9px rgba(205, 255, 90, .24)) !important;
   animation: registrationOrganizerLogoEdgePulse 2.2s ease-in-out infinite !important;
 }
-html body.registration-page-body .registration-page-icon-float.has-organizer-logo .registration-organizer-logo-image {
+html body.registration-page-body .registration-page-icon-float .registration-organizer-logo-image {
   position: relative !important;
   z-index: 1 !important;
   display: block !important;
-  width: 70px !important;
-  height: 70px !important;
+  width: 82px !important;
+  height: 82px !important;
   max-width: 100% !important;
   max-height: 100% !important;
   object-fit: contain !important;
@@ -3100,7 +3090,13 @@ html body.registration-page-body .registration-page-icon-float.has-organizer-log
     animation: none !important;
     opacity: .9 !important;
   }
-  html body.registration-page-body .registration-page-icon-float.has-organizer-logo .registration-organizer-logo-image {
+  html body.registration-page-body .registration-page-icon-float .registration-organizer-logo-image {
     animation: none !important;
   }
+}
+
+/* Keep the built-in connecting/fallback emblem compact; uploaded organizer logos remain 82px. */
+html body.registration-page-body .registration-page-icon-float .registration-organizer-logo-image[src="pickleball-p-emblem.png"] {
+  width: 47px !important;
+  height: 47px !important;
 }
