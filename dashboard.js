@@ -1019,9 +1019,21 @@ function sessionLocationLabel(session) { return session.location || 'Location no
 function sessionCourtsLabel(session) { return (session.courtNames || []).join(', ') || 'Court details not saved'; }
 function sessionPlayersLabel(session) { return `${(session.attendees || []).length} player${(session.attendees || []).length === 1 ? '' : 's'}`; }
 function getLiveSession() { return state.data?.sessions.find(session => session.isLive) || null; }
+function isDuprRegistrationSession(session) {
+  const raw = session?.raw || {};
+  const sessionName = String(raw.sessionName || raw.name || session?.sessionName || session?.title || '').trim();
+  // Match the server's registration-session rule: an explicit NON-DUPR marker
+  // overrides any older DUPR flag saved on the session.
+  if (/^\(NON\s+DUPR\s+MATCH\)/i.test(sessionName)) return false;
+  return raw.duprMatch === true || session?.duprMatch === true || /^\(DUPR\s+MATCH\)/i.test(sessionName);
+}
 function getRegistrationUrl(session = getLiveSession()) {
   if (!session || !state.organizer?.slug) return '';
-  const params = new URLSearchParams({ organizer: state.organizer.slug, session: session.id });
+  const params = new URLSearchParams({
+    organizer: state.organizer.slug,
+    session: session.id,
+    dupr: isDuprRegistrationSession(session) ? '1' : '0'
+  });
   return `/registration?${params.toString()}`;
 }
 function navigateTo(path) { window.location.assign(path); }
@@ -4275,6 +4287,7 @@ function exportSessions() {
 function exportPlayers() {
   downloadCSV('husay-dinkers-players.csv', ['Name', 'Nickname', 'Category', 'Gender', 'DUPR ID', 'Self Rating', 'Matches', 'Wins', 'Losses', 'Attendance'], state.data.players.filter(p => !p.historicalOnly).map(player => { const s = playerStats(player); return [player.name, player.nickname, player.category, player.gender, player.duprId, player.selfRating, s.matches, s.wins, s.losses, s.attendance]; }));
 }
+// DUPR's official match-import CSV template: keep all 27 columns in this exact order.
 const DUPR_EXPORT_COLUMNS = ['matchType','event','date','playerA1','playerA1DuprId','playerA1ExternalId','playerA2','playerA2DuprId','playerA2ExternalId','playerB1','playerB1DuprId','playerB1ExternalId','playerB2','playerB2DuprId','playerB2ExternalId','teamAGame1','teamBGame1','teamAGame2','teamBGame2','teamAGame3','teamBGame3','teamAGame4','teamBGame4','teamAGame5','teamBGame5','scoreType','location'];
 function matchIsDupr(match, session) {
   const log = match?.raw || {};
@@ -4310,7 +4323,9 @@ function matchDuprPlayer(match, side, index) {
     (id !== '' && (player.id === String(id) || player.cloudId === String(id))) ||
     normalizeName(player.name) === normalizeName(name)
   );
-  const duprId = String(registered?.duprId || snapshot.duprId || snapshot.duprID || snapshot.dupr_id || snapshot.dupr || '').trim().toUpperCase();
+  // A player's DUPR rating is not their DUPR ID. Only use ID-specific
+  // fields, then normalize the identifier to the format expected by DUPR.
+  const duprId = normalizeDuprId(registered?.duprId || snapshot.duprId || snapshot.duprID || snapshot.dupr_id || '');
   return { name, duprId };
 }
 function duprRowForMatch(match, knownSession = null) {
@@ -4337,22 +4352,30 @@ function duprRowForMatch(match, knownSession = null) {
 
   const missingDuprPlayers = players.filter(player => !player.duprId);
 
-  const score = String(log.score || '').trim().match(/^(\d+)\s*-\s*(\d+)$/);
-  if (String(log.recordingMode || '').toLowerCase() === 'win-only' || !score || Number(score[1]) === Number(score[2])) {
+  // Use the same score parser as Match Records so every supported saved
+  // score separator (hyphen, en dash, or colon) maps to numeric DUPR cells.
+  const parsedScore = scoreParts(log);
+  if (String(log.recordingMode || '').toLowerCase() === 'win-only'
+    || !parsedScore.isScored
+    || parsedScore.scoreA === parsedScore.scoreB) {
     return { row: null, reason: 'unscored', players };
   }
 
   const sessionRaw = session.raw || {};
   const event = rankingSessionTitle(session) || 'Open Play';
-  const playedAt = new Date(log.endedAt || log.startedAt || sessionRaw.endedAt || sessionRaw.startedAt || match.playedAt || '');
-  const date = Number.isNaN(playedAt.getTime()) ? '' : `${playedAt.getFullYear()}-${String(playedAt.getMonth() + 1).padStart(2, '0')}-${String(playedAt.getDate()).padStart(2, '0')}`;
+  const playedAtSource = log.endedAt || log.startedAt || sessionRaw.endedAt || sessionRaw.startedAt || match.playedAt || '';
+  const playedAt = new Date(playedAtSource);
+  const dateFromTimestamp = Number.isNaN(playedAt.getTime())
+    ? ''
+    : `${playedAt.getFullYear()}-${String(playedAt.getMonth() + 1).padStart(2, '0')}-${String(playedAt.getDate()).padStart(2, '0')}`;
+  const date = dateFromTimestamp || String(match.date || session.date || '').trim().match(/^\d{4}-\d{2}-\d{2}$/)?.[0] || '';
   const row = {
     matchType: singles ? 'S' : 'D', event, date,
     playerA1: teamA[0]?.name || '', playerA1DuprId: teamA[0]?.duprId || '', playerA1ExternalId: '',
     playerA2: teamA[1]?.name || '', playerA2DuprId: teamA[1]?.duprId || '', playerA2ExternalId: '',
     playerB1: teamB[0]?.name || '', playerB1DuprId: teamB[0]?.duprId || '', playerB1ExternalId: '',
     playerB2: teamB[1]?.name || '', playerB2DuprId: teamB[1]?.duprId || '', playerB2ExternalId: '',
-    teamAGame1: Number(score[1]), teamBGame1: Number(score[2]),
+    teamAGame1: parsedScore.scoreA, teamBGame1: parsedScore.scoreB,
     teamAGame2: '', teamBGame2: '', teamAGame3: '', teamBGame3: '', teamAGame4: '', teamBGame4: '', teamAGame5: '', teamBGame5: '',
     scoreType: duprMatchScoreType(match),
     location: String(sessionRaw.duprLocation || sessionRaw.location || session.location || sessionRaw.venue || '').trim()

@@ -6,7 +6,10 @@
   const registrationPathSlug = registrationPathMatch ? decodeURIComponent(registrationPathMatch[1]) : '';
   const organizerScope = String(registrationParams.get('organizer') || registrationPathSlug).trim();
   const registrationSessionId = String(registrationParams.get('session') || '').trim();
-  const registrationDuprSession = ['1', 'true', 'dupr'].includes(String(registrationParams.get('dupr') || '').trim().toLowerCase());
+  // The URL flag enables the fields immediately for current dashboard/QR
+  // links. The organizer's active app-state response below remains the
+  // authority, so older links without this flag still detect DUPR sessions.
+  let registrationDuprSession = ['1', 'true', 'dupr'].includes(String(registrationParams.get('dupr') || '').trim().toLowerCase());
   let organizerValidated = false;
   let registrationSessionAvailable = false;
   let registrationSessionBlockReason = 'No active live session. Registration is closed until the organizer starts a new session.';
@@ -518,11 +521,37 @@
   let feedbackTimer = null;
   let feedbackHideTimer = null;
 
+  function isDuprRegistrationSessionState(appState) {
+    const sessionName = String(appState?.sessionName || '').trim();
+    // Keep this in sync with the server's registration validation rule.
+    if (/^\(NON\s+DUPR\s+MATCH\)/i.test(sessionName)) return false;
+    return appState?.duprMatch === true || /^\(DUPR\s+MATCH\)/i.test(sessionName);
+  }
+
   function updateRegistrationSessionState(appState) {
     const sessionId = String(appState?.sessionId || '').trim();
     const active = appState?.sessionActive === true && !!sessionId && !appState?.sessionEndedAt;
     const sessionMismatch = active && !!registrationSessionId && registrationSessionId !== sessionId;
     registrationSessionAvailable = active && !sessionMismatch;
+
+    // Determine the actual session type from the server. This fixes older
+    // dashboard/QR links that omitted ?dupr=1 and prevents a stale URL flag
+    // from keeping DUPR-only fields enabled for a Non-DUPR session.
+    if (registrationSessionAvailable) {
+      const nextDuprMode = isDuprRegistrationSessionState(appState);
+      if (registrationDuprSession && !nextDuprMode) {
+        const duprIdInput = $('registerDuprId');
+        const ratingInput = $('registerSelfRating');
+        if (duprIdInput) duprIdInput.value = '';
+        if (ratingInput) ratingInput.value = '';
+      }
+      registrationDuprSession = nextDuprMode;
+      syncDuprRegistrationFields();
+    } else if (!active) {
+      registrationDuprSession = false;
+      syncDuprRegistrationFields();
+    }
+
     if (sessionMismatch) {
       registrationSessionBlockReason = 'This registration QR belongs to a previous session. Please scan the current Register QR code from the organizer.';
     } else if (!active) {
