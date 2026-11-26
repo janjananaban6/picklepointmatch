@@ -47,7 +47,7 @@ button,a{-webkit-tap-highlight-color:transparent}
 .team:nth-child(3) .player-chip:before{background:#8bd4d6}
 .player-chip.empty{color:#63868b;font-weight:600;font-style:italic}
 .versus{text-align:center;font-size:9px;color:#76a2a6;font-weight:950}
-.scoreline{margin-top:11px;display:flex;align-items:center;justify-content:center;gap:9px;color:#dffafa;font-size:12px;font-weight:950}
+.scoreline{margin-top:11px;gap:9px;color:#dffafa;font-size:12px;font-weight:950}
 .scoreline b{color:var(--teal);font-size:17px}
 .queue-list{display:flex;flex-direction:column;gap:8px}
 .queue-item{display:flex;align-items:center;gap:11px;padding:10px 11px;background:#0b2931;border:1px solid #1d4851;border-radius:16px;min-width:0}
@@ -613,7 +613,6 @@ html body .court-card .court-state.up-next::before {
 .queue-item > .queue-avatar-stack > .queue-position-badge {
     width: 15px;
     height: 15px;
-    font-size: 7px;
   }}
 /* Match the compact gender symbol sizing used throughout the Index app. */
 html body .live-player-gender svg.gender-symbol {
@@ -1062,7 +1061,6 @@ html[data-theme="light"] body #waitingCourtsList .court-visual-name {
 }
 html[data-theme="light"] body #courtsList .court-visual-status.is-ready,
 html[data-theme="light"] body #waitingCourtsList .court-visual-status.is-ready {
-  color: #176a9f !important;
 }
 html[data-theme="light"] body #courtsList .court-visual-status.is-playing,
 html[data-theme="light"] body #waitingCourtsList .court-visual-status.is-playing {
@@ -1080,8 +1078,6 @@ html[data-theme="light"] body #courtsList .court-visual-status.is-up-next i,
 html[data-theme="light"] body #waitingCourtsList .court-visual-status.is-up-next i { background: #008f83 !important; }
 html[data-theme="light"] body #courtsList .court-player-marker,
 html[data-theme="light"] body #waitingCourtsList .court-player-marker {
-  border-color: #ffffff !important;
-  color: #18332d !important;
   box-shadow: 0 1px 3px rgba(23, 60, 54, .18) !important;
 }
 html[data-theme="light"] body #courtsList .court-player-category,
@@ -1101,9 +1097,7 @@ html[data-theme="light"] body #waitingCourtsList .court-visual-score span { colo
 .live-page-pinned {
   position: sticky;
   top: 58px;
-  z-index: 4;
   margin-bottom: 18px;
-  background: var(--bg);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
@@ -1253,7 +1247,7 @@ html[data-theme="light"] body #waitingCourtsList .court-visual-score span { colo
 .live-match-loser strong { color: #fca5a5; }
 .live-match-vs { color: var(--muted); font-size: 9px; font-weight: 900; }
 .live-match-score { margin-top: 12px; padding-top: 9px; border-top: 1px solid var(--line); color: var(--teal); text-align: center; font-size: 13px; font-weight: 950; }
-@media (max-width: 560px) {.live-page-pinned { top: 58px; margin-bottom: 13px; }
+@media (max-width: 560px) {.live-page-pinned { top: 58px; }
 .live-page-pinned .event-heading { padding-bottom: 12px; }
 .live-tabs { margin: 0 -1px; }
 .live-tab { min-height: 42px; padding: 11px 6px 9px; font-size: 11px; }
@@ -1693,7 +1687,6 @@ html body .section-card.queue-section .section-heading.queue-section-heading h2 
   justify-content: flex-start;
   flex-wrap: nowrap;
   gap: 5px;
-  min-width: 0;
   min-height: 12px;
   margin: 0;
   padding: 0;
@@ -1766,7 +1759,7 @@ html[data-theme="light"] .queue-heading-separator { color: #9aa7a2; }
 html[data-theme="light"] .queue-heading-actions,
 html[data-theme="light"] .queue-collapse-toggle { color: #778783; }
 @media (max-width: 560px) {html body .section-card.queue-section .section-heading.queue-section-heading { gap: 7px; margin-bottom: 11px; }
-html body .section-card.queue-section .section-heading.queue-section-heading h2 { gap: 4px; font-size: 9px; letter-spacing: 1.15px; }
+html body .section-card.queue-section .section-heading.queue-section-heading h2 { letter-spacing: 1.15px; }
 .queue-waiting-count { font-size: 8px; letter-spacing: .45px; }
 .queue-heading-actions { gap: 6px; }}
 @media (prefers-reduced-motion: reduce) {.queue-list-viewport { transition: none; }}
@@ -2169,9 +2162,7 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll::-webkit-scrollbar
   html body #courtsList.courts-grid.is-horizontal-scroll > .court-card,
   html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card {
     flex: 0 0 88%;
-    width: 88%;
     min-width: 0;
-    max-width: none;
     scroll-snap-align: start;
     height: var(--court-layout-fixed-height, auto) !important;
     min-height: 0 !important;
@@ -2179,7 +2170,6 @@ html body #waitingCourtsList.courts-grid.is-horizontal-scroll::-webkit-scrollbar
 /* Keep the original court-diagram height so bottom labels do not jump up. */
   html body #courtsList.courts-grid.is-horizontal-scroll > .court-card .court-diagram,
   html body #waitingCourtsList.courts-grid.is-horizontal-scroll > .court-card .court-diagram {
-    height: var(--court-layout-diagram-height, auto) !important;
     aspect-ratio: auto !important;
   }}
 html body .section-card.court-section .section-heading.court-section-heading .court-layout-toggle[aria-pressed="true"] .court-layout-icon-horizontal,
@@ -2310,7 +2300,6 @@ html body .section-card.waiting-courts-section > .section-heading.waiting-court-
   }}
 html body #courtLayoutToggle[hidden],
 html body #waitingCourtLayoutToggle[hidden] {
-  display: none !important;
 }
 /* Keep the first card anchored at the same origin in both layouts. */
 html body #courtsList.courts-grid.is-horizontal-scroll > .court-card:first-child,
@@ -3851,18 +3840,10 @@ html body.live-view-page .live-tab { min-height: 31px !important; padding: 7px 5
 /* Prevent any inherited pseudo-element from drawing a shared rail behind the tabs. */
 html body.live-view-page .live-page-pinned > nav.live-tabs,
 html[data-theme="light"] body.live-view-page .live-page-pinned > nav.live-tabs {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  border: 0 !important;
   border-top: 0 !important;
   border-right: 0 !important;
   border-bottom: 0 !important;
   border-left: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-  padding: 0 !important;
   margin: 0 !important;
 }
 /* LIVE VIEW TABS — separate the tabs from the session-title divider and remove the outer fill. */
@@ -4408,20 +4389,13 @@ html body.live-view-page .mobile-session-icon {
 }
 
 html body.live-view-page .mobile-session-icon-fallback {
-  display: block !important;
   flex: 0 0 100% !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
-  object-fit: contain !important;
-  object-position: center !important;
   line-height: 0 !important;
   vertical-align: middle !important;
   pointer-events: none !important;
@@ -4711,8 +4685,6 @@ html[data-theme="light"] body.live-view-page .mobile-header-icon-button[aria-sel
 /* iPad: 20px outside gutters. */
 @media (min-width: 561px) and (max-width: 1023px) {
   html body.live-view-page .live-header {
-    width: calc(100% - 40px) !important;
-    max-width: 1200px !important;
     margin: 9px auto 0 !important;
     padding: 10px 18px 9px !important;
   }
@@ -4744,8 +4716,6 @@ html[data-theme="light"] body.live-view-page .mobile-header-icon-button[aria-sel
 /* Desktop: centered 900px maximum width and minimal typography. */
 @media (min-width: 1024px) {
   html body.live-view-page .live-header {
-    width: min(900px, calc(100% - 72px)) !important;
-    max-width: 900px !important;
     padding: 10px 22px 9px !important;
   }
   html body.live-view-page .mobile-live-header { gap: 20px !important; }
@@ -5075,7 +5045,6 @@ html body .section-card.court-section .section-heading.court-section-heading .co
   align-items: center !important;
   justify-content: flex-end !important;
   flex: 0 0 auto !important;
-  gap: 6px !important;
   min-width: 0 !important;
 }
 html body .section-card.court-section .section-heading.court-section-heading .court-collapse-all-toggle {
@@ -5123,7 +5092,6 @@ html body.live-view-page :is(#courtsList, #waitingCourtsList).courts-grid.is-hor
 }
 html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card {
   align-self: start !important;
-  padding: 0 !important;
   border-radius: 16px !important;
   min-height: 0 !important;
 }
@@ -5151,14 +5119,12 @@ html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.cour
   cursor: pointer !important;
   touch-action: manipulation !important;
   -webkit-tap-highlight-color: transparent !important;
-  box-sizing: border-box !important;
   overflow: hidden !important;
   transition: none !important;
 }
 html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card.is-expanded .court-card-collapse-toggle {
   grid-template-columns: minmax(0, 1fr) 12px !important;
   border-bottom: 0 !important;
-  border-radius: 15px 15px 0 0 !important;
 }
 html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card .court-card-collapse-toggle:focus-visible {
   outline: 2px solid var(--teal) !important;
@@ -5387,7 +5353,6 @@ html[data-theme="light"] body.live-view-page :is(#courtsList, #waitingCourtsList
     grid-template-columns: minmax(0, 1fr) 10px !important;
   }
   html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card .court-card-summary-start {
-    gap: 5px !important;
   }
   html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card .court-card-summary-name {
     font-size: 11px !important;
@@ -6476,14 +6441,11 @@ html body.live-view-page .section-card.waiting-courts-section .section-heading.w
    live-view.js reserves the measured panel space below it so later cards do
    not get covered. Applies to both regular and waiting-only courts. */
 html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card {
-  position: relative !important;
   height: 53px !important;
   min-height: 53px !important;
   max-height: 53px !important;
-  padding: 0 !important;
   margin-bottom: 0 !important;
   overflow: visible !important;
-  box-sizing: border-box !important;
 }
 html body.live-view-page :is(#courtsList, #waitingCourtsList) > .court-card.court-visual-card.is-expanded {
   z-index: 25 !important;
@@ -6645,7 +6607,6 @@ html body.live-view-page .section-card .live-matchup-search-wrap {
 html body.live-view-page .section-card .live-matches-searchbar:hover:not(:focus-within),
 html body.live-view-page .section-card .live-matchup-search-wrap:hover:not(:focus-within) {
   border-color: var(--line) !important;
-  background: var(--panel2) !important;
 }
 html body.live-view-page .section-card .live-matches-searchbar:focus-within:has(#pageMatchesSearch:focus),
 html body.live-view-page .section-card .live-matchup-search-wrap:focus-within {
@@ -6664,14 +6625,6 @@ html body.live-view-page .section-card .live-matches-filter-toggle:focus,
 html body.live-view-page .section-card .live-matches-filter-toggle:focus-visible,
 html body.live-view-page .section-card .live-matches-filter-toggle:active,
 html body.live-view-page .section-card .live-matches-filter-toggle.is-open {
-  border-color: var(--line) !important;
-  background: var(--panel) !important;
-  color: var(--muted) !important;
-  outline: none !important;
-  box-shadow: none !important;
-  filter: none !important;
-  transform: none !important;
-  transition: none !important;
 }
 
 
@@ -6717,8 +6670,6 @@ html body.live-view-page .mobile-header-icon-button.live-theme-icon-button {
 }
 html body.live-view-page .live-theme-icon-button .live-theme-icon {
   display: none !important;
-  width: 20px !important;
-  height: 20px !important;
   fill: none !important;
   stroke: currentColor !important;
   stroke-width: 2 !important;

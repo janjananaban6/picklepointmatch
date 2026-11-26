@@ -32,8 +32,8 @@
 .registration-page-body .registration-page-intro .eyebrow[data-live-theme="light"] .live-pulse {
   background-color: #0c966a !important;
 }
-.registration-page-body{min-height:100vh;background:#f1f5f7;color:#172c35;}
-.registration-page-shell{width:min(1380px,100%);margin:0 auto;padding:34px clamp(14px,4vw,54px) 22px;box-sizing:border-box;}
+.registration-page-body{background:#f1f5f7;color:#172c35;}
+.registration-page-shell{width:min(1380px,100%);margin:0 auto;padding:34px clamp(14px,4vw,54px) 22px;}
 .registration-page-intro{margin:0 0 25px;padding:0;}
 .registration-page-intro .eyebrow{margin-bottom:0;}
 .registration-page-intro h1{margin:11px 0 8px;color:#092f38;font-size:clamp(24px,3.2vw,39px);line-height:1.13;letter-spacing:-1px;font-weight:950;overflow-wrap:anywhere;}
@@ -151,20 +151,11 @@ html {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  width: 100%;
-  margin: 24px auto 0;
   padding: 0;
-  border: 0 !important;
-  border-top: 0 !important;
-  text-align: center;
-  line-height: 1.5;
   letter-spacing: .75px;
   overflow-wrap: anywhere;
 }
 .registration-page-body .page-footer span {
-  display: block;
-  max-width: 100%;
   text-align: center;
 }
 .registration-page-body .page-footer span:first-child {
@@ -532,18 +523,7 @@ html body.registration-page-body .registration-page-intro h1 {
 /* Registration name inputs — align placeholders and keep normal text selection usable. */
 html body.registration-page-body .registration-page-form.registration-area #registerFullname,
 html body.registration-page-body .registration-page-form.registration-area #registerNickname {
-  display: block !important;
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  margin: 0 !important;
   padding: 0 7px 0 12px !important;
-  box-sizing: border-box !important;
-  text-align: left !important;
-  text-indent: 0 !important;
-  line-height: normal !important;
   vertical-align: middle !important;
   cursor: text !important;
   user-select: text !important;
@@ -555,10 +535,7 @@ html body.registration-page-body .registration-page-form.registration-area #regi
 }
 html body.registration-page-body .registration-page-form.registration-area #registerFullname::placeholder,
 html body.registration-page-body .registration-page-form.registration-area #registerNickname::placeholder {
-  text-align: left !important;
-  line-height: normal !important;
   vertical-align: middle !important;
-  opacity: 1 !important;
 }
 html body.registration-page-body .registration-page-form.registration-area #registerFullname::selection,
 html body.registration-page-body .registration-page-form.registration-area #registerNickname::selection {
@@ -916,10 +893,8 @@ html body.registration-page-body .registration-page-form.registration-area .regi
   flex: 0 0 47px !important;
   margin: 0 !important;
   padding: 0 !important;
-  overflow: hidden !important;
   box-sizing: border-box !important;
   border: 1px solid #d7e3e6 !important;
-  border-radius: 11px !important;
   background: #fbfdfd !important;
   box-shadow: inset 0 1px 2px rgba(12, 44, 52, .025) !important;
   transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease !important;
@@ -957,8 +932,6 @@ html body.registration-page-body .registration-page-form.registration-area #regi
   font-weight: 600 !important;
   line-height: 1.35 !important;
   letter-spacing: .05px !important;
-  text-align: left !important;
-  text-indent: 0 !important;
   caret-color: #078b83 !important;
   box-sizing: border-box !important;
   -webkit-appearance: none !important;
@@ -986,7 +959,6 @@ html body.registration-page-body .registration-page-form.registration-area .regi
   min-height: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
-  border: 0 !important;
   border-left: 1px solid #e5eeee !important;
   border-radius: 0 !important;
   background: #f3f9f9 !important;
@@ -1000,7 +972,6 @@ html body.registration-page-body .registration-page-form.registration-area .regi
 }
 html body.registration-page-body .registration-page-form.registration-area .registration-text-wrap .registration-enye-btn:hover,
 html body.registration-page-body .registration-page-form.registration-area .registration-text-wrap .registration-enye-btn:focus-visible {
-  background: #e6f7f5 !important;
   color: #056a66 !important;
   outline: none !important;
 }
@@ -1020,7 +991,6 @@ html body.registration-page-body .registration-page-form.registration-area .regi
 }
 html body.registration-page-body .registration-page-form.registration-area .registration-category-save-row .register-save-btn {
   min-height: 49px !important;
-  border-radius: 11px !important;
   font-size: 13px !important;
   font-weight: 850 !important;
   letter-spacing: .05px !important;
@@ -1112,7 +1082,6 @@ placeholder stays centered. */
 html body.registration-page-body .registration-page-form.registration-area #registerFullname,
 html body.registration-page-body .registration-page-form.registration-area #registerNickname {
   font-size: 17px !important;
-  text-align: left !important;
   text-indent: 0 !important;
   direction: ltr !important;
 }
@@ -1123,7 +1092,6 @@ html body.registration-page-body .registration-page-form.registration-area #regi
 html body.registration-page-body .registration-page-form.registration-area #registerFullname::-ms-input-placeholder,
 html body.registration-page-body .registration-page-form.registration-area #registerNickname::-ms-input-placeholder {
   font-size: 13px !important;
-  text-align: center !important;
   text-indent: 0 !important;
 }
 /* Final gender choice sizing: keep both the row and its buttons aligned with the Nickname field. */
@@ -1168,14 +1136,10 @@ html body.registration-page-body .registration-page-form.registration-area .regi
 /* FINAL REGISTRATION PAGE UPDATE — compact mobile-style form on desktop and iPad.
    Keep the intro aligned to the same centered column and leave the rest of the app untouched. */
 html body.registration-page-body .registration-page-shell {
-  width: min(500px, 100%) !important;
-  max-width: 500px !important;
   margin-inline: auto !important;
-  box-sizing: border-box !important;
 }
 html body.registration-page-body .registration-page-panel {
   width: min(460px, 100%) !important;
-  max-width: 460px !important;
   margin-inline: auto !important;
   box-sizing: border-box !important;
 }
@@ -1238,7 +1202,6 @@ html body.registration-page-body {
   background: radial-gradient(ellipse at 50% 0%, rgba(13, 59, 38, .42) 0%, rgba(13, 59, 38, 0) 48%), #0f172a !important;
 }
 html body.registration-page-body {
-  color: #f3f8fa !important;
 }
 html body.registration-page-body .registration-page-intro h1 {
   color: #f3f8fa !important;
@@ -1281,13 +1244,11 @@ html body.registration-page-body .registration-page-form.registration-area .regi
   max-height: 42px !important;
   padding: 0 12px !important;
   line-height: 1.15 !important;
-  white-space: nowrap !important;
   box-sizing: border-box !important;
 }
 /* Keep input text and placeholder vertically centered without shifting the typed text. */
 html body.registration-page-body .registration-page-form.registration-area #registerFullname,
 html body.registration-page-body .registration-page-form.registration-area #registerNickname {
-  line-height: normal !important;
   padding-bottom: 2px !important;
 }
 html body.registration-page-body .registration-page-form.registration-area #registerFullname::placeholder,
@@ -1305,12 +1266,8 @@ html body.registration-page-body .registration-page-form.registration-area .regi
 html body.registration-page-body .registration-page-form.registration-area .registration-text-wrap .registration-enye-btn:active,
 html body.registration-page-body .registration-page-form.registration-area .registration-text-wrap .registration-enye-btn:focus,
 html body.registration-page-body .registration-page-form.registration-area .registration-text-wrap .registration-enye-btn:focus-visible {
-  border: 0 !important;
   border-left: 0 !important;
   outline: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  color: #078b83 !important;
   transition: none !important;
   -webkit-tap-highlight-color: transparent !important;
 }
@@ -1325,34 +1282,14 @@ html body.registration-page-body {
   font-family: 'DM Sans', Arial, sans-serif !important;
 }
 html body.registration-page-body .registration-page-shell {
-  width: min(500px, 100%) !important;
-  max-width: 500px !important;
-  min-height: 100dvh !important;
-  margin: 0 auto !important;
   padding: 22px clamp(12px, 3vw, 18px) 20px !important;
-  box-sizing: border-box !important;
   flex: 1 0 auto !important;
 }
 /* Brand sits in the page flow immediately before the registration intro. */
 html body.registration-page-body .registration-brand {
   position: static !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 10px !important;
-  width: max-content !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
   margin: 0 auto 22px !important;
-  padding: 0 !important;
   overflow: visible !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  color: #eefafa !important;
-  font-family: 'DM Sans', Arial, sans-serif !important;
-  white-space: nowrap !important;
   transform: none !important;
 }
 html body.registration-page-body .registration-brand > .brand-mark {
@@ -1375,58 +1312,28 @@ html body.registration-page-body .registration-brand .brand-words {
   white-space: nowrap !important;
 }
 html body.registration-page-body .registration-brand .brand-words > b {
-  display: block !important;
-  margin: 0 !important;
-  color: #eefafa !important;
-  font-size: 14px !important;
-  font-weight: 950 !important;
-  letter-spacing: .7px !important;
-  line-height: 1.2 !important;
 }
 html body.registration-page-body .registration-brand .brand-words > b > strong {
   color: #27d3c5 !important;
   font-weight: 900 !important;
 }
 html body.registration-page-body .registration-brand .brand-words > small {
-  display: block !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  color: #95c4c7 !important;
-  font-size: 8px !important;
-  font-weight: 900 !important;
-  letter-spacing: 4px !important;
-  line-height: 1.2 !important;
 }
 /* Make the panel itself disappear so only its content and individual controls float. */
 html body.registration-page-body .registration-page-panel {
   width: 100% !important;
   max-width: 460px !important;
-  margin: 0 auto !important;
-  padding: 0 !important;
-  overflow: visible !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
 }
 html body.registration-page-body .registration-page-panel-heading {
-  align-items: center !important;
-  padding: 0 0 16px !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
 }
 html body.registration-page-body .registration-page-panel-heading h2 {
-  color: #edf8fa !important;
 }
 html body.registration-page-body .registration-page-panel-heading p {
-  color: #91a8af !important;
 }
 html body.registration-page-body .registration-page-footnote {
   margin: 10px 0 0 !important;
   padding-top: 8px !important;
   border-top: 0 !important;
-  color: #91a8af !important;
 }
 html body.registration-page-body .registration-page-footnote span {
   color: #27d3c5 !important;
@@ -1525,28 +1432,18 @@ html body.registration-page-body .page-footer {
   margin-top: 12px !important;
 }
 @media (max-width: 520px) {html body.registration-page-body .registration-brand {
-    gap: 8px !important;
     margin-bottom: 20px !important;
   }
 html body.registration-page-body .registration-brand > .brand-mark {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    min-height: 32px !important;
-    flex-basis: 32px !important;
   }
 html body.registration-page-body .registration-brand .brand-words > b {
-    font-size: 11px !important;
   }
 html body.registration-page-body .registration-brand .brand-words > small {
-    font-size: 7px !important;
-    letter-spacing: 3px !important;
   }
 html body.registration-page-body .registration-page-shell {
     padding: 18px 12px 18px !important;
   }}
 @media (max-width: 360px) {html body.registration-page-body .registration-brand {
-    gap: 6px !important;
   }
 html body.registration-page-body .registration-brand > .brand-mark {
     width: 30px !important;
@@ -1556,51 +1453,28 @@ html body.registration-page-body .registration-brand > .brand-mark {
     flex-basis: 30px !important;
   }
 html body.registration-page-body .registration-brand .brand-words > b {
-    font-size: 10px !important;
   }
 html body.registration-page-body .registration-brand .brand-words > small {
-    letter-spacing: 2.5px !important;
   }}
 /* FINAL FIX — the form itself is transparent;
 only its controls have surfaces,
    matching the floating-control layout on index.html. */
 html body.registration-page-body .registration-page-intro {
-  display: block !important;
   width: 100% !important;
   max-width: 460px !important;
   margin: 0 auto 25px !important;
-  padding: 0 !important;
-  text-align: center !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
 }
 html body.registration-page-body .registration-page-intro h1 {
-  width: 100% !important;
   margin-left: auto !important;
   margin-right: auto !important;
-  text-align: center !important;
 }
 html body.registration-page-body .registration-page-intro p {
-  width: 100% !important;
-  max-width: 340px !important;
   margin-left: auto !important;
   margin-right: auto !important;
-  text-align: center !important;
 }
 html body.registration-page-body .registration-page-panel-heading {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
   gap: 10px !important;
-  width: 100% !important;
-  margin: 0 auto !important;
   padding: 0 0 18px !important;
-  text-align: center !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
 }
 html body.registration-page-body .registration-page-panel-heading > div {
   width: 100% !important;
@@ -1620,18 +1494,12 @@ html body.registration-page-body .registration-page-panel-heading p {
 /* Remove the leftover white card from registration-area / registration-page-form. */
 html body.registration-page-body .registration-page-form.registration-area,
 html body.registration-page-body #registrationArea.registration-area {
-  display: block !important;
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
   margin: 0 !important;
-  padding: 0 !important;
   overflow: visible !important;
-  border: 0 !important;
-  border-radius: 0 !important;
   outline: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
   backdrop-filter: none !important;
 }
 html body.registration-page-body .registration-page-form.registration-area .registration-head {
@@ -1691,124 +1559,52 @@ html body.registration-page-body .registration-page-panel-heading {
   }}
 /* Final layout sync: registration controls use the same 340px content width as index.html. */
 html body.registration-page-body .registration-page-shell {
-  width: min(500px, 100%) !important;
-  max-width: 500px !important;
-  padding: 8px clamp(18px, 3.2vw, 30px) 20px !important;
 }
 html body.registration-page-body .registration-topbar {
-  position: relative !important;
-  display: flex !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  min-height: 50px !important;
-  flex: 0 0 auto !important;
-  align-items: center !important;
-  justify-content: center !important;
   margin: 0 0 20px !important;
-  padding: 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
 }
 html body.registration-page-body .registration-brand {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  display: flex !important;
-  width: max-content !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 10px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  color: #eefafa !important;
-  white-space: nowrap !important;
-  transform: translate(-50%, -50%) !important;
 }
 html body.registration-page-body .registration-brand .brand-words > b {
-  font-family: 'DM Sans', Arial, sans-serif !important;
-  font-size: 14px !important;
-  font-weight: 950 !important;
-  letter-spacing: .7px !important;
-  line-height: 1.2 !important;
 }
 html body.registration-page-body .registration-brand .brand-words > small {
-  color: #95c4c7 !important;
-  font-family: 'DM Sans', Arial, sans-serif !important;
-  font-size: 8px !important;
-  font-weight: 900 !important;
-  letter-spacing: 4px !important;
-  line-height: 1.2 !important;
 }
 /* Keep the intro, details heading, form items, notices and footnote aligned to login-form-panel. */
 html body.registration-page-body .registration-page-intro {
   display: block !important;
   width: min(100%, 340px) !important;
-  max-width: 340px !important;
   margin: 0 auto 24px !important;
-  padding: 0 !important;
-  text-align: center !important;
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
 }
 html body.registration-page-body .registration-page-intro h1 {
-  width: 100% !important;
-  margin: 0 0 8px !important;
-  color: #fff !important;
   font-family: 'Manrope', 'DM Sans', Arial, sans-serif !important;
-  font-size: clamp(22px, 6vw, 24px) !important;
-  font-weight: 800 !important;
-  letter-spacing: -.035em !important;
-  line-height: 1.22 !important;
-  text-align: center !important;
   overflow-wrap: normal !important;
 }
 html body.registration-page-body .registration-page-intro p {
-  width: 100% !important;
-  max-width: 340px !important;
-  margin: 0 auto !important;
   color: #3197a7 !important;
   font-size: 13px !important;
   font-weight: 400 !important;
   line-height: 1.5 !important;
-  text-align: center !important;
 }
 html body.registration-page-body .registration-page-icon-float {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
   margin: 0 auto 16px !important;
-  padding: 0 !important;
-  border: 0 !important;
   border-radius: 0 !important;
-  outline: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
   color: inherit !important;
 }
 html body.registration-page-body .registration-page-icon-float img {
   display: block !important;
   max-width: 100% !important;
   max-height: 100% !important;
-  object-fit: contain !important;
-  border: 0 !important;
   border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
   filter: drop-shadow(0 3px 8px rgba(0, 203, 178, .14)) !important;
 }
 html body.registration-page-body .registration-page-panel {
   display: block !important;
   width: min(100%, 340px) !important;
-  max-width: 340px !important;
   min-width: 0 !important;
-  margin: 0 auto !important;
   padding: 0 !important;
-  overflow: visible !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
@@ -1884,12 +1680,6 @@ html body.registration-page-body .registration-page-form .registration-skill-but
 }
 html body.registration-page-body .registration-page-footnote {
   align-items: flex-start !important;
-  margin: 12px auto 0 !important;
-  padding: 8px 0 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  color: #91a8af !important;
 }
 /* Match register-save-btn to the 44px loginSubmit button in index.html. */
 html body.registration-page-body .registration-page-form.registration-area .registration-category-save-row .register-save-btn {
@@ -1947,38 +1737,22 @@ html body.registration-page-body .registration-page-form.registration-area .regi
   transform: none !important;
 }
 @media (max-width: 520px) {html body.registration-page-body .registration-page-shell {
-    padding: 8px 14px 18px !important;
   }
 html body.registration-page-body .registration-topbar {
-    min-height: 46px !important;
     margin-bottom: 20px !important;
   }
 html body.registration-page-body .registration-brand {
-    gap: 8px !important;
   }
 html body.registration-page-body .registration-brand > .brand-mark {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    min-height: 32px !important;
-    flex-basis: 32px !important;
   }
 html body.registration-page-body .registration-brand .brand-words > b {
-    font-size: 11px !important;
   }
 html body.registration-page-body .registration-brand .brand-words > small {
-    font-size: 7px !important;
-    letter-spacing: 3px !important;
   }
 html body.registration-page-body .registration-page-intro {
     margin-bottom: 22px !important;
   }}
 @media (max-width: 380px) {html body.registration-page-body .registration-brand > .brand-mark {
-    width: 25px !important;
-    height: 25px !important;
-    min-width: 25px !important;
-    min-height: 25px !important;
-    flex-basis: 25px !important;
   }
 html body.registration-page-body .registration-brand {
     gap: 8px !important;
@@ -1986,15 +1760,7 @@ html body.registration-page-body .registration-brand {
 /* FINAL REGISTRATION ALIGNMENT — mirror the index.html sign-in brand and heading. */
 html body.registration-page-body .registration-topbar {
   position: relative !important;
-  display: flex !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  min-height: 50px !important;
-  flex: 0 0 auto !important;
-  align-items: center !important;
-  justify-content: center !important;
   margin: 0 0 0 !important;
-  padding: 0 !important;
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
@@ -2033,29 +1799,12 @@ html body.registration-page-body .registration-brand .brand-words > b {
   line-height: 1.2 !important;
 }
 html body.registration-page-body .registration-brand .brand-words > small {
-  display: block !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  color: #95c4c7 !important;
-  font-family: 'DM Sans', Arial, sans-serif !important;
-  font-size: 8px !important;
-  font-weight: 900 !important;
-  letter-spacing: 4px !important;
-  line-height: 1.2 !important;
   text-align: center !important;
 }
 /* Place the standalone P mark in the same position and size as index.html's login avatar. */
 html body.registration-page-body .registration-page-icon-float {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
   margin: 0 auto 18px !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 16px !important;
   outline: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
 }
 /* The intro heading matches index.html's #loginTitle / .login-heading h1 typography. */
 /* The page uses the intro title instead of the removed panel heading. */
@@ -2084,32 +1833,17 @@ html body.registration-page-body .registration-page-footnote > span {
   vertical-align: -1px !important;
 }
 @media (max-width: 520px) {html body.registration-page-body .registration-topbar {
-    min-height: 46px !important;
   }
 html body.registration-page-body .registration-brand {
     max-width: 100% !important;
-    gap: 8px !important;
   }
 html body.registration-page-body .registration-brand > .brand-mark {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    min-height: 32px !important;
-    flex-basis: 32px !important;
   }
 html body.registration-page-body .registration-brand .brand-words > b {
-    font-size: 11px !important;
   }
 html body.registration-page-body .registration-brand .brand-words > small {
-    font-size: 7px !important;
-    letter-spacing: 3px !important;
   }}
 @media (max-width: 380px) {html body.registration-page-body .registration-brand > .brand-mark {
-    width: 25px !important;
-    height: 25px !important;
-    min-width: 25px !important;
-    min-height: 25px !important;
-    flex-basis: 25px !important;
   }}
 @media (max-width: 360px) {html body.registration-page-body .registration-brand {
     gap: 6px !important;
@@ -2118,7 +1852,6 @@ html body.registration-page-body .registration-brand .brand-words > b {
     font-size: 10px !important;
   }
 html body.registration-page-body .registration-brand .brand-words > small {
-    letter-spacing: 2.5px !important;
   }}
 /* FINAL BRAND + VERTICAL SPACING SYNC — mirror the exact lockup and form start in index.html. */
 html body.registration-page-body .registration-page-shell {
@@ -2165,10 +1898,7 @@ html body.registration-page-body .registration-page-icon-float {
   justify-content: center !important;
   margin: clamp(66px, 13vh, 110px) auto 18px !important;
   padding: 0 !important;
-  border: 0 !important;
   border-radius: 16px !important;
-  background: transparent !important;
-  box-shadow: none !important;
 }
 html body.registration-page-body .registration-page-intro {
   width: min(340px, 100%) !important;
@@ -2701,7 +2431,6 @@ html body.registration-page-body .registration-player-suggestion:focus-visible {
 }
 html body.registration-page-body .registration-player-suggestion-copy {
   display: flex !important;
-  min-width: 0 !important;
   flex: 1 1 auto !important;
   flex-direction: column !important;
   align-items: flex-start !important;
@@ -2719,8 +2448,6 @@ html body.registration-page-body .registration-player-suggestion-name {
   min-width: 0 !important;
   overflow: hidden !important;
   color: #132d42 !important;
-  font-size: 12px !important;
-  font-weight: 800 !important;
   line-height: 1.35 !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
@@ -2729,18 +2456,14 @@ html body.registration-page-body .registration-player-suggestion-nickname {
   flex: 0 1 auto !important;
   overflow: hidden !important;
   color: #718397 !important;
-  font-size: 11px !important;
   font-weight: 600 !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
 }
 html body.registration-page-body .registration-player-suggestion-gender {
-  display: inline-flex !important;
   flex: 0 0 17px !important;
   width: 17px !important;
   height: 17px !important;
-  align-items: center !important;
-  justify-content: center !important;
   border-radius: 50% !important;
   font-size: 13px !important;
   font-weight: 800 !important;
@@ -2784,22 +2507,14 @@ html body.registration-page-body .registration-player-suggestion-dupr {
   color: #176b68 !important;
   border-color: #bfe5df !important;
   background: #eaf9f6 !important;
-  font-variant-numeric: tabular-nums !important;
 }
 html body.registration-page-body .registration-player-suggestion-arrow {
   display: inline-flex !important;
-  flex: 0 0 25px !important;
-  width: 25px !important;
-  height: 25px !important;
   align-items: center !important;
   justify-content: center !important;
   border: 1px solid #bfe5df !important;
-  border-radius: 50% !important;
   color: #079c91 !important;
   background: #effbf9 !important;
-  font-size: 19px !important;
-  font-weight: 600 !important;
-  line-height: 1 !important;
 }
 
 /* Registered Player Cloud suggestion styling — match queueing.html exactly. */

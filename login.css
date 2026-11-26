@@ -7,8 +7,8 @@ button,input{font:inherit}
 button,a{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 body.organizer-login-page{display:flex;min-height:100vh;min-height:100dvh;flex-direction:column;align-items:stretch;margin:0;padding:0;overflow-x:hidden;background:radial-gradient(ellipse at 50% 0%,rgba(13,59,38,.42) 0%,rgba(13,59,38,0) 48%),#0f172a;color:var(--ink);font-family:'DM Sans',Arial,sans-serif;-webkit-font-smoothing:antialiased}
 .login-shell{position:relative;display:flex;width:100%;min-width:0;min-height:calc(100vh - 66px);min-height:calc(100dvh - 66px);flex:1 0 auto;flex-direction:column;padding:8px clamp(18px,3.2vw,30px) 20px;overflow:visible;border:0;border-radius:0;background:radial-gradient(ellipse at 50% 0%,rgba(13,59,38,.42) 0%,rgba(13,59,38,0) 48%),#0f172a}
-.login-topbar{position:relative;display:flex;width:100%;min-width:0;min-height:50px;flex:0 0 auto;align-items:center;justify-content:center}
-.login-brand{position:absolute;left:50%;top:50%;display:flex;width:max-content;max-width:100%;min-width:0;align-items:center;justify-content:center;gap:10px;overflow:hidden;color:#eefafa;white-space:nowrap;transform:translate(-50%,-50%)}
+.login-topbar{position:relative;display:flex;min-width:0;min-height:50px;flex:0 0 auto;align-items:center;justify-content:center}
+.login-brand{position:absolute;left:50%;top:50%;display:flex;width:max-content;min-width:0;align-items:center;justify-content:center;gap:10px;overflow:hidden;color:#eefafa;white-space:nowrap;transform:translate(-50%,-50%)}
 .brand-mark{display:block;width:39px;height:39px;flex:0 0 39px;object-fit:contain}
 .brand-words{display:flex;min-width:0;flex-direction:column;justify-content:center;gap:1px;color:#eefafa;font-family:'DM Sans',Arial,sans-serif;white-space:nowrap}
 .brand-words b{font-size:14px;font-weight:950;letter-spacing:.7px;line-height:1.2}
@@ -40,7 +40,7 @@ body.organizer-login-page{display:flex;min-height:100vh;min-height:100dvh;flex-d
 .toggle-password:hover,.toggle-password:active{background:transparent;color:#547182}
 .toggle-password:focus-visible,.mode-switch button:focus-visible,.login-submit:focus-visible{outline:2px solid rgba(0,221,201,.75);outline-offset:3px}
 /* Messages take up no space until text is added, then flow naturally before the button. */
-.login-message{display:block;align-self:stretch;width:100%;min-width:0;height:0;min-height:0;flex:0 0 auto;margin:0;padding:0;border:0 solid transparent;border-radius:8px;color:#ffb1b7;background:transparent;font-size:11px;font-weight:600;line-height:1.35;text-align:left;overflow-wrap:anywhere;white-space:normal;visibility:hidden;opacity:0;overflow:hidden;transition:opacity .18s ease,background-color .18s ease,border-color .18s ease}
+.login-message{display:block;align-self:stretch;width:100%;min-width:0;height:0;min-height:0;margin:0;padding:0;border:0 solid transparent;border-radius:8px;color:#ffb1b7;background:transparent;font-size:11px;font-weight:600;line-height:1.35;text-align:left;overflow-wrap:anywhere;white-space:normal;visibility:hidden;opacity:0;overflow:hidden;transition:opacity .18s ease,background-color .18s ease,border-color .18s ease}
 .login-message:empty{height:0;margin:0;padding:0;border-width:0;visibility:hidden;opacity:0}
 .login-message.has-message{height:auto;min-height:0;margin:6px 0;padding:8px 9px;border-width:1px;visibility:visible;opacity:1;overflow:visible;background:rgba(255,104,119,.09);border-color:rgba(255,137,148,.24)}
 .login-message.is-info{color:#9fe4eb}

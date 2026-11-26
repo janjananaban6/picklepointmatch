@@ -1,64 +1,53 @@
-PICKLE POINT MATCH — OPEN PLAY SESSION CSV IMPORT RECOVERY
-Build: ppm-session-import-20261119-v4
+PICKLE POINT MATCH — OPEN PLAY SESSION IMPORT MERGE REPAIR
+Build: ppm-session-import-merge-20261126-v1
 
-WHAT CAUSED THE WARNING
-The dashboard attempted POST /api/organizer-dashboard/sessions/import, but the live
-Render backend returned HTTP 405. The dashboard then checked /api/health and found that
-the running server did not advertise capabilities.sessionImport = true. This means the
-currently deployed server.js is older than the dashboard files (or Render is deploying
-a different service, branch, or Root Directory). It is not a CSV parsing error.
+WHAT WAS WRONG
+- The CSV preview marked every Session ID already present in the dashboard as
+  "Duplicate · skipped" and excluded that row from the POST request.
+- The server also accepted linked matches only when the session was newly inserted
+  in the same request. It therefore skipped linked matches for an existing session.
+- Re-importing a partially restored session could not recover missing attendance
+  or match records.
 
-WHAT IS INCLUDED IN THIS REPAIR
-- server.js contains the authenticated POST import route and advertises its capability
-  from /api/health.
-- dashboard.html and dashboard.js use a matching versioned cache token.
-- The server and health endpoint use one shared path constant for the import route.
-- The redundant unreachable startup statement was removed.
-- The project archive has server.js, package.json, and render.yaml directly at its root.
-- The archive excludes node_modules and local data/ records. Render installs dependencies;
-  keep the original private ZIP as a backup if its local data/ records have not already
-  been migrated to the existing PostgreSQL database.
+WHAT THIS REPAIR DOES
+- Existing sessions owned by the signed-in organizer are eligible for a safe merge.
+- New attendees are appended without replacing the current attendance roster.
+- Manually removed attendees are not re-added by the import.
+- Missing session metadata is filled only when its saved value is blank.
+- Missing linked match records are added to an existing session.
+- A match with the same Session ID + Match ID is not duplicated; blank fields in an
+  existing match can be completed from the CSV without overwriting populated values.
+- Repeated rows with the same Session ID in one CSV are combined.
+- Sessions currently live, or sessions owned by another organizer, are rejected.
+- Repeating the same import is idempotent for sessions, attendance and identified
+  match records; it does not delete existing data.
+- The import keeps using the existing authenticated endpoint and PostgreSQL storage.
 
-DEPLOY TO THE EXISTING RENDER SERVICE — DO NOT CREATE A NEW ONE
-1. Keep the original uploaded ZIP as a private backup. Do not publish its data/ folder or
-   organizer account file to a public GitHub repository.
-2. Back up the existing Render PostgreSQL database before deploying. Keep the current
-   DATABASE_URL, SESSION_SECRET, and organizer credentials unchanged.
-3. Put the contents of this repaired ZIP at the top level of the SAME GitHub repository
-   and the SAME branch connected to the existing Render web service. The root must show
-   package.json, package-lock.json, server.js, render.yaml, dashboard.html, dashboard.js,
-   and the other app files together. Do not put these files one folder deeper.
-4. In the existing Render web service, check Settings > Build & Deploy. Set Root Directory
-   to blank (repository root), unless your existing repository intentionally uses a
-   subdirectory. Build Command: npm install --omit=dev. Start Command: npm start.
-5. Deploy the existing service from the same branch. Do not create a second web service,
-   do not replace the existing PostgreSQL database, and do not change DATABASE_URL.
-6. Wait for that deployment to finish successfully, then open /api/health on the same
-   Render domain used by /manage.
+DEPLOY SAFELY TO THE EXISTING RENDER SERVICE
+1. Keep a private backup of the current source and database before deploying.
+2. Use the SAME GitHub repository, branch, Render web service, and PostgreSQL database.
+3. Do not create a new Render service or database, and do not change DATABASE_URL,
+   SESSION_SECRET, or organizer credentials.
+4. Confirm the Render web service Root Directory points at the project root containing
+   package.json, package-lock.json, server.js, dashboard.html and dashboard.js.
+5. Build Command: npm install --omit=dev
+   Start Command: npm start
+6. Deploy the existing service. After deployment, open /api/health on the same Render
+   domain used by the organizer dashboard.
 
-VERIFY BEFORE IMPORTING A CSV
-The /api/health JSON must include all of these:
-  "build": "ppm-session-import-20261119-v4"
+VERIFY THE DEPLOYED BUILD
+The /api/health response must include:
+  "build": "ppm-session-import-merge-20261126-v1"
   "capabilities": { "sessionImport": true }
   "sessionImportEndpoint": "/api/organizer-dashboard/sessions/import"
   "storage": "postgresql"
 
-Only after the health response matches should you retry Import CSV from the Open Play
-Sessions menu. The repaired backend accepts POST and OPTIONS for the import endpoint.
-The POST still requires a signed-in organizer session. Duplicate session IDs are skipped;
-valid sessions, attendance, and linked matches are saved to the existing organizer data.
-
-IF THE HEALTH RESPONSE IS STILL OLD
-- Check that the latest deployment completed on the correct existing Render service.
-- Check that the service is connected to the repository and branch you updated.
-- Check that the service Root Directory contains server.js and package.json directly.
-- Use Manual Deploy > Clear build cache & deploy, then verify /api/health again.
-- If health reports v4 but POST still returns 405, inspect Render logs and rewrite/proxy
-  rules for /api/organizer-dashboard/sessions/import.
+After the health response matches, hard-refresh the dashboard and try importing a CSV.
+Existing sessions should show as "Merge" in the preview. The result summary reports
+new sessions, merged existing sessions, added matches, and any invalid rows.
 
 DATA SAFETY
-The repaired source ZIP intentionally excludes node_modules/ and data/. Keep the original
-private ZIP. If any records in that ZIP exist only in local data/ and are not yet in the
-current PostgreSQL database, follow DEPLOYMENT-SECURITY-CHECKLIST.md and
-scripts/import-legacy-data.js to migrate them safely before deploying source-only files.
-Do not overwrite or recreate the current Render PostgreSQL database.
+This source archive intentionally excludes node_modules/ and private local data/ files.
+Keep the existing Render PostgreSQL database and the original private ZIP as backups.
+Do not publish organizer credentials, local account files, or private records to a
+public repository. Do not replace or recreate the existing database.

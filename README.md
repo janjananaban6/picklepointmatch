@@ -15,9 +15,14 @@ to the same Render web service and branch. The ZIP is laid out with `server.js` 
 at the extracted repository root.
 
 After deploying, verify `/api/health` on the same Render domain: it must report build
-`ppm-session-import-20261119-v4` and `capabilities.sessionImport: true`. If not, the
+`ppm-session-import-merge-20261126-v1` and `capabilities.sessionImport: true`. If not, the
 existing Render service is still running an older backend or the wrong repository branch
 or Root Directory was deployed. See `SESSION-IMPORT-DEPLOYMENT-FIX.txt`.
+
+Existing Session IDs are now merged instead of skipped. The import adds missing
+attendance and linked matches while preserving populated session/match fields and
+respecting manually removed attendees. A malformed date or JSON value is isolated to
+its own CSV row so other valid rows can still be imported.
 
 ## Main management dashboard
 

@@ -5,7 +5,7 @@ const { URL } = require('node:url');
 const crypto = require('node:crypto');
 
 const ROOT = __dirname;
-const APP_BUILD_VERSION = 'ppm-registration-organizer-logo-edge-contour-20261124-v3';
+const APP_BUILD_VERSION = 'ppm-session-import-merge-20261126-v1';
 const SESSION_IMPORT_API_PATH = '/api/organizer-dashboard/sessions/import';
 const DATA_DIR = process.env.PICKLE_DATA_DIR ? path.resolve(process.env.PICKLE_DATA_DIR) : path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'live-state.json');
@@ -19,6 +19,20 @@ const CLUB_ID_SEQUENCE_FILE = path.join(DATA_DIR, 'club-id-sequence.json');
 const PORT = Math.max(1, Number(process.env.PORT) || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8'};
+
+const ORGANIZER_MENU_ACTION_KEYS = Object.freeze([
+  'sessionsImportCsv', 'sessionsExportCsv',
+  'playersImportCsv', 'playersExportCsv', 'playersDelete',
+  'matchesExportDuprCsv', 'rankingsExport',
+  'courtsImportCsv', 'courtsExportCsv', 'courtsEdit', 'courtsDelete',
+  'reportsFullBackup'
+]);
+function organizerMenuActionVisibilityFor(account) {
+  const saved = account?.menuActionVisibility && typeof account.menuActionVisibility === 'object'
+    ? account.menuActionVisibility
+    : {};
+  return Object.fromEntries(ORGANIZER_MENU_ACTION_KEYS.map(key => [key, saved[key] === true]));
+}
 const allowedFiles = new Set(['index.html','panel.html','panel.css','panel.js','session.html','session-brand.css','session-settings-polish.css','queueing-refresh.css','login.css','login.js','auth-session.js','queueing.html','start-page.js','queueing-app-loader.js','style.css','script.js','pickleball-p-emblem.png','live-session-indicator.png','team-player-empty-icon.png','live.html','live-view.css','live-view.js','Registration.html','registration-app.js','registration-page.css','registration-page-panel-icon.png','searchbar-device-fix.css','network-skeleton.css','network-skeleton.js','network-validation.js','tab-auth.js','registration-avatar-01.png','registration-avatar-02.png','registration-avatar-03.png','registration-avatar-04.png','registration-avatar-05.png','registration-avatar-06.png','registration-avatar-07.png','registration-avatar-08.png','registration-avatar-09.png','registration-avatar-10.png','registration-avatar-11.png','registration-avatar-12.png','registration-avatar-13.png','registration-avatar-14.png','registration-avatar-15.png','registration-avatar-16.png','registration-avatar-17.png','registration-avatar-18.png','registration-avatar-19.png','registration-avatar-20.png','registration-avatar-21.png','dashboard.html','dashboard.css','dashboard.js']);
 let latestState = null;
 let sharedAppState = null;
@@ -2145,7 +2159,7 @@ async function handle(req, res) {
     const organizerProfile = organizerProfileDetailsFor(account);
     return sendJson(res,200,{
       ok:true,
-      organizer:{id:organizerId,slug:String(account?.slug || ''),username:auth.username || account?.username || '',displayName:account?.displayName || auth.displayName || auth.username || 'Organizer',logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account?.showOnLeaderboard !== false,organizerBackground:organizerProfile.background,organizerNotes:organizerProfile.notes,organizerReclubUrl:organizerProfile.reclubUrl,organizerFacebookUrl:organizerProfile.facebookUrl,registeredCourts:publicRegisteredCourtsFor(organizerId)},
+      organizer:{id:organizerId,slug:String(account?.slug || ''),username:auth.username || account?.username || '',displayName:account?.displayName || auth.displayName || auth.username || 'Organizer',logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account?.showOnLeaderboard !== false,organizerBackground:organizerProfile.background,organizerNotes:organizerProfile.notes,organizerReclubUrl:organizerProfile.reclubUrl,organizerFacebookUrl:organizerProfile.facebookUrl,menuActionVisibility:organizerMenuActionVisibilityFor(account),registeredCourts:publicRegisteredCourtsFor(organizerId)},
       appState:appEntry.state || null,
       appRevision:appEntry.revision || 0,
       records:{players,sessions,logs,attendanceBySession},
@@ -2458,19 +2472,55 @@ async function handle(req, res) {
       records.players = Array.isArray(records.players) ? records.players : [];
       records.logs = Array.isArray(records.logs) ? records.logs : [];
       records.sessions = Array.isArray(records.sessions) ? records.sessions : [];
-      const existingSessionIds = new Set(records.sessions.map(session => String(session?.id || '')).filter(Boolean));
       const appState = getOrganizerAppEntry(organizerId).state;
       const activeSessionId = appState?.sessionActive === true && !isEndedSessionState(appState) ? getSessionId(appState) : '';
-      if (activeSessionId) existingSessionIds.add(String(activeSessionId));
+      const activeOrganizers = organizerAccounts
+        .filter(item => item && item.active === true && effectiveApprovalStatus(item) === 'approved')
+        .sort((a,b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+      const legacyOwnerId = activeOrganizers[0]?.id || null;
 
       const attendance = JSON.parse(JSON.stringify(getOrganizerAttendance(organizerId) || {sessions:{}}));
-      attendance.sessions = attendance.sessions && typeof attendance.sessions === 'object' ? attendance.sessions : {};
+      attendance.sessions = attendance.sessions && typeof attendance.sessions === 'object' && !Array.isArray(attendance.sessions) ? attendance.sessions : {};
       const acceptedSessions = new Map();
-      const duplicateIds = new Set();
+      const mergedSessionIds = new Set();
+      const blockedSessionIds = new Set();
       let importedCount = 0;
       let duplicateCount = 0;
       let invalidCount = 0;
       let totalParticipants = 0;
+      let importedMatchCount = 0;
+      let duplicateMatchCount = 0;
+      let enrichedMatchCount = 0;
+      let attendanceChanged = false;
+      let changed = false;
+
+      const isMissingImportValue = value => value === undefined || value === null || value === '' ||
+        (Array.isArray(value) && value.length === 0) ||
+        (value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0);
+      const fillMissingFields = (target, source, excluded = new Set()) => {
+        let didChange = false;
+        for (const [key, value] of Object.entries(source || {})) {
+          if (excluded.has(key) || isMissingImportValue(value) || !isMissingImportValue(target[key])) continue;
+          target[key] = JSON.parse(JSON.stringify(value));
+          didChange = true;
+        }
+        return didChange;
+      };
+      const mergeSessionParticipants = (session, incoming, removedKeys) => {
+        if (!Array.isArray(session.participants)) session.participants = [];
+        const known = new Set(session.participants.map(attendanceIdentity));
+        let added = 0;
+        for (const person of incoming) {
+          const snapshot = attendancePersonSnapshot(person);
+          if (!snapshot) continue;
+          const key = attendanceIdentity(snapshot);
+          if (removedKeys.has(key) || known.has(key)) continue;
+          session.participants.push(snapshot);
+          known.add(key);
+          added += 1;
+        }
+        return added;
+      };
 
       for (let index = 0; index < incomingSessions.length; index += 1) {
         const source = incomingSessions[index];
@@ -2478,15 +2528,22 @@ async function handle(req, res) {
         const id = String(source.id || source.sessionId || '').trim().slice(0,200);
         const sessionName = String(source.sessionName || source.name || source.title || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,200);
         if (!id || !sessionName) { invalidCount += 1; continue; }
-        if (existingSessionIds.has(id) || acceptedSessions.has(id)) { duplicateCount += 1; duplicateIds.add(id); continue; }
+        if (activeSessionId && id === String(activeSessionId)) {
+          invalidCount += 1;
+          blockedSessionIds.add(id);
+          continue;
+        }
+
         const startedAtValue = source.startedAt || source.startDate || source.date || null;
         const endedAtValue = source.endedAt || source.endDate || null;
         const startedAtDate = startedAtValue ? new Date(startedAtValue) : null;
         const endedAtDate = endedAtValue ? new Date(endedAtValue) : null;
         if ((startedAtDate && !Number.isFinite(startedAtDate.getTime())) || (endedAtDate && !Number.isFinite(endedAtDate.getTime()))) { invalidCount += 1; continue; }
+
         const rawParticipants = Array.isArray(source.participants) ? source.participants : (Array.isArray(source.attendees) ? source.attendees : []);
         if (rawParticipants.length > 2000 || totalParticipants + rawParticipants.length > 25000) { invalidCount += 1; continue; }
-        const participants = rawParticipants.map((person, participantIndex) => attendancePersonSnapshot(person,participantIndex)).filter(Boolean);
+        totalParticipants += rawParticipants.length;
+
         const location = String(source.duprLocation || source.location || source.venue || '').normalize('NFC').trim().replace(/\s+/g,' ').slice(0,250);
         const coordinatesSource = source.duprLocationCoordinates || source.locationCoordinates || {};
         const lat = Number(coordinatesSource.lat ?? coordinatesSource.latitude);
@@ -2502,39 +2559,112 @@ async function handle(req, res) {
           pinId:String(coordinatesSource.pinId || '').slice(0,180),
           osmId:String(coordinatesSource.osmId || '').slice(0,120)
         } : null;
-        const session = {
-          id,
-          organizerId,
+        const sessionTypeMarker = sessionName.match(/^\(\s*(NON[\s-]+)?DUPR[\s-]+MATCH\s*\)/i);
+        const importedDuprFlag = sessionTypeMarker
+          ? !sessionTypeMarker[1]
+          : (typeof source.duprMatch === 'boolean' ? source.duprMatch : null);
+        const importedParticipants = rawParticipants.map((person, participantIndex) => attendancePersonSnapshot(person,participantIndex)).filter(Boolean);
+
+        let session = acceptedSessions.get(id);
+        if (session) {
+          // Repeated rows with the same ID in one CSV are combined rather than dropped.
+          duplicateCount += 1;
+        } else {
+          const existing = records.sessions.find(item => String(item?.id || '') === id);
+          if (existing) {
+            const belongsToOrganizer = String(existing.organizerId || '') === organizerId || (!existing.organizerId && legacyOwnerId === organizerId);
+            if (!belongsToOrganizer) {
+              invalidCount += 1;
+              blockedSessionIds.add(id);
+              continue;
+            }
+            session = existing;
+            mergedSessionIds.add(id);
+          } else {
+            session = {
+              id,
+              organizerId,
+              sessionName,
+              startedAt:startedAtDate ? startedAtDate.toISOString() : null,
+              endedAt:endedAtDate ? endedAtDate.toISOString() : null,
+              playerCount:0,
+              matchCount:0,
+              duprLocation:location,
+              duprLocationCoordinates:locationCoordinates,
+              duprMatch:importedDuprFlag,
+              participants:[]
+            };
+            records.sessions.push(session);
+            importedCount += 1;
+            changed = true;
+          }
+          acceptedSessions.set(id,session);
+        }
+
+        // Existing session metadata is completed only when a value is missing;
+        // non-empty saved values are never overwritten by an import.
+        const metadataChanged = fillMissingFields(session, {
           sessionName,
           startedAt:startedAtDate ? startedAtDate.toISOString() : null,
           endedAt:endedAtDate ? endedAtDate.toISOString() : null,
-          playerCount:participants.length,
-          matchCount:0,
           duprLocation:location,
           duprLocationCoordinates:locationCoordinates,
-          duprMatch:source.duprMatch === true,
-          participants
-        };
-        records.sessions.push(session);
-        acceptedSessions.set(id,session);
-        existingSessionIds.add(id);
-        totalParticipants += participants.length;
-        importedCount += 1;
-        attendance.sessions[id] = {participants:JSON.parse(JSON.stringify(participants)),removed:[]};
+          duprMatch:importedDuprFlag
+        });
+        if (metadataChanged) changed = true;
+
+        const attendanceBucketExisted = Object.prototype.hasOwnProperty.call(attendance.sessions,id);
+        const seedParticipants = Array.isArray(session.participants) ? session.participants : [];
+        const bucket = getAttendanceBucket(attendance,id,seedParticipants);
+        if (!attendanceBucketExisted) {
+          attendanceChanged = true;
+          changed = true;
+        }
+        const removedKeys = new Set(bucket.removed.map(String));
+        const addedSessionParticipants = mergeSessionParticipants(session, [...bucket.participants, ...importedParticipants], removedKeys);
+        if (addedSessionParticipants) changed = true;
+        const previousAttendanceCount = bucket.participants.length;
+        if (mergeAttendanceRoster(bucket, importedParticipants)) {
+          attendanceChanged = true;
+          changed = true;
+        }
+        if (bucket.participants.length !== previousAttendanceCount) attendanceChanged = true;
+        const nextPlayerCount = bucket.participants.length;
+        if (Number(session.playerCount) !== nextPlayerCount) {
+          session.playerCount = nextPlayerCount;
+          changed = true;
+        }
       }
 
-      const existingMatchKeys = new Set(records.logs.map(log => `${String(log?.sessionId || '')}|${String(log?.id || '')}`));
-      let importedMatchCount = 0;
-      let duplicateMatchCount = 0;
       for (let index = 0; index < incomingMatches.length; index += 1) {
         const source = incomingMatches[index];
         if (!source || typeof source !== 'object' || Array.isArray(source)) continue;
         const sessionId = String(source.sessionId || '').trim();
+        if (!sessionId || blockedSessionIds.has(sessionId)) continue;
         const session = acceptedSessions.get(sessionId);
         if (!session) continue;
-        const id = String(source.id || source.matchId || `imported-match-${Date.now()}-${index + 1}`).trim().slice(0,200);
+        const suppliedId = String(source.id || source.matchId || '').trim();
+        const generatedId = `imported-match-${crypto.createHash('sha256').update(`${sessionId}|${JSON.stringify(source)}`).digest('hex').slice(0,24)}`;
+        const id = (suppliedId || generatedId).slice(0,200);
         const key = `${sessionId}|${id}`;
-        if (existingMatchKeys.has(key)) { duplicateMatchCount += 1; continue; }
+        const existingMatch = records.logs.find(log => `${String(log?.sessionId || '')}|${String(log?.id || '')}` === key);
+        if (existingMatch) {
+          duplicateMatchCount += 1;
+          const matchWasEnriched = fillMissingFields(existingMatch, source, new Set(['id','sessionId','organizerId']));
+          if (matchWasEnriched) {
+            enrichedMatchCount += 1;
+            changed = true;
+          }
+          if (!existingMatch.organizerId) {
+            existingMatch.organizerId = organizerId;
+            changed = true;
+          }
+          if (!existingMatch.sessionName && session.sessionName) {
+            existingMatch.sessionName = session.sessionName;
+            changed = true;
+          }
+          continue;
+        }
         const importedLog = JSON.parse(JSON.stringify(source));
         importedLog.id = id;
         importedLog.sessionId = sessionId;
@@ -2543,24 +2673,41 @@ async function handle(req, res) {
         if (!Array.isArray(importedLog.team1Names)) importedLog.team1Names = Array.isArray(importedLog.team1Players) ? importedLog.team1Players.map(person => String(person?.name || '')).filter(Boolean) : [];
         if (!Array.isArray(importedLog.team2Names)) importedLog.team2Names = Array.isArray(importedLog.team2Players) ? importedLog.team2Players.map(person => String(person?.name || '')).filter(Boolean) : [];
         records.logs.push(importedLog);
-        existingMatchKeys.add(key);
         importedMatchCount += 1;
+        changed = true;
       }
+
       acceptedSessions.forEach((session,id) => {
-        session.matchCount = records.logs.filter(log => String(log?.sessionId || '') === id).length;
+        const nextMatchCount = records.logs.filter(log => String(log?.sessionId || '') === id).length;
+        if (Number(session.matchCount) !== nextMatchCount) {
+          session.matchCount = nextMatchCount;
+          changed = true;
+        }
       });
 
-      if (!importedCount) {
-        return sendJson(res,200,{ok:true,importedCount:0,importedMatchCount:0,duplicateCount,duplicateMatchCount,invalidCount,updatedAt:sharedCloudUpdatedAt});
+      if (!changed) {
+        return sendJson(res,200,{
+          ok:true,
+          importedCount,
+          mergedSessionCount:mergedSessionIds.size,
+          importedMatchCount,
+          enrichedMatchCount,
+          duplicateCount,
+          duplicateMatchCount,
+          invalidCount,
+          updatedAt:sharedCloudUpdatedAt
+        });
       }
 
       const previousRecords = sharedCloudRecords;
       const previousRevision = sharedCloudRevision;
       const previousUpdatedAt = sharedCloudUpdatedAt;
       const previousClientId = sharedCloudClientId;
-      const previousAttendance = JSON.parse(JSON.stringify(getOrganizerAttendance(organizerId) || {sessions:{}}));
+      const previousAttendance = attendanceChanged
+        ? JSON.parse(JSON.stringify(getOrganizerAttendance(organizerId) || {sessions:{}}))
+        : null;
       try {
-        await saveOrganizerAttendance(organizerId,attendance);
+        if (attendanceChanged) await saveOrganizerAttendance(organizerId,attendance);
         sharedCloudRecords = records;
         sharedCloudRevision += 1;
         sharedCloudUpdatedAt = new Date().toISOString();
@@ -2571,14 +2718,16 @@ async function handle(req, res) {
         sharedCloudRevision = previousRevision;
         sharedCloudUpdatedAt = previousUpdatedAt;
         sharedCloudClientId = previousClientId;
-        try { await saveOrganizerAttendance(organizerId,previousAttendance); } catch (_) {}
+        if (attendanceChanged && previousAttendance) { try { await saveOrganizerAttendance(organizerId,previousAttendance); } catch (_) {} }
         throw error;
       }
       broadcastNamedEvent('cloud-records',{revision:sharedCloudRevision,updatedAt:sharedCloudUpdatedAt,clientId:sharedCloudClientId,records:sharedCloudRecords});
       return sendJson(res,200,{
         ok:true,
         importedCount,
+        mergedSessionCount:mergedSessionIds.size,
         importedMatchCount,
+        enrichedMatchCount,
         duplicateCount,
         duplicateMatchCount,
         invalidCount,
@@ -2764,7 +2913,7 @@ async function handle(req, res) {
       if (!account) return sendJson(res,404,{ok:false,error:'Organizer account not found.'});
       if (req.method === 'GET') {
         const profile = organizerProfileDetailsFor(account);
-        return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName || account.username,slug:String(account.slug || ''),logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard !== false,organizerBackground:profile.background,organizerNotes:profile.notes,organizerReclubUrl:profile.reclubUrl,organizerFacebookUrl:profile.facebookUrl}});
+        return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName || account.username,slug:String(account.slug || ''),logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard !== false,organizerBackground:profile.background,organizerNotes:profile.notes,organizerReclubUrl:profile.reclubUrl,organizerFacebookUrl:profile.facebookUrl,menuActionVisibility:organizerMenuActionVisibilityFor(account)}});
       }
       const body = await readBody(req,4 * 1024 * 1024);
       const displayName = body?.displayName !== undefined
@@ -2816,10 +2965,16 @@ async function handle(req, res) {
       if (body?.displayName !== undefined) account.displayName = displayName;
       if (duprId !== undefined) account.duprId = duprId;
       if (body?.showOnLeaderboard !== undefined) account.showOnLeaderboard = body.showOnLeaderboard !== false;
+      if (body?.menuActionVisibility !== undefined) {
+        const submittedVisibility = body.menuActionVisibility && typeof body.menuActionVisibility === 'object' && !Array.isArray(body.menuActionVisibility)
+          ? body.menuActionVisibility
+          : {};
+        account.menuActionVisibility = Object.fromEntries(ORGANIZER_MENU_ACTION_KEYS.map(key => [key, submittedVisibility[key] === true]));
+      }
       await saveStoredBatch([{key:'organizer-accounts',filePath:ORGANIZERS_FILE,value:organizerAccounts}]);
       const profile = organizerProfileDetailsFor(account);
       broadcastOrganizerProfileUpdate(account.id);
-      return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName,slug:String(account.slug || ''),logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard,organizerBackground:profile.background,organizerNotes:profile.notes,organizerReclubUrl:profile.reclubUrl,organizerFacebookUrl:profile.facebookUrl}});
+      return sendJson(res,200,{ok:true,organizer:{username:account.username,displayName:account.displayName,slug:String(account.slug || ''),logo:organizerLogoFor(account),duprId:organizerDuprIdFor(account),showOnLeaderboard:account.showOnLeaderboard,organizerBackground:profile.background,organizerNotes:profile.notes,organizerReclubUrl:profile.reclubUrl,organizerFacebookUrl:profile.facebookUrl,menuActionVisibility:organizerMenuActionVisibilityFor(account)}});
     } catch (err) {
       return sendJson(res,err.statusCode || 500,{ok:false,error:err.statusCode===413?'The selected image is too large. Choose an image no larger than 2 MB.':err.message||'Unable to save organizer settings.'});
     }
