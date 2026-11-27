@@ -7809,3 +7809,74 @@ html body.live-view-page .section-card.live-tab-card *::after {
   transition: none !important;
   scroll-behavior: auto !important;
 }
+
+
+/* LIVE RANKINGS — rotating medal-colour glow border for podium places only.
+   This is a border overlay: row content, sizing, and ranking data are untouched. */
+@property --ppm-ranking-podium-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-1 {
+  --ppm-ranking-podium-glow: #d6a329;
+  --ppm-ranking-podium-glow-bright: #fff0a2;
+}
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-2 {
+  --ppm-ranking-podium-glow: #9eafbd;
+  --ppm-ranking-podium-glow-bright: #f4fbff;
+}
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-3 {
+  --ppm-ranking-podium-glow: #c47b43;
+  --ppm-ranking-podium-glow-bright: #ffdbb4;
+}
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-1,
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-2,
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-3 {
+  position: relative !important;
+  isolation: isolate !important;
+}
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-1::before,
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-2::before,
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-3::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  box-sizing: border-box;
+  padding: 2px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: .96;
+  background: conic-gradient(
+    from var(--ppm-ranking-podium-angle),
+    transparent 0deg 258deg,
+    var(--ppm-ranking-podium-glow) 292deg,
+    var(--ppm-ranking-podium-glow-bright) 320deg,
+    var(--ppm-ranking-podium-glow) 344deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 2px var(--ppm-ranking-podium-glow))
+          drop-shadow(0 0 4px var(--ppm-ranking-podium-glow));
+  animation: ppm-ranking-podium-border-glow 3.2s linear infinite !important;
+}
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-1 > *,
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-2 > *,
+html body.live-view-page #pageRankingList > .live-ranking-row.rank-3 > * {
+  position: relative;
+  z-index: 1;
+}
+@keyframes ppm-ranking-podium-border-glow {
+  to { --ppm-ranking-podium-angle: 1turn; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body.live-view-page #pageRankingList > .live-ranking-row.rank-1::before,
+  html body.live-view-page #pageRankingList > .live-ranking-row.rank-2::before,
+  html body.live-view-page #pageRankingList > .live-ranking-row.rank-3::before {
+    animation: none !important;
+  }
+}
