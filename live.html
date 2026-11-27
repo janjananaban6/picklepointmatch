@@ -1822,5 +1822,150 @@
     })();
   </script>
 
+  <style id="ppm-live-click-animation-style">
+    /* Live-page-only click feedback: a soft mouse-click ripple. */
+    #ppm-live-click-effects {
+      position: fixed; inset: 0; z-index: 2147483000; overflow: hidden;
+      pointer-events: none; contain: layout style paint;
+    }
+    #ppm-live-click-effects .ppm-live-click-burst {
+      position: absolute; width: 0; height: 0; pointer-events: none;
+    }
+    #ppm-live-click-effects .ppm-live-click-ripple {
+      position: absolute; left: 0; top: 0; width: 52px; height: 52px;
+      border: 2px solid rgba(24, 160, 157, .78); border-radius: 50%;
+      background: radial-gradient(circle, rgba(62, 190, 181, .18) 0%, rgba(62, 190, 181, .07) 48%, transparent 72%);
+      box-shadow: 0 0 0 4px rgba(38, 164, 160, .08), 0 4px 18px rgba(9, 89, 94, .12);
+      transform: translate(-50%, -50%) scale(.22); opacity: 0;
+      animation: ppm-live-click-ripple .62s cubic-bezier(.16, .72, .25, 1) both;
+    }
+    #ppm-live-click-effects .ppm-live-click-core {
+      position: absolute; left: 0; top: 0; width: 9px; height: 9px;
+      border-radius: 50%; background: #168f91;
+      box-shadow: 0 0 0 5px rgba(22, 143, 145, .15), 0 1px 5px rgba(5, 54, 60, .24);
+      transform: translate(-50%, -50%) scale(.2); opacity: 0;
+      animation: ppm-live-click-core .42s ease-out both;
+    }
+    @keyframes ppm-live-click-ripple {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(.22); }
+      18% { opacity: .95; }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.48); }
+    }
+    @keyframes ppm-live-click-core {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(.2); }
+      28% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(.58); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #ppm-live-click-effects .ppm-live-click-ripple,
+      #ppm-live-click-effects .ppm-live-click-core { animation-duration: .18s; }
+    }
+  </style>
+  <style id="ppm-live-match-row-shimmer-style">
+    /* Subtle shimmer sweep limited to the recent live-match history rows. */
+    body.live-view-page .live-match-row {
+      position: relative;
+      isolation: isolate;
+    }
+    body.live-view-page .live-match-row::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: linear-gradient(
+        108deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0) 38%,
+        rgba(255, 255, 255, .23) 49%,
+        rgba(255, 255, 255, .07) 54%,
+        transparent 66%,
+        transparent 100%
+      );
+      background-size: 220% 100%;
+      background-position: 130% 0;
+      animation: ppm-live-match-row-shimmer 5.2s ease-in-out infinite;
+    }
+    body.live-view-page .live-match-row > * {
+      position: relative;
+      z-index: 1;
+    }
+    @keyframes ppm-live-match-row-shimmer {
+      0%, 12% { background-position: 130% 0; opacity: 0; }
+      25% { opacity: .78; }
+      66%, 100% { background-position: -30% 0; opacity: 0; }
+    }
+    /* Re-enable the match-row shimmer: the parent live-tab card has a global
+       animation reset with !important, so this scoped, higher-specificity
+       rule intentionally overrides it for this single decorative layer. */
+    html body.live-view-page .section-card.live-tab-card .live-match-row::after {
+      background-image: linear-gradient(
+        108deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0) 34%,
+        rgba(255, 255, 255, .34) 48%,
+        rgba(255, 255, 255, .13) 54%,
+        transparent 68%,
+        transparent 100%
+      );
+      background-size: 220% 100%;
+      animation: ppm-live-match-row-shimmer 4.2s ease-in-out infinite !important;
+      will-change: background-position, opacity;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html body.live-view-page .section-card.live-tab-card .live-match-row::after {
+        animation: none !important;
+        will-change: auto;
+      }
+    }
+  </style>
+  <script id="ppm-live-click-animation">
+    (() => {
+      'use strict';
+      if (window.__ppmLiveClickAnimationInstalled) return;
+      window.__ppmLiveClickAnimationInstalled = true;
+
+      const mount = () => {
+        if (!document.body || document.getElementById('ppm-live-click-effects')) return;
+        const layer = document.createElement('div');
+        layer.id = 'ppm-live-click-effects';
+        layer.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(layer);
+
+        document.addEventListener('click', event => {
+          let x = Number(event.clientX);
+          let y = Number(event.clientY);
+          if (!Number.isFinite(x) || !Number.isFinite(y) || (event.detail === 0 && x === 0 && y === 0)) {
+            const target = event.target instanceof Element ? event.target : null;
+            const bounds = target?.getBoundingClientRect();
+            if (bounds) {
+              x = bounds.left + bounds.width / 2;
+              y = bounds.top + bounds.height / 2;
+            } else {
+              x = window.innerWidth / 2;
+              y = window.innerHeight / 2;
+            }
+          }
+
+          const burst = document.createElement('span');
+          burst.className = 'ppm-live-click-burst';
+          burst.style.left = `${x}px`;
+          burst.style.top = `${y}px`;
+          burst.innerHTML = `
+            <span class="ppm-live-click-ripple"></span>
+            <span class="ppm-live-click-core"></span>`;
+          layer.appendChild(burst);
+          window.setTimeout(() => burst.remove(), 720);
+        }, true);
+      };
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mount, { once: true });
+      } else {
+        mount();
+      }
+    })();
+  </script>
 </body>
 </html>
