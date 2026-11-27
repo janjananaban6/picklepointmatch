@@ -580,9 +580,75 @@
 
   window.PPM_refreshLiveMatches = preserveScroll => renderRecentMatches(preserveScroll !== false);
 
+  function playRankingPanelEntrance() {
+    const panel = $('liveRankingsPanel');
+    const card = panel?.querySelector('.section-card.live-tab-card');
+    const list = $('pageRankingList');
+    if (!panel || panel.hidden) return;
+
+    // Respect the device accessibility preference and avoid persistent CSS
+    // animations: live ranking updates can replace rows while this tab stays open.
+    try {
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    } catch (error) {}
+
+    const animate = (element, keyframes, options = {}) => {
+      if (!element || typeof element.animate !== 'function') return;
+      try {
+        element.animate(keyframes, {
+          duration: 460,
+          easing: 'cubic-bezier(.2, .72, .22, 1)',
+          fill: 'none',
+          ...options
+        });
+      } catch (error) {
+        // Animation is decorative; keep the Rankings UI usable if unsupported.
+      }
+    };
+
+    animate(card, [
+      { opacity: 0, transform: 'translate3d(0, 9px, 0)' },
+      { opacity: 1, transform: 'translate3d(0, 0, 0)' }
+    ]);
+    animate(list, [
+      { opacity: 0 },
+      { opacity: 1 }
+    ], { duration: 520, easing: 'ease-out' });
+
+    const rows = [...(list?.querySelectorAll(':scope > .live-ranking-row') || [])];
+    rows.forEach((row, index) => {
+      const stagger = Math.min(index, 7) * 45;
+      animate(row, [
+        { opacity: 0, transform: 'translate3d(0, 8px, 0)' },
+        { opacity: 1, transform: 'translate3d(0, 0, 0)' }
+      ], { duration: 480, delay: stagger });
+
+      animate(row.querySelector('.live-ranking-stats'), [
+        { opacity: 0, transform: 'translate3d(0, 4px, 0)' },
+        { opacity: 1, transform: 'translate3d(0, 0, 0)' }
+      ], { duration: 400, delay: 85 + stagger });
+
+      animate(row.querySelector('.live-ranking-result'), [
+        { opacity: 0, transform: 'translate3d(0, 4px, 0)' },
+        { opacity: 1, transform: 'translate3d(0, 0, 0)' }
+      ], { duration: 400, delay: 125 + stagger });
+
+      animate(row.querySelector('.live-ranking-progress span'), [
+        { transform: 'scaleX(0)' },
+        { transform: 'scaleX(1)' }
+      ], {
+        duration: 760,
+        delay: 65 + stagger,
+        easing: 'cubic-bezier(.18, .78, .24, 1)'
+      });
+    });
+  }
+
   function setLiveTab(tabName) {
     const allowed = ['queue', 'rankings', 'matches'];
     const selected = allowed.includes(tabName) ? tabName : 'queue';
+    const rankingPanel = $('liveRankingsPanel');
+    const rankingWasVisible = Boolean(rankingPanel && !rankingPanel.hidden);
     document.querySelectorAll('[data-live-tab]').forEach(button => {
       const isSelected = button.dataset.liveTab === selected;
       button.classList.toggle('is-active', isSelected);
@@ -594,7 +660,16 @@
     document.querySelectorAll('[data-live-panel]').forEach(panel => {
       panel.hidden = panel.dataset.livePanel !== selected;
     });
-    if (selected === 'rankings') renderLiveRanking('pageRankingList', 'pageRankingSearch');
+    if (selected === 'rankings') {
+      renderLiveRanking('pageRankingList', 'pageRankingSearch');
+      // Only animate on a real switch from another tab. Subsequent snapshots,
+      // list refreshes, and clicks on the already-active tab never replay it.
+      if (!rankingWasVisible) {
+        window.requestAnimationFrame(() => {
+          if (rankingPanel && !rankingPanel.hidden) playRankingPanelEntrance();
+        });
+      }
+    }
     if (selected === 'matches') renderRecentMatches();
   }
 
