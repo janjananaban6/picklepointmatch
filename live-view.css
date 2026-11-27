@@ -7707,3 +7707,158 @@ html:not([data-theme="light"]) body.live-view-page .mobile-organizer-dialog-stat
     animation: none !important;
   }
 }
+
+
+/* LIVE QUEUE DETAILS — keep identity on row one and the full skill label on row two. */
+html body.live-view-page .section-card.queue-section .queue-player-wrap {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+html body.live-view-page .section-card.queue-section .queue-player-line {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+html body.live-view-page .section-card.queue-section .queue-player-meta {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 5px;
+  min-width: 0;
+}
+html body.live-view-page .section-card.queue-section .queue-player-category-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 13px;
+  line-height: 1;
+}
+html body.live-view-page .section-card.queue-section .queue-player-category-row .live-player-category {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  padding: 3px 6px;
+  border-radius: 99px;
+  font-size: 7.5px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: .25px;
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  html body.live-view-page .section-card.queue-section .queue-player-wrap { gap: 3px; }
+  html body.live-view-page .section-card.queue-section .queue-player-category-row .live-player-category {
+    padding: 3px 5px;
+    font-size: 7.5px;
+    letter-spacing: .15px;
+  }
+}
+
+/* The orbit completes one smooth turn when a queue clock first appears, then stops. */
+html body.live-view-page .queue-waiting-time {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+html body.live-view-page .queue-waiting-clock {
+  display: inline-block;
+  flex: 0 0 13px;
+  width: 13px;
+  height: 13px;
+  overflow: visible;
+  vertical-align: middle;
+}
+html body.live-view-page .queue-waiting-clock-orbit {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: queue-waiting-clock-one-turn 1.45s cubic-bezier(.22, .68, .25, 1) 1 both;
+}
+html body.live-view-page .queue-waiting-time-label {
+  display: inline-block;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+@keyframes queue-waiting-clock-one-turn {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body.live-view-page .queue-waiting-clock-orbit { animation: none !important; }
+}
+
+/* RANKINGS TAB MOTION — soft card/list entrance, staggered detail fades,
+   and a one-shot left-to-right win-rate fill. CSS-only and device independent. */
+@keyframes ppmLiveRankingCardFade {
+  from { opacity: 0; transform: translate3d(0, 9px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes ppmLiveRankingListFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ppmLiveRankingRowFade {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes ppmLiveRankingDetailFade {
+  from { opacity: 0; transform: translate3d(0, 4px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes ppmLiveRankingProgressFill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+html body.live-view-page #liveRankingsPanel:not([hidden]) > .section-card.live-tab-card {
+  animation: ppmLiveRankingCardFade 480ms cubic-bezier(.2, .72, .22, 1) both;
+}
+html body.live-view-page #liveRankingsPanel:not([hidden]) #pageRankingList {
+  animation: ppmLiveRankingListFade 560ms ease-out both;
+}
+html body.live-view-page #pageRankingList > .live-ranking-row {
+  animation: ppmLiveRankingRowFade 520ms cubic-bezier(.2, .72, .22, 1) both;
+}
+html body.live-view-page #pageRankingList > .live-ranking-row:nth-child(1) { animation-delay: 35ms; }
+html body.live-view-page #pageRankingList > .live-ranking-row:nth-child(2) { animation-delay: 70ms; }
+html body.live-view-page #pageRankingList > .live-ranking-row:nth-child(3) { animation-delay: 105ms; }
+html body.live-view-page #pageRankingList > .live-ranking-row:nth-child(4) { animation-delay: 140ms; }
+html body.live-view-page #pageRankingList > .live-ranking-row:nth-child(5) { animation-delay: 175ms; }
+html body.live-view-page #pageRankingList > .live-ranking-row:nth-child(6) { animation-delay: 210ms; }
+html body.live-view-page #pageRankingList > .live-ranking-row:nth-child(7) { animation-delay: 245ms; }
+html body.live-view-page #pageRankingList > .live-ranking-row:nth-child(8) { animation-delay: 280ms; }
+html body.live-view-page #pageRankingList > .live-ranking-row:nth-child(n+9) { animation-delay: 315ms; }
+html body.live-view-page #pageRankingList .live-ranking-stats {
+  animation: ppmLiveRankingDetailFade 440ms cubic-bezier(.2, .72, .22, 1) 100ms both;
+}
+html body.live-view-page #pageRankingList .live-ranking-result {
+  animation: ppmLiveRankingDetailFade 440ms cubic-bezier(.2, .72, .22, 1) 145ms both;
+}
+html body.live-view-page #pageRankingList .live-ranking-progress span {
+  transform: scaleX(1);
+  transform-origin: left center;
+  animation: ppmLiveRankingProgressFill 900ms cubic-bezier(.18, .78, .24, 1) 80ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body.live-view-page #liveRankingsPanel:not([hidden]) > .section-card.live-tab-card,
+  html body.live-view-page #liveRankingsPanel:not([hidden]) #pageRankingList,
+  html body.live-view-page #pageRankingList > .live-ranking-row,
+  html body.live-view-page #pageRankingList .live-ranking-stats,
+  html body.live-view-page #pageRankingList .live-ranking-result,
+  html body.live-view-page #pageRankingList .live-ranking-progress span {
+    animation: none !important;
+    transform: none !important;
+  }
+}

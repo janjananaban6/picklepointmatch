@@ -10,7 +10,7 @@
   let resolvedOrganizerId = organizerScope;
   const LIVE_CHANNEL_NAME = `pickle-point-match-live-view${organizerScope ? '-' + organizerScope.replace(/[^a-zA-Z0-9_-]/g,'') : ''}`;
   function scopedApiUrl(path, params = {}) { const url = new URL(path, window.location.origin); const scope = resolvedOrganizerId || organizerScope; if (scope) url.searchParams.set('organizer',scope); Object.entries(params).forEach(([key,value])=>url.searchParams.set(key,String(value))); return url.pathname+url.search; }
-  const THEME_STORAGE_KEY = 'picklepoint_live_view_theme_v1';
+  const THEME_STORAGE_KEY = 'picklepoint_live_view_theme_v2';
   // Respect an existing device choice; otherwise start in the light palette.
   let hadLocalThemePreference = false;
   let localThemeChangedByUser = false;
@@ -145,6 +145,7 @@
     ? '<svg class="gender-symbol" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="4.8" r="3.55" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.4v5.9M5.25 11.35h5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>'
     : '<svg class="gender-symbol" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.35" cy="10.65" r="3.45" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.8 8.2 14.1 1.9M9.35 1.9h4.75v4.75" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const playerCategory = p => String(p?.category || 'CAT').trim().toUpperCase();
+  const playerCategoryLabel = p => ({ BEG: 'BEGINNERS', NOV: 'NOVICE', INT: 'INTERMEDIATE', EXP: 'EXPERT', ADV: 'ADVANCED' })[playerCategory(p)] || playerCategory(p);
   const playerCategoryClass = p => ({ BEG: 'skill-beg', NOV: 'skill-nov', INT: 'skill-int', ADV: 'skill-adv', EXP: 'skill-exp' })[playerCategory(p)] || '';
   const timestampMilliseconds = value => {
     if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? value : NaN;
@@ -626,7 +627,8 @@
       const genderLabel = genderClass === 'female' ? 'Female' : 'Male';
       const lockedPartnerIndicator = renderLiveLockedPartnerBadge(p, `queue-${p.id ?? index}`);
       const displayedName = highlightSearchMatch(playerName(p), rawSearchTerm);
-      return `<div class="queue-item"><div class="queue-avatar-stack" aria-label="${genderLabel} player, queue position ${index + 1}"><div class="queue-avatar ${genderClass}" aria-hidden="true">${playerAvatarMarkup(p)}</div><span class="queue-position-badge" aria-label="Queue position ${index + 1}">${index + 1}</span></div><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${displayedName}</div><span class="queue-player-meta"><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category">${escapeHTML(playerCategory(p))}</span>${lockedPartnerIndicator}</span></div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
+      const categoryLabel = playerCategoryLabel(p);
+      return `<div class="queue-item"><div class="queue-avatar-stack" aria-label="${genderLabel} player, queue position ${index + 1}"><div class="queue-avatar ${genderClass}" aria-hidden="true">${playerAvatarMarkup(p)}</div><span class="queue-position-badge" aria-label="Queue position ${index + 1}">${index + 1}</span></div><div class="queue-player-wrap"><div class="queue-player-line"><div class="queue-player">${displayedName}</div><span class="queue-player-meta"><span class="live-player-gender ${genderClass}" title="${genderLabel}" aria-label="${genderLabel}">${playerGenderIcon(p)}</span>${lockedPartnerIndicator}</span></div><div class="queue-player-category-row"><span class="live-player-category ${playerCategoryClass(p)}" title="Skill category: ${escapeHTML(categoryLabel)}" aria-label="Skill category: ${escapeHTML(categoryLabel)}">${escapeHTML(categoryLabel)}</span></div></div><span class="queue-waiting-time ${waitingTimeClass(waitingSince)}" data-waiting-since="${escapeHTML(waitingSince || '')}" title="Player waiting time">${waitingDuration(waitingSince)}</span></div>`;
     }).join('');
   }
 
@@ -1953,7 +1955,13 @@
       }
     });
     document.querySelectorAll('.queue-waiting-time[data-waiting-since]').forEach(el => {
-      el.textContent = waitingDuration(el.dataset.waitingSince);
+      const duration = waitingDuration(el.dataset.waitingSince);
+      const durationLabel = el.querySelector('.queue-waiting-time-label');
+      if (durationLabel) {
+        if (durationLabel.textContent !== duration) durationLabel.textContent = duration;
+      } else if (el.textContent !== duration) {
+        el.textContent = duration;
+      }
       el.classList.remove('waiting-amber', 'waiting-red');
       const waitingClass = waitingTimeClass(el.dataset.waitingSince);
       if (waitingClass) el.classList.add(waitingClass);

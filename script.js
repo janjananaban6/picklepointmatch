@@ -1055,7 +1055,7 @@ function deleteCloudPlayer(id){
   saveCloudRecords();
   renderCloudRecords();
 }
-function checkInCloudPlayer(id,countAsCloudCheckin=true){if(!cloudRecordsHydratedFromServer)loadCloudRecords();const a=cloudRecords.players.find(p=>Number(p.cloudId)===Number(id));if(!a)return;if(isCloudPlayerCheckedIn(a)){renderCloudRecords();return;}let p=state.players.find(p=>cloudPlayerNameMatches(a,p.name));if(!p){const left=state.left.find(p=>cloudPlayerNameMatches(a,p.name));if(left){left.avatarId=left.avatarId||getPlayerAvatarId(a);checkIn(left.id,countAsCloudCheckin);if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();renderCloudRecords();return;}p={id:state.nextPlayer++,name:a.name,nickname:a.nickname||'',wins:a.wins||0,court:null,gender:a.gender||'Male',category:a.category||'',avatarId:getPlayerAvatarId(a),duprId:a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:a.selfRating||a.self_rating||'',queuedAt:Date.now(),waitingSince:Date.now()};state.players.push(p);}else{p.avatarId=p.avatarId||getPlayerAvatarId(a);p.duprId=p.duprId||a.duprId||a.duprID||a.dupr_id||a.dupr||'';p.selfRating=p.selfRating||a.selfRating||a.self_rating||'';}if(p.court){toast('Player is already on court.');return;}if(!state.queue.includes(p.id))state.queue.push(p.id);if(countAsCloudCheckin||!p.queuedAt){p.queuedAt=Date.now();p.waitingSince=p.queuedAt;}if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();render();renderCloudRecords();toast(`${p.name} checked in.`);}
+function checkInCloudPlayer(id,countAsCloudCheckin=true){if(!cloudRecordsHydratedFromServer)loadCloudRecords();const a=cloudRecords.players.find(p=>Number(p.cloudId)===Number(id));if(!a)return;if(isCloudPlayerCheckedIn(a)){renderCloudRecords();return;}let p=state.players.find(p=>cloudPlayerNameMatches(a,p.name));if(!p){const left=state.left.find(p=>cloudPlayerNameMatches(a,p.name));if(left){left.avatarId=left.avatarId||getPlayerAvatarId(a);checkIn(left.id,countAsCloudCheckin);if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();renderCloudRecords();return;}p={id:state.nextPlayer++,name:a.name,nickname:a.nickname||'',wins:a.wins||0,court:null,gender:a.gender||'Male',category:cloudCategoryCode(a.category)||'',avatarId:getPlayerAvatarId(a),duprId:a.duprId||a.duprID||a.dupr_id||a.dupr||'',selfRating:a.selfRating||a.self_rating||'',queuedAt:Date.now(),waitingSince:Date.now()};state.players.push(p);}else{p.category=cloudCategoryCode(p.category)||cloudCategoryCode(a.category)||'';p.avatarId=p.avatarId||getPlayerAvatarId(a);p.duprId=p.duprId||a.duprId||a.duprID||a.dupr_id||a.dupr||'';p.selfRating=p.selfRating||a.selfRating||a.self_rating||'';}if(p.court){toast('Player is already on court.');return;}if(!state.queue.includes(p.id))state.queue.push(p.id);if(countAsCloudCheckin||!p.queuedAt){p.queuedAt=Date.now();p.waitingSince=p.queuedAt;}if(countAsCloudCheckin)state.sessionMetrics.cloudCheckins=(Number(state.sessionMetrics.cloudCheckins)||0)+1;saveState();render();renderCloudRecords();toast(`${p.name} checked in.`);}
 
 let openCategoryPlayerId=null;
 let openGenderPlayerId=null;
@@ -2253,8 +2253,8 @@ function loadState(){
     state.nextWaitingCourt=Number(data.nextWaitingCourt)||1;
     state.nextLog=Number(data.nextLog)||((state.logs.reduce((m,l)=>Math.max(m,Number(l.id)||0),0))+1);
     const loadedTarget=Number(data.eventRules?.target); state.eventRules={target:[11,15,21].includes(loadedTarget)?loadedTarget:(loadedTarget===22?21:11),winBy:[1,2,3].includes(Number(data.eventRules?.winBy))?Number(data.eventRules.winBy):1,type:data.eventRules?.type==='Singles'?'Singles':'Doubles'};
-    state.players.forEach(p=>{ p.gender=(String(p.gender||'').toLowerCase()==='female'?'Female':(String(p.gender||'').toLowerCase()==='male'?'Male':'')); p.wins=Number(p.wins)||0; p.category=['BEG','NOV','INT','ADV','EXP'].includes(p.category)?p.category:''; p.queuedAt=p.queuedAt||Date.now(); p.waitingSince=p.waitingSince||p.queuedAt; p.nickname=p.nickname||''; });
-    state.left.forEach(p=>{ p.gender=(String(p.gender||'').toLowerCase()==='female'?'Female':(String(p.gender||'').toLowerCase()==='male'?'Male':'')); p.wins=Number(p.wins)||0; p.category=['BEG','NOV','INT','ADV','EXP'].includes(p.category)?p.category:''; p.queuedAt=p.queuedAt||Date.now(); p.waitingSince=p.waitingSince||p.queuedAt; p.nickname=p.nickname||''; });
+    state.players.forEach(p=>{ p.gender=(String(p.gender||'').toLowerCase()==='female'?'Female':(String(p.gender||'').toLowerCase()==='male'?'Male':'')); p.wins=Number(p.wins)||0; p.category=cloudCategoryCode(p.category)||''; p.queuedAt=p.queuedAt||Date.now(); p.waitingSince=p.waitingSince||p.queuedAt; p.nickname=p.nickname||''; });
+    state.left.forEach(p=>{ p.gender=(String(p.gender||'').toLowerCase()==='female'?'Female':(String(p.gender||'').toLowerCase()==='male'?'Male':'')); p.wins=Number(p.wins)||0; p.category=cloudCategoryCode(p.category)||''; p.queuedAt=p.queuedAt||Date.now(); p.waitingSince=p.waitingSince||p.queuedAt; p.nickname=p.nickname||''; });
     state.logs.forEach(l=>{ l.recordingMode=l.recordingMode==='win-only'?'win-only':'score'; if(l.recordingMode==='win-only')l.score=null;else l.score=l.score||'0-0'; l.team1Ids=Array.isArray(l.team1Ids)?l.team1Ids:[]; l.team2Ids=Array.isArray(l.team2Ids)?l.team2Ids:[]; l.team1Names=Array.isArray(l.team1Names)?l.team1Names:[]; l.team2Names=Array.isArray(l.team2Names)?l.team2Names:[]; l.duration=l.duration||'--'; l.startedAt=l.startedAt||null; l.endedAt=l.endedAt||null; l.target=Number(l.target)||11; l.type=l.type||'Doubles'; });
     state.selectedCourt=null;
     state.pendingLeftDelete=null;
@@ -3001,7 +3001,7 @@ function autoMatchSingles(courtId){
 
   const mode=['balanced','social-mix','skill-separated','winners-losers'].includes(state.matchingMode)?state.matchingMode:'balanced';
   const allowedSkills=Array.isArray(c.allowedSkills)?c.allowedSkills:[];
-  const available=state.queue.map(player).filter(Boolean).filter(p=>!allowedSkills.length||allowedSkills.includes(p.category));
+  const available=state.queue.map(player).filter(Boolean).filter(p=>!allowedSkills.length||allowedSkills.includes(cloudCategoryCode(p.category)||''));
   if(available.length<needed){
     toast(mode==='skill-separated'
       ?'Skill Separated needs another player with a similar known skill level for Singles.'
@@ -3087,7 +3087,7 @@ function autoMatchVariety(courtId){
   const mode=['balanced','social-mix','skill-separated','winners-losers'].includes(state.matchingMode)?state.matchingMode:'balanced';
   const needed=4-c.players.filter(Boolean).length;
   const allowedSkills=Array.isArray(c.allowedSkills)?c.allowedSkills:[];
-  const available=state.queue.map(player).filter(Boolean).filter(p=>!allowedSkills.length||allowedSkills.includes(p.category));
+  const available=state.queue.map(player).filter(Boolean).filter(p=>!allowedSkills.length||allowedSkills.includes(cloudCategoryCode(p.category)||''));
   if(available.length<needed){
     toast(mode==='skill-separated'
       ?'Skill Separated left this court waiting; more players at a similar skill level are needed.'

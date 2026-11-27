@@ -96,7 +96,7 @@
     }
 
     const app = document.createElement('script');
-    app.src = 'script.js?v=queue-score-race-match-ranges-20261121-1';
+    app.src = 'script.js?v=queue-skill-category-fix-20261126-1';
     app.onerror = () => {
       console.error('Pickle Point Match could not load script.js.');
       window.__PPM_RELEASE_QUEUEING_STARTUP?.();
