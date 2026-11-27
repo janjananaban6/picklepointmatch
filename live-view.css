@@ -7749,8 +7749,8 @@ html body.live-view-page .section-card.queue-section .queue-player-category-row 
   max-width: 100%;
   min-width: 0;
   padding: 3px 6px;
-  border-radius: 6px;
-  font-size: 8px;
+  border-radius: 99px;
+  font-size: 7.5px;
   font-weight: 900;
   line-height: 1;
   letter-spacing: .25px;
@@ -7798,4 +7798,14 @@ html body.live-view-page .queue-waiting-time-label {
   html body.live-view-page .queue-waiting-clock-orbit { animation: none !important; }
 }
 
-/* Ranking entrance motion is applied once on tab activation by live-view.js. */
+
+/* LIVE RANKINGS / MATCHES CARD — disable every animation and transition
+   inside .section-card.live-tab-card. Layout, controls, and data behavior stay intact. */
+html body.live-view-page .section-card.live-tab-card,
+html body.live-view-page .section-card.live-tab-card *,
+html body.live-view-page .section-card.live-tab-card *::before,
+html body.live-view-page .section-card.live-tab-card *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
