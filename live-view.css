@@ -7749,8 +7749,8 @@ html body.live-view-page .section-card.queue-section .queue-player-category-row 
   max-width: 100%;
   min-width: 0;
   padding: 3px 6px;
-  border-radius: 99px;
-  font-size: 7.5px;
+  border-radius: 6px;
+  font-size: 8px;
   font-weight: 900;
   line-height: 1;
   letter-spacing: .25px;

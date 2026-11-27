@@ -582,7 +582,6 @@
 
   function playRankingPanelEntrance() {
     const panel = $('liveRankingsPanel');
-    const card = panel?.querySelector('.section-card.live-tab-card');
     const list = $('pageRankingList');
     if (!panel || panel.hidden) return;
 
@@ -606,10 +605,7 @@
       }
     };
 
-    animate(card, [
-      { opacity: 0, transform: 'translate3d(0, 9px, 0)' },
-      { opacity: 1, transform: 'translate3d(0, 0, 0)' }
-    ]);
+    // The tab card itself stays static; only its ranking content animates.
     animate(list, [
       { opacity: 0 },
       { opacity: 1 }
@@ -623,24 +619,11 @@
         { opacity: 1, transform: 'translate3d(0, 0, 0)' }
       ], { duration: 480, delay: stagger });
 
-      animate(row.querySelector('.live-ranking-stats'), [
-        { opacity: 0, transform: 'translate3d(0, 4px, 0)' },
-        { opacity: 1, transform: 'translate3d(0, 0, 0)' }
-      ], { duration: 400, delay: 85 + stagger });
-
       animate(row.querySelector('.live-ranking-result'), [
         { opacity: 0, transform: 'translate3d(0, 4px, 0)' },
         { opacity: 1, transform: 'translate3d(0, 0, 0)' }
       ], { duration: 400, delay: 125 + stagger });
 
-      animate(row.querySelector('.live-ranking-progress span'), [
-        { transform: 'scaleX(0)' },
-        { transform: 'scaleX(1)' }
-      ], {
-        duration: 760,
-        delay: 65 + stagger,
-        easing: 'cubic-bezier(.18, .78, .24, 1)'
-      });
     });
   }
 
