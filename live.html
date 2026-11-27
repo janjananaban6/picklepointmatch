@@ -7,14 +7,306 @@
   <meta name="theme-color" content="#072f38">
   <title>Live View | Pickle Point Match</title>
   <link rel="icon" type="image/png" href="/pickleball-p-emblem.png">
-  <link rel="stylesheet" href="/live-view.css?v=live-audit-cleanup-20261109-1&queue-search-compact-height-20261023-1&filter-list-toggle-state-20261109-1&mzoom=20261024-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-compact-collapse-20261105-2&livetabs=radius15-min35-responsive-20261024-5&organizer-logo=20261024-2&organizer-stat-match=20261024-1&avatar-sync=20261029-2&live-width-440-responsive-stack-20261104-2&court-scroll-all-devices-20261104-2&live-header-brand-scrollbar-flat-sections-20261105-5&card-surface-scrollbar-hotfix-20261105-6&court-header-timer-inline-20261105-2&court-mini-timer-mobile-stable-20261105-1&court-collapse-fixed-shell-20261106-1&court-heading-actions-20261105-2&court-timer-summary-stability-20261105-1&court-heading-toggle-threshold-20261105-1&live-ranking-filter-pill-20261106-1&matches-matchup-search-20261107-1&queue-court-pill-controls-20261106-1&court-expanded-flow-layout-20261106-1&matchup-search=20261107-2&search-filter-blue-static=20261107-1&search-hover-neutral-gray-surface=20261107-2&ranking-lock-inline=20261107-3&queue-lock-partner-snapshot=20261107-1&ranking-podium-background=20261109-1&desktop-filter-circle-theme-toggle=20261109-1&header-no-bounce-glass-badges=20261109-1&dark-glass-ranking-status=20261109-1&light-badge-parity-matches-toggle-circle=20261109-1&court-player-white-glass-ranking-circle-seam-fix=20261109-1&court-layout-collapse-svg-icons=20261109-1&live-heading-empty-svg-icons=20261109-1&court-category-light-contrast=20261109-1&live-ranking-eligibility-note-20261113-2&live-list-gap-stability-20261121-1&organizer-profile-card-20261123-1&organizer-ui-polish-20261123-1&mobile-organizer-logo-edge-rotation=20261124-2&live-queue-polish-20261127-1&live-tab-card-no-animation-20261127-1&podium-glow-border-20261127-1">
+  <link rel="stylesheet" href="/live-view.css?v=live-audit-cleanup-20261109-1&queue-search-compact-height-20261023-1&filter-list-toggle-state-20261109-1&mzoom=20261024-1&court-grid-expanded-waiting-collapse-20261105-1&waiting-court-compact-collapse-20261105-2&livetabs=radius15-min35-responsive-20261024-5&organizer-logo=20261024-2&organizer-stat-match=20261024-1&avatar-sync=20261029-2&live-width-440-responsive-stack-20261104-2&court-scroll-all-devices-20261104-2&live-header-brand-scrollbar-flat-sections-20261105-5&card-surface-scrollbar-hotfix-20261105-6&court-header-timer-inline-20261105-2&court-mini-timer-mobile-stable-20261105-1&court-collapse-fixed-shell-20261106-1&court-heading-actions-20261105-2&court-timer-summary-stability-20261105-1&court-heading-toggle-threshold-20261105-1&live-ranking-filter-pill-20261106-1&matches-matchup-search-20261107-1&queue-court-pill-controls-20261106-1&court-expanded-flow-layout-20261106-1&matchup-search=20261107-2&search-filter-blue-static=20261107-1&search-hover-neutral-gray-surface=20261107-2&ranking-lock-inline=20261107-3&queue-lock-partner-snapshot=20261107-1&ranking-podium-background=20261109-1&desktop-filter-circle-theme-toggle=20261109-1&header-no-bounce-glass-badges=20261109-1&dark-glass-ranking-status=20261109-1&light-badge-parity-matches-toggle-circle=20261109-1&court-player-white-glass-ranking-circle-seam-fix=20261109-1&court-layout-collapse-svg-icons=20261109-1&live-heading-empty-svg-icons=20261109-1&court-category-light-contrast=20261109-1&live-ranking-eligibility-note-20261113-2&live-list-gap-stability-20261121-1&organizer-profile-card-20261123-1&organizer-ui-polish-20261123-1&mobile-organizer-logo-edge-rotation=20261124-2&live-queue-polish-20261127-1&live-tab-card-no-animation-20261127-1&podium-glow-border-20261127-1&live-ranking-playing-dots-20261127-1">
   <link rel="stylesheet" href="/searchbar-device-fix.css?v=searchbar-device-fix-20261023-1&mzoom=20261024-1&live-search-border-parity=20261106-2-blue">
   <link rel="stylesheet" href="/network-skeleton.css?v=network-validation-20261027-1&queue-clock-reverse-spin-20261127-3">
+  <style id="live-page-premium-loading-skeleton">
+    /* Premium first-load skeleton, intentionally scoped to live.html only. */
+    body.live-view-page .ppm-network-skeleton.ppm-network-skeleton-live {
+      --ppm-live-skel-surface: rgba(255,255,255,.88);
+      --ppm-live-skel-surface-soft: rgba(255,255,255,.64);
+      --ppm-live-skel-line: rgba(15, 67, 73, .09);
+      --ppm-live-skel-base: #dce9e9;
+      --ppm-live-skel-highlight: rgba(255,255,255,.92);
+      --ppm-live-skel-ink: #16444a;
+      --ppm-live-skel-muted: #6b8589;
+      padding: max(14px, env(safe-area-inset-top)) clamp(12px, 3vw, 42px) max(18px, env(safe-area-inset-bottom));
+      background:
+        radial-gradient(ellipse at 12% 0%, rgba(50, 167, 160, .11), transparent 34%),
+        radial-gradient(ellipse at 92% 9%, rgba(23, 102, 115, .08), transparent 30%),
+        linear-gradient(180deg, #f5f9f9 0%, #edf4f4 100%);
+      color: var(--ppm-live-skel-ink);
+    }
+    body.live-view-page .ppm-live-skeleton { width: min(1380px, 100%); margin: 0 auto; }
+    body.live-view-page .ppm-live-skel-header {
+      min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 2px 0 17px; border-bottom: 1px solid rgba(20, 72, 78, .10);
+    }
+    body.live-view-page .ppm-live-skel-brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    body.live-view-page .ppm-live-skel-logo {
+      width: 40px; height: 40px; flex: 0 0 40px; border-radius: 13px;
+      background: linear-gradient(145deg, #d9e9e8, #c6dcda); box-shadow: 0 5px 16px rgba(9, 72, 76, .08);
+    }
+    body.live-view-page .ppm-live-skel-brand-copy { display: grid; gap: 7px; width: 150px; }
+    body.live-view-page .ppm-live-skel-top-actions { display: flex; align-items: center; gap: 9px; }
+    body.live-view-page .ppm-live-skel-status { width: 86px; height: 29px; border-radius: 999px; }
+    body.live-view-page .ppm-live-skel-icon { width: 34px; height: 34px; border-radius: 50%; }
+    body.live-view-page .ppm-live-skel-session { padding: clamp(22px, 4vh, 38px) 0 15px; }
+    body.live-view-page .ppm-live-skel-eyebrow { display: flex; align-items: center; gap: 9px; margin-bottom: 13px; }
+    body.live-view-page .ppm-live-skel-live-pill { width: 52px; height: 22px; border-radius: 999px; }
+    body.live-view-page .ppm-live-skel-meta { width: 190px; height: 10px; border-radius: 99px; }
+    body.live-view-page .ppm-live-skel-title { width: min(390px, 72%); height: clamp(25px, 3.2vw, 36px); border-radius: 10px; margin-bottom: 10px; }
+    body.live-view-page .ppm-live-skel-subtitle { width: min(250px, 58%); height: 10px; border-radius: 99px; }
+    body.live-view-page .ppm-live-skel-tabs {
+      display: flex; align-items: center; gap: 8px; width: max-content; max-width: 100%;
+      padding: 6px; margin: 0 0 20px; border: 1px solid rgba(25, 83, 88, .09);
+      border-radius: 15px; background: rgba(255,255,255,.56); box-shadow: 0 5px 18px rgba(23, 68, 72, .035);
+    }
+    body.live-view-page .ppm-live-skel-tab { width: 104px; height: 35px; border-radius: 10px; }
+    body.live-view-page .ppm-live-skel-tab.active { background: linear-gradient(135deg, #c7e1df, #d8eae8); }
+    body.live-view-page .ppm-live-skel-section { min-width: 0; padding: clamp(15px, 2.2vw, 23px); border: 1px solid var(--ppm-live-skel-line); border-radius: 19px; background: var(--ppm-live-skel-surface); box-shadow: 0 10px 30px rgba(17, 62, 68, .045); }
+    body.live-view-page .ppm-live-skel-section-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 18px; }
+    body.live-view-page .ppm-live-skel-heading { width: 112px; height: 17px; border-radius: 7px; }
+    body.live-view-page .ppm-live-skel-heading-meta { width: 70px; height: 22px; border-radius: 999px; }
+    body.live-view-page .ppm-live-skel-courts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    body.live-view-page .ppm-live-skel-court {
+      min-width: 0; padding: clamp(13px, 1.8vw, 19px); border: 1px solid rgba(19, 83, 88, .09);
+      border-radius: 15px; background: linear-gradient(145deg, rgba(248,252,252,.98), rgba(239,247,246,.88));
+    }
+    body.live-view-page .ppm-live-skel-court-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    body.live-view-page .ppm-live-skel-court-name { width: 80px; height: 13px; border-radius: 6px; }
+    body.live-view-page .ppm-live-skel-court-state { width: 57px; height: 20px; border-radius: 999px; }
+    body.live-view-page .ppm-live-skel-teams { display: grid; grid-template-columns: minmax(0,1fr) 24px minmax(0,1fr); align-items: center; gap: 7px; }
+    body.live-view-page .ppm-live-skel-team { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    body.live-view-page .ppm-live-skel-avatar { width: 35px; height: 35px; border-radius: 50%; flex: 0 0 35px; }
+    body.live-view-page .ppm-live-skel-player-copy { display: grid; gap: 6px; flex: 1; min-width: 0; }
+    body.live-view-page .ppm-live-skel-vs { width: 20px; height: 9px; border-radius: 99px; justify-self: center; }
+    body.live-view-page .ppm-live-skel-scoreline { display: flex; justify-content: space-between; gap: 12px; margin-top: 17px; padding-top: 12px; border-top: 1px solid rgba(19, 83, 88, .08); }
+    body.live-view-page .ppm-live-skel-score { width: 54px; height: 11px; border-radius: 6px; }
+    body.live-view-page .ppm-live-skel-progress { width: 100%; height: 5px; margin-top: 15px; border-radius: 99px; }
+    body.live-view-page .ppm-live-skel-support { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 17px; }
+    body.live-view-page .ppm-live-skel-queue-row { display: flex; align-items: center; gap: 11px; min-height: 57px; border-bottom: 1px solid rgba(19, 83, 88, .07); }
+    body.live-view-page .ppm-live-skel-queue-row:last-child { border-bottom: 0; }
+    body.live-view-page .ppm-live-skel-queue-copy { display: grid; gap: 7px; flex: 1; min-width: 0; }
+    body.live-view-page .ppm-live-skel-queue-tag { width: 46px; height: 21px; border-radius: 999px; }
+    body.live-view-page .ppm-live-skel-next-card { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(19, 83, 88, .07); }
+    body.live-view-page .ppm-live-skel-next-card:last-child { border-bottom: 0; }
+    body.live-view-page .ppm-live-skel-court-mini { width: 43px; height: 43px; border-radius: 12px; flex: 0 0 43px; }
+    body.live-view-page .ppm-live-skel-next-copy { display: grid; gap: 7px; flex: 1; min-width: 0; }
+    body.live-view-page .ppm-live-skel-next-pill { width: 58px; height: 20px; border-radius: 999px; }
+    body.live-view-page .ppm-live-skel-footer { display: flex; justify-content: center; align-items: center; gap: 9px; padding: 22px 0 4px; color: var(--ppm-live-skel-muted); font: 700 10px/1.2 system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; }
+    body.live-view-page .ppm-live-skel-footer-dot { width: 6px; height: 6px; border-radius: 50%; background: #1b9a87; box-shadow: 0 0 0 4px rgba(27,154,135,.11); }
+    body.live-view-page .ppm-live-skel-shape { position: relative; overflow: hidden; background: var(--ppm-live-skel-base); }
+    body.live-view-page .ppm-live-skel-shape::after {
+      content: ""; position: absolute; inset: 0; transform: translateX(-110%);
+      background: linear-gradient(100deg, transparent 15%, var(--ppm-live-skel-highlight) 48%, transparent 82%);
+      animation: ppm-live-skel-shimmer 1.35s ease-in-out infinite;
+    }
+    @keyframes ppm-live-skel-shimmer { to { transform: translateX(110%); } }
+    html[data-theme="night"] body.live-view-page .ppm-network-skeleton.ppm-network-skeleton-live {
+      --ppm-live-skel-surface: rgba(19, 39, 44, .94);
+      --ppm-live-skel-surface-soft: rgba(19, 39, 44, .7);
+      --ppm-live-skel-line: rgba(205, 231, 232, .11);
+      --ppm-live-skel-base: rgba(154, 190, 192, .15);
+      --ppm-live-skel-highlight: rgba(230, 250, 247, .2);
+      --ppm-live-skel-ink: #dcebec;
+      --ppm-live-skel-muted: #8da8aa;
+      background:
+        radial-gradient(ellipse at 12% 0%, rgba(33, 154, 143, .12), transparent 34%),
+        radial-gradient(ellipse at 92% 9%, rgba(35, 103, 124, .12), transparent 30%),
+        linear-gradient(180deg, #08191e 0%, #0b2025 100%);
+    }
+    html[data-theme="night"] body.live-view-page .ppm-live-skel-court {
+      background: linear-gradient(145deg, rgba(23,48,53,.98), rgba(17,39,44,.92));
+      border-color: rgba(205,231,232,.09);
+    }
+    html[data-theme="night"] body.live-view-page .ppm-live-skel-tabs { background: rgba(18,40,45,.72); border-color: rgba(205,231,232,.1); }
+    html[data-theme="night"] body.live-view-page .ppm-live-skel-tab.active { background: linear-gradient(135deg, rgba(47,118,117,.55), rgba(39,91,99,.52)); }
+    @media (max-width: 900px) {
+      body.live-view-page .ppm-live-skel-courts,
+      body.live-view-page .ppm-live-skel-support { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 560px) {
+      body.live-view-page .ppm-live-skel-header { min-height: 46px; padding-bottom: 13px; }
+      body.live-view-page .ppm-live-skel-logo { width: 35px; height: 35px; flex-basis: 35px; border-radius: 11px; }
+      body.live-view-page .ppm-live-skel-brand-copy { width: 116px; }
+      body.live-view-page .ppm-live-skel-status { width: 66px; height: 26px; }
+      body.live-view-page .ppm-live-skel-icon { width: 30px; height: 30px; }
+      body.live-view-page .ppm-live-skel-session { padding-top: 20px; }
+      body.live-view-page .ppm-live-skel-title { width: 82%; height: 27px; }
+      body.live-view-page .ppm-live-skel-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; gap: 5px; padding: 5px; }
+      body.live-view-page .ppm-live-skel-tab { width: auto; height: 33px; }
+      body.live-view-page .ppm-live-skel-section { padding: 14px; border-radius: 16px; }
+      body.live-view-page .ppm-live-skel-court { padding: 13px; }
+      body.live-view-page .ppm-live-skel-avatar { width: 31px; height: 31px; flex-basis: 31px; }
+      body.live-view-page .ppm-live-skel-teams { grid-template-columns: minmax(0,1fr) 19px minmax(0,1fr); gap: 4px; }
+      body.live-view-page .ppm-live-skel-team { gap: 6px; }
+      body.live-view-page .ppm-live-skel-vs { width: 17px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      body.live-view-page .ppm-live-skel-shape::after { animation: none; transform: none; opacity: .24; }
+    }
+  </style>
   <script src="/network-skeleton.js?v=network-skeleton-20261024-1"></script>
   <script src="/network-validation.js?v=network-validation-20261106-1"></script>
 
+
+  <style id="session-organizer-shimmer">
+    /* Continuous organizer-name shimmer on every device where this label is visible. */
+    html body.live-view-page #mobileSessionOrganizer.mobile-session-organizer:not([hidden]) {
+      --ppm-organizer-shimmer-base: #c6a7f8;
+      --ppm-organizer-shimmer-highlight: #ffffff;
+      display: inline-block !important;
+      background-image: linear-gradient(
+        105deg,
+        var(--ppm-organizer-shimmer-base) 0%,
+        var(--ppm-organizer-shimmer-base) 38%,
+        var(--ppm-organizer-shimmer-highlight) 50%,
+        var(--ppm-organizer-shimmer-base) 62%,
+        var(--ppm-organizer-shimmer-base) 100%
+      ) !important;
+      background-repeat: no-repeat !important;
+      background-size: 250% 100% !important;
+      background-position: 100% 0 !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      animation: ppm-session-organizer-shimmer 1.8s ease-in-out infinite !important;
+      will-change: background-position;
+    }
+
+    html[data-theme="light"] body.live-view-page #mobileSessionOrganizer.mobile-session-organizer:not([hidden]) {
+      --ppm-organizer-shimmer-base: #8852c6;
+      --ppm-organizer-shimmer-highlight: #eadcff;
+    }
+
+    @keyframes ppm-session-organizer-shimmer {
+      0% { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
+    }
+  </style>
+
 </head>
 <body class="live-view-page">
+  <script id="live-page-premium-skeleton-mount">
+    (() => {
+      'use strict';
+      const premiumMarkup = `
+        <div class="ppm-live-skeleton" aria-hidden="true">
+          <header class="ppm-live-skel-header">
+            <div class="ppm-live-skel-brand">
+              <div class="ppm-live-skel-logo ppm-live-skel-shape"></div>
+              <div class="ppm-live-skel-brand-copy">
+                <div class="ppm-live-skel-shape" style="height:11px;width:100%;border-radius:5px"></div>
+                <div class="ppm-live-skel-shape" style="height:7px;width:68%;border-radius:5px"></div>
+              </div>
+            </div>
+            <div class="ppm-live-skel-top-actions">
+              <div class="ppm-live-skel-status ppm-live-skel-shape"></div>
+              <div class="ppm-live-skel-icon ppm-live-skel-shape"></div>
+            </div>
+          </header>
+          <section class="ppm-live-skel-session">
+            <div class="ppm-live-skel-eyebrow">
+              <div class="ppm-live-skel-live-pill ppm-live-skel-shape"></div>
+              <div class="ppm-live-skel-meta ppm-live-skel-shape"></div>
+            </div>
+            <div class="ppm-live-skel-title ppm-live-skel-shape"></div>
+            <div class="ppm-live-skel-subtitle ppm-live-skel-shape"></div>
+          </section>
+          <nav class="ppm-live-skel-tabs" aria-hidden="true">
+            <div class="ppm-live-skel-tab active ppm-live-skel-shape"></div>
+            <div class="ppm-live-skel-tab ppm-live-skel-shape"></div>
+            <div class="ppm-live-skel-tab ppm-live-skel-shape"></div>
+          </nav>
+          <section class="ppm-live-skel-section">
+            <div class="ppm-live-skel-section-head">
+              <div class="ppm-live-skel-heading ppm-live-skel-shape"></div>
+              <div class="ppm-live-skel-heading-meta ppm-live-skel-shape"></div>
+            </div>
+            <div class="ppm-live-skel-courts">
+              ${[1, 2].map(() => `
+                <article class="ppm-live-skel-court">
+                  <div class="ppm-live-skel-court-top">
+                    <div class="ppm-live-skel-court-name ppm-live-skel-shape"></div>
+                    <div class="ppm-live-skel-court-state ppm-live-skel-shape"></div>
+                  </div>
+                  <div class="ppm-live-skel-teams">
+                    <div class="ppm-live-skel-team">
+                      <div class="ppm-live-skel-avatar ppm-live-skel-shape"></div>
+                      <div class="ppm-live-skel-player-copy">
+                        <div class="ppm-live-skel-shape" style="height:9px;width:95%;border-radius:5px"></div>
+                        <div class="ppm-live-skel-shape" style="height:7px;width:58%;border-radius:5px"></div>
+                      </div>
+                    </div>
+                    <div class="ppm-live-skel-vs ppm-live-skel-shape"></div>
+                    <div class="ppm-live-skel-team">
+                      <div class="ppm-live-skel-avatar ppm-live-skel-shape"></div>
+                      <div class="ppm-live-skel-player-copy">
+                        <div class="ppm-live-skel-shape" style="height:9px;width:90%;border-radius:5px"></div>
+                        <div class="ppm-live-skel-shape" style="height:7px;width:55%;border-radius:5px"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ppm-live-skel-scoreline">
+                    <div class="ppm-live-skel-score ppm-live-skel-shape"></div>
+                    <div class="ppm-live-skel-score ppm-live-skel-shape"></div>
+                  </div>
+                  <div class="ppm-live-skel-progress ppm-live-skel-shape"></div>
+                </article>
+              `).join('')}
+            </div>
+          </section>
+          <div class="ppm-live-skel-support">
+            <section class="ppm-live-skel-section">
+              <div class="ppm-live-skel-section-head">
+                <div class="ppm-live-skel-heading ppm-live-skel-shape"></div>
+                <div class="ppm-live-skel-heading-meta ppm-live-skel-shape"></div>
+              </div>
+              ${[1, 2, 3, 4].map(() => `
+                <div class="ppm-live-skel-queue-row">
+                  <div class="ppm-live-skel-avatar ppm-live-skel-shape"></div>
+                  <div class="ppm-live-skel-queue-copy">
+                    <div class="ppm-live-skel-shape" style="height:9px;width:72%;border-radius:5px"></div>
+                    <div class="ppm-live-skel-shape" style="height:7px;width:43%;border-radius:5px"></div>
+                  </div>
+                  <div class="ppm-live-skel-queue-tag ppm-live-skel-shape"></div>
+                </div>
+              `).join('')}
+            </section>
+            <section class="ppm-live-skel-section">
+              <div class="ppm-live-skel-section-head">
+                <div class="ppm-live-skel-heading ppm-live-skel-shape"></div>
+                <div class="ppm-live-skel-heading-meta ppm-live-skel-shape"></div>
+              </div>
+              ${[1, 2].map(() => `
+                <div class="ppm-live-skel-next-card">
+                  <div class="ppm-live-skel-court-mini ppm-live-skel-shape"></div>
+                  <div class="ppm-live-skel-next-copy">
+                    <div class="ppm-live-skel-shape" style="height:9px;width:74%;border-radius:5px"></div>
+                    <div class="ppm-live-skel-shape" style="height:7px;width:52%;border-radius:5px"></div>
+                  </div>
+                  <div class="ppm-live-skel-next-pill ppm-live-skel-shape"></div>
+                </div>
+              `).join('')}
+            </section>
+          </div>
+          <div class="ppm-live-skel-footer"><span class="ppm-live-skel-footer-dot"></span><span>Syncing live courts</span></div>
+        </div>`;
+
+      const applyPremiumSkeleton = node => {
+        if (!node || node.id !== 'ppmNetworkSkeleton' || node.dataset.ppmPremiumLive === 'true') return;
+        node.dataset.ppmPremiumLive = 'true';
+        node.classList.add('ppm-network-skeleton-live');
+        node.setAttribute('aria-label', 'Loading Pickle Point Match live courts');
+        node.innerHTML = premiumMarkup;
+      };
+
+      const observer = new MutationObserver(records => {
+        for (const record of records) {
+          for (const added of record.addedNodes) {
+            if (added.nodeType !== 1) continue;
+            if (added.id === 'ppmNetworkSkeleton') applyPremiumSkeleton(added);
+            else if (added.querySelector) applyPremiumSkeleton(added.querySelector('#ppmNetworkSkeleton'));
+          }
+        }
+      });
+      if (document.body) {
+        observer.observe(document.body, {childList: true, subtree: true});
+        applyPremiumSkeleton(document.getElementById('ppmNetworkSkeleton'));
+      }
+    })();
+  </script>
   <header class="live-header">
     <div class="brand">
       <img src="/pickleball-p-emblem.png" alt="Pickle Point Match logo">

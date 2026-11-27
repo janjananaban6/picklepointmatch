@@ -1666,6 +1666,29 @@ html body[data-page="queueing"] #rankingView .leaderboard-filter-controls[hidden
   display: none !important;
 }
 </style>
+<style id="queueing-playing-badge-dots-20261127">
+/* Queueing page only: remove the leading status dot and animate the text suffix. */
+html body[data-page="queueing"] .playing-badge {
+  gap: 0 !important;
+  column-gap: 0 !important;
+}
+html body[data-page="queueing"] .playing-badge::before {
+  content: none !important;
+  display: none !important;
+}
+html body[data-page="queueing"] .playing-badge::after {
+  content: ".";
+  display: inline-block;
+  min-width: 1.1em;
+  text-align: left;
+  animation: queueingPlayingBadgeDots 1.2s steps(1, end) infinite;
+}
+@keyframes queueingPlayingBadgeDots {
+  0%, 32.99% { content: "."; }
+  33%, 65.99% { content: ".."; }
+  66%, 100% { content: "..."; }
+}
+</style>
 </head>
 <body data-page="queueing">
 <div id="queueingMobileDisabledNotice" role="status" aria-live="polite" aria-labelledby="queueingMobileDisabledTitle">

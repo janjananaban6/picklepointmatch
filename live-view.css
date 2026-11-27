@@ -7880,3 +7880,41 @@ html body.live-view-page #pageRankingList > .live-ranking-row.rank-3 > * {
     animation: none !important;
   }
 }
+
+/* LIVE RANKING — replace the Playing badge with a compact animated dot label.
+   Only the existing Playing status text is restyled; ranking data and layout stay intact. */
+html body.live-view-page #pageRankingList .live-ranking-playing {
+  display: inline-flex !important;
+  align-items: baseline !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  font-size: 8px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+html body.live-view-page #pageRankingList .live-ranking-playing::after {
+  content: ".";
+  display: inline-block;
+  flex: 0 0 1em;
+  width: 1em;
+  text-align: left;
+  white-space: nowrap;
+  animation: ppm-live-ranking-playing-dots 1.35s linear infinite !important;
+}
+@keyframes ppm-live-ranking-playing-dots {
+  0%, 32.99% { content: "."; }
+  33%, 65.99% { content: ".."; }
+  66%, 100% { content: "..."; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body.live-view-page #pageRankingList .live-ranking-playing::after {
+    content: ".";
+    animation: none !important;
+  }
+}
