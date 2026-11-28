@@ -13,3 +13,6 @@ npm-debug.log*
 .env
 .env.*
 !.env.example
+
+# Deployment/export archives can contain private runtime records.
+*.zip

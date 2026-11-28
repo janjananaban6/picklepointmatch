@@ -1126,6 +1126,16 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 650px; bac
   .data-table.players-table:not(.player-import-table) col:nth-child(7) { width: 10% !important; }
   .data-table.players-table:not(.player-import-table) col:nth-child(8) { width: 18% !important; }
 
+  /* When no player row actions are enabled, let the remaining columns use
+     the full tablet width instead of leaving an empty Actions column gap. */
+  .data-table.players-table:not(.player-import-table).no-player-actions col:nth-child(1) { width: 4% !important; }
+  .data-table.players-table:not(.player-import-table).no-player-actions col:nth-child(2) { width: 29% !important; }
+  .data-table.players-table:not(.player-import-table).no-player-actions col:nth-child(3) { width: 15% !important; }
+  .data-table.players-table:not(.player-import-table).no-player-actions col:nth-child(4) { width: 8% !important; }
+  .data-table.players-table:not(.player-import-table).no-player-actions col:nth-child(5) { width: 12% !important; }
+  .data-table.players-table:not(.player-import-table).no-player-actions col:nth-child(6) { width: 14% !important; }
+  .data-table.players-table:not(.player-import-table).no-player-actions col:nth-child(7) { width: 18% !important; }
+
   .data-table.players-table th,
   .data-table.players-table td {
     min-width: 0;

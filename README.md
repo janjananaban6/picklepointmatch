@@ -15,7 +15,7 @@ to the same Render web service and branch. The ZIP is laid out with `server.js` 
 at the extracted repository root.
 
 After deploying, verify `/api/health` on the same Render domain: it must report build
-`ppm-session-import-merge-20261126-v1` and `capabilities.sessionImport: true`. If not, the
+`ppm-player-edit-actions-20261128-v1` and `capabilities.sessionImport: true`. If not, the
 existing Render service is still running an older backend or the wrong repository branch
 or Root Directory was deployed. See `SESSION-IMPORT-DEPLOYMENT-FIX.txt`.
 

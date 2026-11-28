@@ -5,7 +5,7 @@ const { URL } = require('node:url');
 const crypto = require('node:crypto');
 
 const ROOT = __dirname;
-const APP_BUILD_VERSION = 'ppm-session-import-merge-20261126-v1';
+const APP_BUILD_VERSION = 'ppm-player-edit-actions-20261128-v1';
 const SESSION_IMPORT_API_PATH = '/api/organizer-dashboard/sessions/import';
 const DATA_DIR = process.env.PICKLE_DATA_DIR ? path.resolve(process.env.PICKLE_DATA_DIR) : path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'live-state.json');
@@ -22,7 +22,7 @@ const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8
 
 const ORGANIZER_MENU_ACTION_KEYS = Object.freeze([
   'sessionsImportCsv', 'sessionsExportCsv',
-  'playersImportCsv', 'playersExportCsv', 'playersDelete',
+  'playersImportCsv', 'playersExportCsv', 'playersEdit', 'playersDelete',
   'matchesExportDuprCsv', 'rankingsExport',
   'courtsImportCsv', 'courtsExportCsv', 'courtsEdit', 'courtsDelete',
   'reportsFullBackup'

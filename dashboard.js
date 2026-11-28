@@ -55,6 +55,7 @@ const MENU_ACTION_FILTER_GROUPS = Object.freeze([
   { page: 'players', title: 'Players', actions: [
     { key: 'playersImportCsv', label: 'Import CSV' },
     { key: 'playersExportCsv', label: 'Export CSV' },
+    { key: 'playersEdit', label: 'Edit' },
     { key: 'playersDelete', label: 'Delete' }
   ]},
   { page: 'matches', title: 'Match Records', actions: [
@@ -3332,7 +3333,16 @@ function playersTable(players) {
       ? emptyState('No matching players', 'No registered players match the selected filter or search. Try another filter.')
       : emptyState('No registered players yet', 'Players added through the player registration page will appear here.', 'Open registration', 'register-player');
   }
-  return `<div class="table-wrap players-table-wrap"><table class="data-table players-table"><colgroup><col style="width:4%"><col style="width:27%"><col style="width:14%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col style="width:10%"><col style="width:13%"></colgroup><thead><tr><th scope="col">#</th><th scope="col">Player's Fullname (Nickname)</th><th scope="col">Category</th><th scope="col">Gender</th><th scope="col">DUPR ID</th><th scope="col">Attendance</th><th scope="col">Match Records</th><th scope="col">Action</th></tr></thead><tbody>${players.map((player, index) => {
+
+  const showEditAction = menuActionVisible('playersEdit');
+  const showDeleteAction = menuActionVisible('playersDelete');
+  const showPlayerActions = showEditAction || showDeleteAction;
+  const tableClass = `data-table players-table${showPlayerActions ? ' has-player-actions' : ' no-player-actions'}`;
+  const columnWidths = showPlayerActions
+    ? [4, 27, 14, 9, 13, 10, 10, 13]
+    : [4, 31, 15, 9, 14, 13, 14];
+
+  return `<div class="table-wrap players-table-wrap"><table class="${tableClass}"><colgroup>${columnWidths.map(width => `<col style="width:${width}%">`).join('')}</colgroup><thead><tr><th scope="col">#</th><th scope="col">Player's Fullname (Nickname)</th><th scope="col">Category</th><th scope="col">Gender</th><th scope="col">DUPR ID</th><th scope="col">Attendance</th><th scope="col">Match Records</th>${showPlayerActions ? '<th scope="col">Action</th>' : ''}</tr></thead><tbody>${players.map((player, index) => {
     const stats = playerStats(player);
     const category = categoryName(player.category);
     const categoryClass = `category-${categoryCode(player.category).toLowerCase()}`;
@@ -3344,7 +3354,10 @@ function playersTable(players) {
     const fullDisplayName = `${player.name || 'Unnamed Player'}${player.nickname ? ` (${player.nickname})` : ''}`;
     const registeredOn = formatPlayerRegisteredOn(player);
     const playerId = String(player.cloudId || player.id || '');
-    return `<tr><td class="player-number">${index + 1}</td><td class="primary-cell"><span class="table-player"><span class="player-avatar">${initials(player.name)}</span><span class="player-name-copy"><span class="player-name-text">${escapeHTML(fullDisplayName)}</span>${registeredOn ? `<span class="player-registered-date">${escapeHTML(registeredOn)}</span>` : ''}</span></span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td>${genderCell}</td><td><strong>${escapeHTML(player.duprId || '—')}</strong></td><td class="player-count-cell">${stats.attendance}</td><td class="player-count-cell">${stats.matches}</td><td><div class="table-actions"><button class="btn btn-sm" type="button" data-player-edit="${escapeHTML(playerId)}">Edit</button>${menuActionVisible('playersDelete') ? `<button class="btn btn-sm btn-danger" type="button" title="Delete player" data-player-delete="${escapeHTML(playerId)}">${icon('trash')} Delete</button>` : ''}</div></td></tr>`;
+    const playerActions = showPlayerActions
+      ? `<td><div class="table-actions">${showEditAction ? `<button class="btn btn-sm" type="button" data-player-edit="${escapeHTML(playerId)}">Edit</button>` : ''}${showDeleteAction ? `<button class="btn btn-sm btn-danger" type="button" title="Delete player" data-player-delete="${escapeHTML(playerId)}">${icon('trash')} Delete</button>` : ''}</div></td>`
+      : '';
+    return `<tr><td class="player-number">${index + 1}</td><td class="primary-cell"><span class="table-player"><span class="player-avatar">${initials(player.name)}</span><span class="player-name-copy"><span class="player-name-text">${escapeHTML(fullDisplayName)}</span>${registeredOn ? `<span class="player-registered-date">${escapeHTML(registeredOn)}</span>` : ''}</span></span></td><td><span class="player-category-badge ${escapeHTML(categoryClass)}">${escapeHTML(category.toUpperCase())}</span></td><td>${genderCell}</td><td><strong>${escapeHTML(player.duprId || '—')}</strong></td><td class="player-count-cell">${stats.attendance}</td><td class="player-count-cell">${stats.matches}</td>${playerActions}</tr>`;
   }).join('')}</tbody></table></div>`;
 }
 function renderPlayers() {
@@ -4836,7 +4849,7 @@ function openMenuActionFilters() {
   modal('Menu Action Filters', menuActionFilterModalMarkup(), {
     wide: true,
     className: 'settings-action-filter-modal',
-    subtitle: 'Choose which import, export and record actions appear in each menu.'
+    subtitle: 'Choose which import, export, edit and record actions appear in each menu.'
   });
 }
 async function saveMenuActionFilters(button) {

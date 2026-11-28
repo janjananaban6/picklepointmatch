@@ -7,8 +7,35 @@
   <meta name="description" content="Pickle Point Match dashboard for open-play sessions, players, courts and match management.">
   <title>Pickle Point Match - Dashboard</title>
   <link rel="icon" type="image/png" href="/pickleball-p-emblem.png">
-  <link rel="stylesheet" href="/dashboard.css?v=dashboard-mobile-filters-20261126-v1">
-  <script src="/dashboard.js?v=session-import-merge-20261126-v1" defer></script>
+  <link rel="stylesheet" href="/dashboard.css?v=player-edit-actions-20261128-v1">
+  <style>
+    /* Dashboard-only navigation polish: keep the mobile sidebar on the compositor
+       and shorten the motion so opening/closing feels immediate on slower devices. */
+    @media (max-width: 840px) {
+      #sidebar.sidebar {
+        height: 100vh;
+        height: 100svh;
+        transform: translate3d(-105%, 0, 0);
+        transition: transform 140ms cubic-bezier(.2, .72, .2, 1);
+        will-change: transform;
+      }
+      #sidebar.sidebar.mobile-open {
+        transform: translate3d(0, 0, 0);
+      }
+      #sidebar .nav-item,
+      #sidebar .sidebar-shortcuts a {
+        transition-duration: 100ms;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #sidebar.sidebar,
+      #sidebar .nav-item,
+      #sidebar .sidebar-shortcuts a {
+        transition: none !important;
+      }
+    }
+  </style>
+  <script src="/dashboard.js?v=player-edit-actions-20261128-v1" defer></script>
 </head>
 <body>
   <div class="app-shell" id="appShell">
